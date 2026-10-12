@@ -222,6 +222,14 @@ console.log('game result → ratings');
   const me = await (await post('/api/me', { initData: host })).json(); eq(me.rating.hosted, 1, 'host credited');
   const lb = await (await call('/api/leaderboard?limit=5')).json(); ok(lb.ok && lb.top[0].tgId === 202 && lb.top[0].points === 1031 && lb.top[0].rank === 1, 'leaderboard'); }
 
+console.log('player profile');
+{ const a = await initData(user(100)); const pr = await (await post('/api/profile', { initData: a, tgId: 202 })).json();
+  ok(pr.ok && pr.user.tgId === 202 && pr.user.name === 'User202' && pr.rating.points === 1031 && pr.rating.games === 1 && pr.rating.wins === 1, 'profile with rating: ' + JSON.stringify(pr.rating));
+  eq(pr.roles, [{ roleId: 'sheriff', games: 1, wins: 1, points: 31 }], 'per-role stats'); ok(pr.recent.length === 1 && pr.recent[0].roleId === 'sheriff' && pr.recent[0].won === true && pr.recent[0].n === 3 && pr.recent[0].winner === 'city', 'recent games');
+  ok(typeof pr.user.online === 'boolean' && typeof pr.user.seenAgo === 'number' && pr.isFriend === false && pr.grant === false, 'presence, friendship, grant flags');
+  const self = await (await post('/api/profile', { initData: a, tgId: 100 })).json(); ok(self.ok && self.rating.hosted === 1, 'own profile');
+  eq((await post('/api/profile', { initData: a, tgId: 4242 })).status, 404, 'unknown player'); eq((await post('/api/profile', { initData: a, tgId: 'x' })).status, 400, 'bad id'); }
+
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
   eq((await call('/api/nothing', { method: 'POST', body: '{}' })).status, 404, 'unknown api');

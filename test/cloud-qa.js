@@ -154,6 +154,16 @@ const path = require('path'); const http = require('http');
   const offline = await S(() => { const f = FR.list.find(x => x.tgId === 702); return f && f.online === false && typeof f.seenAgo === 'number'; }); ok(offline, 'Olga is offline (seen long ago)');
   ok((await p.innerText('#app')).includes(await S(() => tt(U().frSeen, { t: '' }).trim().split(' ')[0])), 'offline label shown');
   await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-friends-search.png') }).catch(() => {});
+  // tapping a friend opens their profile; the circle only toggles selection
+  await S(() => { S.ui.frSel = []; render(); });
+  await p.click('.fr-row[data-a="fr-open"][data-id="701"] .chk'); await p.waitForTimeout(150);
+  ok(await S(() => !S.ui.sheet && S.ui.frSel.length === 1 && S.ui.frSel[0] === 701), 'circle toggles selection without opening');
+  await p.click('.fr-row[data-a="fr-open"][data-id="701"] .nm'); await p.waitForTimeout(600);
+  ok(await S(() => S.ui.sheet && S.ui.sheet.type === 'friend' && S.ui.sheet.id === 701 && FRP[701] && FRP[701].ok), 'profile sheet loaded');
+  const sheetTxt = await p.innerText('.sheet'); ok(sheetTxt.includes('Nika') && sheetTxt.includes('@nika_m') && sheetTxt.includes('1000') && sheetTxt.includes(await S(() => U().frInviteOne)) && sheetTxt.includes(await S(() => U().frRemove)), 'sheet shows name, rating and actions');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-friend-profile.png') }).catch(() => {});
+  await p.click('[data-a="fr-open-tg"]'); ok(await S(() => window.__tg.links.some(l => l === 'https://t.me/nika_m')), 'message in Telegram opens t.me link');
+  await S(() => { S.ui.sheet = null; render(); });
   // admin panel in settings (user 100 is admin in this test)
   await S(() => go('settings')); await p.waitForTimeout(500);
   ok(await S(() => S.cloud.admin === true && !!document.querySelector('[data-a="adm-grant"]')), 'admin panel visible');
@@ -175,7 +185,13 @@ const path = require('path'); const http = require('http');
 
   console.log('global rating panel');
   await S(() => { go('ratings'); }); await p.waitForTimeout(100);
-  if (await p.$('[data-a="tg-top"]')) { await p.click('[data-a="tg-top"]'); await p.waitForTimeout(400); ok(await S(() => Array.isArray(CLOUD.top) && CLOUD.top.length >= 1), 'leaderboard loaded'); }
+  if (await p.$('[data-a="tg-top"]')) { await p.click('[data-a="tg-top"]'); await p.waitForTimeout(400); ok(await S(() => Array.isArray(CLOUD.top) && CLOUD.top.length >= 1), 'leaderboard loaded');
+    await p.click('.rank-row[data-a="fr-open"]'); await p.waitForTimeout(600);
+    const lb = await p.$eval('.sheet', el => el.textContent); const topId = await S(() => CLOUD.top[0].tgId);
+    ok(await S(() => S.ui.sheet && S.ui.sheet.type === 'friend') && lb.includes(await S(() => U().frRecent)) && (await S(() => FRP[CLOUD.top[0].tgId].recent.length >= 1)), 'leaderboard row opens a profile with recent games (tgId ' + topId + ')');
+    ok(lb.includes(await S(() => U().frWon)) || lb.includes(await S(() => U().frLost)), 'recent game shows result');
+    await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-profile-games.png') }).catch(() => {});
+    await S(() => { S.ui.sheet = null; render(); }); }
   else { ok(await S(() => typeof cloudTopHTML() === 'string'), 'ratings screen not reachable by state — panel function exists'); }
 
   await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-ratings.png') }).catch(() => {});

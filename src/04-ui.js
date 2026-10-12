@@ -766,6 +766,7 @@ function sheetHTML(enter = true) {
   }
   if (sh.type === 'profEdit') body = profEditHTML(sh.id);
   if (sh.type === 'buy') body = buySheetHTML(sh.kind, sh.id);
+  if (sh.type === 'friend' && typeof friendSheetHTML === 'function') body = friendSheetHTML(sh.id);
   if (sh.type === 'reset') body = `<h2>${u.resetTitle}</h2><p class="hint" style="margin:6px 0 14px">${u.resetText}</p><div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn danger" data-a="reset-confirm">${u.resetBtn}</button></div>`;
   return `<div class="sheet-bg ${enter ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`;
 }

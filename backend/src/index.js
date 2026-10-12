@@ -16,6 +16,7 @@
    - POST /api/friends/requests incoming / outgoing requests
    - POST /api/friends/respond accept or decline a request in the app
    - POST /api/ping            presence heartbeat (online = seen in the last few minutes)
+   - POST /api/profile         a player's public game profile (rating, per-role stats, recent games)
    - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
@@ -244,6 +245,27 @@ async function apiMe(env, bot, body) {
   const u = v.user;
   return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}` }, admin: isAdmin(env, u.id) });
 }
+async function apiProfile(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const id = Number(body.tgId); if (!id) return json({ ok: false, error: 'bad_id' }, 400);
+  const u = await userRow(env, id); if (!u) return json({ ok: false, error: 'not_found' }, 404);
+  const seen = await env.DB.prepare('SELECT seen_at, created_at FROM users WHERE tg_id = ?1').bind(id).first();
+  const rating = await ratingFor(env, id);
+  const rows = (await env.DB.prepare("SELECT game_id, mode, winner, summary, created_at FROM games WHERE summary LIKE ?1 ORDER BY created_at DESC LIMIT 300").bind('%"tgId":' + id + ',%').all()).results || [];
+  const byRole = {}; const recent = [];
+  for (const g of rows) {
+    let players = []; try { players = JSON.parse(g.summary || '[]'); } catch (e) { continue; }
+    const p = players.find(x => Number(x.tgId) === id); if (!p) continue;
+    const r = byRole[p.roleId] = byRole[p.roleId] || { roleId: p.roleId, games: 0, wins: 0, points: 0 };
+    r.games++; if (p.won) r.wins++; r.points += Number(p.points) || 0;
+    if (recent.length < 12) recent.push({ at: g.created_at * 1000, mode: g.mode, roleId: p.roleId, won: !!p.won, points: Number(p.points) || 0, n: players.length, winner: g.winner });
+  }
+  const roles = Object.values(byRole).sort((a, b) => b.wins - a.wins || b.games - a.games || b.points - a.points);
+  const isFriend = !!(await env.DB.prepare('SELECT 1 FROM friends WHERE tg_id = ?1 AND friend_id = ?2').bind(v.user.id, id).first());
+  const ts = now();
+  return json({ ok: true, user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000 },
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, isFriend, grant: !!(await grantFor(env, id)) });
+}
 async function apiPing(env, body) { const v = await auth(env, body); return v ? json({ ok: true }) : json({ ok: false, error: 'unauthorized' }, 401); }
 async function apiFriendSearch(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -433,6 +455,7 @@ export default {
           case '/api/friends/requests': return wrap(apiFriendRequests(env, body));
           case '/api/friends/respond': return wrap(apiFriendRespond(env, bot, body));
           case '/api/ping': return wrap(apiPing(env, body));
+          case '/api/profile': return wrap(apiProfile(env, body));
           case '/api/admin/grant': return wrap(apiAdmin(env, bot, body, 'grant'));
           case '/api/admin/revoke': return wrap(apiAdmin(env, bot, body, 'revoke'));
           case '/api/admin/grants': return wrap(apiAdmin(env, bot, body, 'grants'));
