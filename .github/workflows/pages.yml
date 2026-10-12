@@ -42,6 +42,9 @@ jobs:
           MAFIA_API_URL: ${{ inputs.api_url || vars.MAFIA_API_URL }}
         run: |
           mkdir -p _site
+          # address of the backend: workflow input → repository variable → .mafia-api-url committed by the backend deploy
+          [ -n "$MAFIA_API_URL" ] || MAFIA_API_URL=$(cat .mafia-api-url 2>/dev/null | tr -d '[:space:]')
+          echo "backend: ${MAFIA_API_URL:-<none>}"
           sed "s#__MAFIA_API__#${MAFIA_API_URL}#" index.html > _site/index.html
           cp 404.html _site/
           touch _site/.nojekyll
