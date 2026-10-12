@@ -942,6 +942,18 @@ async function transferHost(env, bot, code, newHost) {
   try { await bot.send(lobby.host_id, t(pickLang(creator && creator.lang), 'hostTaken', { name: esc(displayName(newHost)), code }), tableButton(env, pickLang(creator && creator.lang), code)); } catch (e) {}
   return await lobbyAny(env, code);
 }
+/* the host removes a player from the table before the game: seat freed, the player told */
+async function apiLobbyKick(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
+  const tgId = Number(body.tgId) || 0; if (!tgId || tgId === v.user.id) return json({ ok: false, error: 'bad_id' }, 400);
+  const r = await env.DB.prepare('DELETE FROM lobby_players WHERE code = ?1 AND tg_id = ?2').bind(lobby.code, tgId).run();
+  await env.DB.prepare('DELETE FROM table_seen WHERE code = ?1 AND tg_id = ?2').bind(lobby.code, tgId).run();
+  await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3 AND status = ?4').bind('declined', lobby.code, tgId, 'pending').run();
+  const kicked = !!(r.meta && r.meta.changes > 0);
+  if (kicked) { const u = await userRow(env, tgId); try { await bot.send(tgId, t(pickLang(u && u.lang), 'kicked', { code: lobby.code, name: esc(displayName(v.user)) })); } catch (e) {} }
+  return json({ ok: true, kicked, code: lobby.code });
+}
 async function apiLobbyRole(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
@@ -1008,17 +1020,20 @@ async function apiLobbies(env, body) {
   const mates = club ? ((await env.DB.prepare('SELECT tg_id FROM club_members WHERE club_id = ?1').bind(club.club_id).all()).results || []).map(r => r.tg_id) : [];
   const invited = ((await env.DB.prepare('SELECT code FROM table_invites WHERE tg_id = ?1 AND status = ?2').bind(me, 'pending').all()).results || []).map(r => r.code);
   const seated = ((await env.DB.prepare('SELECT code FROM lobby_players WHERE tg_id = ?1').bind(me).all()).results || []).map(r => r.code);
-  const rows = (await env.DB.prepare(`SELECT l.code, l.host_id, l.status, l.created_at, u.first_name, u.last_name, u.username, u.photo_url, u.seen_at, (SELECT COUNT(*) FROM lobby_players p WHERE p.code = l.code) AS n, ts.pub FROM lobbies l JOIN users u ON u.tg_id = l.host_id LEFT JOIN table_state ts ON ts.code = l.code WHERE l.status IN ('open', 'dealt') AND l.created_at > ?1 ORDER BY l.created_at DESC, l.rowid DESC LIMIT 200`).bind(ts - 8 * 3600).all()).results || [];
+  const all = !!body.all; // the table finder: every online table on the server (joinable ones first, running ones marked), not only friends'
+  const rows = (await env.DB.prepare(`SELECT l.code, l.host_id, l.status, l.created_at, u.first_name, u.last_name, u.username, u.photo_url, u.seen_at, (SELECT COUNT(*) FROM lobby_players p WHERE p.code = l.code) AS n, ts.pub, o.online AS opt_online, o.host_plays FROM lobbies l JOIN users u ON u.tg_id = l.host_id LEFT JOIN table_state ts ON ts.code = l.code LEFT JOIN lobby_opts o ON o.code = l.code WHERE l.status IN (${all ? "'open', 'dealt', 'live'" : "'open', 'dealt'"}) AND l.created_at > ?1 ORDER BY l.created_at DESC, l.rowid DESC LIMIT 300`).bind(ts - 8 * 3600).all()).results || [];
   const out = []; const hosts = new Set();
   for (const r of rows) {
     if (hosts.has(r.host_id)) { await supersededTable(env, r.code, r.host_id); continue; } hosts.add(r.host_id); // the newest table of each host; older ones are closed
     if (await staleTable(env, { code: r.code, status: r.status, host_id: r.host_id })) continue; // host gone for 5 minutes, nobody else at the table
     const via = seated.includes(r.code) ? 'seated' : invited.includes(r.code) ? 'invite' : friends.includes(r.host_id) ? 'friend' : mates.includes(r.host_id) ? 'club' : r.host_id === me ? 'own' : null;
-    if (!via) continue;
     const pub = parseJSON(r.pub, {}) || {};
-    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: r.host_id, name: rowName(r) || String(r.host_id), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online: !!pub.online, mode: pub.mode || null, phase: pub.phase || 'lobby' });
-    if (out.length >= 30) break;
+    const online = !!(r.opt_online || pub.online);
+    if (all ? !online : !via) continue;
+    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: r.host_id, name: rowName(r) || String(r.host_id), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online, hostPlays: !!r.host_plays, mode: pub.mode || null, phase: pub.phase || 'lobby', alive: Array.isArray(pub.seats) ? pub.seats.filter(x => x.alive !== false).length : null });
+    if (out.length >= 60) break;
   }
+  if (all) out.sort((a, b) => (a.status === 'live' ? 1 : 0) - (b.status === 'live' ? 1 : 0) || b.at - a.at); // joinable first
   return json({ ok: true, lobbies: out });
 }
 /* sit down at an open table from the app (the list of open tables or a typed code) */
@@ -1216,6 +1231,7 @@ export default {
           case '/api/lobby/deal': return wrap(apiLobbyDeal(env, bot, body));
           case '/api/lobby/close': return wrap(apiLobbyClose(env, body));
           case '/api/lobby/role': return wrap(apiLobbyRole(env, bot, body));
+          case '/api/lobby/kick': return wrap(apiLobbyKick(env, bot, body));
           case '/api/lobbies': return wrap(apiLobbies(env, body));
           case '/api/table/join': return wrap(apiTableJoin(env, bot, body));
           case '/api/table/leave': return wrap(apiTableLeave(env, bot, body));

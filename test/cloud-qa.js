@@ -423,11 +423,13 @@ const path = require('path'); const http = require('http');
   await S(() => { S.ui.frSel = [601]; }); await S(() => ACT['fr-invite']()); await p.waitForTimeout(800);
   ok(!tg.calls.some(c => c.method === 'sendMessage' && c.params.chat_id === 601 && c.params.text.includes(oc)), 'online friend gets no DM');
   ok(await p.evaluate(c => S.screen === 'setup' && S.lobby && S.lobby.code === c, oc), 'host lands on the table setup after inviting');
-  // the open-tables list on the player's home screen shows the host's table with "invited"
-  await Q(() => { LB.at = 0; go('home'); }); await q.waitForTimeout(900);
+  // the home screen carries no table list any more; "Find a table" sits right under Classic Mafia and lists every online table
+  await Q(() => { S.ui.sheet = null; go('home'); }); await q.waitForTimeout(400);
+  ok(!(await q.$('[data-a="lb-join"]')) && await Q(() => { const items = [...document.querySelectorAll('.menu .menu-item')]; const i = items.findIndex(b => b.dataset.a === 'scen-use' && b.dataset.id === 'classic'); return i >= 0 && items[i + 1] && items[i + 1].dataset.to === 'tables'; }), 'no open-tables list on the home screen; "Find a table" is the item under Classic Mafia');
+  await Q(() => { LB.at = 0; go('tables'); }); await q.waitForTimeout(1000);
   ok(await Q(() => Array.isArray(LB.list)), 'open tables loaded');
   const lbTxt = await q.$eval('#app', el => el.textContent);
-  ok(await Q(() => (LB.list || []).some(l => l.host.name === 'Ведущий' && l.via === 'invite')) && lbTxt.includes(await Q(() => U().lbTitle)) && lbTxt.includes('Ведущий') && !!(await q.$('[data-a="lb-join"]')), 'player sees "Open tables" with the host’s table marked as an invitation');
+  ok(await Q(() => (LB.list || []).some(l => l.host.name === 'Ведущий' && l.via === 'invite' && l.online && l.players === 0)) && lbTxt.includes(await Q(() => U().lbFind)) && lbTxt.includes('Ведущий') && lbTxt.includes('0 / 10') && !!(await q.$('[data-a="lb-join"]')), 'finder shows the host’s online table: host nick, players 0 / 10, marked as an invitation');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-lobbies.png') }).catch(() => {});
   await Q(async () => { const d = await api('/api/ping', {}); S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); }); await q.waitForTimeout(300);
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'tableInvite') && (await q.$eval('.sheet', el => el.textContent)).includes('Ведущий') && (await q.$eval('.sheet', el => el.textContent)).includes(oc), 'invitation sheet on the player’s screen with the host’s name and the table code');
@@ -565,8 +567,8 @@ const path = require('path'); const http = require('http');
   // another Telegram account opening the app on this phone must not inherit this table
   ok(await S(() => { const keep = { lobby: S.lobby, game: S.game, user: S.tgUser, cloud: S.cloud, owned: S.owned }; S.tgUser = 424242; ensureMe(); const dropped = !S.lobby && !S.cloud && !S.game; S.lobby = keep.lobby; S.game = keep.game; S.tgUser = keep.user; S.cloud = keep.cloud; S.owned = keep.owned; ensureMe(); return dropped && S.tgUser === keep.user && !!S.lobby; }), 'a different account on the same phone starts without the other account’s table');
   await S(() => { S.game = null; save(); go('setup'); }); await p.waitForTimeout(300);
-  // a new table: Нина joins by code from the home screen, the host closes the table → she sees "the host closed the table"
-  await Q(() => { S.ui.sheet = null; go('home'); }); await q.waitForTimeout(300);
+  // a new table: Нина joins by code from the table finder, the host closes the table → she sees "the host closed the table"
+  await Q(() => { S.ui.sheet = null; go('tables'); }); await q.waitForTimeout(500);
   await q.fill('#lb-code', nc.toLowerCase()); await q.click('[data-a="lb-join"][data-code=""]'); await q.waitForTimeout(1200);
   ok(await q.evaluate(c => S.screen === 'table' && TB.code === c && TB.data && TB.data.status === 'open', nc), 'joined by code typed in lowercase → waiting room');
   // she stands up: seat freed on the host's side, banner gone, then sits down again from the banner-less home screen
@@ -577,9 +579,24 @@ const path = require('path'); const http = require('http');
   ok(lastTo(100).params.text.includes('Нина') && lastTo(100).params.text.includes(nc), 'host got a DM that Нина stood up');
   await S(() => refreshTable()); await p.waitForTimeout(600);
   ok(await S(() => !S.lobby.players.some(x => x.tgId === 601) && S.lobby.seats[601] === undefined && !S.setup.names.includes('Нина')), 'her seat is free again on the host’s screen');
-  await Q(() => { LB.at = 0; loadLobbies(true); }); await q.waitForTimeout(900);
+  await Q(() => { LB.at = 0; go('tables'); }); await q.waitForTimeout(1000);
   await q.click(`[data-a="lb-join"][data-code="${nc}"]`); await q.waitForTimeout(1200);
-  ok(await q.evaluate(c => S.screen === 'table' && TB.code === c, nc), 'sat down again from the open-tables list');
+  ok(await q.evaluate(c => S.screen === 'table' && TB.code === c, nc), 'sat down again from the table finder');
+  // the host moves her to seat 7 (swap with whoever sits there), then kicks her
+  await S(() => go('setup')); await p.waitForTimeout(200); await S(() => refreshTable()); await p.waitForTimeout(700);
+  const before = await S(() => ({ seat: S.lobby.seats[601], names: S.setup.names.slice() }));
+  await p.selectOption('#seat-601', { value: '6' }); await p.waitForTimeout(300);
+  ok(await S(() => S.lobby.seats[601] === 6 && String(S.setup.names[6] || '').trim() === 'Нина'), 'host moved Нина to seat 7 through the seat picker: ' + JSON.stringify({ before, after: await S(() => S.lobby.seats) }));
+  await p.click('[data-a="tg-kick"][data-tg="601"]'); await p.waitForTimeout(200);
+  ok((await p.$eval('[data-a="tg-kick"][data-tg="601"]', el => el.textContent)).includes(await S(() => U().tgKickSure)), 'first tap asks to confirm');
+  await p.click('[data-a="tg-kick"][data-tg="601"]'); await p.waitForTimeout(1200);
+  ok(await S(() => !S.lobby.players.some(x => x.tgId === 601) && S.lobby.seats[601] === undefined && !S.setup.names.includes('Нина')), 'Нина kicked: gone from the list, seat and name freed');
+  ok(lastTo(601).params.text.includes(nc) && lastTo(601).params.text.includes('Ведущий'), 'kicked player told by the bot');
+  await Q(() => tableFetch()); await q.waitForTimeout(800);
+  ok(await Q(() => TB.err === 'not_seated' || !TB.data) && (await q.$eval('#app', el => el.textContent)).includes(await Q(() => U().tbNotSeated)), 'her table screen says she is not at this table any more');
+  await Q(() => { LB.at = 0; go('tables'); }); await q.waitForTimeout(1000);
+  await q.click(`[data-a="lb-join"][data-code="${nc}"]`); await q.waitForTimeout(1200);
+  ok(await q.evaluate(c => S.screen === 'table' && TB.code === c && TB.data && TB.data.status === 'open', nc), 'she can sit down again');
   await Q(() => go('home')); await q.waitForTimeout(400);
   ok(!!(await q.$('[data-a="table-open"]')) && !!(await q.$('[data-a="table-open"] [data-a="tb-leave"]')), 'home banner is back, with a ✕ to leave');
   await Q(() => tableOpen(TB.code || S.cloud.table.code)); await q.waitForTimeout(600);

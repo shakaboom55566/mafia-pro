@@ -192,7 +192,7 @@ function tableOpen(code) { code = String(code || '').toUpperCase(); if (!code) r
 async function tableFetch() {
   if (!TB.code || TB.busy || !TG.app || !apiBase()) return; TB.busy = true;
   try {
-    const d = await api('/api/table/state', { code: TB.code, since: TB.lastChat }); if (!d.ok) { TB.err = d.error || 'network'; if (S.screen === 'table') render(); return; }
+    const d = await api('/api/table/state', { code: TB.code, since: TB.lastChat }); if (!d.ok) { TB.err = d.error || 'network'; if (d.error === 'not_seated' || d.error === 'not_found') { TB.data = null; if (S.cloud && S.cloud.table && S.cloud.table.code === TB.code) S.cloud.table = null; } if (S.screen === 'table') render(); return; } // kicked or the table is gone: say so instead of showing a stale room
     const prevKey = TB.data && TB.data.me && TB.data.me.ask ? TB.data.me.ask.key : null; const prevPhase = TB.data && TB.data.pub ? TB.data.pub.phase + (TB.data.pub.day || '') : '';
     const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + TB.data.hostPlays + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
     const first = !TB.data; TB.data = d; TB.err = null; TB.at = Date.now();
@@ -382,14 +382,20 @@ function showInvites() {
   S.ui.sheet = { type: 'tableInvite', code: inv.code }; tgHaptic('warning'); render();
 }
 /* open tables on the home screen: friends', club mates', invitations, my seats; join by code */
-const LB = { list: null, at: 0, busy: false, code: '' };
-async function loadLobbies(force) { if (!TG.app || !apiBase() || LB.busy || (LB.list && !force && Date.now() - LB.at < 20000)) return; LB.busy = true; try { const d = await api('/api/lobbies', {}); if (d.ok) { LB.list = d.lobbies || []; LB.at = Date.now(); } else if (!LB.list) LB.list = []; } finally { LB.busy = false; if (S.screen === 'home') keepFocus(render); } }
+const LB = { list: null, at: 0, busy: false, code: '', timer: null };
+async function loadLobbies(force) { if (!TG.app || !apiBase() || LB.busy || (LB.list && !force && Date.now() - LB.at < 10000)) return; LB.busy = true; try { const d = await api('/api/lobbies', { all: true }); if (d.ok) { LB.list = d.lobbies || []; LB.at = Date.now(); } else if (!LB.list) LB.list = []; } finally { LB.busy = false; if (S.screen === 'tables') keepFocus(render); } }
+function tablesMenuItemHTML() { if (!TG.app || !apiBase()) return ''; const u = U(); return `<button class="menu-item" data-a="go" data-to="tables"><div class="ico">${I.search || I.users}</div><div><div class="t">${u.lbFind}</div><div class="d">${u.lbFindD}</div></div><span class="chev">${I.chev}</span></button>`; }
+function tablesScreen() {
+  const u = U(); if (!TG.app || !apiBase()) return `${topbar(u.lbFind, '')}<div class="stack"><div class="panel"><div class="hint">${u.frOnlyTg}</div></div></div>`;
+  if (!LB.timer) LB.timer = setInterval(() => { if (S.screen !== 'tables') { clearInterval(LB.timer); LB.timer = null; return; } loadLobbies(false); }, 10000); // the finder refreshes itself while open
+  return `${topbar(u.lbFind, u.lbFindSub)}<div class="stack">${lobbiesHTML()}</div>`;
+}
 function lobbiesHTML() {
   const u = U(); if (!TG.app || !apiBase()) return '';
-  if ((!LB.list || Date.now() - LB.at > 20000) && !LB.busy) setTimeout(() => loadLobbies(false), 0);
+  if ((!LB.list || Date.now() - LB.at > 10000) && !LB.busy) setTimeout(() => loadLobbies(false), 0);
   const myId = S.cloud && S.cloud.user ? S.cloud.user.id : 0;
   const list = (LB.list || []).filter(l => l.host.tgId !== myId);
-  const rows = list.map(l => `<div class="fr-row" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.host.name)} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })} · ${l.online ? u.tbOnlineTag : u.onOffline.toLowerCase()} · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${(u.lbVia || {})[l.via] || ''}</span></div></div><button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button></div>`).join('');
+  const rows = list.map(l => { const live = l.status === 'live'; const n = live && typeof l.alive === 'number' ? tt(u.lbAlive, { alive: l.alive, n: l.seats || l.players }) : (l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })); return `<div class="fr-row" style="padding:8px 10px;${live ? 'opacity:.75' : ''}"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.host.name)} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${n} · ${live ? `<span style="color:var(--gold-2)">${u.lbLive}</span>` : u.tbLobby}${l.via && u.lbVia[l.via] ? ` · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${u.lbVia[l.via]}</span>` : ''}${l.hostPlays ? ` · ${u.tbHostPlaysNote}` : ''}</div></div>${live ? (l.via === 'seated' ? `<button class="btn xs" data-a="lb-join" data-code="${esc(l.code)}">${u.lbOpenMine}</button>` : '') : `<button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button>`}</div>`; }).join('');
   return `<div class="panel" style="margin-bottom:14px"><div class="row"><div class="eyebrow grow">${u.lbTitle}${LB.list ? ` · ${list.length}` : ''}</div><button class="btn xs ghost" data-a="lb-refresh">${LB.busy ? '…' : u.tgRefresh}</button></div><div class="hint" style="margin:4px 0 8px">${u.lbHint}</div>
     ${rows ? `<div class="stack-s">${rows}</div>` : `<div class="hint">${LB.list ? u.lbEmpty : u.frLoading}</div>`}
     <div class="row" style="margin-top:10px"><input class="input grow" id="lb-code" data-a="lb-code" placeholder="${u.lbCodePh}" value="${esc(LB.code)}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8"><button class="btn sm" data-a="lb-join" data-code="" style="flex:0 0 auto">${u.lbJoinCode}</button></div></div>`;
@@ -401,7 +407,7 @@ Object.assign(ACT, {
     const code = String(el.dataset.code || LB.code || '').toUpperCase().trim(); if (!code) return; const u = U();
     const d = await api('/api/table/join', { code });
     if (!d.ok) { toast(d.error === 'not_found' || d.error === 'bad_code' ? u.lbNotFound : d.error === 'lobby_closed' ? u.lbClosed : d.error === 'host' ? u.lbHostSelf : u.tgOffline); return; }
-    LB.code = ''; LB.at = 0; if (d.joined) { toast(tt(u.tbJoined, { code })); tgHaptic('success'); } S.cloud.table = { code, status: 'open' }; tableOpen(code);
+    LB.code = ''; LB.at = 0; if (d.joined) { toast(tt(u.tbJoined, { code })); tgHaptic('success'); } S.cloud = S.cloud || {}; S.cloud.table = { code, status: 'open' }; tableOpen(code);
   }
 });
 /* home banner: the table I sit at */
@@ -410,7 +416,7 @@ function tableBannerHTML() {
   return `<div class="panel" role="button" data-a="table-open" data-id="${esc(t.code)}" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.game}</div><div class="grow"><div style="font-weight:800">${tt(u.tbBanner, { code: esc(t.code), host: esc(t.host || '') })}</div><div class="hint" style="margin:0">${t.status === 'live' ? u.tbOnlineTag : u.tbLobby}</div></div><span class="btn xs primary">${u.tbOpen}</span><button class="btn xs ghost" data-a="tb-leave" data-code="${esc(t.code)}" title="${u.tbLeaveTable}" aria-label="${u.tbLeaveTable}" style="flex:0 0 auto;padding:6px 9px">✕</button></div></div>`;
 }
 Object.assign(ACT, {
-  'on-mode'(el) { S.setup.online = el.dataset.id === 'online'; save(); render(); if (S.setup.online && !lobbyIsOpen()) openTable(false); },
+  'on-mode'(el) { S.setup.online = el.dataset.id === 'online'; save(); render(); if (S.setup.online && !lobbyIsOpen()) openTable(false); else if (S.lobby && S.lobby.code) api('/api/lobby/role', { code: S.lobby.code, online: S.setup.online }).catch(() => {}); }, // the finder lists online tables only
   'table-open'(el) { tableOpen(el.dataset.id); },
   async 'tb-leave'(el) {
     const code = String(el.dataset.code || TB.code || '').toUpperCase(); if (!code) return; const u = U();
@@ -488,7 +494,7 @@ function podiumHTML(rows, keyPrefix = 'pod') {
   const origGame = gameScreen; gameScreen = function () { const html = origGame(); const s = onlineStripHTML(S.game); if (!s) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + s + html.slice(i + 19); };
   const origDealScr = dealScreen; dealScreen = function () { const html = origDealScr(); const s = onlineStripHTML(S.game); if (!s) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + s + html.slice(i + 19); };
   const origEnd2 = endScreen; endScreen = function () { const html = origEnd2(); const g = S.game; if (!g || !g.winner) return html; let pod = ''; try { pod = podiumHTML(resultRows(g), 'pod'); } catch (e) { pod = ''; } if (!pod) return html; const i = html.indexOf('<div class="panel"><div class="eyebrow gold">'); return i < 0 ? html : html.slice(0, i) + pod + html.slice(i); };
-  const origHome = homeScreen; homeScreen = function () { const html = origHome(); let b = ''; try { b = tableBannerHTML() + lobbiesHTML(); } catch (e) { b = ''; } if (!b) return html; const i = html.indexOf('<div class="menu">'); return i < 0 ? html : html.slice(0, i) + b + html.slice(i); };
+  const origHome = homeScreen; homeScreen = function () { const html = origHome(); let b = ''; try { b = tableBannerHTML(); } catch (e) { b = ''; } if (!b) return html; const i = html.indexOf('<div class="menu">'); return i < 0 ? html : html.slice(0, i) + b + html.slice(i); };
   const origSheet2 = sheetHTML;
   sheetHTML = function (enter) { const sh = S.ui.sheet; if (sh && sh.type === 'tableInvite') { const u = U(); return `<div class="sheet-bg ${enter !== false ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${tableInviteHTML(sh.code)}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`; } return origSheet2(enter); };
   // the game is created: online flag + per-game online state; the table state is published at once (cards appear in the app)

@@ -211,7 +211,8 @@ function setupLobbyHTML(st) {
   const u = U(); const l = S.lobby;
   if (!l || !l.code) return `<div class="panel"><div class="eyebrow">${u.tgCards}</div><div class="hint" style="margin:6px 0 10px">${u.tgSetupHint}</div><div class="btn-row"><button class="btn" data-a="tg-lobby">${u.tgOpenTable}</button><button class="btn ghost" data-a="fr-go" style="flex:0 0 auto;width:auto">${u.frInviteFriends}</button></div></div>`;
   const seated = pl => l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n;
-  const rows = l.players.map(pl => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div>${seated(pl) ? `<span class="hint" style="margin:0">${tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 })}</span>` : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`).join('');
+  const seatSel = pl => { const cur = seated(pl) ? l.seats[pl.tgId] : -1; const opts = [`<option value="-1" ${cur < 0 ? 'selected' : ''}>${u.tgNoSeatOpt}</option>`]; for (let k = 0; k < st.n; k++) { const e = Object.entries(l.seats || {}).find(([id, v]) => Number(v) === k && Number(id) !== pl.tgId); const who = e ? l.players.find(x => x.tgId === Number(e[0])) : null; opts.push(`<option value="${k}" ${cur === k ? 'selected' : ''}>${k + 1}${who ? ' · ' + esc(who.name) : ''}</option>`); } return `<select class="input" id="seat-${pl.tgId}" data-a="tg-seat-set" data-tg="${pl.tgId}" aria-label="${u.tgSeatPick}" style="width:112px;flex:none;padding:6px 8px">${opts.join('')}</select>`; };
+  const rows = l.players.map(pl => { const me = isMeTg(pl.tgId); const ask = S.ui.kickAsk === pl.tgId; return `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div>${seatSel(pl)}${me ? '' : `<button class="btn xs ${ask ? 'primary' : 'ghost'}" data-a="tg-kick" data-tg="${pl.tgId}" aria-label="${u.tgKick}" title="${u.tgKick}" style="flex:0 0 auto;${ask ? 'color:#1a1206;background:var(--crimson-2)' : 'color:var(--crimson-2)'}">${ask ? u.tgKickSure : '✕'}</button>`}</div>`; }).join('');
   const unseated = l.players.filter(pl => !seated(pl)).length;
   const plays = creatorPlays(); const hi = l.hostInvite;
   const rolePanel = `<div class="eyebrow" style="margin-top:10px">${u.hostRoleTitle}</div><div class="segment n2" style="margin-top:6px"><button class="${plays ? '' : 'active'}" data-a="host-role" data-id="host">${u.hostRoleHost}</button><button class="${plays ? 'active' : ''}" data-a="host-role" data-id="player">${u.hostRolePlayer}</button></div>
@@ -220,7 +221,7 @@ function setupLobbyHTML(st) {
   return `<div class="panel"><div class="row"><div class="eyebrow grow">${tt(u.tgTable, { code: l.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: l.players.length })}</div></div>
     <div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="tg-share">${u.tgShare}</button><button class="btn sm grow" data-a="fr-go">${u.frInviteFriends}</button><button class="btn sm ghost" data-a="tg-lobby-refresh">${u.tgRefresh}</button></div>
     ${rolePanel}
-    ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
+    ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div><div class="hint" style="margin:6px 0 0">${u.tgSeatsHint}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
     <button class="btn xs ghost" style="margin-top:8px;align-self:flex-start" data-a="tg-close-table">${u.tgCloseTable}</button></div>`;
 }
 /* send cards to every mapped player of the game's table; returns the number sent */
@@ -259,6 +260,24 @@ Object.assign(ACT, {
   async 'tg-lobby-refresh'() { if ((await refreshTable()) === false) toast(U().tgOffline); },
   'tg-seat-one'(el) { const l = S.lobby; if (!l) return; const id = Number(el.dataset.tg); const st = S.setup; const taken = new Set(Object.values(l.seats || {})); let i = -1; for (let k = 0; k < st.n; k++) if (!taken.has(k) && !String(st.names[k] || '').trim() && !(st.seatProfiles || [])[k]) { i = k; break; } if (i < 0) for (let k = 0; k < st.n; k++) if (!taken.has(k)) { i = k; break; } if (i < 0) return; l.seats = l.seats || {}; l.seats[id] = i; const pl = l.players.find(p => p.tgId === id); if (pl && !String(st.names[i] || '').trim()) st.names[i] = pl.name; save(); render(); },
   'tg-seat-all'() { setupAutoSeat(); save(); render(); },
+  'tg-seat-set'(el) { // move a player to another seat; whoever sat there takes the vacated one
+    const l = S.lobby; if (!l) return; const id = Number(el.dataset.tg); const to = Number(el.value); const st = S.setup; l.seats = l.seats || {};
+    const from = l.seats[id]; const nameAt = i => String(st.names[i] || '').trim();
+    const pl = l.players.find(p => p.tgId === id); const myName = pl ? pl.name : '';
+    if (from !== undefined && nameAt(from) === myName) st.names[from] = '';
+    if (to < 0) { delete l.seats[id]; save(); render(); return; }
+    const other = Object.keys(l.seats).find(k => Number(k) !== id && l.seats[k] === to);
+    if (other) { const op = l.players.find(p => p.tgId === Number(other)); if (nameAt(to) === (op ? op.name : '')) st.names[to] = ''; if (from !== undefined) { l.seats[other] = from; if (op && !nameAt(from)) st.names[from] = op.name; } else delete l.seats[other]; }
+    l.seats[id] = to; if (!nameAt(to)) st.names[to] = myName; save(); render(); toast(tt(U().tgSeatedToast, { name: myName, seat: to + 1 }));
+  },
+  async 'tg-kick'(el) {
+    const id = Number(el.dataset.tg); const l = S.lobby; if (!l || !l.code) return;
+    if (S.ui.kickAsk !== id) { S.ui.kickAsk = id; render(); setTimeout(() => { if (S.ui.kickAsk === id) { S.ui.kickAsk = null; render(); } }, 4000); return; } // second tap confirms
+    S.ui.kickAsk = null; const pl = l.players.find(p => p.tgId === id);
+    const d = await api('/api/lobby/kick', { code: l.code, tgId: id }); if (!d.ok) { toast(U().tgOffline); render(); return; }
+    if (l.seats && l.seats[id] !== undefined) { const i = l.seats[id]; if (String(S.setup.names[i] || '').trim() === String(pl ? pl.name : '').trim()) S.setup.names[i] = ''; delete l.seats[id]; }
+    l.players = l.players.filter(p => p.tgId !== id); save(); toast(tt(U().tgKicked, { name: pl ? pl.name : '' })); tgHaptic('warning'); render();
+  },
   'tg-close-table'() { const l = S.lobby; S.lobby = null; save(); render(); if (l && l.code && TG.app && apiBase()) api('/api/lobby/close', { code: l.code }).catch(() => {}); },
   'tg-share'() {
     const l = currentLobby(); if (!l || !l.link) return; const url = 'https://t.me/share/url?url=' + encodeURIComponent(l.link) + '&text=' + encodeURIComponent(U().tgShareText);

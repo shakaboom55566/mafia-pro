@@ -255,6 +255,28 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(lobI.code).first()).status, 'open', 'a table with another player at it stays open even if the host is away');
   await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 302').bind(now()).run();
   await env.DB.prepare('DELETE FROM friends WHERE (tg_id = 302 AND friend_id = 301) OR (tg_id = 301 AND friend_id = 302)').run(); // test friendship undone
+  // the table finder: every online table on the server (not only friends'), running ones marked; the host kicks a player
+  const lobJ = await (await post('/api/lobby', { initData: await initData(user(999)), fresh: true })).json(); // a stranger's table
+  await post('/api/lobby/role', { initData: await initData(user(999)), code: lobJ.code, online: true });
+  const lobK = await (await post('/api/lobby', { initData: b, fresh: true })).json(); await post('/api/lobby/role', { initData: b, code: lobK.code, online: false }); // 302: offline table
+  const fa = await (await post('/api/lobbies', { initData: a, all: true })).json();
+  ok(fa.ok && fa.lobbies.some(l => l.code === lobJ.code && l.online && l.host.name === 'User999' && l.players === 0) && !fa.lobbies.some(l => l.code === lobK.code), 'finder lists a stranger’s online table with host and player count, not the offline one');
+  eq((await (await post('/api/lobbies', { initData: a })).json()).lobbies.filter(l => l.code === lobJ.code), [], 'the friends-only list still hides strangers');
+  ok((await (await post('/api/table/join', { initData: a, code: lobJ.code })).json()).joined, '100 joins the stranger’s table from the finder');
+  await post('/api/table/publish', { initData: await initData(user(999)), code: lobJ.code, pub: { phase: 'night', online: true, n: 10, seats: [{ seat: 1, tgId: 100, alive: true }, { seat: 2, alive: false }] }, priv: {} });
+  const fl = (await (await post('/api/lobbies', { initData: await initData(user(301, 'en')), all: true })).json()).lobbies.find(l => l.code === lobJ.code);
+  ok(fl && fl.status === 'live' && fl.phase === 'night' && fl.players === 1 && fl.alive === 1, 'a running online table is listed as live with its player count: ' + JSON.stringify(fl));
+  eq((await post('/api/table/join', { initData: await initData(user(301, 'en')), code: lobJ.code })).status, 409, 'nobody can join a running table');
+  const lobL = await (await post('/api/lobby', { initData: b, fresh: true })).json(); await post('/api/lobby/role', { initData: b, code: lobL.code, online: true });
+  ok((await (await post('/api/table/join', { initData: a, code: lobL.code })).json()).joined, '100 sits at 302’s table');
+  eq((await post('/api/lobby/kick', { initData: a, code: lobL.code, tgId: 100 })).status, 404, 'only the host kicks');
+  const kk = await (await post('/api/lobby/kick', { initData: b, code: lobL.code, tgId: 100 })).json(); ok(kk.ok && kk.kicked, 'host kicked 100');
+  ok(lastTo(100).params.text.includes(lobL.code) && lastTo(100).params.text.includes('User302'), 'kicked player told by the bot');
+  eq((await (await post('/api/lobby/status', { initData: b, code: lobL.code })).json()).players, [], 'seat freed');
+  eq((await post('/api/table/state', { initData: a, code: lobL.code })).status, 403, 'kicked player no longer sees the table');
+  ok(((await (await post('/api/ping', { initData: a })).json()).table || {}).code !== lobL.code, 'kicked player’s banner no longer points at that table');
+  eq((await (await post('/api/lobby/kick', { initData: b, code: lobL.code, tgId: 100 })).json()).kicked, false, 'kicking twice is harmless');
+  eq((await post('/api/lobby/kick', { initData: b, code: lobL.code, tgId: 302 })).status, 400, 'the host cannot kick himself');
   // remove
   ok((await (await post('/api/friends/remove', { initData: a, friendId: 301 })).json()).ok, 'removed');
   eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId), [302], 'list after removal');
