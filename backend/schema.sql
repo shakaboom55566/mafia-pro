@@ -140,3 +140,45 @@ CREATE TABLE IF NOT EXISTS payouts (
   note       TEXT,
   created_at INTEGER NOT NULL
 );
+
+-- clubs: a head applies, an admin approves, the club is listed; one club per player
+CREATE TABLE IF NOT EXISTS clubs (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  city        TEXT,
+  about       TEXT,
+  link        TEXT,
+  logo        TEXT,                   -- small data URL (resized in the app)
+  owner_id    INTEGER NOT NULL,
+  status      TEXT NOT NULL,          -- pending | active | rejected
+  created_at  INTEGER NOT NULL,
+  approved_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS clubs_status ON clubs (status);
+CREATE TABLE IF NOT EXISTS club_members (
+  tg_id      INTEGER PRIMARY KEY,     -- a player belongs to at most one club
+  club_id    INTEGER NOT NULL,
+  role       TEXT NOT NULL,           -- owner | admin | member
+  joined_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS club_members_club ON club_members (club_id);
+-- invitations from the club and applications from players
+CREATE TABLE IF NOT EXISTS club_requests (
+  club_id    INTEGER NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  kind       TEXT NOT NULL,           -- invite | apply
+  status     TEXT NOT NULL,           -- pending | accepted | declined
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (club_id, tg_id)
+);
+-- club chat
+CREATE TABLE IF NOT EXISTS club_messages (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  club_id    INTEGER NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  kind       TEXT NOT NULL,           -- text | lobby | system
+  text       TEXT,
+  code       TEXT,                    -- lobby code for kind = lobby
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS club_messages_club ON club_messages (club_id, id);

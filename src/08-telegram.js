@@ -82,7 +82,7 @@ async function cloudSync() {
     const o = d.owned || {}; let added = 0;
     S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
     [['roles', o.roles], ['scenarios', o.scenarios], ['packs', o.packs]].forEach(([k, arr]) => (arr || []).forEach(id => { if (!S.owned[k].includes(id)) { S.owned[k].push(id); added++; } }));
-    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref;
+    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null;
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -357,7 +357,8 @@ function playersDirectoryHTML() {
   const u = U(); if (!PL.list && !PL.busy) setTimeout(() => loadPlayers(true), 0);
   const row = p => `<div class="fr-row" role="button" data-a="fr-open" data-id="${p.tgId}"><span style="width:0"></span>${friendAvatar(p)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}${p.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(p.username)}</span>` : ''}${p.isFriend ? ` <span class="hint" style="margin:0;display:inline">· ${u.plFriend}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(p)} · ${tt(u.frStats, { g: p.games, w: p.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${p.points}</span></div>`;
   const list = PL.list || [];
-  return `<div class="row"><div class="eyebrow grow">${u.plAll}${PL.list ? ` · ${PL.total}` : ''}</div>${PL.list ? `<span class="fr-on" style="font-size:12px">● ${tt(u.plOnline, { n: PL.online })}</span>` : ''}<button class="btn xs ghost" data-a="pl-refresh">${PL.busy ? '…' : u.tgRefresh}</button></div>
+  const myClub = S.cloud && S.cloud.club; const clubsCard = `<div class="fr-row" role="button" data-a="clubs-open" style="padding:10px;border-color:rgba(240,205,122,.45)"><div class="club-logo">🏛</div><div class="grow" style="min-width:0"><div style="font-weight:800;font-size:15px">${u.clubs}</div><div class="hint" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${myClub ? `${u.clubMine}: ${esc(myClub.name)}` : u.clubsSub}</div></div><span style="color:var(--muted)">›</span></div>`;
+  return `${clubsCard}<div class="row"><div class="eyebrow grow">${u.plAll}${PL.list ? ` · ${PL.total}` : ''}</div>${PL.list ? `<span class="fr-on" style="font-size:12px">● ${tt(u.plOnline, { n: PL.online })}</span>` : ''}<button class="btn xs ghost" data-a="pl-refresh">${PL.busy ? '…' : u.tgRefresh}</button></div>
     <div class="row"><input class="input grow" id="pl-q" data-a="pl-q" placeholder="${u.plSearchPh}" value="${esc(PL.q)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" data-a="pl-search" style="flex:0 0 auto">🔍</button></div>
     ${list.length ? `<div class="stack-s">${list.map(row).join('')}</div>${PL.more ? `<button class="btn ghost sm" data-a="pl-more" style="align-self:center">${u.plMore}</button>` : ''}` : (PL.list ? `<p class="hint">${u.plEmpty}</p>` : `<p class="hint">${u.frLoading}</p>`)}`;
 }
@@ -428,6 +429,112 @@ Object.assign(ACT, {
   async 'ref-attach'(el) { const d = await api('/api/ref/attach', { code: el.dataset.id }); if (d.ok && d.attached) { toast(U().refAttached); setTimeout(cloudSync, 800); } },
   async 'claim-free'(el) { const kind = el.dataset.kind, id = el.dataset.id; const d = await api('/api/invoice', { kind: kind === 'scen' ? 'scenario' : kind, id, useCredit: true }); if (!d.ok) { toast(d.error === 'no_credit' ? U().tgNA : U().tgOffline); return; } S.cloud.credits = d.credits || S.cloud.credits; if (kind === 'role') { if (!S.owned.roles.includes(id)) S.owned.roles.push(id); } else { if (!S.owned.scenarios.includes(id)) S.owned.scenarios.push(id); } REFS.data = null; S.ui.sheet = null; toast(U().claimed); tgHaptic('success'); save(); render(); }
 });
+/* ---------- clubs: list, club page with members and chat, application / edit form ---------- */
+const CL = { list: null, mine: null, own: null, invites: [], busy: false, at: 0, cur: null, id: null, chat: [], lastId: 0, timer: null, form: { name: '', city: '', about: '', link: '', logo: '' }, invQ: '', msg: '' };
+async function loadClubs(force) { if (!TG.app || !apiBase() || CL.busy || (CL.list && !force && Date.now() - CL.at < 30000)) return; CL.busy = true; const d = await api('/api/clubs', {}); CL.busy = false; if (d.ok) { CL.list = d.clubs; CL.mine = d.mine; CL.own = d.own; CL.invites = d.invites || []; CL.at = Date.now(); } else if (!CL.list) CL.list = []; render(); }
+async function loadClub(id, quiet) { const d = await api('/api/club', { id }); if (d.ok) { CL.cur = d; CL.id = id; if (!quiet) render(); } else if (!quiet) { toast(U().tgOffline); } return d.ok; }
+async function loadChat(initial) {
+  if (!CL.cur || !CL.cur.myRole) return;
+  const d = await api('/api/club/chat', { since: initial ? 0 : CL.lastId }); if (!d.ok) return;
+  if (initial) { CL.chat = d.messages; } else if (d.messages.length) CL.chat = CL.chat.concat(d.messages).slice(-300);
+  if (CL.chat.length) CL.lastId = CL.chat[CL.chat.length - 1].id;
+  if (initial || d.messages.length) { render(); scrollChat(); }
+}
+function scrollChat() { try { const c = document.querySelector('.chat'); if (c) c.scrollTop = c.scrollHeight; } catch (e) {} }
+function clubPoll() {
+  const want = TG.app && apiBase() && S.screen === 'club' && CL.cur && CL.cur.myRole;
+  if (want && !CL.timer) CL.timer = setInterval(() => { if (S.screen !== 'club') { clearInterval(CL.timer); CL.timer = null; return; } loadChat(false); loadClub(CL.id, true).then(() => { const c = document.querySelector('.club-online'); if (c && CL.cur) c.textContent = tt(U().clubOnline, { n: CL.cur.club.online }); }); }, 5000);
+  if (!want && CL.timer) { clearInterval(CL.timer); CL.timer = null; }
+}
+const clubLogoHTML = (c, cls = '') => `<div class="club-logo ${cls}">${c.logo ? `<img src="${esc(c.logo)}" alt="">` : esc((c.name || '?').slice(0, 1).toUpperCase())}</div>`;
+function clubsScreen() {
+  const u = U();
+  if (!TG.app || !apiBase()) return `${topbar(u.clubs, u.clubsSub)}<div class="stack"><div class="panel"><div class="hint">${u.frOnlyTg}</div></div></div>`;
+  if ((!CL.list || Date.now() - CL.at > 30000) && !CL.busy) setTimeout(() => loadClubs(false), 0);
+  const list = CL.list || [];
+  const card = c => `<div class="fr-row" role="button" data-a="club-open" data-id="${c.id}" style="padding:10px">${clubLogoHTML(c)}<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}${CL.mine && CL.mine.id === c.id ? ` <span class="premium-pill" style="font-size:10px">${u.clubMine}</span>` : ''}</div><div class="hint" style="margin:0">${c.city ? esc(c.city) + ' · ' : ''}${tt(u.clubMembers, { n: c.members })}</div><div style="font-size:12px;margin-top:2px"><span class="${c.online ? 'fr-on' : 'fr-off'}">● ${tt(u.clubOnline, { n: c.online })}</span></div></div></div>`;
+  const invites = CL.invites.length ? `<div class="eyebrow">${u.clubInvited}</div><div class="stack-s">${CL.invites.map(c => `<div class="fr-row" style="padding:10px">${clubLogoHTML(c)}<div class="grow" style="min-width:0"><div style="font-weight:800">${esc(c.name)}</div><div class="hint" style="margin:0">${esc(c.city || '')}</div></div><button class="btn xs primary" data-a="club-respond" data-id="${c.id}" data-ok="1">${u.clubAccept}</button><button class="btn xs ghost" data-a="club-respond" data-id="${c.id}" data-ok="0">${u.clubDecline}</button></div>`).join('')}</div>` : '';
+  const own = CL.own && CL.own.status !== 'active' ? `<div class="panel"><div style="font-weight:700">${esc(CL.own.name)}</div><div class="hint" style="margin-top:4px">${CL.own.status === 'pending' ? u.clubPending : u.clubRejected}</div></div>` : '';
+  const create = !CL.mine && !(CL.own && CL.own.status === 'pending') ? `<div class="panel"><div class="hint" style="margin-bottom:8px">${u.clubCreateHint}</div><button class="btn" data-a="club-create">🏛 ${u.clubCreate}</button></div>` : '';
+  return `${topbar(u.clubs, u.clubsSub)}
+  <div class="stack">
+    ${invites}${own}
+    <div class="row"><div class="eyebrow grow">${u.clubs}${CL.list ? ` · ${list.length}` : ''}</div><button class="btn xs ghost" data-a="clubs-refresh">${CL.busy ? '…' : u.tgRefresh}</button></div>
+    ${list.length ? `<div class="stack-s">${list.map(card).join('')}</div>` : (CL.list ? `<p class="hint">${u.clubsEmpty}</p>` : `<p class="hint">${u.frLoading}</p>`)}
+    ${create}
+  </div>`;
+}
+function clubScreen() {
+  const u = U(); const d = CL.cur;
+  if (!d || d.club.id !== CL.id) { if (CL.id && !CL.busyClub) { CL.busyClub = true; loadClub(CL.id).then(() => { CL.busyClub = false; loadChat(true); }); } return `${topbar(u.clubs, '')}<div class="stack"><p class="hint">${u.frLoading}</p></div>`; }
+  const c = d.club; const me = S.cloud && S.cloud.user ? S.cloud.user.id : 0;
+  const roleLabel = r => r === 'owner' ? u.clubHead : r === 'admin' ? u.clubAdmin : u.clubMember;
+  const head = `<div class="panel"><div class="row" style="gap:12px">${clubLogoHTML(c, 'lg')}<div class="grow" style="min-width:0"><h2 style="margin:0">${esc(c.name)}</h2><div class="hint" style="margin:2px 0 0">${c.city ? esc(c.city) + ' · ' : ''}${tt(u.clubMembers, { n: c.members })}</div><div style="font-size:12px;margin-top:4px"><span class="${c.online ? 'fr-on' : 'fr-off'} club-online">● ${tt(u.clubOnline, { n: c.online })}</span>${d.myRole ? ` · <span style="color:var(--gold-2)">${roleLabel(d.myRole)}</span>` : ''}</div></div></div>
+    ${c.about ? `<div style="margin-top:10px;font-size:14px">${esc(c.about)}</div>` : ''}${c.link ? `<div class="hint" style="margin-top:4px"><a href="${esc(/^https?:/.test(c.link) ? c.link : 'https://' + c.link.replace(/^t\.me\//, 't.me/'))}" target="_blank" rel="noopener" style="color:var(--gold-2)">${esc(c.link)}</a></div>` : ''}
+    ${d.myRole ? `<div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="club-call">🎴 ${u.clubCallTable}</button>${d.canManage ? `<button class="btn ghost" data-a="club-edit" data-id="${c.id}" style="flex:0 0 auto;width:auto">${u.clubEdit}</button>` : ''}</div>` : (d.myRequest === 'apply' ? `<div class="hint" style="margin-top:10px">${u.clubApplied}</div>` : d.myRequest === 'invite' ? `<div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="club-respond" data-id="${c.id}" data-ok="1">${u.clubAccept}</button><button class="btn ghost" data-a="club-respond" data-id="${c.id}" data-ok="0">${u.clubDecline}</button></div>` : d.inOtherClub ? `<div class="hint" style="margin-top:10px">${u.clubInOther}</div>` : `<button class="btn primary" style="margin-top:10px" data-a="club-join" data-id="${c.id}">${u.clubJoin}</button>`)}</div>`;
+  const manage = d.canManage ? `<div class="panel"><div class="eyebrow">${u.clubInvite}</div><div class="row" style="margin-top:8px"><input class="input grow" id="cl-inv-q" data-a="cl-inv-q" placeholder="${u.clubInvitePh}" value="${esc(CL.invQ)}" autocomplete="off" autocapitalize="off"><button class="btn sm" data-a="club-invite" style="flex:0 0 auto">${u.clubInvite}</button></div>
+    ${d.requests.length ? `<div class="eyebrow" style="margin-top:12px">${u.clubRequests} · ${d.requests.length}</div><div class="stack-s" style="margin-top:6px">${d.requests.map(r => `<div class="row" style="gap:8px">${friendAvatar(r)}<div class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(r.name)}</b>${r.username ? ` <span style="color:var(--muted)">@${esc(r.username)}</span>` : ''} <span class="hint" style="display:inline;margin:0">· ${r.kind === 'apply' ? u.clubRequests.toLowerCase() : u.clubInvited.toLowerCase()}</span></div>${r.kind === 'apply' ? `<button class="btn xs primary" data-a="club-approve" data-id="${r.tgId}" data-ok="1">${u.clubAccept}</button><button class="btn xs ghost" data-a="club-approve" data-id="${r.tgId}" data-ok="0">${u.clubDecline}</button>` : ''}</div>`).join('')}</div>` : ''}</div>` : '';
+  const members = `<div class="eyebrow">${u.clubMembersTitle} · ${d.members.length}</div><div class="stack-s">${d.members.map(m => `<div class="fr-row" role="button" data-a="fr-open" data-id="${m.tgId}"><span style="width:0"></span>${friendAvatar(m)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}${m.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(m.username)}</span>` : ''}${m.role !== 'member' ? ` <span class="premium-pill" style="font-size:10px">${roleLabel(m.role)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(m)} · ${tt(u.frStats, { g: m.games, w: m.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${m.points}</span>${d.canManage && m.role !== 'owner' && m.tgId !== me ? `<button class="btn xs ghost" data-a="club-kick" data-id="${m.tgId}" style="color:var(--muted);border-color:transparent">✕</button>` : ''}</div>`).join('')}</div>`;
+  const fmtT = ms => { try { return new Date(ms).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const msgHTML = m => m.kind === 'system' ? `<div class="msg sys">${m.text === '🏛' ? u.clubSysCreated : m.text.startsWith('+') ? tt(u.clubSysJoined, { name: esc(m.text.slice(1)) }) : esc(m.text)}</div>`
+    : m.kind === 'lobby' ? `<div class="msg lobby ${m.me ? 'me' : ''}"><div class="who">${esc(m.name)}</div>${esc(tt(u.clubLobbyMsg, { name: m.name, code: m.code }))}<div style="margin-top:6px"><button class="btn xs primary" data-a="club-join-table" data-code="${esc(m.code)}">${u.clubJoinTable} ${esc(m.code)}</button></div><div class="when">${fmtT(m.at)}</div></div>`
+    : `<div class="msg ${m.me ? 'me' : ''}">${m.me ? '' : `<div class="who">${esc(m.name)}</div>`}${esc(m.text)}<div class="when">${fmtT(m.at)}</div></div>`;
+  const chat = d.myRole ? `<div class="eyebrow">${u.clubChat}</div><div class="panel"><div class="chat">${CL.chat.length ? CL.chat.map(msgHTML).join('') : `<div class="msg sys">${u.clubChatEmpty}</div>`}</div>
+    <div class="row" style="margin-top:8px"><input class="input grow" id="cl-msg" data-a="cl-msg" placeholder="${u.clubChatPh}" value="${esc(CL.msg)}" autocomplete="off" maxlength="500"><button class="btn sm primary" data-a="club-send" style="flex:0 0 auto">${u.clubChatSend}</button></div></div>` : '';
+  const leave = d.myRole && d.myRole !== 'owner' ? `<button class="btn ghost sm" style="align-self:center;color:var(--crimson-2)" data-a="club-leave-ask">${u.clubLeave}</button>` : '';
+  const ask = S.ui.clubLeaveAsk ? `<div class="panel" style="border-color:var(--crimson-2)"><div>${tt(u.clubLeaveAsk, { name: esc(c.name) })}</div><div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="club-leave" style="color:var(--crimson-2)">${u.clubLeave}</button><button class="btn sm ghost" data-a="club-leave-cancel">${u.cancel}</button></div></div>` : '';
+  return `${topbar(esc(c.name), c.city ? esc(c.city) : u.clubs)}<div class="stack">${head}${manage}${chat}${members}${ask}${leave}</div>`;
+}
+function clubEditHTML(id) {
+  const u = U(); const f = CL.form; const editing = !!id;
+  return `<h2>${editing ? u.clubEdit : u.clubCreate}</h2>${editing ? '' : `<p class="hint" style="margin:4px 0 10px">${u.clubCreateHint}</p>`}
+    <div class="row" style="gap:12px;margin-top:8px">${clubLogoHTML({ name: f.name, logo: f.logo }, 'lg')}<div class="stack-s grow"><button class="btn sm file-btn">${u.clubLogoPick}<input type="file" accept="image/*" data-a="cl-logo-file"></button>${f.logo ? `<button class="btn sm ghost" data-a="cl-logo-remove">${u.clubLogoRemove}</button>` : ''}</div></div>
+    <div class="stack-s" style="margin-top:12px"><input class="input" data-a="cl-f" data-k="name" placeholder="${u.clubName}" value="${esc(f.name)}" maxlength="48"><input class="input" data-a="cl-f" data-k="city" placeholder="${u.clubCity}" value="${esc(f.city)}" maxlength="48"><input class="input" data-a="cl-f" data-k="link" placeholder="${u.clubLink}" value="${esc(f.link)}" maxlength="160"><textarea class="input" data-a="cl-f" data-k="about" placeholder="${u.clubAbout}" rows="3" maxlength="300" style="min-height:72px">${esc(f.about)}</textarea></div>
+    <div class="btn-row" style="margin-top:14px"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="club-submit" data-id="${id || ''}" ${f.name.trim().length >= 2 ? '' : 'disabled'}>${editing ? u.clubSave : u.clubSend}</button></div>`;
+}
+/* resize a chosen image to a 96px square JPEG data URL (≈ 4–8 KB) */
+function resizeLogo(file, cb) {
+  try {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => { try { const sz = 96; const cv = document.createElement('canvas'); cv.width = sz; cv.height = sz; const ctx = cv.getContext('2d'); const s = Math.min(img.width, img.height); ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, sz, sz); let q = 0.82, out = cv.toDataURL('image/jpeg', q); while (out.length > 23000 && q > 0.4) { q -= 0.1; out = cv.toDataURL('image/jpeg', q); } URL.revokeObjectURL(url); cb(out); } catch (e) { cb(null); } };
+    img.onerror = () => { URL.revokeObjectURL(url); cb(null); }; img.src = url;
+  } catch (e) { cb(null); }
+}
+Object.assign(ACT, {
+  'clubs-open'() { go('clubs'); },
+  'clubs-refresh'() { loadClubs(true); },
+  'club-open'(el) { CL.id = Number(el.dataset.id); CL.cur = null; CL.chat = []; CL.lastId = 0; go('club'); },
+  'club-create'() { CL.form = { name: '', city: '', about: '', link: '', logo: '' }; S.ui.sheet = { type: 'clubEdit', id: null }; render(); },
+  'club-edit'(el) { const c = CL.cur.club; CL.form = { name: c.name, city: c.city, about: c.about, link: c.link, logo: c.logo }; S.ui.sheet = { type: 'clubEdit', id: c.id }; render(); },
+  'cl-f'(el) { CL.form[el.dataset.k] = el.value || ''; const b = document.querySelector('[data-a="club-submit"]'); if (b) b.disabled = CL.form.name.trim().length < 2; },
+  'cl-logo-file'(el) { const f = el.files && el.files[0]; if (!f) return; resizeLogo(f, out => { if (out) { CL.form.logo = out; render(); } }); },
+  'cl-logo-remove'() { CL.form.logo = ''; render(); },
+  async 'club-submit'(el) {
+    const id = Number(el.dataset.id) || 0; const u = U();
+    const d = id ? await api('/api/club/update', Object.assign({ id }, CL.form)) : await api('/api/club/apply', CL.form);
+    if (!d.ok) { toast(d.error === 'in_club' ? u.clubInOther : d.error === 'has_club' ? u.clubPending : u.tgOffline); return; }
+    S.ui.sheet = null; CL.at = 0; tgHaptic('success');
+    if (id) { await loadClub(id); } else { toast(u.clubApplied); loadClubs(true); }
+    render();
+  },
+  async 'club-join'(el) { const d = await api('/api/club/join', { id: Number(el.dataset.id) }); if (!d.ok) { toast(d.error === 'in_club' ? U().clubInOther : U().tgOffline); return; } toast(d.status === 'joined' ? U().clubInviteJoined : U().clubApplied); CL.at = 0; await loadClub(CL.id); loadChat(true); },
+  async 'club-respond'(el) { const d = await api('/api/club/respond', { id: Number(el.dataset.id), accept: el.dataset.ok === '1' }); if (!d.ok) { toast(d.error === 'in_club' ? U().clubInOther : U().tgOffline); return; } CL.at = 0; if (el.dataset.ok === '1' && !d.gone) { toast(U().clubInviteJoined); tgHaptic('success'); CL.id = Number(el.dataset.id); CL.cur = null; go('club'); } else loadClubs(true); },
+  'cl-inv-q'(el) { CL.invQ = el.value || ''; },
+  async 'club-invite'() { const q = CL.invQ.trim(); if (!q) return; const d = await api('/api/club/invite', { q }); const u = U(); if (!d.ok) { toast(d.error === 'not_found' ? u.clubNotFound : d.error === 'in_other_club' ? u.clubInviteOther : d.error === 'already_member' ? u.clubAlready : u.tgOffline); return; } CL.invQ = ''; toast(d.status === 'joined' ? u.clubInviteJoined : u.clubInviteSent); tgHaptic('light'); await loadClub(CL.id); },
+  async 'club-approve'(el) { const d = await api('/api/club/approve', { tgId: Number(el.dataset.id), accept: el.dataset.ok === '1' }); if (!d.ok) { toast(d.error === 'in_other_club' ? U().clubInviteOther : U().tgOffline); } await loadClub(CL.id); if (el.dataset.ok === '1') loadChat(false); },
+  async 'club-kick'(el) { const d = await api('/api/club/kick', { tgId: Number(el.dataset.id) }); if (d.ok) toast(U().clubKicked); await loadClub(CL.id); },
+  'club-leave-ask'() { S.ui.clubLeaveAsk = true; render(); },
+  'club-leave-cancel'() { S.ui.clubLeaveAsk = false; render(); },
+  async 'club-leave'() { S.ui.clubLeaveAsk = false; const d = await api('/api/club/leave', {}); if (!d.ok) { toast(d.error === 'owner' ? U().clubOwnerCantLeave : U().tgOffline); return; } toast(U().clubLeft); CL.at = 0; CL.cur = null; go('clubs'); loadClubs(true); },
+  'cl-msg'(el) { CL.msg = el.value || ''; },
+  async 'club-send'() { const text = CL.msg.trim(); if (!text) return; CL.msg = ''; const inp = document.querySelector('#cl-msg'); if (inp) inp.value = ''; const d = await api('/api/club/chat/send', { text }); if (!d.ok) { toast(U().tgOffline); CL.msg = text; return; } loadChat(false); },
+  async 'club-call'() {
+    let l = currentLobby(); if (!lobbyIsOpen() || !l || !l.code) { l = await openTable(false); if (!l) return; }
+    const d = await api('/api/club/chat/send', { lobby: l.code }); if (!d.ok) { toast(d.error === 'no_lobby' ? U().clubNoLobby : U().tgOffline); return; }
+    toast(U().clubCalled); tgHaptic('success'); loadChat(false);
+  },
+  'club-join-table'(el) { const url = 'https://t.me/' + (FR.bot || (CLOUD.me && CLOUD.me.bot) || '') + '?start=join_' + el.dataset.code; try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} }
+});
 /* ---------- admin: grant full access (all cards / scenarios / packs) for a period ---------- */
 const ADM = { q: '', days: 30, grants: null, busy: false };
 function adminPanelHTML() {
@@ -436,6 +543,9 @@ function adminPanelHTML() {
   const fmt = ms => new Date(ms).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU');
   if (!ADM.partners && !ADM.pbusy) { ADM.pbusy = true; setTimeout(async () => { const d = await api('/api/admin/partners', {}); ADM.partners = d.ok ? d.partners : []; ADM.pbusy = false; render(); }, 0); }
   const prow = p => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(p.name)}</b>${p.username ? ` <span style="color:var(--muted)">@${esc(p.username)}</span>` : ''} · <span style="color:${p.status === 'active' ? '#9fe0ab' : p.status === 'pending' ? 'var(--gold-2)' : 'var(--muted)'}">${p.status === 'active' ? u.admActive : p.status === 'pending' ? u.admPending : u.admRejected}</span></div><div class="hint" style="margin:0">${esc(p.channel || '')}${p.audience ? ' · ' + esc(p.audience) : ''}${p.stats ? ` · ${p.stats.invited}/${p.stats.qualified} · ${p.stats.earnedStars}⭐` : ''}</div></div>${p.status !== 'active' ? `<button class="btn xs primary" data-a="adm-partner" data-id="${p.tgId}" data-ok="1">${u.admApprove}</button>` : ''}${p.status !== 'rejected' ? `<button class="btn xs ghost" data-a="adm-partner" data-id="${p.tgId}" data-ok="0">${u.admReject}</button>` : ''}</div>`;
+  if (!ADM.clubs && !ADM.cbusy) { ADM.cbusy = true; setTimeout(async () => { const d = await api('/api/admin/clubs', {}); ADM.clubs = d.ok ? d.clubs : []; ADM.cbusy = false; render(); }, 0); }
+  const crow = c => `<div class="row" style="gap:8px">${clubLogoHTML(c)}<div class="grow" style="min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(c.name)}</b>${c.city ? ` · ${esc(c.city)}` : ''} · <span style="color:${c.status === 'active' ? '#9fe0ab' : c.status === 'pending' ? 'var(--gold-2)' : 'var(--muted)'}">${c.status === 'active' ? u.admActive : c.status === 'pending' ? u.admPending : u.admRejected}</span></div><div class="hint" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.owner)}${c.ownerUsername ? ' @' + esc(c.ownerUsername) : ''} · ${tt(u.clubMembers, { n: c.members })}${c.about ? ' · ' + esc(c.about) : ''}</div></div>${c.status !== 'active' ? `<button class="btn xs primary" data-a="adm-club" data-id="${c.id}" data-ok="1">${u.clubApprove}</button>` : ''}${c.status !== 'rejected' ? `<button class="btn xs ghost" data-a="adm-club" data-id="${c.id}" data-ok="0">${u.clubReject}</button>` : ''}</div>`;
+  const clubsAdm = `<div class="eyebrow" style="margin-top:12px">${u.clubAdminTitle}${ADM.clubs ? ` · ${ADM.clubs.length}` : ''}</div>${ADM.clubs ? (ADM.clubs.length ? `<div class="stack-s" style="margin-top:8px">${ADM.clubs.map(crow).join('')}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}`;
   const partners = `<div class="eyebrow" style="margin-top:12px">${u.admPartners}${ADM.partners ? ` · ${ADM.partners.length}` : ''}</div>${ADM.partners ? (ADM.partners.length ? `<div class="stack-s" style="margin-top:8px">${ADM.partners.map(prow).join('')}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}`;
   const rows = (ADM.grants || []).map(g => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(g.name)}</b>${g.username ? ` <span style="color:var(--muted)">@${esc(g.username)}</span>` : ''} · ${fmt(g.until)}</div><button class="btn xs ghost" data-a="adm-revoke" data-id="${g.tgId}">${u.adminRevoke}</button></div>`).join('');
   return `<div class="panel" style="margin-top:12px;border-color:rgba(240,205,122,.5)"><div class="eyebrow gold">${u.adminTitle}</div><div class="hint" style="margin:6px 0 8px">${u.adminHint}</div>
@@ -443,7 +553,7 @@ function adminPanelHTML() {
     <button class="btn primary" style="margin-top:8px" data-a="adm-grant">${u.adminGrant}</button>
     <div class="eyebrow" style="margin-top:12px">${u.adminGrants}${ADM.grants ? ` · ${ADM.grants.length}` : ''}</div>
     ${ADM.grants ? (rows ? `<div class="stack-s" style="margin-top:8px">${rows}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}
-    ${partners}</div>`;
+    ${partners}${clubsAdm}</div>`;
 }
 Object.assign(ACT, {
   'adm-q'(el) { ADM.q = el.value || ''; },
@@ -453,6 +563,7 @@ Object.assign(ACT, {
     if (!d.ok) { toast(d.error === 'not_found' ? U().adminNotFound : U().tgOffline); return; }
     ADM.grants = d.grants || ADM.grants; ADM.q = ''; toast(tt(U().adminGranted, { name: d.granted.name, date: new Date(d.granted.until).toLocaleDateString() })); tgHaptic('success'); render();
   },
+  async 'adm-club'(el) { const d = await api('/api/admin/club', { id: Number(el.dataset.id), approve: el.dataset.ok === '1' }); if (!d.ok) { toast(U().tgOffline); return; } ADM.clubs = d.clubs || []; CL.at = 0; tgHaptic('success'); render(); },
   async 'adm-partner'(el) { const d = await api('/api/admin/partner', { q: String(el.dataset.id), approve: el.dataset.ok === '1' }); if (!d.ok) { toast(U().tgOffline); return; } ADM.partners = d.partners || []; tgHaptic('success'); render(); },
   async 'adm-revoke'(el) { const d = await api('/api/admin/revoke', { q: String(el.dataset.id) }); if (!d.ok) { toast(U().tgOffline); return; } ADM.grants = d.grants || []; toast(U().adminRevoked); render(); }
 });
@@ -469,7 +580,7 @@ function cloudTopHTML() {
   wrap('flip', 'impact'); wrap('confirm', 'light'); wrap('vote-finish', 'success'); wrap('vote-close', 'success'); wrap('kam-confirm', 'warning'); wrap('roulette-guess', 'light'); wrap('lift-finish', 'success'); wrap('finish', 'success');
   try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'fr-q') { e.preventDefault(); ACT['fr-search'](); } }); } catch (e) {}
   const origRender = render;
-  render = function () { origRender(); if (TG.app) { tgSync(); try { lobbyPoll(); } catch (e) {} } if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
+  render = function () { origRender(); if (TG.app) { tgSync(); try { lobbyPoll(); clubPoll(); } catch (e) {} } if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
   // dealing screen: the "cards via Telegram" panel sits above the first card until dealing starts
   const origDeal = dealScreen;
   dealScreen = function () { const html = origDeal(); const g = S.game; if (!TG.app || !apiBase() || !g || S.ui.showAll || (g.dealIdx > 0 && !g.tg) || g.dealIdx >= g.players.length) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + lobbyPanelHTML(g) + html.slice(i + 19); };
@@ -478,7 +589,7 @@ function cloudTopHTML() {
   // players tab: the server directory goes first; device-only profiles become a secondary section
   const origProfiles = profilesScreen;
   profilesScreen = function () { const html = origProfiles(); const dir = playersDirectoryHTML(); if (!dir) return html; const u = U(); const marker = `<div class="eyebrow grow">${u.allPlayers} · ${S.profiles.length}</div>`; const i = html.indexOf('<div class="row">' + marker); if (i < 0) return html; return html.slice(0, i) + dir + `<div class="hint" style="margin-top:6px">${u.plLocalHint}</div>` + html.slice(i).replace(marker, `<div class="eyebrow grow">${u.plLocal} · ${S.profiles.length}</div>`); };
-  try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'pl-q') { e.preventDefault(); ACT['pl-search'](); } }); } catch (e) {}
+  try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'pl-q') { e.preventDefault(); ACT['pl-search'](); } if (e.key === 'Enter' && e.target && e.target.id === 'cl-msg') { e.preventDefault(); ACT['club-send'](); } if (e.key === 'Enter' && e.target && e.target.id === 'cl-inv-q') { e.preventDefault(); ACT['club-invite'](); } }); } catch (e) {}
   const origSheet = sheetHTML;
   sheetHTML = function (enter) { const sh = S.ui.sheet; if (sh && (sh.type === 'referral' || sh.type === 'partner')) { const body = sh.type === 'referral' ? referralSheetHTML() : partnerSheetHTML(); const u = U(); return `<div class="sheet-bg ${enter !== false ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`; } return origSheet(enter); };
   const origSettings = settingsScreen;

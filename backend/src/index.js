@@ -22,6 +22,8 @@
    - POST /api/referrals       my referral link, invited / qualified counts, milestones, credits
    - POST /api/partner         partner programme: status, link, stats, earnings; /apply to join
    - POST /api/admin/partners|partner  list / approve / reject partner applications
+   - POST /api/clubs, /api/club, /api/club/apply|update|join|leave|respond|invite|kick|approve|requests, /api/club/chat, /api/club/chat/send
+   - POST /api/admin/clubs|club    list / approve / reject club applications
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
    ============================================================ */
@@ -174,6 +176,195 @@ async function referralStats(env, tgId) {
   const next = MILESTONES.find(m => m.n > qualified) || null;
   return { invited: rows.length, qualified, next, milestones: MILESTONES, credits: await creditsFor(env, tgId), list: rows.slice(0, 50).map(r => ({ tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', at: r.created_at * 1000, qualified: !!r.qualified_at })) };
 }
+/* ---------- clubs ---------- */
+const CLUB_LOGO_MAX = 24000; // data URL bytes (the app resizes to 96px)
+async function clubRow(env, id) { return env.DB.prepare('SELECT * FROM clubs WHERE id = ?1').bind(id).first(); }
+async function membershipOf(env, tgId) { return env.DB.prepare('SELECT m.club_id, m.role, c.name, c.status FROM club_members m JOIN clubs c ON c.id = m.club_id WHERE m.tg_id = ?1').bind(tgId).first(); }
+async function clubMembers(env, clubId) {
+  const ts = now();
+  const rows = (await env.DB.prepare('SELECT m.tg_id, m.role, m.joined_at, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins FROM club_members m LEFT JOIN users u ON u.tg_id = m.tg_id LEFT JOIN ratings r ON r.tg_id = m.tg_id WHERE m.club_id = ?1 ORDER BY (m.role = ?2) DESC, (u.seen_at > ?3) DESC, u.seen_at DESC').bind(clubId, 'owner', ts - ONLINE_SEC).all()).results || [];
+  return rows.map(r => ({ tgId: r.tg_id, role: r.role, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, joinedAt: r.joined_at * 1000 }));
+}
+async function clubCard(env, c) {
+  const ts = now();
+  const m = await env.DB.prepare('SELECT COUNT(*) AS n, SUM(CASE WHEN u.seen_at > ?2 THEN 1 ELSE 0 END) AS online FROM club_members m LEFT JOIN users u ON u.tg_id = m.tg_id WHERE m.club_id = ?1').bind(c.id, ts - ONLINE_SEC).first();
+  return { id: c.id, name: c.name, city: c.city || '', about: c.about || '', link: c.link || '', logo: c.logo || '', ownerId: c.owner_id, status: c.status, members: m.n || 0, online: m.online || 0, createdAt: c.created_at * 1000 };
+}
+async function addMember(env, clubId, tgId, role) { // one club per player: an existing membership is replaced only when explicitly leaving
+  const ins = await env.DB.prepare('INSERT OR IGNORE INTO club_members (tg_id, club_id, role, joined_at) VALUES (?1, ?2, ?3, ?4)').bind(tgId, clubId, role, now()).run();
+  return !!(ins.meta && ins.meta.changes > 0);
+}
+async function clubSystem(env, clubId, text) { await env.DB.prepare('INSERT INTO club_messages (club_id, tg_id, kind, text, created_at) VALUES (?1, 0, ?2, ?3, ?4)').bind(clubId, 'system', text, now()).run(); }
+function cleanClubFields(body) {
+  const name = String(body.name || '').trim().slice(0, 48), city = String(body.city || '').trim().slice(0, 48), about = String(body.about || '').trim().slice(0, 300), link = String(body.link || '').trim().slice(0, 160);
+  let logo = String(body.logo || ''); if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(logo) || logo.length > CLUB_LOGO_MAX) logo = '';
+  return { name, city, about, link, logo };
+}
+async function notifyAdmins(env, bot, key, vars) {
+  for (const adm of String(env.ADMIN_IDS || '').split(',').map(x => Number(x.trim())).filter(Boolean)) { const a = await userRow(env, adm); try { await bot.send(adm, t(pickLang(a && a.lang), key, vars)); } catch (e) {} }
+}
+async function apiClubs(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const rows = (await env.DB.prepare('SELECT * FROM clubs WHERE status = ?1 ORDER BY created_at').bind('active').all()).results || [];
+  const clubs = []; for (const c of rows) clubs.push(await clubCard(env, c));
+  clubs.sort((a, b) => b.online - a.online || b.members - a.members || a.name.localeCompare(b.name));
+  const mine = await membershipOf(env, v.user.id);
+  const own = await env.DB.prepare('SELECT id, name, status FROM clubs WHERE owner_id = ?1 ORDER BY created_at DESC LIMIT 1').bind(v.user.id).first();
+  const invites = (await env.DB.prepare('SELECT r.club_id, c.name, c.city, c.logo FROM club_requests r JOIN clubs c ON c.id = r.club_id WHERE r.tg_id = ?1 AND r.kind = ?2 AND r.status = ?3').bind(v.user.id, 'invite', 'pending').all()).results || [];
+  return json({ ok: true, clubs, mine: mine ? { id: mine.club_id, role: mine.role, name: mine.name } : null, own: own ? { id: own.id, name: own.name, status: own.status } : null, invites: invites.map(r => ({ id: r.club_id, name: r.name, city: r.city || '', logo: r.logo || '' })) });
+}
+async function apiClub(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const c = await clubRow(env, Number(body.id)); if (!c) return json({ ok: false, error: 'not_found' }, 404);
+  const mine = await membershipOf(env, v.user.id); const myRole = mine && mine.club_id === c.id ? mine.role : null;
+  if (c.status !== 'active' && !myRole && c.owner_id !== v.user.id && !isAdmin(env, v.user.id)) return json({ ok: false, error: 'not_found' }, 404);
+  const card = await clubCard(env, c); const members = await clubMembers(env, c.id);
+  const canManage = myRole === 'owner' || myRole === 'admin' || isAdmin(env, v.user.id);
+  const requests = canManage ? ((await env.DB.prepare('SELECT r.tg_id, r.kind, r.created_at, u.username, u.first_name, u.last_name, u.photo_url FROM club_requests r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.club_id = ?1 AND r.status = ?2 ORDER BY r.created_at').bind(c.id, 'pending').all()).results || []).map(r => ({ tgId: r.tg_id, kind: r.kind, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', at: r.created_at * 1000 })) : [];
+  const myReq = await env.DB.prepare('SELECT kind, status FROM club_requests WHERE club_id = ?1 AND tg_id = ?2').bind(c.id, v.user.id).first();
+  return json({ ok: true, club: card, members, myRole, canManage, requests, myRequest: myReq && myReq.status === 'pending' ? myReq.kind : null, inOtherClub: !!(mine && mine.club_id !== c.id) });
+}
+async function apiClubApply(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const f = cleanClubFields(body); if (f.name.length < 2) return json({ ok: false, error: 'bad_name' }, 400);
+  const mine = await membershipOf(env, v.user.id); if (mine) return json({ ok: false, error: 'in_club' }, 409);
+  const existing = await env.DB.prepare('SELECT id, status FROM clubs WHERE owner_id = ?1 AND status != ?2').bind(v.user.id, 'rejected').first();
+  if (existing) return json({ ok: false, error: 'has_club', id: existing.id, status: existing.status }, 409);
+  const ins = await env.DB.prepare('INSERT INTO clubs (name, city, about, link, logo, owner_id, status, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)').bind(f.name, f.city, f.about, f.link, f.logo, v.user.id, 'pending', now()).run();
+  const id = ins.meta.last_row_id;
+  const lang = pickLang(v.user.language_code);
+  await bot.send(v.user.id, t(lang, 'clubApplied', { name: esc(f.name) }));
+  await notifyAdmins(env, bot, 'adminClubNew', { name: esc(f.name), city: esc(f.city || '—'), owner: esc(displayName(v.user)), username: v.user.username ? ' @' + esc(v.user.username) : '', about: esc(f.about || ''), id });
+  return json({ ok: true, id, status: 'pending' });
+}
+async function apiClubUpdate(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const c = await clubRow(env, Number(body.id)); if (!c) return json({ ok: false, error: 'not_found' }, 404);
+  if (c.owner_id !== v.user.id && !isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
+  const f = cleanClubFields(Object.assign({ name: c.name, city: c.city, about: c.about, link: c.link, logo: c.logo }, body)); if (f.name.length < 2) return json({ ok: false, error: 'bad_name' }, 400);
+  if (body.logo === '') f.logo = '';
+  await env.DB.prepare('UPDATE clubs SET name = ?1, city = ?2, about = ?3, link = ?4, logo = ?5 WHERE id = ?6').bind(f.name, f.city, f.about, f.link, f.logo, c.id).run();
+  return json({ ok: true, club: await clubCard(env, await clubRow(env, c.id)) });
+}
+async function setClubStatus(env, bot, c, approve) {
+  await env.DB.prepare('UPDATE clubs SET status = ?1, approved_at = ?2 WHERE id = ?3').bind(approve ? 'active' : 'rejected', approve ? now() : null, c.id).run();
+  const owner = await userRow(env, c.owner_id); const lang = pickLang(owner && owner.lang);
+  if (approve) { await addMember(env, c.id, c.owner_id, 'owner'); await clubSystem(env, c.id, '🏛'); await bot.send(c.owner_id, t(lang, 'clubApproved', { name: esc(c.name) }), bot.playButton(t(lang, 'play'), env.APP_URL)); }
+  else await bot.send(c.owner_id, t(lang, 'clubRejected', { name: esc(c.name) }));
+}
+async function listClubsAdmin(env) {
+  const rows = (await env.DB.prepare('SELECT c.*, u.username, u.first_name, u.last_name FROM clubs c LEFT JOIN users u ON u.tg_id = c.owner_id ORDER BY (c.status = ?1) DESC, c.created_at DESC LIMIT 200').bind('pending').all()).results || [];
+  const out = []; for (const c of rows) { const card = await clubCard(env, c); out.push(Object.assign(card, { owner: rowName(c) || String(c.owner_id), ownerUsername: c.username || '' })); }
+  return out;
+}
+async function apiAdminClubs(env, bot, body, action) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
+  if (action === 'list') return json({ ok: true, clubs: await listClubsAdmin(env) });
+  const c = await clubRow(env, Number(body.id)); if (!c) return json({ ok: false, error: 'not_found' }, 404);
+  await setClubStatus(env, bot, c, !!body.approve);
+  return json({ ok: true, clubs: await listClubsAdmin(env) });
+}
+/* invitations (from the club) and applications (from players) */
+async function apiClubInvite(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const mine = await membershipOf(env, v.user.id); if (!mine || (mine.role !== 'owner' && mine.role !== 'admin')) return json({ ok: false, error: 'forbidden' }, 403);
+  const c = await clubRow(env, mine.club_id); const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
+  const tm = await membershipOf(env, target.tg_id); if (tm) return json({ ok: false, error: tm.club_id === c.id ? 'already_member' : 'in_other_club' }, 409);
+  const pending = await env.DB.prepare('SELECT kind, status FROM club_requests WHERE club_id = ?1 AND tg_id = ?2').bind(c.id, target.tg_id).first();
+  if (pending && pending.status === 'pending' && pending.kind === 'apply') { // they already asked to join → accept right away
+    await env.DB.prepare('UPDATE club_requests SET status = ?1 WHERE club_id = ?2 AND tg_id = ?3').bind('accepted', c.id, target.tg_id).run();
+    await addMember(env, c.id, target.tg_id, 'member'); await clubSystem(env, c.id, '+' + rowName(target));
+    await bot.send(target.tg_id, t(pickLang(target.lang), 'clubApplyOk', { club: esc(c.name) }), bot.playButton(t(pickLang(target.lang), 'play'), env.APP_URL));
+    return json({ ok: true, status: 'joined' });
+  }
+  await env.DB.prepare('INSERT INTO club_requests (club_id, tg_id, kind, status, created_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(club_id, tg_id) DO UPDATE SET kind = ?3, status = ?4, created_at = ?5').bind(c.id, target.tg_id, 'invite', 'pending', now()).run();
+  const tl = pickLang(target.lang);
+  await bot.send(target.tg_id, t(tl, 'clubInvite', { name: esc(displayName(v.user)), club: esc(c.name), city: c.city ? ' (' + esc(c.city) + ')' : '' }), { reply_markup: { inline_keyboard: [[{ text: t(tl, 'btnAccept'), callback_data: `cl_acc_${c.id}` }, { text: t(tl, 'btnDecline'), callback_data: `cl_dec_${c.id}` }]] } });
+  return json({ ok: true, status: 'invited' });
+}
+async function respondClubInvite(env, bot, u, clubId, accept) { // returns 'gone' | { name }
+  const r = await env.DB.prepare('SELECT status FROM club_requests WHERE club_id = ?1 AND tg_id = ?2 AND kind = ?3').bind(clubId, u.id, 'invite').first();
+  if (!r || r.status !== 'pending') return 'gone';
+  const c = await clubRow(env, clubId); if (!c) return 'gone';
+  if (accept) { const mine = await membershipOf(env, u.id); if (mine) return 'in_club'; }
+  await env.DB.prepare('UPDATE club_requests SET status = ?1 WHERE club_id = ?2 AND tg_id = ?3').bind(accept ? 'accepted' : 'declined', clubId, u.id).run();
+  if (accept) {
+    await addMember(env, clubId, u.id, 'member'); await clubSystem(env, clubId, '+' + displayName(u));
+    const owner = await userRow(env, c.owner_id); await bot.send(c.owner_id, t(pickLang(owner && owner.lang), 'clubMemberJoined', { name: esc(displayName(u)), club: esc(c.name) }));
+  }
+  return { name: c.name };
+}
+async function apiClubRespond(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const r = await respondClubInvite(env, bot, v.user, Number(body.id), !!body.accept);
+  if (r === 'in_club') return json({ ok: false, error: 'in_club' }, 409);
+  return json({ ok: true, gone: r === 'gone', club: r === 'gone' ? null : r });
+}
+async function apiClubJoin(env, bot, body) { // a player asks to join
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const c = await clubRow(env, Number(body.id)); if (!c || c.status !== 'active') return json({ ok: false, error: 'not_found' }, 404);
+  const mine = await membershipOf(env, v.user.id); if (mine) return json({ ok: false, error: 'in_club' }, 409);
+  const pending = await env.DB.prepare('SELECT kind, status FROM club_requests WHERE club_id = ?1 AND tg_id = ?2').bind(c.id, v.user.id).first();
+  if (pending && pending.status === 'pending' && pending.kind === 'invite') { await respondClubInvite(env, bot, v.user, c.id, true); return json({ ok: true, status: 'joined' }); }
+  await env.DB.prepare('INSERT INTO club_requests (club_id, tg_id, kind, status, created_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(club_id, tg_id) DO UPDATE SET kind = ?3, status = ?4, created_at = ?5').bind(c.id, v.user.id, 'apply', 'pending', now()).run();
+  const owner = await userRow(env, c.owner_id); await bot.send(c.owner_id, t(pickLang(owner && owner.lang), 'clubApplyNew', { name: esc(displayName(v.user)), club: esc(c.name) }), bot.playButton(t(pickLang(owner && owner.lang), 'play'), env.APP_URL));
+  return json({ ok: true, status: 'applied' });
+}
+async function apiClubApprove(env, bot, body) { // the head answers an application
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const mine = await membershipOf(env, v.user.id); if (!mine || (mine.role !== 'owner' && mine.role !== 'admin')) return json({ ok: false, error: 'forbidden' }, 403);
+  const c = await clubRow(env, mine.club_id); const tgId = Number(body.tgId);
+  const r = await env.DB.prepare('SELECT status FROM club_requests WHERE club_id = ?1 AND tg_id = ?2 AND kind = ?3').bind(c.id, tgId, 'apply').first();
+  if (!r || r.status !== 'pending') return json({ ok: true, gone: true });
+  const accept = !!body.accept; const target = await userRow(env, tgId); const tl = pickLang(target && target.lang);
+  if (accept && await membershipOf(env, tgId)) { await env.DB.prepare('UPDATE club_requests SET status = ?1 WHERE club_id = ?2 AND tg_id = ?3').bind('declined', c.id, tgId).run(); return json({ ok: false, error: 'in_other_club' }, 409); }
+  await env.DB.prepare('UPDATE club_requests SET status = ?1 WHERE club_id = ?2 AND tg_id = ?3').bind(accept ? 'accepted' : 'declined', c.id, tgId).run();
+  if (accept) { await addMember(env, c.id, tgId, 'member'); await clubSystem(env, c.id, '+' + rowName(target)); }
+  await bot.send(tgId, t(tl, accept ? 'clubApplyOk' : 'clubApplyNo', { club: esc(c.name) }), accept ? bot.playButton(t(tl, 'play'), env.APP_URL) : undefined);
+  return json({ ok: true });
+}
+async function apiClubKick(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const mine = await membershipOf(env, v.user.id); if (!mine || (mine.role !== 'owner' && mine.role !== 'admin')) return json({ ok: false, error: 'forbidden' }, 403);
+  const tgId = Number(body.tgId); const tm = await membershipOf(env, tgId); if (!tm || tm.club_id !== mine.club_id || tm.role === 'owner') return json({ ok: false, error: 'bad_member' }, 400);
+  await env.DB.prepare('DELETE FROM club_members WHERE tg_id = ?1').bind(tgId).run();
+  const target = await userRow(env, tgId); await bot.send(tgId, t(pickLang(target && target.lang), 'clubKicked', { club: esc(mine.name) }));
+  return json({ ok: true });
+}
+async function apiClubLeave(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const mine = await membershipOf(env, v.user.id); if (!mine) return json({ ok: true });
+  if (mine.role === 'owner') return json({ ok: false, error: 'owner' }, 400);
+  await env.DB.prepare('DELETE FROM club_members WHERE tg_id = ?1').bind(v.user.id).run();
+  return json({ ok: true });
+}
+/* chat: last 100 messages, or everything after `since`; a lobby message carries a join code */
+async function apiClubChat(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const mine = await membershipOf(env, v.user.id); if (!mine) return json({ ok: false, error: 'no_club' }, 403);
+  const since = Number(body.since) || 0;
+  const rows = since
+    ? (await env.DB.prepare('SELECT m.*, u.username, u.first_name, u.last_name FROM club_messages m LEFT JOIN users u ON u.tg_id = m.tg_id WHERE m.club_id = ?1 AND m.id > ?2 ORDER BY m.id LIMIT 200').bind(mine.club_id, since).all()).results || []
+    : ((await env.DB.prepare('SELECT m.*, u.username, u.first_name, u.last_name FROM club_messages m LEFT JOIN users u ON u.tg_id = m.tg_id WHERE m.club_id = ?1 ORDER BY m.id DESC LIMIT 100').bind(mine.club_id).all()).results || []).reverse();
+  return json({ ok: true, messages: rows.map(m => ({ id: m.id, tgId: m.tg_id, name: m.tg_id ? (rowName(m) || String(m.tg_id)) : '', kind: m.kind, text: m.text || '', code: m.code || '', at: m.created_at * 1000, me: m.tg_id === v.user.id })) });
+}
+async function apiClubChatSend(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const mine = await membershipOf(env, v.user.id); if (!mine) return json({ ok: false, error: 'no_club' }, 403);
+  const last = await env.DB.prepare('SELECT created_at FROM club_messages WHERE club_id = ?1 AND tg_id = ?2 ORDER BY id DESC LIMIT 1').bind(mine.club_id, v.user.id).first();
+  if (last && now() - last.created_at < 1) return json({ ok: false, error: 'slow_down' }, 429);
+  let kind = 'text', text = String(body.text || '').trim().slice(0, 500), code = '';
+  if (body.lobby) { code = String(body.lobby).toUpperCase(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400); const lob = await env.DB.prepare('SELECT host_id, status FROM lobbies WHERE code = ?1').bind(code).first(); if (!lob || lob.host_id !== v.user.id || lob.status !== 'open') return json({ ok: false, error: 'no_lobby' }, 404); kind = 'lobby'; text = ''; }
+  else if (!text) return json({ ok: false, error: 'empty' }, 400);
+  const ins = await env.DB.prepare('INSERT INTO club_messages (club_id, tg_id, kind, text, code, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(mine.club_id, v.user.id, kind, text, code || null, now()).run();
+  await env.DB.prepare('DELETE FROM club_messages WHERE club_id = ?1 AND id < (SELECT MIN(id) FROM (SELECT id FROM club_messages WHERE club_id = ?1 ORDER BY id DESC LIMIT 300))').bind(mine.club_id).run();
+  if (kind === 'lobby') { // a table call also goes to every online member's Telegram, with a join button
+    const members = await clubMembers(env, mine.club_id); const username = await botUsername(env, bot);
+    for (const m of members) { if (m.tgId === v.user.id || !m.online) continue; const ml = await userRow(env, m.tgId); const l = pickLang(ml && ml.lang); try { await bot.send(m.tgId, t(l, 'clubLobby', { name: esc(displayName(v.user)), code }), { reply_markup: { inline_keyboard: [[{ text: t(l, 'btnJoin', { code }), url: `https://t.me/${username}?start=join_${code}` }]] } }); } catch (e) {} }
+  }
+  return json({ ok: true, id: ins.meta.last_row_id });
+}
 /* ---------- partners ---------- */
 async function partnerRow(env, tgId) { return env.DB.prepare('SELECT * FROM partners WHERE tg_id = ?1').bind(tgId).first(); }
 async function partnerStats(env, tgId, share) {
@@ -201,6 +392,14 @@ async function handleUpdate(env, bot, upd) {
 }
 async function onCallback(env, bot, q) {
   const u = q.from || {}; const lang = pickLang(u.language_code);
+  const cm = /^cl_(acc|dec)_(\d+)$/.exec(q.data || '');
+  if (cm) {
+    const r = await respondClubInvite(env, bot, u, Number(cm[2]), cm[1] === 'acc');
+    const text = r === 'gone' ? t(lang, 'clubInviteGone') : r === 'in_club' ? t(lang, 'clubInvite', { name: '', club: '', city: '' }).split('.').pop().trim() || t(lang, 'clubInviteGone') : cm[1] === 'acc' ? t(lang, 'clubJoined', { club: esc(r.name) }) : t(lang, 'clubInviteDeclined');
+    await bot.call('answerCallbackQuery', { callback_query_id: q.id, text: text.replace(/<[^>]+>/g, '') });
+    if (q.message) await bot.call('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text, parse_mode: 'HTML' });
+    return;
+  }
   const m = /^fr_(acc|dec)_(\d+)$/.exec(q.data || '');
   if (!m) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
   const fromId = Number(m[2]); const accept = m[1] === 'acc';
@@ -249,7 +448,7 @@ async function onText(env, bot, msg) {
     }
     return bot.send(chat, t(lang, 'welcome'), play);
   }
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') : t(lang, 'help'), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') : t(lang, 'help'), play);
   if (isAdmin(env, u.id)) {
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
@@ -260,6 +459,9 @@ async function onText(env, bot, msg) {
     }
     const pc = /^\/(partner|partner_no)(?:@\w+)?\s+(\S+)/.exec(text);
     if (pc) { const target = await findUser(env, pc[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(pc[2]) })); await setPartner(env, bot, target, pc[1] === 'partner'); return bot.send(chat, t(lang, pc[1] === 'partner' ? 'adminPartnerOk' : 'adminPartnerNo', { name: esc(rowName(target)) })); }
+    const cc = /^\/(club_ok|club_no)(?:@\w+)?\s+(\d+)/.exec(text);
+    if (cc) { const c = await clubRow(env, Number(cc[2])); if (!c) return bot.send(chat, t(lang, 'adminNoUser', { q: cc[2] })); await setClubStatus(env, bot, c, cc[1] === 'club_ok'); return bot.send(chat, t(lang, cc[1] === 'club_ok' ? 'adminClubOk' : 'adminClubNo', { name: esc(c.name) })); }
+    if (/^\/clubs/.test(text)) { const list = await listClubsAdmin(env); return bot.send(chat, list.length ? t(lang, 'adminClubs', { list: list.map(x => `• #${x.id} ${esc(x.name)}${x.city ? ' (' + esc(x.city) + ')' : ''} — ${x.status} · ${x.members} · ${esc(x.owner)}${x.ownerUsername ? ' @' + esc(x.ownerUsername) : ''}`).join('\n') }) : t(lang, 'adminClubsNone')); }
     if (/^\/partners/.test(text)) { const list = await listPartners(env); return bot.send(chat, list.length ? t(lang, 'adminPartners', { list: list.map(x => `• ${esc(x.name)}${x.username ? ' @' + esc(x.username) : ''} — ${x.status}${x.stats ? ` · ${x.stats.invited} / ${x.stats.qualified} · ${x.stats.earnedStars}⭐` : ''}`).join('\n') }) : t(lang, 'adminPartnersNone')); }
     if (/^\/grants/.test(text)) { const list = await listGrants(env); return bot.send(chat, list.length ? t(lang, 'adminGrants', { list: list.map(x => `• ${esc(x.name)}${x.username ? ' @' + esc(x.username) : ''} — ${fmtDate(x.until / 1000, lang)}`).join('\n') }) : t(lang, 'adminNone')); }
   }
@@ -323,8 +525,8 @@ async function apiMe(env, bot, body) {
   const [owned, rating, code, username] = await Promise.all([ownedFor(env, v.user.id), ratingFor(env, v.user.id), inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
   const u = v.user;
   if (isAdmin(env, u.id)) owned.allUntil = Math.max(owned.allUntil || 0, Date.now() + 3650 * 86400000); // admins own everything
-  const credits = await creditsFor(env, u.id);
-  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), credits });
+  const credits = await creditsFor(env, u.id); const club = await membershipOf(env, u.id);
+  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), credits, club: club ? { id: club.club_id, role: club.role, name: club.name } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -626,6 +828,20 @@ export default {
           case '/api/partner/apply': return wrap(apiPartner(env, bot, body, 'apply'));
           case '/api/admin/partners': return wrap(apiAdminPartners(env, bot, body, 'list'));
           case '/api/admin/partner': return wrap(apiAdminPartners(env, bot, body, 'set'));
+          case '/api/clubs': return wrap(apiClubs(env, body));
+          case '/api/club': return wrap(apiClub(env, body));
+          case '/api/club/apply': return wrap(apiClubApply(env, bot, body));
+          case '/api/club/update': return wrap(apiClubUpdate(env, body));
+          case '/api/club/invite': return wrap(apiClubInvite(env, bot, body));
+          case '/api/club/respond': return wrap(apiClubRespond(env, bot, body));
+          case '/api/club/join': return wrap(apiClubJoin(env, bot, body));
+          case '/api/club/approve': return wrap(apiClubApprove(env, bot, body));
+          case '/api/club/kick': return wrap(apiClubKick(env, bot, body));
+          case '/api/club/leave': return wrap(apiClubLeave(env, body));
+          case '/api/club/chat': return wrap(apiClubChat(env, body));
+          case '/api/club/chat/send': return wrap(apiClubChatSend(env, bot, body));
+          case '/api/admin/clubs': return wrap(apiAdminClubs(env, bot, body, 'list'));
+          case '/api/admin/club': return wrap(apiAdminClubs(env, bot, body, 'set'));
           case '/api/invoice': return wrap(apiInvoice(env, bot, body));
           case '/api/game/result': return wrap(apiResult(env, bot, body));
           case '/api/lobby': return wrap(apiLobbyCreate(env, bot, body));

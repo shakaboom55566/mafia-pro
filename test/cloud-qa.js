@@ -22,7 +22,7 @@ const path = require('path'); const http = require('http');
   // a purchase that already exists in the account (restored on start)
   await env.DB.prepare("INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (100, 'role', 'arsonist', 100, 'p_pre', 'paid', 1, 1)").run();
 
-  let fails = 0, n = 0; const ok = (c, m) => { n++; if (!c) { fails++; console.log('  FAIL', m); } };
+  let fails = 0, n = 0; const ok = (c, m) => { n++; if (!c) { fails++; console.log('  FAIL', m); } }; const eq = (a, b, m) => ok(JSON.stringify(a) === JSON.stringify(b), m + ': ' + JSON.stringify(a) + ' != ' + JSON.stringify(b));
   const b = await chromium.launch(); const errs = [];
   const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push('console: ' + m.text()); });
@@ -228,6 +228,65 @@ const path = require('path'); const http = require('http');
   const ptTxt = await p.$eval('.sheet', el => el.textContent);
   ok(await S(() => PART.data.status === 'active' && PART.data.stats.invited === 6) && ptTxt.includes(await S(() => tt(U().ptActive, { share: 20 }))) && ptTxt.includes('start=ref_'), 'partner dashboard: active, 5 invited, link');
   await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-partner.png') }).catch(() => {});
+  await S(() => { S.ui.sheet = null; render(); });
+
+  console.log('clubs: apply with logo → admin approves → listed → invite → member joins → chat → table call');
+  await S(() => { S.ui.sheet = null; go('profiles'); }); await p.waitForTimeout(400);
+  ok(!!(await p.$('[data-a="clubs-open"]')), 'clubs card on the Players tab');
+  await p.click('[data-a="clubs-open"]'); await p.waitForTimeout(500);
+  ok(await S(() => S.screen === 'clubs' && Array.isArray(CL.list) && CL.list.length === 0) && !!(await p.$('[data-a="club-create"]')), 'empty clubs list with "found a club"');
+  await p.click('[data-a="club-create"]'); await p.waitForTimeout(200);
+  // logo: a generated PNG file goes through the canvas resize
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAD0lEQVQI12P4z8DwHwYZAB7rA/xGfQ8lAAAAAElFTkSuQmCC', 'base64');
+  await p.setInputFiles('input[data-a="cl-logo-file"]', { name: 'logo.png', mimeType: 'image/png', buffer: png }); await p.waitForTimeout(500);
+  ok(await S(() => CL.form.logo.startsWith('data:image/jpeg;base64,') && CL.form.logo.length < 24000), 'logo resized to a small JPEG data URL');
+  await p.fill('input[data-a="cl-f"][data-k="name"]', 'Клуб Кастельмар'); await p.fill('input[data-a="cl-f"][data-k="city"]', 'Київ'); await p.fill('textarea[data-a="cl-f"][data-k="about"]', 'Спортивная мафия по субботам'); await p.fill('input[data-a="cl-f"][data-k="link"]', 't.me/castelmar');
+  await p.click('[data-a="club-submit"]'); await p.waitForTimeout(700);
+  ok(await S(() => CL.own && CL.own.status === 'pending') && (await p.innerText('#app')).includes(await S(() => U().clubPending)), 'application pending, shown on the list screen');
+  ok(lastTo(100).params.text.includes('Клуб Кастельмар') && lastTo(100).params.text.includes('/club_ok'), 'admin (user 100) notified');
+  // approve in the admin panel
+  await S(() => { ADM.clubs = null; go('settings'); }); await p.waitForTimeout(600);
+  ok(await S(() => ADM.clubs && ADM.clubs.length === 1 && ADM.clubs[0].status === 'pending' && ADM.clubs[0].logo.startsWith('data:image/jpeg')), 'admin panel lists the club application with logo');
+  await p.click('[data-a="adm-club"][data-ok="1"]'); await p.waitForTimeout(600);
+  ok(await S(() => ADM.clubs[0].status === 'active'), 'approved');
+  await S(() => { CL.at = 0; cloudSync(); go('clubs'); }); await p.waitForTimeout(800);
+  ok(await S(() => CL.list.length === 1 && CL.list[0].members === 1 && CL.list[0].online === 1 && CL.mine && CL.mine.role === 'owner'), 'listed: 1 member, 1 online, I am the head: ' + JSON.stringify(await S(() => ({ list: CL.list, mine: CL.mine, own: CL.own, screen: S.screen }))).slice(0, 400));
+  const listTxt = await p.innerText('#app'); ok(listTxt.includes('Клуб Кастельмар') && listTxt.includes('Київ') && listTxt.includes(await S(() => tt(U().clubOnline, { n: 1 }))), 'card shows name, city, online');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-clubs.png') }).catch(() => {});
+  await p.click('.fr-row[data-a="club-open"]'); await p.waitForTimeout(900);
+  ok(await S(() => S.screen === 'club' && CL.cur && CL.cur.myRole === 'owner' && CL.cur.canManage) && !!(await p.$('#cl-inv-q')) && !!(await p.$('#cl-msg')), 'club page for the head: invite box and chat');
+  // invite Nika (701) → she accepts via the bot button
+  await p.fill('#cl-inv-q', '@nika_m'); await p.click('[data-a="club-invite"]'); await p.waitForTimeout(600);
+  ok(lastTo(701).params.text.includes('invites you to the club') && lastTo(701).params.reply_markup.inline_keyboard[0][0].callback_data.startsWith('cl_acc_'), 'invite DM with buttons (en)');
+  const clubId = await S(() => CL.id);
+  await hook({ update_id: 95, callback_query: { id: 'cbcl', from: { id: 701, first_name: 'Nika', language_code: 'en' }, data: `cl_acc_${clubId}`, message: { message_id: 3, chat: { id: 701 } } } });
+  ok(lastTo(100).params.text.includes('Nika') && lastTo(100).params.text.includes('вступил'), 'head notified');
+  // Olga applies from her side → head approves in the app
+  const olga = await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: 702, first_name: 'Olga', username: 'olga_s', language_code: 'pl' } }, 'test-token');
+  const ap = await (await fetch('http://127.0.0.1:8791/api/club/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: olga, id: clubId }) })).json(); eq(ap.status, 'applied', 'Olga applied');
+  await S(() => loadClub(CL.id)); await p.waitForTimeout(600);
+  ok(await S(() => CL.cur.requests.length === 1 && CL.cur.requests[0].name === 'Olga' && CL.cur.members.length === 2), 'request listed, Nika already a member');
+  await p.click('[data-a="club-approve"][data-ok="1"]'); await p.waitForTimeout(700);
+  ok(await S(() => CL.cur.requests.length === 0 && CL.cur.members.length === 3 && CL.cur.club.members === 3), 'approved → 3 members');
+  ok(lastTo(702).params.text.includes('Przyjęto'), 'Olga notified in Polish');
+  // chat
+  await p.fill('#cl-msg', 'Привет, клуб! Играем в субботу'); await p.press('#cl-msg', 'Enter'); await p.waitForTimeout(700);
+  ok(await S(() => CL.chat.some(m => m.kind === 'text' && m.text.includes('субботу') && m.me)) && (await p.innerText('.chat')).includes('субботу'), 'message appears in the chat');
+  ok(await S(() => CL.chat.some(m => m.kind === 'system')), 'system entries (club founded / joined)');
+  // table call: online members get a DM; message with a join button in the chat
+  await env.DB.prepare('UPDATE club_messages SET created_at = created_at - 5').run();
+  await p.click('[data-a="club-call"]'); await p.waitForTimeout(900);
+  ok(await S(() => CL.chat.some(m => m.kind === 'lobby' && m.code)) && !!(await p.$('[data-a="club-join-table"]')), 'lobby call in the chat with a join button');
+  const callCode = await S(() => CL.chat.find(m => m.kind === 'lobby').code);
+  ok(lastTo(701).params.text.includes(callCode) && lastTo(701).params.reply_markup.inline_keyboard[0][0].url.includes('start=join_' + callCode), 'online member Nika got the table call');
+  await p.click('[data-a="club-join-table"]'); ok(await S(() => window.__tg.links.some(l => l.includes('start=join_'))), 'join button opens the bot deep link');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-club.png') }).catch(() => {});
+  // one club per player: Nika (member) cannot found a club; a member can leave
+  const nika = await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: 701, first_name: 'Nika', username: 'nika_m', language_code: 'en' } }, 'test-token');
+  eq((await fetch('http://127.0.0.1:8791/api/club/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: nika, name: 'Second club' }) })).status, 409, 'a member cannot found another club');
+  // edit: rename the club from the app
+  await p.click('[data-a="club-edit"]'); await p.waitForTimeout(200); await p.fill('input[data-a="cl-f"][data-k="city"]', 'Киев'); await p.click('[data-a="club-submit"]'); await p.waitForTimeout(700);
+  ok(await S(() => CL.cur.club.city === 'Киев'), 'city edited');
   await S(() => { S.ui.sheet = null; render(); });
 
   console.log('players tab: everyone registered in the bot');

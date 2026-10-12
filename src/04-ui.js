@@ -138,6 +138,8 @@ function render() {
     case 'profile': html = profileScreen(); break;
     case 'ratings': html = ratingsScreen(); break;
     case 'friends': html = friendsScreen(); break;
+    case 'clubs': html = typeof clubsScreen === 'function' ? clubsScreen() : ''; break;
+    case 'club': html = typeof clubScreen === 'function' ? clubScreen() : ''; break;
     case 'shop': html = shopScreen(); break;
   }
   // enter animations only when the screen / phase / sheet actually changes (not on every tap)
@@ -797,19 +799,20 @@ function sheetHTML(enter = true) {
   if (sh.type === 'profEdit') body = profEditHTML(sh.id);
   if (sh.type === 'buy') body = buySheetHTML(sh.kind, sh.id);
   if (sh.type === 'friend' && typeof friendSheetHTML === 'function') body = friendSheetHTML(sh.id);
+  if (sh.type === 'clubEdit' && typeof clubEditHTML === 'function') body = clubEditHTML(sh.id);
   if (sh.type === 'reset') body = `<h2>${u.resetTitle}</h2><p class="hint" style="margin:6px 0 14px">${u.resetText}</p><div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn danger" data-a="reset-confirm">${u.resetBtn}</button></div>`;
   return `<div class="sheet-bg ${enter ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`;
 }
 
 /* ============================================================ ACTIONS */
 function goGameOrHome() { S.screen = S.game ? 'game' : 'home'; }
-function go(screen) { S.screen = screen; S.tab = ['cards', 'settings', 'profiles', 'ratings', 'friends'].includes(screen) ? screen : (screen === 'profile' ? 'profiles' : 'game'); window.scrollTo(0, 0); render(); }
+function go(screen) { S.screen = screen; S.tab = ['cards', 'settings', 'profiles', 'ratings', 'friends'].includes(screen) ? screen : (['profile', 'clubs', 'club'].includes(screen) ? 'profiles' : 'game'); window.scrollTo(0, 0); render(); }
 
 const ACT = {
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
-  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'profile') { S.screen = 'profiles'; } else goGameOrHome(); S.ui.showAll = false; render(); },
+  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'profile' || S.screen === 'clubs') { S.screen = 'profiles'; } else if (S.screen === 'club') { S.screen = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
   new() { S.setup.scenario = null; S.setup.comp = presetFor(S.setup.n); S.ui.showAll = false; go('setup'); },
   continue() { go('game'); },
   n(el) { const d = +el.dataset.d; setN(S.setup.n + d); },
@@ -933,8 +936,8 @@ document.addEventListener('click', e => {
   const fn = ACT[el.dataset.a]; if (fn) fn(el);
 });
 document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); } });
-document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); if (el.dataset.a === 'pt-f') ACT['pt-f'](el); });
-document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
+document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); if (el.dataset.a === 'pt-f') ACT['pt-f'](el); if (el.dataset.a === 'cl-f') ACT['cl-f'](el); if (el.dataset.a === 'cl-msg') ACT['cl-msg'](el); if (el.dataset.a === 'cl-inv-q') ACT['cl-inv-q'](el); });
+document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'cl-logo-file') ACT['cl-logo-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
 
 /* ---------- boot ---------- */
 function start(hot) {
