@@ -114,25 +114,38 @@ jobs:
           echo "$R" | grep -q '"ok":true' || { echo "::error::setWebhook failed: $R"; exit 1; }
           curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo" | sed 's/"url":"[^"]*"/"url":"<set>"/'
 
-      - name: Tell the app where the backend is (MAFIA_API_URL variable) and republish the site
+      - name: Republish the site with the backend address
         if: steps.check.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           URL: ${{ steps.deploy.outputs.url }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" -f api_url="$URL" && echo "Pages redeploy triggered with api_url=$URL"
+
+      - name: Repository variable MAFIA_API_URL
+        if: steps.check.outputs.ready == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: gh variable set MAFIA_API_URL --body "$URL" --repo "$GITHUB_REPOSITORY" && echo "variable MAFIA_API_URL = $URL"
+
+      - name: Commit the backend address (.mafia-api-url) for later site builds
+        if: steps.check.outputs.ready == 'true'
+        working-directory: ${{ github.workspace }}
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
         run: |
-          if gh variable set MAFIA_API_URL --body "$URL" --repo "$GITHUB_REPOSITORY" 2>var.log; then
-            echo "variable MAFIA_API_URL = $URL"
-          else
-            echo "::warning::Could not set the MAFIA_API_URL variable automatically ($(cat var.log)). Set it once by hand: Settings → Secrets and variables → Actions → Variables → New repository variable → MAFIA_API_URL = $URL"
-          fi
-          # also keep the address in the repository, so every later site build (push without this workflow) still has it
-          cd "$GITHUB_WORKSPACE"
-          if [ "$(cat .mafia-api-url 2>/dev/null)" != "$URL" ]; then
-            echo "$URL" > .mafia-api-url
-            git config user.name "mafia-pro-deploy" && git config user.email "deploy@users.noreply.github.com"
-            git add .mafia-api-url && git commit -m "chore: backend address $URL" && git pull --rebase origin main && git push origin HEAD:main && echo "committed .mafia-api-url"
-          fi
-          gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" -f api_url="$URL" && echo "Pages redeploy triggered with api_url=$URL"
+          set -e
+          if [ "$(cat .mafia-api-url 2>/dev/null)" = "$URL" ]; then echo "already up to date"; exit 0; fi
+          echo "$URL" > .mafia-api-url
+          git config user.name "mafia-pro-deploy"
+          git config user.email "deploy@users.noreply.github.com"
+          git add .mafia-api-url
+          git commit -m "chore: backend address $URL"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+          echo "committed .mafia-api-url"
 
       - name: Summary
         if: steps.check.outputs.ready == 'true'
