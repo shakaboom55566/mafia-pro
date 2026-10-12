@@ -84,7 +84,9 @@ jobs:
         id: deploy
         run: |
           set -eo pipefail
-          { echo "## deploy"; npx wrangler deploy; } 2>&1 | tee -a "$LOG" | tee deploy.out
+          # Cloudflare's API occasionally answers 5xx: retry the deploy up to three times
+          ok=0; for i in 1 2 3; do { echo "## deploy (attempt $i)"; npx wrangler deploy; } 2>&1 | tee -a "$LOG" | tee deploy.out && { ok=1; break; }; sleep 20; done
+          [ "$ok" = 1 ] || { echo "::error::wrangler deploy failed three times"; exit 1; }
           URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.out | head -1)
           [ -n "$URL" ] || { echo "::error::Worker URL not found in wrangler output"; exit 1; }
           echo "url=$URL" >> "$GITHUB_OUTPUT"
