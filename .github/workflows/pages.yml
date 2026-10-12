@@ -11,7 +11,7 @@ on:
         default: ''
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -63,3 +63,13 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Note the build on the commit (which backend address went into the page)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          META=$(grep -o '<meta name="mafia-api" content="[^"]*">' _site/index.html || echo '(no meta)')
+          BODY="**Deploy to GitHub Pages** run $GITHUB_RUN_NUMBER — **${{ job.status }}** · ${{ steps.deployment.outputs.page_url }}\n\n\`$META\`"
+          printf '{"body":"%s"}' "$BODY" > /tmp/c.json
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input /tmp/c.json > /dev/null && echo "noted"
