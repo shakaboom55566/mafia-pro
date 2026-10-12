@@ -1,0 +1,22 @@
+# Mafia Pro backend — Cloudflare Worker + D1.
+# Secrets (set by the deploy workflow, never committed): BOT_TOKEN, WEBHOOK_SECRET.
+name = "mafia-pro-api"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[vars]
+APP_URL = "https://shakaboom55566.github.io/mafia-pro/"
+ALLOWED_ORIGIN = "https://shakaboom55566.github.io"
+# Prices in Telegram Stars (≈ $2 / $9.99 / $35 for buyers)
+STARS_ROLE = "100"
+STARS_SCENARIO = "500"
+STARS_PACK = "1750"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mafia-pro"
+database_id = "__D1_DATABASE_ID__"   # replaced by the deploy workflow; any value works for local dev
+
+[observability]
+enabled = true

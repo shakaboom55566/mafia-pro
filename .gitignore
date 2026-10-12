@@ -6,3 +6,7 @@ qa-shots/
 node_modules/
 *.log
 .DS_Store
+backend/node_modules/
+backend/.wrangler/
+backend/*.log
+backend/package-lock.json

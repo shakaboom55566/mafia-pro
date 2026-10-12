@@ -35,9 +35,20 @@
 
 Автораскрытие на весь экран, цвета шапки и фона, запрет закрытия свайпом (иначе не покрутить 3D-карту), родная кнопка «Назад», подтверждение закрытия во время партии, вибрация на раздаче/выстреле/голосовании, профиль «я» из аккаунта Telegram, язык интерфейса из языка Telegram. Вне Telegram приложение работает как обычная страница.
 
-### Бэкенд (следующий этап)
+### Бэкенд: бот, Telegram Stars, общие рейтинги, карты в личку
 
-Покупки за Telegram Stars, общие рейтинги между телефонами и раздача карт игрокам в личку требуют сервера с токеном бота. Приложение уже умеет его вызывать: если задать `window.MAFIA_API = 'https://ваш-сервер'`, кнопка «Купить» делает `POST /invoice` `{kind, id, initData}` и открывает полученный счёт через `openInvoice`.
+Папка `backend/` — Cloudflare Worker + база D1 (бесплатные тарифы). Что делает:
+
+- отвечает на `/start`, `/help` на ru/uk/en/pl/hy с кнопкой «Играть»;
+- **покупки за Telegram Stars**: приложение запрашивает счёт (`POST /api/invoice`), бот подтверждает `pre_checkout_query`, фиксирует `successful_payment`; покупки привязаны к аккаунту Telegram и восстанавливаются на любом телефоне (`POST /api/me`);
+- **карты в личку**: ведущий открывает стол (`POST /api/lobby`), игроки заходят по ссылке `t.me/<бот>?start=join_<код>`, приложение показывает, кто присоединился, сажает по местам и отправляет каждому его карту на его языке (`POST /api/lobby/deal`);
+- **общий рейтинг**: результат партии (`POST /api/game/result`) начисляет очки игрокам с Telegram, `GET /api/leaderboard` — топ.
+
+Цены в Stars задаются в `backend/wrangler.toml` (`STARS_ROLE` 100 ≈ 2 $, `STARS_SCENARIO` 500 ≈ 9,99 $, `STARS_PACK` 1750 ≈ 35 $).
+
+**Развёртывание — автоматическое** (`.github/workflows/backend.yml`, запускается при изменениях в `backend/` или вручную). Нужны три секрета репозитория: `CLOUDFLARE_API_TOKEN` (шаблон «Edit Cloudflare Workers» + Account → D1 → Edit), `CLOUDFLARE_ACCOUNT_ID`, `BOT_TOKEN`. Процесс: тесты → база D1 (создание и миграция `schema.sql`) → `wrangler deploy` → секреты воркера → `setWebhook` → переменная `MAFIA_API_URL` → перепубликация сайта с адресом бэкенда. Если переменную не удалось записать автоматически, задайте её вручную: Settings → Secrets and variables → Actions → Variables → `MAFIA_API_URL` = адрес из сводки запуска.
+
+Локально: `cd backend && npm test` — воркер прогоняется на Node (SQLite вместо D1, локальная имитация Telegram), `node test/cloud-qa.js` в корне — то же вместе с настоящим приложением в Chromium.
 
 ## Разработка
 
@@ -47,6 +58,7 @@ node test/sim.js       # симуляция движка
 node test/ui-smoke.js  # прогон всех экранов без браузера (LANG_CODE=uk|en|pl|hy)
 node test/browser-qa.js  # Chromium, размер iPhone (нужен npm i playwright)
 node test/montecarlo.js  # баланс ролей
+node test/cloud-qa.js    # приложение + бэкенд + имитация Telegram (Chromium)
 ```
 
 Структура:
@@ -64,7 +76,8 @@ src/
   08-telegram.js          интеграция с Telegram Mini App
   06-shop.js              магазин
 test/                     симуляторы и тесты
-bot/                      настройка Telegram-бота через Bot API (setup.sh + тексты на 5 языках)
+bot/                      настройка Telegram-бота через Bot API (setup.sh + тексты на 5 языках, media/ — обложка и аватар)
+backend/                  Cloudflare Worker: вебхук бота, Stars, рейтинги, раздача карт (src/, schema.sql, wrangler.toml, test/)
 .github/workflows/        pages.yml — автопубликация при пуше в main; bot-setup.yml — настройка бота по кнопке
 ```
 

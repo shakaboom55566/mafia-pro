@@ -1,0 +1,140 @@
+name: Deploy backend (Cloudflare Worker)
+
+# Deploys backend/ to Cloudflare Workers + D1 and points the Telegram bot's webhook at it.
+# Secrets (Settings → Secrets and variables → Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, BOT_TOKEN.
+# Runs on every push that touches backend/, or manually: Actions → "Deploy backend" → Run workflow.
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**', '.github/workflows/backend.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      WRANGLER_SEND_METRICS: 'false'
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secrets
+        id: check
+        run: |
+          missing=""
+          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$BOT_TOKEN" ] && missing="$missing BOT_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::warning::Деплой пропущен — не заданы секреты:$missing (Settings → Secrets and variables → Actions → New repository secret). Добавьте их и запустите workflow снова."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Node
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install wrangler
+        if: steps.check.outputs.ready == 'true'
+        run: npm install --no-audit --no-fund
+
+      - name: Tests (worker + SQLite + mock Telegram)
+        if: steps.check.outputs.ready == 'true'
+        run: node --no-warnings test/run.js
+
+      - name: D1 database (create once, migrate every time)
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set -e
+          ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);const d=l.find(x=>x.name==="mafia-pro");console.log(d?d.uuid:"")})')
+          if [ -z "$ID" ]; then
+            echo "creating D1 database mafia-pro"
+            npx wrangler d1 create mafia-pro > create.log 2>&1 || { cat create.log; exit 1; }
+            ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);const d=l.find(x=>x.name==="mafia-pro");console.log(d?d.uuid:"")})')
+          fi
+          [ -n "$ID" ] || { echo "::error::D1 database id not found"; exit 1; }
+          sed -i "s/__D1_DATABASE_ID__/$ID/" wrangler.toml
+          grep database_id wrangler.toml
+          npx wrangler d1 execute mafia-pro --remote --file=schema.sql
+
+      - name: Deploy worker
+        if: steps.check.outputs.ready == 'true'
+        id: deploy
+        run: |
+          set -e
+          npx wrangler deploy 2>&1 | tee deploy.log
+          URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
+          [ -n "$URL" ] || { echo "::error::Worker URL not found in wrangler output"; exit 1; }
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "API: $URL"
+
+      - name: Worker secrets (bot token, webhook secret)
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set -e
+          WEBHOOK_SECRET=$(printf '%s' "$BOT_TOKEN:mafia-pro-webhook" | sha256sum | cut -c1-48)
+          printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
+          printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
+          echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$GITHUB_ENV"
+
+      - name: Health check
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          sleep 5
+          curl -sS --retry 5 --retry-delay 3 "${{ steps.deploy.outputs.url }}/" | tee health.json
+          grep -q '"ok":true' health.json
+
+      - name: Telegram webhook → worker
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set -e
+          R=$(curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
+            --data-urlencode "url=${{ steps.deploy.outputs.url }}/webhook" \
+            --data-urlencode "secret_token=${WEBHOOK_SECRET}" \
+            --data-urlencode 'allowed_updates=["message","pre_checkout_query"]' \
+            --data-urlencode "drop_pending_updates=true")
+          echo "$R" | grep -q '"ok":true' || { echo "::error::setWebhook failed: $R"; exit 1; }
+          curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo" | sed 's/"url":"[^"]*"/"url":"<set>"/'
+
+      - name: Tell the app where the backend is (MAFIA_API_URL variable) and republish the site
+        if: steps.check.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          if gh variable set MAFIA_API_URL --body "$URL" --repo "$GITHUB_REPOSITORY" 2>var.log; then
+            echo "variable MAFIA_API_URL = $URL"
+          else
+            echo "::warning::Could not set the MAFIA_API_URL variable automatically ($(cat var.log)). Set it once by hand: Settings → Secrets and variables → Actions → Variables → New repository variable → MAFIA_API_URL = $URL"
+          fi
+          gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" -f api_url="$URL" && echo "Pages redeploy triggered with api_url=$URL"
+
+      - name: Summary
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          {
+            echo "## Бэкенд развёрнут"
+            echo
+            echo "- API: ${{ steps.deploy.outputs.url }}"
+            echo "- Webhook бота: ${{ steps.deploy.outputs.url }}/webhook"
+            echo "- D1: mafia-pro (схема применена)"
+            echo "- Сайт перепубликован с адресом бэкенда (workflow «Deploy to GitHub Pages»)"
+          } >> "$GITHUB_STEP_SUMMARY"
