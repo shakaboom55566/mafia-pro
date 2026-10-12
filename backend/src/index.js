@@ -413,6 +413,20 @@ async function onCallback(env, bot, q) {
     if (q.message) await bot.call('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text, parse_mode: 'HTML' });
     return;
   }
+  const tb = /^tb_(acc|dec)_([A-Z0-9]{4,8})$/.exec(q.data || '');
+  if (tb) {
+    const code = tb[2]; const accept = tb[1] === 'acc';
+    const inv = await env.DB.prepare('SELECT status FROM table_invites WHERE code = ?1 AND tg_id = ?2').bind(code, u.id).first();
+    const lobby = await lobbyAny(env, code); const open = lobby && (lobby.status === 'open' || lobby.status === 'dealt');
+    let text, extra;
+    if (!inv || inv.status !== 'pending') { text = t(lang, 'inviteGone'); }
+    else if (!accept) { await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3').bind('declined', code, u.id).run(); text = t(lang, 'inviteDeclined'); }
+    else if (!open) { await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3').bind('declined', code, u.id).run(); text = t(lang, 'inviteGone'); }
+    else { await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3').bind('accepted', code, u.id).run(); await touchUser(env, u); const r = await seatPlayer(env, bot, code, u, lang); text = t(lang, r === true ? 'joined' : 'alreadyJoined', { code }); extra = tableButton(env, lang, code); }
+    await bot.call('answerCallbackQuery', { callback_query_id: q.id, text: text.replace(/<[^>]+>/g, '').slice(0, 190) });
+    if (q.message) await bot.call('editMessageText', Object.assign({ chat_id: q.message.chat.id, message_id: q.message.message_id, text, parse_mode: 'HTML' }, extra || {}));
+    return;
+  }
   const m = /^fr_(acc|dec)_(\d+)$/.exec(q.data || '');
   if (!m) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
   const fromId = Number(m[2]); const accept = m[1] === 'acc';
@@ -500,6 +514,7 @@ async function joinLobby(env, bot, chat, u, lang, code) {
   if (!lobby) return bot.send(chat, t(lang, 'lobbyNotFound', { code }));
   if (lobby.status !== 'open' && lobby.status !== 'dealt') return bot.send(chat, t(lang, 'lobbyClosed', { code })); // seats can still be taken while the host deals; closed once the game runs
   const inserted = await seatPlayer(env, bot, code, u, lang);
+  if (inserted === 'host') return bot.send(chat, t(lang, 'hostSelf', { code }), bot.playButton(t(lang, 'play'), env.APP_URL));
   await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3 AND status = ?4').bind('accepted', code, u.id, 'pending').run();
   await bot.send(chat, t(lang, inserted ? 'joined' : 'alreadyJoined', { code }), tableButton(env, lang, code));
 }
@@ -870,17 +885,18 @@ async function inviteToTable(env, bot, from, target, code, kind) {
   return inviteDm(env, bot, from, target, code);
 }
 async function inviteDm(env, bot, from, target, code) {
-  const fl = pickLang(target.lang); const username = await botUsername(env, bot);
-  const r = await bot.send(target.tg_id, t(fl, 'friendInvite', { name: esc(displayName(from)), code }), { reply_markup: { inline_keyboard: [[{ text: t(fl, 'btnJoin', { code }), url: `https://t.me/${username}?start=join_${code}` }]] } });
+  const fl = pickLang(target.lang);
+  const r = await bot.send(target.tg_id, t(fl, 'friendInvite', { name: esc(displayName(from)), code }), { reply_markup: { inline_keyboard: [[{ text: t(fl, 'btnPlayNow'), callback_data: `tb_acc_${code}` }, { text: t(fl, 'btnNoThanks'), callback_data: `tb_dec_${code}` }]] } });
   await env.DB.prepare('UPDATE table_invites SET dm_at = ?1 WHERE code = ?2 AND tg_id = ?3').bind(now(), code, target.tg_id).run();
   return r && r.ok ? { ok: true, via: 'dm' } : { ok: false, error: (r && r.description) || 'send_failed' };
 }
-/* in-app invites unanswered for 45 s fall back to a DM (checked whenever the host polls the table) */
+/* in-app invites unanswered for 20 s fall back to a DM with "I'm in / Decline" buttons (checked whenever the host polls the table) */
 async function flushStaleInvites(env, bot, code) {
-  const rows = (await env.DB.prepare('SELECT i.tg_id, i.from_id FROM table_invites i WHERE i.code = ?1 AND i.status = ?2 AND i.dm_at IS NULL AND i.created_at < ?3 LIMIT 20').bind(code, 'pending', now() - 45).all()).results || [];
+  const rows = (await env.DB.prepare('SELECT i.tg_id, i.from_id FROM table_invites i WHERE i.code = ?1 AND i.status = ?2 AND i.dm_at IS NULL AND i.created_at < ?3 LIMIT 20').bind(code, 'pending', now() - 20).all()).results || [];
   for (const r of rows) { const target = await userRow(env, r.tg_id); const from = await userRow(env, r.from_id); if (!target || !from) continue; try { await inviteDm(env, bot, { id: from.tg_id, first_name: from.first_name, last_name: from.last_name, username: from.username }, target, code); } catch (e) {} }
 }
-async function seatPlayer(env, bot, code, u, lang) { // returns true when newly seated
+async function seatPlayer(env, bot, code, u, lang) { // returns true when newly seated, 'host' for the table's own host
+  const lob0 = await lobbyAny(env, code); if (lob0 && lob0.host_id === u.id) return 'host';
   const name = displayName(u);
   const r = await env.DB.prepare('INSERT OR IGNORE INTO lobby_players (code, tg_id, name, username, lang, joined_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(code, u.id, name, u.username || null, lang, now()).run();
   const inserted = !!(r.meta && r.meta.changes > 0);
@@ -962,13 +978,21 @@ async function apiTableActions(env, bot, body) {
   const seen = ((await env.DB.prepare('SELECT tg_id, seen_at FROM table_seen WHERE code = ?1 AND seen_at > ?2').bind(lobby.code, now() - TABLE_SEEN_SEC).all()).results || []).map(r => r.tg_id);
   return json({ ok: true, actions: rows.map(r => ({ id: r.id, tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })), watching: seen });
 }
+function timerLeft(tm) { if (!tm) return 0; const gone = tm.running ? Math.round((Date.now() - (tm.at || 0)) / 1000) : 0; return (tm.left || 0) - gone; }
+/* who may write: everyone (free discussion, morning), only the speaking seat while their speech timer runs, nobody from the vote on; the eliminated never */
+function chatAllowed(pub, me) {
+  if (!pub || !me || me.alive === false) return false;
+  if (pub.chat === true || pub.chat === 'all') return true;
+  if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && timerLeft(pub.timer) > 0);
+  return false;
+}
 async function apiTableChatSend(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const code = String(body.code || '').toUpperCase(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
   const lobby = await lobbyAny(env, code); if (!lobby) return json({ ok: false, error: 'not_found' }, 404);
   const isHost = lobby.host_id === v.user.id; if (!isHost && !(await isAtTable(env, code, v.user.id))) return json({ ok: false, error: 'not_seated' }, 403);
   const row = await tableRow(env, code); const pub = row ? parseJSON(row.pub, {}) : {}; const priv = row ? parseJSON(row.priv, {}) : {}; const me = priv[String(v.user.id)];
-  if (!isHost && (!pub.chat || (me && me.alive === false))) return json({ ok: false, error: 'chat_closed' }, 403);
+  if (!isHost && !chatAllowed(pub, me)) return json({ ok: false, error: 'chat_closed' }, 403);
   const text = String(body.text || '').trim().slice(0, 300); if (!text) return json({ ok: false, error: 'empty' }, 400);
   const last = await env.DB.prepare('SELECT created_at FROM table_chat WHERE code = ?1 AND tg_id = ?2 ORDER BY id DESC LIMIT 1').bind(code, v.user.id).first();
   if (last && now() - last.created_at < 1) return json({ ok: false, error: 'slow_down' }, 429);
@@ -986,7 +1010,7 @@ async function apiTableInviteRespond(env, bot, body) {
   await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3').bind(accept ? 'accepted' : 'declined', code, v.user.id).run();
   if (!accept) return json({ ok: true, joined: false });
   const lobby = await lobbyAny(env, code); if (!lobby || (lobby.status !== 'open' && lobby.status !== 'dealt')) return json({ ok: false, error: 'lobby_closed' }, 409);
-  await seatPlayer(env, bot, code, v.user, pickLang(v.user.language_code));
+  const seated = await seatPlayer(env, bot, code, v.user, pickLang(v.user.language_code)); if (seated === 'host') return json({ ok: false, error: 'host' }, 409);
   return json({ ok: true, joined: true, code });
 }
 async function apiLeaderboard(env, url) {

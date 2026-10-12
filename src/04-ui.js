@@ -281,7 +281,8 @@ function setupScreen() {
       : `<input class="input" id="name-${i}" data-i="${i}" data-a="name" placeholder="${tt(L.e.player, { n: i + 1 })}" value="${esc(st.names[i] || '')}" autocomplete="off">`;
     return `<div class="name-row"><span class="seat">${i + 1}</span>${inner}</div>`;
   }).join('');
-  const chips = `${S.profiles.length ? `<div class="prof-chips">${S.profiles.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}<button class="prof-chip" data-a="prof-new" style="border-style:dashed">+ ${u.newProfile}</button></div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p><button class="btn sm ghost" data-a="prof-new" style="align-self:flex-start">+ ${u.newProfile}</button>`}`;
+  const seatable = S.profiles.filter(pr => pr.id !== S.meId); // the host runs the game and never takes a seat
+  const chips = `${seatable.length ? `<div class="prof-chips">${seatable.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}<button class="prof-chip" data-a="prof-new" style="border-style:dashed">+ ${u.newProfile}</button></div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p><button class="btn sm ghost" data-a="prof-new" style="align-self:flex-start">+ ${u.newProfile}</button>`}`;
   return `${topbar(u.newGame, u.setupSub)}
   <div class="stack">
     ${scenBanner}

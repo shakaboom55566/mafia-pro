@@ -93,6 +93,7 @@ let code;
 { const host = await initData(user(100, 'ru')); const r = await (await post('/api/lobby', { initData: host })).json();
   ok(r.ok && /^[A-Z0-9]{6}$/.test(r.code) && r.link === `https://t.me/mafiapro_test_bot?start=join_${r.code}`, 'lobby created with link'); code = r.code;
   const same = await (await post('/api/lobby', { initData: host })).json(); eq(same.code, code, 'same open lobby reused');
+  await hook(msg(user(100, 'ru'), `/start join_${code}`)); ok(lastTo(100).params.text.includes('ведущий'), 'the host cannot sit at his own table');
   await hook(msg(user(201, 'uk'), `/start join_${code}`)); ok(lastTo(201).params.text.includes(code) && lastTo(201).params.text.includes('за столом'), 'player 201 joined (uk)');
   ok(lastTo(100) && lastTo(100).params.text.includes('User201') && lastTo(100).params.text.includes('(всего 1)'), 'host notified about the first player (ru)');
   await hook(msg(user(202, 'en'), `/start join_${code.toLowerCase()}`)); ok(lastTo(202).params.text.includes('You are at table'), 'player 202 joined (en, lowercase code)');
@@ -145,12 +146,17 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   const p301 = await (await post('/api/ping', { initData: await initData(user(301, 'en')) })).json();
   ok(p301.ok && p301.invites.length === 1 && p301.invites[0].code === lob.code && p301.invites[0].from === 'User100' && p301.invites[0].kind === 'friend', 'ping carries the pending invitation: ' + JSON.stringify(p301.invites));
   tg.blocked.delete(302);
-  // unanswered for 45 s → the DM goes out when the host polls the table
+  // unanswered for 20 s → the DM goes out when the host polls the table: "I'm in / Decline" buttons, no direct seat
   await env.DB.prepare('UPDATE table_invites SET created_at = created_at - 60 WHERE tg_id = 301').run();
   await post('/api/lobby/status', { initData: a, code: lob.code });
-  const dm = lastTo(301); ok(dm && dm.params.text.includes('User100') && dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].url === `https://t.me/mafiapro_test_bot?start=join_${lob.code}`, 'fallback DM with a join button (en)');
+  const dm = lastTo(301); ok(dm && dm.params.text.includes('User100') && dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].callback_data === `tb_acc_${lob.code}` && dm.params.reply_markup.inline_keyboard[0][1].callback_data === `tb_dec_${lob.code}`, 'fallback DM with "I’m in / Decline" buttons (en)');
   await post('/api/lobby/status', { initData: a, code: lob.code }); eq(tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 301 && c.params.text.includes(lob.code)).length, 1, 'the fallback DM is sent once');
-  // accept in the app → seated, host notified
+  // the offline friend 302 declines from the DM; 301 accepts in the app → seated, host notified
+  await hook({ update_id: 77, callback_query: { id: 'cbt1', from: user(302, 'pl'), data: `tb_dec_${lob.code}`, message: { message_id: 5, chat: { id: 302 } } } });
+  ok(lastCall('answerCallbackQuery').params.text.includes('odrzucone') && (await env.DB.prepare('SELECT status FROM table_invites WHERE tg_id = 302').first()).status === 'declined', 'declined from the DM (pl)');
+  eq((await (await post('/api/lobby/status', { initData: a, code: lob.code })).json()).players, [], 'nobody seated by a decline');
+  await hook({ update_id: 78, callback_query: { id: 'cbt2', from: user(302, 'pl'), data: `tb_acc_${lob.code}`, message: { message_id: 5, chat: { id: 302 } } } });
+  ok(lastCall('answerCallbackQuery').params.text.includes('zamknięty') || lastCall('answerCallbackQuery').params.text.includes('Stół'), 'answering twice → gone');
   const acc301 = await (await post('/api/table/invite/respond', { initData: await initData(user(301, 'en')), code: lob.code, accept: true })).json();
   ok(acc301.ok && acc301.joined && lastTo(100).params.text.includes('User301') && lastTo(100).params.text.includes(lob.code), 'accepted in the app → at the table, host notified');
   eq((await (await post('/api/lobby/status', { initData: a, code: lob.code })).json()).players.map(p => p.tgId), [301], 'seated');
@@ -398,7 +404,9 @@ console.log('clubs: apply → admin approves → listed → invite / apply / res
   const lm = await (await post('/api/club/chat/send', { initData: hi, lobby: lob.code })).json(); ok(lm.ok, 'lobby announced');
   const pi3 = await (await post('/api/ping', { initData: await initData(p3) })).json(); ok(pi3.invites.length === 1 && pi3.invites[0].code === lob.code && pi3.invites[0].kind === 'club', 'online member got the table call in the app (hy)');
   await env.DB.prepare('UPDATE table_invites SET created_at = created_at - 60 WHERE tg_id = 1003').run(); await post('/api/table/actions', { initData: hi, code: lob.code, since: 0 });
-  const dm = lastTo(1003); ok(dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].url.includes('start=join_' + lob.code), 'unanswered → DM with a join button (hy)');
+  const dm = lastTo(1003); ok(dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].callback_data === 'tb_acc_' + lob.code, 'unanswered → DM with "I’m in / Decline" (hy)');
+  await hook({ update_id: 79, callback_query: { id: 'cbt3', from: p3, data: `tb_acc_${lob.code}`, message: { message_id: 6, chat: { id: 1003 } } } });
+  ok((await (await post('/api/lobby/status', { initData: hi, code: lob.code })).json()).players.some(x => x.tgId === 1003) && lastCall('editMessageText').params.reply_markup.inline_keyboard[0][0].web_app.url.includes('startapp=table_' + lob.code), 'accepted from the DM → seated, message now opens the table');
   const ch2 = await (await post('/api/club/chat', { initData: hi, since: s1.id })).json(); ok(ch2.messages.some(m => m.kind === 'lobby' && m.code === lob.code), 'lobby message in chat');
   // admin list + reject
   const adm = await initData(user(777, 'ru'));
@@ -439,12 +447,19 @@ console.log('live table: publish → players read public + private → act → h
   eq((await post('/api/table/actions', { initData: await id(pl[0]), code, since: 0 })).status, 404, 'players cannot read the answers');
   // chat: closed at night, open from the free discussion until the vote
   eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'hi' })).status, 403, 'chat closed at night');
-  const dayPub = Object.assign({}, pub, { phase: 'day', day: 1, chat: true, stage: 'balagan' });
+  const dayPub = Object.assign({}, pub, { phase: 'day', day: 1, chat: 'all', stage: 'balagan' });
   await post('/api/table/publish', { initData: hi, code, pub: dayPub, priv });
   const c1 = await (await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'Я мирный, честно' })).json(); ok(c1.ok, 'chat open during the free discussion');
+  // speeches: only the speaking seat, and only while the speech timer runs
+  await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: 'speaker', chatSeat: 3, stage: 'speeches', timer: { key: 'sp', total: 60, left: 60, running: true, at: Date.now() } }), priv });
+  eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'not my turn' })).status, 403, 'during speeches only the speaker writes');
+  ok((await (await post('/api/table/chat/send', { initData: await id(pl[2]), code, text: 'моя речь' })).json()).ok, 'the speaker writes while the timer runs');
+  await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: 'speaker', chatSeat: 3, stage: 'speeches', timer: { key: 'sp', total: 60, left: 5, running: true, at: Date.now() - 9000 } }), priv });
+  eq((await post('/api/table/chat/send', { initData: await id(pl[2]), code, text: 'late' })).status, 403, 'speech timer over → closed for the speaker too');
+  await post('/api/table/publish', { initData: hi, code, pub: dayPub, priv });
   eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'spam' })).status, 429, 'rate limited');
   const st = await (await post('/api/table/state', { initData: await id(pl[2]), code, since: 0 })).json();
-  ok(st.chat.length === 1 && st.chat[0].text === 'Я мирный, честно' && st.chat[0].name === '2 · P1102' && !st.chat[0].me, 'others read the chat with the seat number');
+  ok(st.chat.length === 2 && st.chat[0].text === 'Я мирный, честно' && st.chat[0].name === '2 · P1102' && !st.chat[0].me, 'others read the chat with the seat number');
   await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: false, stage: 'vote' }), priv });
   eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'late' })).status, 403, 'chat closed once the vote starts');
   const hc = await (await post('/api/table/chat/send', { initData: hi, code, text: 'Голосуем' })).json(); ok(hc.ok, 'the host can always write');

@@ -123,7 +123,7 @@ function sendResult(g, w) {
     const role = ROLE[p.roleId]; const side = role ? (role.side === 'mafia' ? 'mafia' : role.side === 'city' ? 'city' : 'neutral') : 'city';
     return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
-  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
+  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
 }
 /* ---------- lobby: players join from Telegram and receive their card privately ---------- */
 function cardTextFor(p, lang) {
@@ -136,6 +136,7 @@ function lobbyAutoSeat(g) {
   const tgl = g.tg; if (!tgl) return; tgl.map = tgl.map || {};
   const taken = new Set(Object.values(tgl.map));
   tgl.players.forEach(pl => {
+    if (S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id) { tgl.map[pl.tgId] = 0; return; }
     if (tgl.map[pl.tgId] !== undefined) return;
     const norm = s => String(s || '').toLowerCase().replace(/^@/, '').trim();
     let seat = (g.players.find(p => !taken.has(p.seat) && norm(p.name) && (norm(p.name) === norm(pl.name) || (pl.username && norm(p.name) === norm(pl.username)))) || {}).seat;
@@ -153,18 +154,32 @@ async function openTable(fresh) {
   if (S.game && !S.game.winner) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
   save(); render(); return l;
 }
+/* re-render without losing the keyboard: the focused input/select and its caret survive the redraw */
+function keepFocus(fn) {
+  let id = null, sel = null, tag = '';
+  try { const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT') && a.id) { id = a.id; tag = a.tagName; try { sel = [a.selectionStart, a.selectionEnd]; } catch (e) {} } } catch (e) {}
+  fn();
+  if (id) { try { const b = document.getElementById(id); if (b) { b.focus({ preventScroll: true }); if (sel && tag !== 'SELECT' && typeof b.setSelectionRange === 'function') b.setSelectionRange(sel[0], sel[1]); } } catch (e) {} }
+}
+const selectOpen = () => { try { const a = document.activeElement; return !!(a && a.tagName === 'SELECT'); } catch (e) { return false; } };
 async function refreshTable() {
   const l = currentLobby(); if (!l || !l.code) return;
   const d = await api('/api/lobby/status', { code: l.code }); if (!d.ok) return false;
-  const before = l.players.length; l.players = d.players || [];
+  const beforeIds = l.players.map(p => p.tgId); const beforeJson = JSON.stringify(l.players);
+  l.players = (d.players || []).filter(pl => !(S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id)); // the host never sits as a player
   if (S.game && S.game.tg === l) lobbyAutoSeat(S.game); else setupAutoSeat();
-  save(); render(); return l.players.length !== before;
+  const fresh = l.players.filter(pl => !beforeIds.includes(pl.tgId));
+  const changed = JSON.stringify(l.players) !== beforeJson;
+  if (changed) { save(); if (!selectOpen()) keepFocus(render); } // an open seat picker is not torn down under the host's finger
+  if (fresh.length) { toast(tt(U().tgNewPlayer || '{name}', { name: fresh.map(x => x.name).join(', ') })); tgHaptic('light'); }
+  return fresh.length > 0;
 }
 /* setup screen: joined players take seats — by matching name, else the first empty seat; seats[tgId] = seat index */
 function setupAutoSeat() {
   const l = S.lobby; if (!l) return; l.seats = l.seats || {}; const st = S.setup; st.names = st.names || [];
   const norm = s => String(s || '').toLowerCase().replace(/^@/, '').trim(); const taken = new Set(Object.values(l.seats));
   l.players.forEach(pl => {
+    if (S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id) return;
     if (l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n) { taken.add(l.seats[pl.tgId]); return; }
     let i = -1;
     for (let k = 0; k < st.n; k++) { if (taken.has(k)) continue; const nm = norm(st.names[k]); if (nm && (nm === norm(pl.name) || (pl.username && nm === norm(pl.username)))) { i = k; break; } }
@@ -201,7 +216,7 @@ function skipDeliveredSeats(g) { while (g.dealIdx < g.players.length && seatDeli
 let lobbyTimer = null;
 function lobbyPoll() {
   const want = TG.app && apiBase() && lobbyIsOpen() && ['setup', 'deal', 'friends'].includes(S.screen);
-  if (want && !lobbyTimer) lobbyTimer = setInterval(() => { if (!lobbyIsOpen() || !['setup', 'deal', 'friends'].includes(S.screen)) { clearInterval(lobbyTimer); lobbyTimer = null; return; } refreshTable(); }, 6000);
+  if (want && !lobbyTimer) lobbyTimer = setInterval(() => { if (!lobbyIsOpen() || !['setup', 'deal', 'friends'].includes(S.screen)) { clearInterval(lobbyTimer); lobbyTimer = null; return; } refreshTable(); }, 3000);
   if (!want && lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = null; }
 }
 function lobbyPanelHTML(g) {
