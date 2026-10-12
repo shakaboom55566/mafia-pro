@@ -17,6 +17,7 @@
    - POST /api/friends/respond accept or decline a request in the app
    - POST /api/ping            presence heartbeat (online = seen in the last few minutes)
    - POST /api/profile         a player's public game profile (rating, per-role stats, recent games)
+   - POST /api/players         everyone who opened the bot: name, @username, presence, rating (paged, optional prefix filter)
    - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
@@ -266,6 +267,19 @@ async function apiProfile(env, body) {
   return json({ ok: true, user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000 },
     rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, isFriend, grant: !!(await grantFor(env, id)) });
 }
+async function apiPlayers(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const limit = Math.max(1, Math.min(100, Number(body.limit) || 50)), offset = Math.max(0, Number(body.offset) || 0);
+  const q = String(body.q || '').trim().replace(/^@/, '').toLowerCase().replace(/[%_]/g, '');
+  const cap = q ? q.charAt(0).toUpperCase() + q.slice(1) : '';
+  const where = q ? 'WHERE (lower(u.username) LIKE ?3 OR lower(u.first_name) LIKE ?3 OR u.first_name LIKE ?4 OR u.first_name LIKE ?5)' : '';
+  const args = q ? [limit, offset, q + '%', cap + '%', q.toUpperCase() + '%'] : [limit, offset];
+  const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM users u ${where}`).bind(...args.slice(2)).first('n');
+  const online = await env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE seen_at > ?1').bind(now() - ONLINE_SEC).first('n');
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, u.created_at, r.points, r.games, r.wins FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id ${where} ORDER BY u.seen_at DESC LIMIT ?1 OFFSET ?2`).bind(...args).all()).results || [];
+  const ts = now(); const mine = new Set((await friendsOf(env, v.user.id)).map(f => f.tgId));
+  return json({ ok: true, total, online, offset, players: rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, isFriend: mine.has(r.tg_id), me: r.tg_id === v.user.id })) });
+}
 async function apiPing(env, body) { const v = await auth(env, body); return v ? json({ ok: true }) : json({ ok: false, error: 'unauthorized' }, 401); }
 async function apiFriendSearch(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -456,6 +470,7 @@ export default {
           case '/api/friends/respond': return wrap(apiFriendRespond(env, bot, body));
           case '/api/ping': return wrap(apiPing(env, body));
           case '/api/profile': return wrap(apiProfile(env, body));
+          case '/api/players': return wrap(apiPlayers(env, body));
           case '/api/admin/grant': return wrap(apiAdmin(env, bot, body, 'grant'));
           case '/api/admin/revoke': return wrap(apiAdmin(env, bot, body, 'revoke'));
           case '/api/admin/grants': return wrap(apiAdmin(env, bot, body, 'grants'));

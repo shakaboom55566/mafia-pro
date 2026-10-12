@@ -183,6 +183,21 @@ const path = require('path'); const http = require('http');
   await env.DB.prepare('DELETE FROM grants WHERE tg_id = 100').run(); await S(() => cloudSync()); await p.waitForTimeout(600);
   ok(await S(() => !fullAccess() && !ownsRole('sniper')), 'access ends after revoke');
 
+  console.log('players tab: everyone registered in the bot');
+  await S(() => go('profiles')); await p.waitForTimeout(600);
+  ok(await S(() => Array.isArray(PL.list) && PL.total >= 5 && PL.list.length === PL.total), 'directory loaded: ' + await S(() => PL.total));
+  const dirTxt = await p.$eval('#app', el => el.textContent);
+  ok(dirTxt.includes(await S(() => U().plAll)) && dirTxt.includes('Nika') && dirTxt.includes('@nika_m') && dirTxt.includes('Богдан') && dirTxt.includes(await S(() => U().plLocal)), 'lists registered players (friends and non-friends) and keeps local profiles below');
+  ok(await S(() => PL.list.some(p => p.me) && PL.list.some(p => p.isFriend && p.tgId === 701)), 'me and friends flagged');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-players-list.png') }).catch(() => {});
+  await p.fill('#pl-q', 'бог'); await p.press('#pl-q', 'Enter'); await p.waitForTimeout(500);
+  ok(await S(() => PL.list.length === 1 && PL.list[0].name === 'Богдан'), 'filter by Cyrillic name prefix');
+  await p.click('.fr-row[data-a="fr-open"]'); await p.waitForTimeout(600);
+  ok(await S(() => S.ui.sheet && S.ui.sheet.type === 'friend' && S.ui.sheet.id === 201), 'tap opens the player profile');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-players.png') }).catch(() => {});
+  await S(() => { S.ui.sheet = null; PL.q = ''; render(); }); await p.click('[data-a="pl-refresh"]'); await p.waitForTimeout(500);
+  ok(await S(() => PL.list.length === PL.total), 'refresh restores the full list');
+
   console.log('global rating panel');
   await S(() => { go('ratings'); }); await p.waitForTimeout(100);
   if (await p.$('[data-a="tg-top"]')) { await p.click('[data-a="tg-top"]'); await p.waitForTimeout(400); ok(await S(() => Array.isArray(CLOUD.top) && CLOUD.top.length >= 1), 'leaderboard loaded');

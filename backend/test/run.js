@@ -230,6 +230,15 @@ console.log('player profile');
   const self = await (await post('/api/profile', { initData: a, tgId: 100 })).json(); ok(self.ok && self.rating.hosted === 1, 'own profile');
   eq((await post('/api/profile', { initData: a, tgId: 4242 })).status, 404, 'unknown player'); eq((await post('/api/profile', { initData: a, tgId: 'x' })).status, 400, 'bad id'); }
 
+console.log('all players directory');
+{ const a = await initData(user(100)); const d = await (await post('/api/players', { initData: a })).json();
+  ok(d.ok && d.total >= 10 && d.players.length === Math.min(50, d.total) && d.players.every(p => p.tgId && typeof p.online === 'boolean' && typeof p.points === 'number'), 'directory lists everyone who opened the bot: ' + d.total);
+  ok(d.players.some(p => p.me) && d.players.some(p => p.isFriend), 'me and friends flagged');
+  ok(d.online >= 1 && d.players[0].seenAgo <= d.players[d.players.length - 1].seenAgo, 'most recently seen first, online count');
+  const pg = await (await post('/api/players', { initData: a, limit: 3, offset: 3 })).json(); ok(pg.players.length === 3 && pg.offset === 3 && pg.total === d.total, 'paging');
+  const f = await (await post('/api/players', { initData: a, q: '@mar' })).json(); ok(f.total === 2 && f.players.every(p => /^mar/i.test(p.username) || /^Мар/.test(p.name)), 'prefix filter: ' + f.players.map(p => p.username).join(','));
+  eq((await post('/api/players', {})).status, 401, 'auth required'); }
+
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
   eq((await call('/api/nothing', { method: 'POST', body: '{}' })).status, 404, 'unknown api');

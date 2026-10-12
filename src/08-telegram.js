@@ -96,7 +96,7 @@ function startHeartbeat() {
 }
 function agoText(sec) {
   const u = U(); if (sec < 60) return u.frJustNow;
-  if (sec < 3600) return tt(u.agoMin, { n: Math.floor(sec / 60) }); if (sec < 86400) return tt(u.agoHour, { n: Math.floor(sec / 3600) }); return tt(u.agoDay, { n: Math.floor(sec / 86400) });
+  if (sec < 3600) return tt(u.agoMin, { n: Math.floor(sec / 60) }); if (sec < 86400) return tt(u.agoHour, { n: Math.floor(sec / 3600) }); if (sec < 180 * 86400) return tt(u.agoDay, { n: Math.floor(sec / 86400) }); return u.frLongAgo;
 }
 const presenceHTML = f => f.online ? `<span class="fr-on">● ${esc(U().frOnline)}</span>` : (typeof f.seenAgo === 'number' ? `<span class="fr-off">${esc(tt(U().frSeen, { t: agoText(f.seenAgo) }))}</span>` : '');
 /* purchases: in Telegram the demo button becomes a Stars invoice created by the backend */
@@ -342,6 +342,28 @@ Object.assign(ACT, {
   'fr-invite-one'(el) { S.ui.frSel = [Number(el.dataset.id)]; S.ui.sheet = null; go('friends'); ACT['fr-invite'](); },
   'fr-remove-from-sheet'(el) { S.ui.sheet = null; S.ui.frAsk = Number(el.dataset.id); go('friends'); }
 });
+/* ---------- players tab: everyone who registered in the bot (server directory) ---------- */
+const PL = { list: null, total: 0, online: 0, q: '', busy: false, at: 0, more: false };
+async function loadPlayers(reset) {
+  if (!TG.app || !apiBase() || PL.busy) return; PL.busy = true; if (reset) { PL.list = null; } render();
+  try { const d = await api('/api/players', { q: PL.q, offset: reset || !PL.list ? 0 : PL.list.length, limit: 50 }); if (d.ok) { PL.list = (reset || !PL.list ? [] : PL.list).concat(d.players); PL.total = d.total; PL.online = d.online; PL.more = PL.list.length < d.total; PL.at = Date.now(); } else if (!PL.list) PL.list = []; }
+  finally { PL.busy = false; render(); }
+}
+function playersDirectoryHTML() {
+  if (!TG.app || !apiBase()) return '';
+  const u = U(); if (!PL.list && !PL.busy) setTimeout(() => loadPlayers(true), 0);
+  const row = p => `<div class="fr-row" role="button" data-a="fr-open" data-id="${p.tgId}"><span style="width:0"></span>${friendAvatar(p)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}${p.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(p.username)}</span>` : ''}${p.isFriend ? ` <span class="hint" style="margin:0;display:inline">· ${u.plFriend}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(p)} · ${tt(u.frStats, { g: p.games, w: p.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${p.points}</span></div>`;
+  const list = PL.list || [];
+  return `<div class="row"><div class="eyebrow grow">${u.plAll}${PL.list ? ` · ${PL.total}` : ''}</div>${PL.list ? `<span class="fr-on" style="font-size:12px">● ${tt(u.plOnline, { n: PL.online })}</span>` : ''}<button class="btn xs ghost" data-a="pl-refresh">${PL.busy ? '…' : u.tgRefresh}</button></div>
+    <div class="row"><input class="input grow" id="pl-q" data-a="pl-q" placeholder="${u.plSearchPh}" value="${esc(PL.q)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" data-a="pl-search" style="flex:0 0 auto">🔍</button></div>
+    ${list.length ? `<div class="stack-s">${list.map(row).join('')}</div>${PL.more ? `<button class="btn ghost sm" data-a="pl-more" style="align-self:center">${u.plMore}</button>` : ''}` : (PL.list ? `<p class="hint">${u.plEmpty}</p>` : `<p class="hint">${u.frLoading}</p>`)}`;
+}
+Object.assign(ACT, {
+  'pl-q'(el) { PL.q = el.value || ''; },
+  'pl-search'() { loadPlayers(true); },
+  'pl-refresh'() { loadPlayers(true); },
+  'pl-more'() { loadPlayers(false); }
+});
 /* ---------- admin: grant full access (all cards / scenarios / packs) for a period ---------- */
 const ADM = { q: '', days: 30, grants: null, busy: false };
 function adminPanelHTML() {
@@ -384,6 +406,10 @@ function cloudTopHTML() {
   dealScreen = function () { const html = origDeal(); const g = S.game; if (!TG.app || !apiBase() || !g || S.ui.showAll || (g.dealIdx > 0 && !g.tg) || g.dealIdx >= g.players.length) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + lobbyPanelHTML(g) + html.slice(i + 19); };
   const origRatings = ratingsScreen;
   ratingsScreen = function () { const html = origRatings(); const extra = cloudTopHTML(); if (!extra) return html; const i = html.lastIndexOf('</div>'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
+  // players tab: the server directory goes first; device-only profiles become a secondary section
+  const origProfiles = profilesScreen;
+  profilesScreen = function () { const html = origProfiles(); const dir = playersDirectoryHTML(); if (!dir) return html; const u = U(); const marker = `<div class="eyebrow grow">${u.allPlayers} · ${S.profiles.length}</div>`; const i = html.indexOf('<div class="row">' + marker); if (i < 0) return html; return html.slice(0, i) + dir + `<div class="hint" style="margin-top:6px">${u.plLocalHint}</div>` + html.slice(i).replace(marker, `<div class="eyebrow grow">${u.plLocal} · ${S.profiles.length}</div>`); };
+  try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'pl-q') { e.preventDefault(); ACT['pl-search'](); } }); } catch (e) {}
   const origSettings = settingsScreen;
   settingsScreen = function () { const html = origSettings(); const extra = adminPanelHTML(); if (!extra) return html; const i = html.indexOf('<div class="panel" style="margin-top:12px">'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
   const origProfile = profileScreen;
