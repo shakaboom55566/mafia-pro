@@ -1,7 +1,7 @@
 /* ============================================================
    UI
    ============================================================ */
-const DEFAULT_SETTINGS = { intro: 30, speech: 60, balagan: 180, tieSpeech: 30, revealDead: true, sound: true, lang: null };
+const DEFAULT_SETTINGS = { intro: 30, speech: 60, balagan: 180, tieSpeech: 30, revealDead: true, sound: true, lang: null, lite: 'auto' };
 let S = {
   screen: 'home', tab: 'game', settings: Object.assign({}, DEFAULT_SETTINGS),
   setup: { n: 10, comp: presetFor(10), names: [], seatProfiles: [] },
@@ -148,7 +148,7 @@ function render() {
   app.innerHTML = `<div class="screen ${noTabs ? 'no-tabs' : ''} ${enter ? 'enter' : ''}">${html}</div>${noTabs ? '' : tabbar()}${sheetHTML(sheetEnter)}`;
   if ($('#timer')) timerPaint();
   if ($('.card3d-wrap')) card3dInit();
-  fitCards();
+  fitCards(); mountLazyArt();
   if (S.ui.flipAnim) {
     // the card was rendered in its previous state — flip it on the next frame so the 3D turn is animated
     S.ui.flipAnim = false; const f = $('.flip'); const open = !!(S.game && S.game.dealOpen);
@@ -159,6 +159,35 @@ function render() {
 const RENDER = { key: null, sheetKey: null };
 /* Cards have a fixed height: shrink their text (CSS --fs) until nothing overflows — covers long translations and
    mobile browsers that boost font sizes (iOS text autosizing), which the fixed px sizes cannot anticipate. */
+/* gallery art is injected only when a card comes near the viewport — 55 illustrations at once were too heavy for older phones */
+function lazyArt(id, eager) { return eager ? `<div class="art">${roleArt(id)}</div>` : `<div class="art lazy" data-art="${id}"></div>`; }
+let artObserver = null;
+function mountLazyArt() {
+  if (!document.querySelectorAll) return;
+  const pending = document.querySelectorAll('.art.lazy[data-art]'); if (!pending.length) return;
+  const fill = el => { if (!el.dataset.art) return; el.innerHTML = roleArt(el.dataset.art); el.classList.remove('lazy'); delete el.dataset.art; };
+  if (typeof IntersectionObserver === 'undefined') { pending.forEach(fill); return; }
+  if (!artObserver) artObserver = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { artObserver.unobserve(e.target); fill(e.target); } }), { rootMargin: '360px 0px' });
+  pending.forEach(el => artObserver.observe(el));
+}
+/* lite mode: reduced-motion preference, an explicit setting, or a slow device (small core count / memory, or a slow script benchmark) */
+function detectLite() {
+  const pref = S.settings.lite || 'auto';
+  if (pref === 'on') return true; if (pref === 'off') return false;
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+    const ua = navigator.userAgent || ''; const ios = /iPhone|iPad|iPod/.test(ua);
+    const sw = screen && screen.width, sh = screen && screen.height, dpr = window.devicePixelRatio || 1;
+    // iPhone X / XS / 11 Pro (375×812@3), XS Max / 11 Pro Max (414×896@3), 6–8 / SE (375×667, 320×568): older-class GPUs
+    if (ios && ((sw === 375 && sh === 812) || (sw === 414 && sh === 896 && dpr >= 3) || (sw === 375 && sh === 667) || sw <= 320)) { LITE.why = 'ios-model'; return true; }
+    if (!ios && navigator.deviceMemory && navigator.deviceMemory <= 3) { LITE.why = 'memory'; return true; }
+    if (!ios && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) { LITE.why = 'cores'; return true; }
+    if (typeof performance !== 'undefined' && performance.now) { const t0 = performance.now(); let x = 0; for (let i = 0; i < 1.2e6; i++) x += Math.sqrt(i) * ((i & 3) + 1); const dt = performance.now() - t0; LITE.bench = dt; if (x < 0) return false; if (dt > 12) { LITE.why = 'bench'; return true; } }
+  } catch (e) {}
+  return false;
+}
+const LITE = { on: false, bench: 0 };
+function applyLite() { LITE.on = detectLite(); try { document.documentElement.classList.toggle('lite', LITE.on); } catch (e) {} if (typeof C3 !== 'undefined') C3.lite = LITE.on; }
 function fitCards() {
   if (!document.querySelectorAll) return;
   // tab labels: six tabs on a phone — shrink a label that does not fit its cell instead of clipping it
@@ -676,7 +705,7 @@ function cardsScreen() {
   return `${topbar(u.cardsTitle, tt(u.cardsSub, { n: ROLES.length }), false)}
   <div class="stack">
     <div class="row"><div class="filters grow">${chip('all', u.fAll)}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div><button class="btn xs ghost" data-a="go" data-to="shop">${u.shop}</button></div>
-    <div class="gallery">${list.map(r => `<button class="gcard card ${r.team} mini ${r.premium ? 'premium' : ''}" data-a="role" data-id="${r.id}" style="position:relative">${r.premium ? priceBadge('role', r.id) + '<i class="gem"></i>' : ''}<div class="art">${roleArt(r.id)}</div><div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></button>`).join('')}</div>
+    <div class="gallery">${list.map((r, i) => `<div class="gcard card ${r.team} mini ${r.premium ? 'premium' : ''}" role="button" tabindex="0" data-a="role" data-id="${r.id}" style="position:relative">${r.premium ? priceBadge('role', r.id) + '<i class="gem"></i>' : ''}${lazyArt(r.id, i < 6)}<div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></div>`).join('')}</div>
   </div>`;
 }
 function counterChips(ids) { return ids.filter(id => ROLE[id]).map(id => `<button class="counter-chip ${ROLE[id].team}" data-a="role" data-id="${id}">${roleArt(id, 'portrait')}<span>${ROLE[id].name}</span></button>`).join(''); }
@@ -741,6 +770,7 @@ function settingsScreen() {
     ${num('tieSpeech', u.sTie, u.sTieD, 10)}
     ${sw('revealDead', u.sReveal, u.sRevealD)}
     ${sw('sound', u.sSound, u.sSoundD)}
+    <div class="setting"><div><div class="t">${u.sLite}</div><div class="d">${u.sLiteD}${LITE.bench ? ` <span class="num" style="opacity:.6">(${Math.round(LITE.bench)} ms)</span>` : ''}</div></div><div class="ctl"><div class="segment n3" style="min-width:150px">${[['auto', u.liteAuto], ['on', u.liteOn], ['off', u.liteOff]].map(([v, l]) => `<button class="${(s.lite || 'auto') === v ? 'active' : ''}" data-a="lite" data-v="${v}">${l}</button>`).join('')}</div></div></div>
   </div>
   <div class="panel" style="margin-top:12px"><div class="eyebrow">${u.about}</div><p class="hint" style="margin-top:6px">${u.aboutText}</p></div>`;
 }
@@ -889,6 +919,7 @@ const ACT = {
   'reset-confirm'() { S.game = null; S.ui.sheet = null; clearInterval(T.iv); T.key = null; S.screen = 'home'; render(); },
   set(el) { const k = el.dataset.k, d = +el.dataset.d; S.settings[k] = Math.max(10, S.settings[k] + d); render(); },
   toggle(el) { const k = el.dataset.k; S.settings[k] = !S.settings[k]; render(); },
+  lite(el) { S.settings.lite = el.dataset.v; applyLite(); render(); },
   'timer-toggle'() { T.running = !T.running; timerPaint(); },
   'timer-add'() { T.left += 30; T.total = Math.max(T.total, T.left); timerPaint(); },
   'timer-reset'() { T.left = T.total; T.running = true; timerPaint(); }
@@ -901,6 +932,7 @@ document.addEventListener('click', e => {
   if (!AC && S.settings.sound) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (x) {} }
   const fn = ACT[el.dataset.a]; if (fn) fn(el);
 });
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); } });
 document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); });
 document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
 
@@ -912,6 +944,7 @@ function start(hot) {
   if (!S.settings.lang) S.settings.lang = detectLang();
   setLang(S.settings.lang);
   ensureMe(); seedDemoProfiles();
+  try { applyLite(); } catch (e) {}
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S }));
   if (S.screen === 'deal' && !S.game) S.screen = 'home';
   try { tgInit(); } catch (e) {}

@@ -179,15 +179,19 @@ const path = require('path'); const http = require('http');
   await S(() => cloudSync()); await p.waitForTimeout(600);
   ok(await S(() => fullAccess() && ownsRole('sniper') && ownsScen('summit') && ownsPack('diplomacy') && ownsRole('blackmailer')), 'full access unlocks every premium card, scenario and pack');
   await S(() => { S.screen = 'shop'; render(); });
-  ok((await p.innerText('#app')).includes(await S(() => tt(U().fullAccessUntil, { date: '' }).split('{')[0].slice(0, 20))), 'shop banner shows full access');
+  ok((await p.innerText('#app')).includes(await S(() => U().adminAccess)), 'shop banner shows admin access (user 100 is admin here)');
   await env.DB.prepare('DELETE FROM grants WHERE tg_id = 100').run(); await S(() => cloudSync()); await p.waitForTimeout(600);
-  ok(await S(() => !fullAccess() && !ownsRole('sniper')), 'access ends after revoke');
+  ok(await S(() => fullAccess() && ownsRole('sniper')), 'admin keeps everything after the grant is removed');
+  // a regular player: access ends with the grant
+  const regular = await (await fetch('http://127.0.0.1:8791/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: 701, first_name: 'Nika', username: 'nika_m', language_code: 'en' } }, 'test-token') }) })).json();
+  ok(regular.ok && regular.owned.allUntil === 0 && regular.admin === false, 'regular player has no access after revoke');
 
   console.log('players tab: everyone registered in the bot');
   await S(() => go('profiles')); await p.waitForTimeout(600);
   ok(await S(() => Array.isArray(PL.list) && PL.total >= 5 && PL.list.length === PL.total), 'directory loaded: ' + await S(() => PL.total));
   const dirTxt = await p.$eval('#app', el => el.textContent);
-  ok(dirTxt.includes(await S(() => U().plAll)) && dirTxt.includes('Nika') && dirTxt.includes('@nika_m') && dirTxt.includes('Богдан') && dirTxt.includes(await S(() => U().plLocal)), 'lists registered players (friends and non-friends) and keeps local profiles below');
+  const parts = { plAll: dirTxt.includes(await S(() => U().plAll)), nika: dirTxt.includes('Nika'), at: dirTxt.includes('@nika_m'), bog: dirTxt.includes('Богдан'), local: dirTxt.includes(await S(() => U().plLocal)) };
+  ok(Object.values(parts).every(Boolean), 'lists registered players (friends and non-friends) and keeps local profiles below: ' + JSON.stringify(parts) + ' total=' + await S(() => PL.total) + ' names=' + await S(() => PL.list.map(x => x.name).join('|')));
   ok(await S(() => PL.list.some(p => p.me) && PL.list.some(p => p.isFriend && p.tgId === 701)), 'me and friends flagged');
   await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-players-list.png') }).catch(() => {});
   await p.fill('#pl-q', 'бог'); await p.press('#pl-q', 'Enter'); await p.waitForTimeout(500);

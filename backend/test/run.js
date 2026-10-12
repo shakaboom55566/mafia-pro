@@ -190,7 +190,9 @@ console.log('admin: full access grants (bot commands + API)');
 { const U601 = user(601, 'en', { first_name: 'Maria', username: 'maria_k' }), U602 = user(602, 'pl', { first_name: 'Marek', username: 'marek_w' });
   await hook(msg(U601, '/start')); await hook(msg(U602, '/start')); // refresh usernames in the users table
   const adm = await initData(user(777, 'ru', { first_name: 'Admin' })); const usr = await initData(U601);
-  ok((await (await post('/api/me', { initData: adm })).json()).admin === true && (await (await post('/api/me', { initData: usr })).json()).admin === false, 'admin flag in /api/me');
+  const meAdm = await (await post('/api/me', { initData: adm })).json();
+  ok(meAdm.admin === true && (await (await post('/api/me', { initData: usr })).json()).admin === false, 'admin flag in /api/me');
+  ok(meAdm.owned.allUntil > Date.now() + 3000 * 86400000, 'admin owns everything without buying');
   eq((await post('/api/admin/grant', { initData: usr, q: '@maria_k' })).status, 403, 'non-admin forbidden');
   const g = await (await post('/api/admin/grant', { initData: adm, q: '@maria_k', days: 30 })).json();
   ok(g.ok && g.granted.tgId === 601 && g.granted.until > Date.now() + 29 * 86400000 && g.grants.length === 1, 'granted 30 days via API');

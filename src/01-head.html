@@ -514,7 +514,11 @@ p { margin: 0; }
 .card .art .art-svg { width: 100%; height: 100%; display: block; }
 .card .art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 72%, rgba(0,0,0,.55)); pointer-events: none; }
 .card .team, .card .name, .card .kind, .card .orn, .card .rule, .card .lore { position: relative; z-index: 1; }
-.card.mini .art { aspect-ratio: 1; margin: 0 0 4px; width: 100%; border-radius: 8px; }
+/* square art without aspect-ratio: WebKit sized <button> flex items wrongly and the cards overlapped */
+.card.mini .art { aspect-ratio: auto; height: 0; padding-bottom: 100%; margin: 0 0 4px; width: 100%; border-radius: 8px; }
+.card.mini .art .art-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.card.mini .art.lazy { background: linear-gradient(160deg, var(--bg-3), var(--bg-2)); }
+.gcard { content-visibility: auto; contain-intrinsic-size: 0 236px; }
 .card .mono-tag { display: none; }
 .card .orn { height: 1px; margin: 8px 26px 0; background: linear-gradient(90deg, transparent, var(--card-accent), transparent); position: relative; }
 .card .orn::before, .card .orn::after { content: ""; position: absolute; top: -2px; width: 5px; height: 5px; transform: rotate(45deg); background: var(--card-accent); }
@@ -629,6 +633,14 @@ select.input { appearance: none; -webkit-appearance: none; }
 @keyframes fxDrift { 0%, 100% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
 @keyframes shine { 0% { transform: translateX(-130%) skewX(-18deg); } 100% { transform: translateX(230%) skewX(-18deg); } }
 @keyframes ringSpin { to { transform: rotate(360deg); } }
+/* lite mode — older phones (iPhone X/8-class): decorative animation and blur off, static art */
+html.lite .art-svg .fx-rise, html.lite .art-svg .fx-swing, html.lite .art-svg .fx-pulse, html.lite .art-svg .fx-rain, html.lite .art-svg .fx-drift, html.lite .cardback .back-shine, html.lite .cardback .back-ring, html.lite .gem, html.lite .phase-head .star, html.lite .back-art .fx-pulse { animation: none !important; }
+html.lite .card .shine, html.lite .cardback .back-shine { display: none !important; }
+html.lite .tabbar, html.lite .topbar, html.lite .sheet-bg { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html.lite .tabbar { background: rgba(11,10,14,.98); }
+html.lite .card .art { box-shadow: none; }
+html.lite .card.mini.premium { box-shadow: 0 0 0 1.5px #8a6a2b, 0 0 0 3px #f0cd7a; }
+html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .sheet { animation: none; }
 @keyframes gemGlow { 0%, 100% { box-shadow: 0 0 10px rgba(255,107,107,.6); } 50% { box-shadow: 0 0 22px rgba(255,107,107,1); } }
 .art-svg .fx-rise { animation: fxRise 3.2s linear infinite; transform-box: fill-box; }
 .art-svg .fx-swing { animation: fxSwing 2.6s ease-in-out infinite; }

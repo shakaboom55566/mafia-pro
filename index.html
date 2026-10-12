@@ -520,7 +520,11 @@ p { margin: 0; }
 .card .art .art-svg { width: 100%; height: 100%; display: block; }
 .card .art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 72%, rgba(0,0,0,.55)); pointer-events: none; }
 .card .team, .card .name, .card .kind, .card .orn, .card .rule, .card .lore { position: relative; z-index: 1; }
-.card.mini .art { aspect-ratio: 1; margin: 0 0 4px; width: 100%; border-radius: 8px; }
+/* square art without aspect-ratio: WebKit sized <button> flex items wrongly and the cards overlapped */
+.card.mini .art { aspect-ratio: auto; height: 0; padding-bottom: 100%; margin: 0 0 4px; width: 100%; border-radius: 8px; }
+.card.mini .art .art-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.card.mini .art.lazy { background: linear-gradient(160deg, var(--bg-3), var(--bg-2)); }
+.gcard { content-visibility: auto; contain-intrinsic-size: 0 236px; }
 .card .mono-tag { display: none; }
 .card .orn { height: 1px; margin: 8px 26px 0; background: linear-gradient(90deg, transparent, var(--card-accent), transparent); position: relative; }
 .card .orn::before, .card .orn::after { content: ""; position: absolute; top: -2px; width: 5px; height: 5px; transform: rotate(45deg); background: var(--card-accent); }
@@ -635,6 +639,14 @@ select.input { appearance: none; -webkit-appearance: none; }
 @keyframes fxDrift { 0%, 100% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
 @keyframes shine { 0% { transform: translateX(-130%) skewX(-18deg); } 100% { transform: translateX(230%) skewX(-18deg); } }
 @keyframes ringSpin { to { transform: rotate(360deg); } }
+/* lite mode — older phones (iPhone X/8-class): decorative animation and blur off, static art */
+html.lite .art-svg .fx-rise, html.lite .art-svg .fx-swing, html.lite .art-svg .fx-pulse, html.lite .art-svg .fx-rain, html.lite .art-svg .fx-drift, html.lite .cardback .back-shine, html.lite .cardback .back-ring, html.lite .gem, html.lite .phase-head .star, html.lite .back-art .fx-pulse { animation: none !important; }
+html.lite .card .shine, html.lite .cardback .back-shine { display: none !important; }
+html.lite .tabbar, html.lite .topbar, html.lite .sheet-bg { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html.lite .tabbar { background: rgba(11,10,14,.98); }
+html.lite .card .art { box-shadow: none; }
+html.lite .card.mini.premium { box-shadow: 0 0 0 1.5px #8a6a2b, 0 0 0 3px #f0cd7a; }
+html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .sheet { animation: none; }
 @keyframes gemGlow { 0%, 100% { box-shadow: 0 0 10px rgba(255,107,107,.6); } 50% { box-shadow: 0 0 22px rgba(255,107,107,1); } }
 .art-svg .fx-rise { animation: fxRise 3.2s linear infinite; transform-box: fill-box; }
 .art-svg .fx-swing { animation: fxSwing 2.6s ease-in-out infinite; }
@@ -3116,6 +3128,12 @@ Object.assign(I18N.en.ui, { plAll: 'All players', plOnline: 'online: {n}', plSea
 Object.assign(I18N.pl.ui, { plAll: 'Wszyscy gracze', plOnline: 'online: {n}', plSearchPh: 'Szukaj po nicku lub imieniu', plMore: 'Pokaż więcej', plLocal: 'Profile bez Telegrama', plLocalHint: 'Dla graczy spoza Telegrama: imię i statystyki są tylko na tym telefonie.', plEmpty: 'Jeszcze nikogo', plFriend: 'znajomy' });
 Object.assign(I18N.hy.ui, { plAll: 'Բոլոր խաղացողները', plOnline: 'ցանցում՝ {n}', plSearchPh: 'Գտնել ըստ նիկի կամ անվան', plMore: 'Ցույց տալ ավելին', plLocal: 'Պրոֆիլներ առանց Telegram-ի', plLocalHint: 'Այն խաղացողների համար, ովքեր Telegram-ում չեն․ անունն ու վիճակագրությունը պահվում են միայն այս հեռախոսում։', plEmpty: 'Դեռ ոչ ոք', plFriend: 'ընկեր' });
 Object.assign(I18N.ru.ui, { frLongAgo: 'давно' }); Object.assign(I18N.uk.ui, { frLongAgo: 'давно' }); Object.assign(I18N.en.ui, { frLongAgo: 'long ago' }); Object.assign(I18N.pl.ui, { frLongAgo: 'dawno' }); Object.assign(I18N.hy.ui, { frLongAgo: 'վաղուց' });
+/* ---------------- Lite graphics setting; admin access label ---------------- */
+Object.assign(I18N.ru.ui, { sLite: 'Облегчённая графика', sLiteD: 'Без анимаций и размытия — для iPhone X/8 и похожих. «Авто» определяет само.', liteAuto: 'Авто', liteOn: 'Вкл', liteOff: 'Выкл', adminAccess: 'Администратор: все карты, сценарии и паки открыты' });
+Object.assign(I18N.uk.ui, { sLite: 'Полегшена графіка', sLiteD: 'Без анімацій і розмиття — для iPhone X/8 та подібних. «Авто» визначає само.', liteAuto: 'Авто', liteOn: 'Увімк', liteOff: 'Вимк', adminAccess: 'Адміністратор: усі карти, сценарії та паки відкрито' });
+Object.assign(I18N.en.ui, { sLite: 'Lite graphics', sLiteD: 'No animations or blur — for iPhone X/8-class phones. “Auto” decides by itself.', liteAuto: 'Auto', liteOn: 'On', liteOff: 'Off', adminAccess: 'Administrator: every card, scenario and pack is unlocked' });
+Object.assign(I18N.pl.ui, { sLite: 'Lekka grafika', sLiteD: 'Bez animacji i rozmycia — dla iPhone X/8 i podobnych. „Auto” decyduje samo.', liteAuto: 'Auto', liteOn: 'Wł', liteOff: 'Wył', adminAccess: 'Administrator: wszystkie karty, scenariusze i pakiety odblokowane' });
+Object.assign(I18N.hy.ui, { sLite: 'Թեթև գրաֆիկա', sLiteD: 'Առանց անիմացիաների և մշուշման — iPhone X/8-ի և նմանների համար։ «Ավտո»-ն ինքն է որոշում։', liteAuto: 'Ավտո', liteOn: 'Միացն', liteOff: 'Անջատ', adminAccess: 'Ադմինիստրատոր՝ բոլոր քարտերը, սցենարները և փաթեթները բաց են' });
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
@@ -4304,7 +4322,7 @@ function useKamikaze(g, kamId, targetId) {
 /* ============================================================
    UI
    ============================================================ */
-const DEFAULT_SETTINGS = { intro: 30, speech: 60, balagan: 180, tieSpeech: 30, revealDead: true, sound: true, lang: null };
+const DEFAULT_SETTINGS = { intro: 30, speech: 60, balagan: 180, tieSpeech: 30, revealDead: true, sound: true, lang: null, lite: 'auto' };
 let S = {
   screen: 'home', tab: 'game', settings: Object.assign({}, DEFAULT_SETTINGS),
   setup: { n: 10, comp: presetFor(10), names: [], seatProfiles: [] },
@@ -4451,7 +4469,7 @@ function render() {
   app.innerHTML = `<div class="screen ${noTabs ? 'no-tabs' : ''} ${enter ? 'enter' : ''}">${html}</div>${noTabs ? '' : tabbar()}${sheetHTML(sheetEnter)}`;
   if ($('#timer')) timerPaint();
   if ($('.card3d-wrap')) card3dInit();
-  fitCards();
+  fitCards(); mountLazyArt();
   if (S.ui.flipAnim) {
     // the card was rendered in its previous state — flip it on the next frame so the 3D turn is animated
     S.ui.flipAnim = false; const f = $('.flip'); const open = !!(S.game && S.game.dealOpen);
@@ -4462,6 +4480,35 @@ function render() {
 const RENDER = { key: null, sheetKey: null };
 /* Cards have a fixed height: shrink their text (CSS --fs) until nothing overflows — covers long translations and
    mobile browsers that boost font sizes (iOS text autosizing), which the fixed px sizes cannot anticipate. */
+/* gallery art is injected only when a card comes near the viewport — 55 illustrations at once were too heavy for older phones */
+function lazyArt(id, eager) { return eager ? `<div class="art">${roleArt(id)}</div>` : `<div class="art lazy" data-art="${id}"></div>`; }
+let artObserver = null;
+function mountLazyArt() {
+  if (!document.querySelectorAll) return;
+  const pending = document.querySelectorAll('.art.lazy[data-art]'); if (!pending.length) return;
+  const fill = el => { if (!el.dataset.art) return; el.innerHTML = roleArt(el.dataset.art); el.classList.remove('lazy'); delete el.dataset.art; };
+  if (typeof IntersectionObserver === 'undefined') { pending.forEach(fill); return; }
+  if (!artObserver) artObserver = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { artObserver.unobserve(e.target); fill(e.target); } }), { rootMargin: '360px 0px' });
+  pending.forEach(el => artObserver.observe(el));
+}
+/* lite mode: reduced-motion preference, an explicit setting, or a slow device (small core count / memory, or a slow script benchmark) */
+function detectLite() {
+  const pref = S.settings.lite || 'auto';
+  if (pref === 'on') return true; if (pref === 'off') return false;
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+    const ua = navigator.userAgent || ''; const ios = /iPhone|iPad|iPod/.test(ua);
+    const sw = screen && screen.width, sh = screen && screen.height, dpr = window.devicePixelRatio || 1;
+    // iPhone X / XS / 11 Pro (375×812@3), XS Max / 11 Pro Max (414×896@3), 6–8 / SE (375×667, 320×568): older-class GPUs
+    if (ios && ((sw === 375 && sh === 812) || (sw === 414 && sh === 896 && dpr >= 3) || (sw === 375 && sh === 667) || sw <= 320)) { LITE.why = 'ios-model'; return true; }
+    if (!ios && navigator.deviceMemory && navigator.deviceMemory <= 3) { LITE.why = 'memory'; return true; }
+    if (!ios && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) { LITE.why = 'cores'; return true; }
+    if (typeof performance !== 'undefined' && performance.now) { const t0 = performance.now(); let x = 0; for (let i = 0; i < 1.2e6; i++) x += Math.sqrt(i) * ((i & 3) + 1); const dt = performance.now() - t0; LITE.bench = dt; if (x < 0) return false; if (dt > 12) { LITE.why = 'bench'; return true; } }
+  } catch (e) {}
+  return false;
+}
+const LITE = { on: false, bench: 0 };
+function applyLite() { LITE.on = detectLite(); try { document.documentElement.classList.toggle('lite', LITE.on); } catch (e) {} if (typeof C3 !== 'undefined') C3.lite = LITE.on; }
 function fitCards() {
   if (!document.querySelectorAll) return;
   // tab labels: six tabs on a phone — shrink a label that does not fit its cell instead of clipping it
@@ -4979,7 +5026,7 @@ function cardsScreen() {
   return `${topbar(u.cardsTitle, tt(u.cardsSub, { n: ROLES.length }), false)}
   <div class="stack">
     <div class="row"><div class="filters grow">${chip('all', u.fAll)}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div><button class="btn xs ghost" data-a="go" data-to="shop">${u.shop}</button></div>
-    <div class="gallery">${list.map(r => `<button class="gcard card ${r.team} mini ${r.premium ? 'premium' : ''}" data-a="role" data-id="${r.id}" style="position:relative">${r.premium ? priceBadge('role', r.id) + '<i class="gem"></i>' : ''}<div class="art">${roleArt(r.id)}</div><div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></button>`).join('')}</div>
+    <div class="gallery">${list.map((r, i) => `<div class="gcard card ${r.team} mini ${r.premium ? 'premium' : ''}" role="button" tabindex="0" data-a="role" data-id="${r.id}" style="position:relative">${r.premium ? priceBadge('role', r.id) + '<i class="gem"></i>' : ''}${lazyArt(r.id, i < 6)}<div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></div>`).join('')}</div>
   </div>`;
 }
 function counterChips(ids) { return ids.filter(id => ROLE[id]).map(id => `<button class="counter-chip ${ROLE[id].team}" data-a="role" data-id="${id}">${roleArt(id, 'portrait')}<span>${ROLE[id].name}</span></button>`).join(''); }
@@ -5044,6 +5091,7 @@ function settingsScreen() {
     ${num('tieSpeech', u.sTie, u.sTieD, 10)}
     ${sw('revealDead', u.sReveal, u.sRevealD)}
     ${sw('sound', u.sSound, u.sSoundD)}
+    <div class="setting"><div><div class="t">${u.sLite}</div><div class="d">${u.sLiteD}${LITE.bench ? ` <span class="num" style="opacity:.6">(${Math.round(LITE.bench)} ms)</span>` : ''}</div></div><div class="ctl"><div class="segment n3" style="min-width:150px">${[['auto', u.liteAuto], ['on', u.liteOn], ['off', u.liteOff]].map(([v, l]) => `<button class="${(s.lite || 'auto') === v ? 'active' : ''}" data-a="lite" data-v="${v}">${l}</button>`).join('')}</div></div></div>
   </div>
   <div class="panel" style="margin-top:12px"><div class="eyebrow">${u.about}</div><p class="hint" style="margin-top:6px">${u.aboutText}</p></div>`;
 }
@@ -5192,6 +5240,7 @@ const ACT = {
   'reset-confirm'() { S.game = null; S.ui.sheet = null; clearInterval(T.iv); T.key = null; S.screen = 'home'; render(); },
   set(el) { const k = el.dataset.k, d = +el.dataset.d; S.settings[k] = Math.max(10, S.settings[k] + d); render(); },
   toggle(el) { const k = el.dataset.k; S.settings[k] = !S.settings[k]; render(); },
+  lite(el) { S.settings.lite = el.dataset.v; applyLite(); render(); },
   'timer-toggle'() { T.running = !T.running; timerPaint(); },
   'timer-add'() { T.left += 30; T.total = Math.max(T.total, T.left); timerPaint(); },
   'timer-reset'() { T.left = T.total; T.running = true; timerPaint(); }
@@ -5204,6 +5253,7 @@ document.addEventListener('click', e => {
   if (!AC && S.settings.sound) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (x) {} }
   const fn = ACT[el.dataset.a]; if (fn) fn(el);
 });
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); } });
 document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); });
 document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
 
@@ -5215,6 +5265,7 @@ function start(hot) {
   if (!S.settings.lang) S.settings.lang = detectLang();
   setLang(S.settings.lang);
   ensureMe(); seedDemoProfiles();
+  try { applyLite(); } catch (e) {}
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S }));
   if (S.screen === 'deal' && !S.game) S.screen = 'home';
   try { tgInit(); } catch (e) {}
@@ -5426,7 +5477,7 @@ function card3dApply(wrap) {
 function card3dLoop() {
   const wraps = document.querySelectorAll('.card3d-wrap');
   if (!wraps.length) { C3.raf = null; return; }
-  wraps.forEach(w => { const st = c3state(w.dataset.key); if (C3.dragging !== w.dataset.key && !C3.reduce && Date.now() - st.idle > 1800) { st.ry += 0.35; st.rx += (6 - st.rx) * 0.02; card3dApply(w); } });
+  wraps.forEach(w => { const st = c3state(w.dataset.key); if (C3.dragging !== w.dataset.key && !C3.reduce && !C3.lite && Date.now() - st.idle > 1800) { st.ry += 0.35; st.rx += (6 - st.rx) * 0.02; card3dApply(w); } });
   C3.raf = requestAnimationFrame(card3dLoop);
 }
 function card3dInit() { document.querySelectorAll('.card3d-wrap').forEach(card3dApply); if (!C3.raf) C3.raf = requestAnimationFrame(card3dLoop); }
@@ -6113,7 +6164,7 @@ function scenarioCardHTML(sc, compact = false) {
 }
 function premiumCardTile(r) {
   const u = U(); const own = ownsRole(r.id);
-  return `<div class="gcard card ${r.team} mini premium" style="position:relative">${priceBadge('role', r.id)}<i class="gem"></i><button data-a="role" data-id="${r.id}" style="display:contents"><div class="art">${roleArt(r.id)}</div><div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></button>
+  return `<div class="gcard card ${r.team} mini premium" style="position:relative">${priceBadge('role', r.id)}<i class="gem"></i><div role="button" tabindex="0" data-a="role" data-id="${r.id}" style="display:contents">${lazyArt(r.id, false)}<div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></div>
     ${own ? '' : r.pack ? `<button class="btn primary xs buy" data-a="buy" data-kind="pack" data-id="${r.pack}">${u.inPack}</button>` : `<button class="btn primary xs buy" data-a="buy" data-kind="role" data-id="${r.id}">${tt(u.buy, { price: u.priceCard })}</button>`}</div>`;
 }
 function packCardHTML(pk) {
@@ -6133,7 +6184,7 @@ function shopScreen() {
   const groups = [['black', u.groupFamily], ['red', u.groupCity], ['neutral', u.groupNeutral]];
   return `${topbar(u.shop, u.shopD)}
   <div class="stack">
-    ${fullAccess() ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill">★</span><div class="grow" style="font-weight:700">${tt(u.fullAccessUntil, { date: new Date(S.owned.allUntil).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU') })}</div></div></div>` : ''}
+    ${fullAccess() ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill">★</span><div class="grow" style="font-weight:700">${S.cloud && S.cloud.admin ? u.adminAccess : tt(u.fullAccessUntil, { date: new Date(S.owned.allUntil).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU') })}</div></div></div>` : ''}
     <div class="panel"><div class="row"><span class="premium-pill">${u.premium}</span><div class="hint grow">${u.buyNote}</div></div></div>
     <h2>${u.shopCards}</h2>
     ${groups.map(([team, title]) => `<div class="eyebrow">${title}</div><div class="shop-grid">${prem.filter(r => r.team === team).map(premiumCardTile).join('')}</div>`).join('')}

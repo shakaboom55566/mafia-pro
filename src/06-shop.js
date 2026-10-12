@@ -36,7 +36,7 @@ function scenarioCardHTML(sc, compact = false) {
 }
 function premiumCardTile(r) {
   const u = U(); const own = ownsRole(r.id);
-  return `<div class="gcard card ${r.team} mini premium" style="position:relative">${priceBadge('role', r.id)}<i class="gem"></i><button data-a="role" data-id="${r.id}" style="display:contents"><div class="art">${roleArt(r.id)}</div><div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></button>
+  return `<div class="gcard card ${r.team} mini premium" style="position:relative">${priceBadge('role', r.id)}<i class="gem"></i><div role="button" tabindex="0" data-a="role" data-id="${r.id}" style="display:contents">${lazyArt(r.id, false)}<div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></div>
     ${own ? '' : r.pack ? `<button class="btn primary xs buy" data-a="buy" data-kind="pack" data-id="${r.pack}">${u.inPack}</button>` : `<button class="btn primary xs buy" data-a="buy" data-kind="role" data-id="${r.id}">${tt(u.buy, { price: u.priceCard })}</button>`}</div>`;
 }
 function packCardHTML(pk) {
@@ -56,7 +56,7 @@ function shopScreen() {
   const groups = [['black', u.groupFamily], ['red', u.groupCity], ['neutral', u.groupNeutral]];
   return `${topbar(u.shop, u.shopD)}
   <div class="stack">
-    ${fullAccess() ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill">★</span><div class="grow" style="font-weight:700">${tt(u.fullAccessUntil, { date: new Date(S.owned.allUntil).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU') })}</div></div></div>` : ''}
+    ${fullAccess() ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill">★</span><div class="grow" style="font-weight:700">${S.cloud && S.cloud.admin ? u.adminAccess : tt(u.fullAccessUntil, { date: new Date(S.owned.allUntil).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU') })}</div></div></div>` : ''}
     <div class="panel"><div class="row"><span class="premium-pill">${u.premium}</span><div class="hint grow">${u.buyNote}</div></div></div>
     <h2>${u.shopCards}</h2>
     ${groups.map(([team, title]) => `<div class="eyebrow">${title}</div><div class="shop-grid">${prem.filter(r => r.team === team).map(premiumCardTile).join('')}</div>`).join('')}
