@@ -26,7 +26,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       WRANGLER_SEND_METRICS: 'false'
-      LOG: ${{ runner.temp }}/deploy.log
+      LOG: /tmp/mafia-deploy.log
     defaults:
       run:
         working-directory: backend
