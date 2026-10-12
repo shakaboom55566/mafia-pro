@@ -102,10 +102,18 @@ let code;
   const st = await (await post('/api/lobby/status', { initData: host, code })).json(); eq(st.players.map(p => p.tgId), [201, 202], 'status lists both'); eq(st.players[1].lang, 'en', 'lang kept');
   const stranger = await initData(user(999)); eq((await post('/api/lobby/status', { initData: stranger, code })).status, 404, 'not the host → 404');
   tg.blocked.add(202);
-  const deal = await (await post('/api/lobby/deal', { initData: host, code, cards: [{ tgId: 201, seat: 3, text: '<b>Дон</b> — мафия' }, { tgId: 202, seat: 5, text: '<b>Sheriff</b>' }, { tgId: 777, seat: 1, text: 'x' }] })).json();
-  eq(deal.sent, [201], 'card delivered to 201'); eq(deal.failed.map(f => f.tgId), [202, 777], '202 blocked, 777 not in lobby');
-  const card = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 201).pop(); ok(card.params.text.includes('Ваша карта') && card.params.text.includes('<b>Дон</b>') && card.params.text.includes(`стіл ${code}, місце 3`), 'card text localized to the player (uk frame, host-provided body)');
-  await hook(msg(user(204, 'ru'), `/start join_${code}`)); ok(lastCall('sendMessage').params.text.includes('закрыт'), 'closed after deal');
+  // cards live in the app: the deal stores each player's role in their private table state; a short DM (no role text) pings those not watching the table
+  const deal = await (await post('/api/lobby/deal', { initData: host, code, cards: [{ tgId: 201, seat: 3, roleId: 'don' }, { tgId: 202, seat: 5, roleId: 'sheriff' }, { tgId: 777, seat: 1, roleId: 'don' }] })).json();
+  eq(deal.sent, [201, 202], 'cards stored for both seated players'); eq(deal.failed.map(f => f.tgId), [777], '777 not in lobby'); eq(deal.notified, [201], 'only 201 could be pinged (202 blocked the bot)');
+  const card = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 201).pop();
+  ok(card.params.text.includes('Ваша карта') && card.params.text.includes('готова') && !card.params.text.includes('Дон') && card.params.reply_markup.inline_keyboard[0][0].web_app.url.includes(`startapp=table_${code}`), 'DM is a localized notice with an "open table" app button, no role text');
+  const ts201 = await (await post('/api/table/state', { initData: await initData(user(201, 'uk')), code })).json();
+  ok(ts201.ok && ts201.me.roleId === 'don' && ts201.me.seat === 3 && ts201.pub.phase === 'deal' && ts201.players.length === 2 && ts201.host.name === 'User100' && ts201.profiles[201] && typeof ts201.profiles[201].points === 'number', 'the player reads the card and the table from the app: ' + JSON.stringify(ts201.me));
+  eq((await post('/api/table/state', { initData: await initData(user(777, 'ru')), code })).status, 403, 'a stranger cannot read the table');
+  const again = await (await post('/api/lobby/deal', { initData: host, code, cards: [{ tgId: 201, seat: 3, roleId: 'don' }] })).json(); eq(again.notified, [], 'same card again → no second DM');
+  await hook(msg(user(204, 'ru'), `/start join_${code}`)); ok(lastCall('sendMessage').params.text.includes('за столом'), 'late players can still sit down while the host deals');
+  await post('/api/table/publish', { initData: host, code, pub: { phase: 'night0', code, seats: [] }, priv: {} });
+  await hook(msg(user(205, 'ru'), `/start join_${code}`)); ok(lastCall('sendMessage').params.text.includes('закрыт'), 'closed once the game runs');
   const fresh = await (await post('/api/lobby', { initData: host, fresh: true })).json(); ok(fresh.code !== code, 'fresh lobby gets a new code'); }
 
 console.log('friends: invite link → accept (bot and Mini App) → list → invite to table → remove');
@@ -128,12 +136,32 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   const list301 = await (await post('/api/friends', { initData: await initData(user(301, 'en')) })).json(); eq(list301.friends.map(f => f.tgId), [100], 'friendship is symmetric');
   // invite friends to my open table
   const lob = await (await post('/api/lobby', { initData: a, fresh: true })).json();
+  // 301 is online (just talked to the bot) → the invitation shows up in the app; 302 is offline → a DM with a join button
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 302').bind(now() - 3600).run();
   tg.blocked.add(302);
   const inv = await (await post('/api/friends/invite', { initData: a, code: lob.code, friendIds: [301, 302, 999] })).json();
-  eq(inv.sent, [301], '301 invited'); eq(inv.failed.map(f => f.error), ['Forbidden: bot was blocked by the user', 'not_friend'], '302 blocked, 999 not a friend');
-  const dm = lastTo(301); ok(dm.params.text.includes('User100') && dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].url === `https://t.me/mafiapro_test_bot?start=join_${lob.code}`, 'invite DM has a join button (en)');
-  eq((await post('/api/friends/invite', { initData: b, code: lob.code, friendIds: [100] })).status, 404, 'only the host can invite to a table');
+  eq(inv.sent, [301], '301 invited in the app'); eq(inv.via[301], 'app', 'delivered in-app'); eq(inv.failed.map(f => f.error), ['Forbidden: bot was blocked by the user', 'not_friend'], '302 offline and blocked the bot, 999 not a friend');
+  ok(!tg.calls.some(c => c.method === 'sendMessage' && c.params.chat_id === 301 && c.params.text.includes(lob.code)), 'no DM to the online friend');
+  const p301 = await (await post('/api/ping', { initData: await initData(user(301, 'en')) })).json();
+  ok(p301.ok && p301.invites.length === 1 && p301.invites[0].code === lob.code && p301.invites[0].from === 'User100' && p301.invites[0].kind === 'friend', 'ping carries the pending invitation: ' + JSON.stringify(p301.invites));
   tg.blocked.delete(302);
+  // unanswered for 45 s → the DM goes out when the host polls the table
+  await env.DB.prepare('UPDATE table_invites SET created_at = created_at - 60 WHERE tg_id = 301').run();
+  await post('/api/lobby/status', { initData: a, code: lob.code });
+  const dm = lastTo(301); ok(dm && dm.params.text.includes('User100') && dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].url === `https://t.me/mafiapro_test_bot?start=join_${lob.code}`, 'fallback DM with a join button (en)');
+  await post('/api/lobby/status', { initData: a, code: lob.code }); eq(tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 301 && c.params.text.includes(lob.code)).length, 1, 'the fallback DM is sent once');
+  // accept in the app → seated, host notified
+  const acc301 = await (await post('/api/table/invite/respond', { initData: await initData(user(301, 'en')), code: lob.code, accept: true })).json();
+  ok(acc301.ok && acc301.joined && lastTo(100).params.text.includes('User301') && lastTo(100).params.text.includes(lob.code), 'accepted in the app → at the table, host notified');
+  eq((await (await post('/api/lobby/status', { initData: a, code: lob.code })).json()).players.map(p => p.tgId), [301], 'seated');
+  eq((await (await post('/api/ping', { initData: await initData(user(301, 'en')) })).json()).invites, [], 'invitation gone after answering');
+  ok((await (await post('/api/me', { initData: await initData(user(301, 'en')) })).json()).table.code === lob.code, 'me.table points at the open table');
+  eq((await (await post('/api/table/invite/respond', { initData: await initData(user(301, 'en')), code: lob.code, accept: false })).json()).gone, true, 'answering twice → gone');
+  // the host app publishes the waiting room; the player sees it with profiles
+  const pubw = await (await post('/api/table/publish', { initData: a, code: lob.code, pub: { phase: 'lobby', code: lob.code, n: 10, seats: [{ seat: 1, tgId: 301, name: 'User301' }] }, priv: {} })).json(); ok(pubw.ok && pubw.version === 1, 'waiting room published');
+  const w301 = await (await post('/api/table/state', { initData: await initData(user(301, 'en')), code: lob.code })).json();
+  ok(w301.ok && w301.pub.phase === 'lobby' && w301.pub.seats[0].tgId === 301 && w301.profiles[301].name === 'User301' && w301.host.tgId === 100 && w301.status === 'open', 'player sees the waiting room with the host and profiles');
+  eq((await post('/api/friends/invite', { initData: b, code: lob.code, friendIds: [100] })).status, 404, 'only the host can invite to a table');
   // remove
   ok((await (await post('/api/friends/remove', { initData: a, friendId: 301 })).json()).ok, 'removed');
   eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId), [302], 'list after removal');
@@ -250,13 +278,13 @@ console.log('referrals: attribution → welcome trial → qualification → mile
   const lob = await (await post('/api/lobby', { initData: hi, fresh: true })).json();
   for (const id of [901, 902, 903]) await hook(msg(user(id, 'uk', { first_name: 'N' + id }), `/start join_${lob.code}`));
   tg.calls.length = 0;
-  await post('/api/lobby/deal', { initData: hi, code: lob.code, cards: [901, 902, 903].map(id => ({ tgId: id, seat: id - 900, text: 'x' })) });
+  await post('/api/lobby/deal', { initData: hi, code: lob.code, cards: [901, 902, 903].map(id => ({ tgId: id, seat: id - 900, roleId: 'citizen' })) });
   let r2 = await (await post('/api/referrals', { initData: hi })).json(); eq(r2.qualified, 3, 'three qualified after receiving cards');
   const hostMsgs = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 900).map(c => c.params.text);
   ok(hostMsgs.filter(x => x.includes('первую партию')).length === 3, 'host told about each qualified invitee');
   ok(hostMsgs.some(x => x.includes('Награда') && x.includes('7 дн')) && hostMsgs.some(x => x.includes('30 дн')), 'milestones 1 (7 days) and 3 (30 days) paid');
   const g = await env.DB.prepare('SELECT until FROM grants WHERE tg_id = 900').first(); ok(g && g.until > now() + 36 * 86400, 'host has 37 days of full access');
-  await post('/api/lobby/deal', { initData: hi, code: lob.code, cards: [{ tgId: 901, seat: 1, text: 'x' }] });
+  await post('/api/lobby/deal', { initData: hi, code: lob.code, cards: [{ tgId: 901, seat: 1, roleId: 'citizen' }] });
   eq((await (await post('/api/referrals', { initData: hi })).json()).qualified, 3, 'qualifying twice does not double count');
   await post('/api/game/result', { initData: hi, game: { id: 'ref-g1', mode: 'classic', winner: 'city', players: [{ seat: 1, tgId: 904, roleId: 'don', won: false, points: -10 }, { seat: 2, tgId: 905, roleId: 'sheriff', won: true, points: 31 }] } });
   r2 = await (await post('/api/referrals', { initData: hi })).json(); eq(r2.qualified, 5, 'game result qualifies two more');
@@ -361,7 +389,9 @@ console.log('clubs: apply → admin approves → listed → invite / apply / res
   eq((await post('/api/club/chat/send', { initData: hi, lobby: 'NOPE11' })).status, 404, 'only my open lobby can be announced');
   await env.DB.prepare('UPDATE club_messages SET created_at = created_at - 5').run();
   const lm = await (await post('/api/club/chat/send', { initData: hi, lobby: lob.code })).json(); ok(lm.ok, 'lobby announced');
-  const dm = lastTo(1003); ok(dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].url.includes('start=join_' + lob.code), 'online member got the table call (hy)');
+  const pi3 = await (await post('/api/ping', { initData: await initData(p3) })).json(); ok(pi3.invites.length === 1 && pi3.invites[0].code === lob.code && pi3.invites[0].kind === 'club', 'online member got the table call in the app (hy)');
+  await env.DB.prepare('UPDATE table_invites SET created_at = created_at - 60 WHERE tg_id = 1003').run(); await post('/api/table/actions', { initData: hi, code: lob.code, since: 0 });
+  const dm = lastTo(1003); ok(dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].url.includes('start=join_' + lob.code), 'unanswered → DM with a join button (hy)');
   const ch2 = await (await post('/api/club/chat', { initData: hi, since: s1.id })).json(); ok(ch2.messages.some(m => m.kind === 'lobby' && m.code === lob.code), 'lobby message in chat');
   // admin list + reject
   const adm = await initData(user(777, 'ru'));
@@ -372,6 +402,56 @@ console.log('clubs: apply → admin approves → listed → invite / apply / res
   const top = await (await call(`/api/clubs/top?limit=10`)).json(); ok(top.ok && top.top[0].id === cid && top.top[0].members === 2 && top.top[0].online >= 1 && top.top.length === 2 && top.top[1].members === 1, 'top of clubs by members: ' + top.top.map(c => c.name + ':' + c.members).join(', '));
   const up = await (await post('/api/club/update', { initData: hi, id: cid, city: 'Киев', logo: '' })).json(); ok(up.ok && up.club.city === 'Киев' && up.club.logo === '', 'head edited city and removed the logo');
   eq((await post('/api/club/update', { initData: await initData(p3), id: cid, city: 'X' })).status, 403, 'members cannot edit'); }
+
+console.log('live table: publish → players read public + private → act → host reads → chat window → eliminated players see only the seats');
+{ const host = user(1100, 'ru', { first_name: 'Ведущий' }); const hi = await initData(host); await hook(msg(host, '/start'));
+  const lob = await (await post('/api/lobby', { initData: hi, fresh: true })).json(); const code = lob.code;
+  const pl = [1101, 1102, 1103].map((id, i) => user(id, ['uk', 'en', 'pl'][i], { first_name: 'P' + id }));
+  for (const p of pl) await hook(msg(p, `/start join_${code}`));
+  ok(lastTo(1101).params.reply_markup.inline_keyboard[0][0].web_app.url.includes(`startapp=table_${code}`), 'join reply carries an "open table" app button');
+  const id = async p => initData(p);
+  // night 1: mafia (1101, 1102) propose, the don (1101) decides; the sheriff (1103) checks
+  const pub = { phase: 'night', night: 1, day: 0, code, n: 3, chat: false, seats: [{ seat: 1, tgId: 1101, name: 'P1101', alive: true }, { seat: 2, tgId: 1102, name: 'P1102', alive: true }, { seat: 3, tgId: 1103, name: 'P1103', alive: true }], step: { roleId: 'don', i: 0, n: 2 } };
+  const priv = { 1101: { seat: 1, roleId: 'don', alive: true, ask: { key: 'n1:s0', kind: 'shoot', need: 1, targets: [3] } }, 1102: { seat: 2, roleId: 'mafia', alive: true, ask: { key: 'n1:s0', kind: 'propose', need: 1, targets: [3] } }, 1103: { seat: 3, roleId: 'sheriff', alive: true, ask: null } };
+  const pr = await (await post('/api/table/publish', { initData: hi, code, pub, priv })).json(); ok(pr.ok && pr.version === 1 && pr.delivered.length === 3 && pr.notified.length === 3, 'published; three cards delivered, three players pinged (nobody is watching yet)');
+  ok(lastTo(1102).params.text.includes('Your card') && !lastTo(1102).params.text.includes('mafia'), 'card notice without the role (en)');
+  eq((await (await post('/api/lobby/status', { initData: hi, code })).json()).status, 'live', 'lobby is live');
+  eq((await post('/api/table/publish', { initData: await id(pl[0]), code, pub, priv })).status, 404, 'only the host publishes');
+  const s2 = await (await post('/api/table/state', { initData: await id(pl[1]), code })).json();
+  ok(s2.ok && s2.version === 1 && s2.pub.phase === 'night' && s2.me.roleId === 'mafia' && s2.me.ask.kind === 'propose' && !('1101' in s2) && s2.pub.seats.length === 3, 'player reads the public state and only his own private part');
+  ok(await (async () => { const d = await (await post('/api/table/state', { initData: await id(pl[2]), code })).json(); return d.me.roleId === 'sheriff' && d.me.ask === null; })(), 'another player gets his own card');
+  const pr2 = await (await post('/api/table/publish', { initData: hi, code, pub, priv })).json(); eq(pr2.notified, [], 'republishing the same cards pings nobody again');
+  // actions: the mafioso proposes seat 3, changes his mind to seat 1, the don shoots 3; the host reads them in order
+  const a1 = await (await post('/api/table/act', { initData: await id(pl[1]), code, key: 'n1:s0', payload: { pick: [3] } })).json(); ok(a1.ok && a1.id > 0, 'action stored');
+  await post('/api/table/act', { initData: await id(pl[1]), code, key: 'n1:s0', payload: { pick: [1] } });
+  await post('/api/table/act', { initData: await id(pl[0]), code, key: 'n1:s0', payload: { pick: [3] } });
+  eq((await post('/api/table/act', { initData: await initData(user(1199)), code, key: 'x', payload: {} })).status, 403, 'strangers cannot act');
+  const acts = await (await post('/api/table/actions', { initData: hi, code, since: 0 })).json();
+  ok(acts.ok && acts.actions.length === 2 && acts.actions[0].tgId === 1102 && acts.actions[0].payload.pick[0] === 1 && acts.actions[1].tgId === 1101 && acts.watching.includes(1102), 'host reads the latest answer per player per key, and who is watching: ' + JSON.stringify(acts.actions.map(a => [a.tgId, a.key, a.payload])));
+  const acts2 = await (await post('/api/table/actions', { initData: hi, code, since: acts.actions[1].id })).json(); eq(acts2.actions, [], 'incremental read');
+  eq((await post('/api/table/actions', { initData: await id(pl[0]), code, since: 0 })).status, 404, 'players cannot read the answers');
+  // chat: closed at night, open from the free discussion until the vote
+  eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'hi' })).status, 403, 'chat closed at night');
+  const dayPub = Object.assign({}, pub, { phase: 'day', day: 1, chat: true, stage: 'balagan' });
+  await post('/api/table/publish', { initData: hi, code, pub: dayPub, priv });
+  const c1 = await (await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'Я мирный, честно' })).json(); ok(c1.ok, 'chat open during the free discussion');
+  eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'spam' })).status, 429, 'rate limited');
+  const st = await (await post('/api/table/state', { initData: await id(pl[2]), code, since: 0 })).json();
+  ok(st.chat.length === 1 && st.chat[0].text === 'Я мирный, честно' && st.chat[0].name === '2 · P1102' && !st.chat[0].me, 'others read the chat with the seat number');
+  await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: false, stage: 'vote' }), priv });
+  eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'late' })).status, 403, 'chat closed once the vote starts');
+  const hc = await (await post('/api/table/chat/send', { initData: hi, code, text: 'Голосуем' })).json(); ok(hc.ok, 'the host can always write');
+  // seat 2 is voted out: he only sees who is still at the table, no chat, no stage; results come at the end
+  const priv2 = Object.assign({}, priv, { 1102: Object.assign({}, priv[1102], { alive: false, ask: null }) });
+  await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { stage: 'result', chat: true, seats: dayPub.seats.map(x => x.tgId === 1102 ? Object.assign({}, x, { alive: false }) : x), secret: 'host-only' }), priv: priv2 });
+  const dead = await (await post('/api/table/state', { initData: await id(pl[1]), code, since: 0 })).json();
+  ok(dead.ok && dead.pub.spectator === true && dead.pub.seats.length === 2 && dead.pub.seats.every(x => x.tgId !== 1102) && dead.pub.stage === undefined && dead.pub.secret === undefined && dead.chat.length === 0 && dead.me.alive === false && dead.me.roleId === 'mafia', 'eliminated player sees only the remaining seats: ' + JSON.stringify(dead.pub));
+  eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'ghost' })).status, 403, 'eliminated players cannot write');
+  await post('/api/table/publish', { initData: hi, code, pub: { phase: 'end', code, n: 3, seats: dayPub.seats, result: { side: 'city', title: 'Победа города' }, roles: [{ seat: 1, roleId: 'don' }, { seat: 2, roleId: 'mafia' }, { seat: 3, roleId: 'sheriff' }] }, priv: priv2 });
+  const endv = await (await post('/api/table/state', { initData: await id(pl[1]), code })).json();
+  ok(endv.pub.phase === 'end' && endv.pub.result.side === 'city' && endv.pub.roles.length === 3 && endv.pub.spectator === undefined, 'at the end the eliminated player gets the results page');
+  eq((await (await post('/api/lobby/status', { initData: hi, code })).json()).status, 'finished', 'lobby finished');
+  eq((await (await post('/api/me', { initData: await id(pl[1]) })).json()).table, null, 'me.table is empty after the game'); }
 
 console.log('all players directory');
 { const a = await initData(user(100)); const d = await (await post('/api/players', { initData: a })).json();

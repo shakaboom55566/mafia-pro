@@ -144,6 +144,7 @@ function render() {
     case 'friends': html = friendsScreen(); break;
     case 'clubs': html = typeof clubsScreen === 'function' ? clubsScreen() : ''; break;
     case 'club': html = typeof clubScreen === 'function' ? clubScreen() : ''; break;
+    case 'table': html = typeof tableScreen === 'function' ? tableScreen() : ''; break;
     case 'shop': html = shopScreen(); break;
   }
   // enter animations only when the screen / phase / sheet actually changes (not on every tap)

@@ -144,12 +144,12 @@ function lobbyAutoSeat(g) {
   });
 }
 /* the table lives in S.lobby before the game exists and moves into S.game.tg when the game is created */
-function currentLobby() { return S.game && S.game.tg ? S.game.tg : (S.lobby || null); }
-function lobbyIsOpen() { const l = currentLobby(); return !!(l && l.code && !(S.game && S.game.dealIdx >= S.game.players.length)); }
+function currentLobby() { return S.game && S.game.tg && !S.game.winner ? S.game.tg : (S.lobby || null); } // a finished game's table is history: new invitations open a fresh table
+function lobbyIsOpen() { const l = currentLobby(); const g = S.game && !S.game.winner ? S.game : null; return !!(l && l.code && !(g && l === g.tg && g.dealIdx >= g.players.length)); }
 async function openTable(fresh) {
   const d = await api('/api/lobby', { fresh: !!fresh }); if (!d.ok) { toast(U().tgOffline); return null; }
   const l = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [], seats: {} };
-  if (S.game) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
+  if (S.game && !S.game.winner) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
   save(); render(); return l;
 }
 async function refreshTable() {
@@ -187,7 +187,7 @@ function setupLobbyHTML(st) {
 /* send cards to every mapped player of the game's table; returns the number sent */
 async function sendCards(g, onlyUnsent) {
   const l = g.tg; if (!l || !l.code) return 0;
-  const cards = l.players.filter(pl => l.map[pl.tgId] && !(onlyUnsent && (l.sent || []).includes(pl.tgId))).map(pl => { const p = g.players.find(x => x.seat === l.map[pl.tgId]); return { tgId: pl.tgId, seat: p.seat, text: cardTextFor(p, pl.lang) }; });
+  const cards = l.players.filter(pl => l.map[pl.tgId] && !(onlyUnsent && (l.sent || []).includes(pl.tgId))).map(pl => { const p = g.players.find(x => x.seat === l.map[pl.tgId]); return { tgId: pl.tgId, seat: p.seat, roleId: p.roleId, family: p.family || null }; }); // the card itself is shown in the player's app
   if (!cards.length) return 0;
   const d = await api('/api/lobby/deal', { code: l.code, cards }); if (!d.ok) { toast(U().tgOffline); return 0; }
   l.sent = (l.sent || []).concat(d.sent || []).filter((v, i, a) => a.indexOf(v) === i);
@@ -303,9 +303,11 @@ Object.assign(ACT, {
   async 'fr-accept'(el) { const code = el.dataset.id; const d = await api('/api/friends/accept', { code }); if (d.ok && d.friend) { toast(tt(U().frAccepted, { name: d.friend.name })); FR.at = 0; } else if (!d.ok) toast(d.error === 'not_found' ? U().tgNA : U().tgOffline); go('friends'); },
   async 'fr-invite'() {
     const sel = (S.ui.frSel || []).slice(); if (!sel.length) return;
-    if (!S.game) { // no game yet: open the pre-game table and invite there; seats are filled on the setup screen
+    if (!S.game || S.game.winner) { // no game yet (or the last one is over): open the pre-game table and invite there; seats are filled on the setup screen
       if (!lobbyIsOpen()) { if (!(await openTable(false))) return; }
-      const r0 = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel }); if (!r0.ok) { toast(U().tgOffline); return; }
+      let r0 = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel });
+      if (!r0.ok && r0.error === 'no_lobby') { if (!(await openTable(true))) return; r0 = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel }); }
+      if (!r0.ok) { toast(U().tgOffline); return; }
       toast(tt(U().frInvited, { n: (r0.sent || []).length }) + ((r0.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r0.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = []; render(); return;
     }
     const g = S.game;
@@ -568,7 +570,9 @@ Object.assign(ACT, {
   async 'club-send'() { const text = CL.msg.trim(); if (!text) return; CL.msg = ''; const inp = document.querySelector('#cl-msg'); if (inp) inp.value = ''; const d = await api('/api/club/chat/send', { text }); if (!d.ok) { toast(U().tgOffline); CL.msg = text; return; } loadChat(false); },
   async 'club-call'() {
     let l = currentLobby(); if (!lobbyIsOpen() || !l || !l.code) { l = await openTable(false); if (!l) return; }
-    const d = await api('/api/club/chat/send', { lobby: l.code }); if (!d.ok) { toast(d.error === 'no_lobby' ? U().clubNoLobby : U().tgOffline); return; }
+    let d = await api('/api/club/chat/send', { lobby: l.code });
+    if (!d.ok && d.error === 'no_lobby') { l = await openTable(true); if (!l) return; d = await api('/api/club/chat/send', { lobby: l.code }); } // the table had been closed meanwhile → a fresh one
+    if (!d.ok) { toast(d.error === 'no_lobby' ? U().clubNoLobby : U().tgOffline); return; }
     toast(U().clubCalled); tgHaptic('success'); loadChat(false);
   },
   'club-join-table'(el) { const url = 'https://t.me/' + (FR.bot || (CLOUD.me && CLOUD.me.bot) || '') + '?start=join_' + el.dataset.code; try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} }

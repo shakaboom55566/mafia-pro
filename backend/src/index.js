@@ -24,6 +24,12 @@
    - POST /api/admin/partners|partner  list / approve / reject partner applications
    - POST /api/clubs, /api/club, /api/club/apply|update|join|leave|respond|invite|kick|approve|requests, /api/club/chat, /api/club/chat/send
    - POST /api/admin/clubs|club    list / approve / reject club applications
+   - POST /api/table/publish   host: publish the table state (public + per-player private); cards live in the app
+   - POST /api/table/state     player: public state, my private state (card, prompt), chat, invites
+   - POST /api/table/act       player: answer a prompt (night pick, vote, roulette number …)
+   - POST /api/table/actions   host: players' answers since an id
+   - POST /api/table/chat/send player: table chat (open from the free discussion until the vote)
+   - POST /api/table/invite/respond  accept / decline an in-app table invitation
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
    ============================================================ */
@@ -116,7 +122,7 @@ async function befriend(env, a, b) { // symmetric; returns true when the pair is
   await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (?1, ?2, ?3)').bind(b, a, ts).run();
   return !!(r.meta && r.meta.changes > 0);
 }
-async function userRow(env, tgId) { return env.DB.prepare('SELECT tg_id, username, first_name, last_name, lang, photo_url FROM users WHERE tg_id = ?1').bind(tgId).first(); }
+async function userRow(env, tgId) { return env.DB.prepare('SELECT tg_id, username, first_name, last_name, lang, photo_url, seen_at, created_at FROM users WHERE tg_id = ?1').bind(tgId).first(); }
 const rowName = r => (r ? ([r.first_name, r.last_name].filter(Boolean).join(' ') || r.username || String(r.tg_id)) : '');
 async function friendsOf(env, tgId) {
   const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.lang, u.photo_url, u.seen_at, f.created_at, r.points, r.games, r.wins
@@ -367,8 +373,8 @@ async function apiClubChatSend(env, bot, body) {
   const ins = await env.DB.prepare('INSERT INTO club_messages (club_id, tg_id, kind, text, code, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(mine.club_id, v.user.id, kind, text, code || null, now()).run();
   await env.DB.prepare('DELETE FROM club_messages WHERE club_id = ?1 AND id < (SELECT MIN(id) FROM (SELECT id FROM club_messages WHERE club_id = ?1 ORDER BY id DESC LIMIT 300))').bind(mine.club_id).run();
   if (kind === 'lobby') { // a table call also goes to every online member's Telegram, with a join button
-    const members = await clubMembers(env, mine.club_id); const username = await botUsername(env, bot);
-    for (const m of members) { if (m.tgId === v.user.id || !m.online) continue; const ml = await userRow(env, m.tgId); const l = pickLang(ml && ml.lang); try { await bot.send(m.tgId, t(l, 'clubLobby', { name: esc(displayName(v.user)), code }), { reply_markup: { inline_keyboard: [[{ text: t(l, 'btnJoin', { code }), url: `https://t.me/${username}?start=join_${code}` }]] } }); } catch (e) {} }
+    const members = await clubMembers(env, mine.club_id);
+    for (const m of members) { if (m.tgId === v.user.id || !m.online) continue; const ml = await userRow(env, m.tgId); if (!ml || await isAtTable(env, code, m.tgId)) continue; try { await inviteToTable(env, bot, v.user, ml, code, 'club'); } catch (e) {} }
   }
   return json({ ok: true, id: ins.meta.last_row_id });
 }
@@ -492,16 +498,10 @@ async function acceptFriend(env, bot, chat, u, lang, code, play) {
 async function joinLobby(env, bot, chat, u, lang, code) {
   const lobby = await env.DB.prepare('SELECT code, status, host_id FROM lobbies WHERE code = ?1').bind(code).first();
   if (!lobby) return bot.send(chat, t(lang, 'lobbyNotFound', { code }));
-  if (lobby.status !== 'open') return bot.send(chat, t(lang, 'lobbyClosed', { code }));
-  const name = displayName(u);
-  const r = await env.DB.prepare('INSERT OR IGNORE INTO lobby_players (code, tg_id, name, username, lang, joined_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
-    .bind(code, u.id, name, u.username || null, lang, now()).run();
-  const inserted = r.meta && r.meta.changes > 0;
-  await bot.send(chat, t(lang, inserted ? 'joined' : 'alreadyJoined', { code }));
-  if (inserted && lobby.host_id !== u.id) { // tell the host who sat down
-    const host = await userRow(env, lobby.host_id); const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM lobby_players WHERE code = ?1').bind(code).first('n');
-    await bot.send(lobby.host_id, t(pickLang(host && host.lang), 'hostJoined', { code, name: esc(name), n }));
-  }
+  if (lobby.status !== 'open' && lobby.status !== 'dealt') return bot.send(chat, t(lang, 'lobbyClosed', { code })); // seats can still be taken while the host deals; closed once the game runs
+  const inserted = await seatPlayer(env, bot, code, u, lang);
+  await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3 AND status = ?4').bind('accepted', code, u.id, 'pending').run();
+  await bot.send(chat, t(lang, inserted ? 'joined' : 'alreadyJoined', { code }), tableButton(env, lang, code));
 }
 async function onPreCheckout(env, bot, q) {
   const p = await env.DB.prepare('SELECT id, status, stars FROM purchases WHERE payload = ?1').bind(q.invoice_payload || '').first();
@@ -534,7 +534,9 @@ async function apiMe(env, bot, body) {
   if (isAdmin(env, u.id)) owned.allUntil = Math.max(owned.allUntil || 0, Date.now() + 3650 * 86400000); // admins own everything
   const credits = await creditsFor(env, u.id); const club = await membershipOf(env, u.id);
   const partner = club && club.owner_id ? await env.DB.prepare('SELECT 1 FROM partners WHERE tg_id = ?1 AND status = ?2').bind(club.owner_id, 'active').first() : null;
-  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  if (typeof body.city === 'string') { const city = body.city.trim().slice(0, 48); await env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2, updated_at = ?3').bind(u.id, city, now()).run(); }
+  const table = await tableOf(env, u.id); const invites = await pendingInvites(env, u.id);
+  return json({ ok: true, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -648,7 +650,7 @@ async function apiPlayers(env, body) {
   const ts = now(); const mine = new Set((await friendsOf(env, v.user.id)).map(f => f.tgId));
   return json({ ok: true, total, online, offset, players: rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, isFriend: mine.has(r.tg_id), me: r.tg_id === v.user.id })) });
 }
-async function apiPing(env, body) { const v = await auth(env, body); return v ? json({ ok: true }) : json({ ok: false, error: 'unauthorized' }, 401); }
+async function apiPing(env, body) { const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401); return json({ ok: true, invites: await pendingInvites(env, v.user.id), table: await tableOf(env, v.user.id) }); }
 async function apiFriendSearch(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const q = String(body.q || '').trim().replace(/^@/, '').toLowerCase().replace(/[%_]/g, ''); if (q.length < 2) return json({ ok: true, results: [] });
@@ -715,15 +717,16 @@ async function apiFriendInvite(env, bot, body) {
   const lobby = await hostLobby(env, v, body); if (!lobby || lobby.status !== 'open') return json({ ok: false, error: 'no_lobby' }, 404);
   const ids = (Array.isArray(body.friendIds) ? body.friendIds : []).map(Number).filter(Boolean).slice(0, 40);
   const mine = new Set((await friendsOf(env, v.user.id)).map(f => f.tgId));
-  const username = await botUsername(env, bot); const me = esc(displayName(v.user));
   const sent = [], failed = [];
+  const via = {};
   for (const fid of ids) {
     if (!mine.has(fid)) { failed.push({ tgId: fid, error: 'not_friend' }); continue; }
-    const fr = await userRow(env, fid); const fl = pickLang(fr && fr.lang);
-    const r = await bot.send(fid, t(fl, 'friendInvite', { name: me, code: lobby.code }), { reply_markup: { inline_keyboard: [[{ text: t(fl, 'btnJoin', { code: lobby.code }), url: `https://t.me/${username}?start=join_${lobby.code}` }]] } });
-    if (r && r.ok) sent.push(fid); else failed.push({ tgId: fid, error: (r && r.description) || 'send_failed' });
+    const fr = await userRow(env, fid); if (!fr) { failed.push({ tgId: fid, error: 'not_found' }); continue; }
+    if (await isAtTable(env, lobby.code, fid)) { sent.push(fid); via[fid] = 'seated'; continue; }
+    const r = await inviteToTable(env, bot, v.user, fr, lobby.code, 'friend');
+    if (r.ok) { sent.push(fid); via[fid] = r.via; } else failed.push({ tgId: fid, error: r.error || 'send_failed' });
   }
-  return json({ ok: true, sent, failed });
+  return json({ ok: true, sent, failed, via });
 }
 async function apiInvoice(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -787,27 +790,191 @@ async function hostLobby(env, v, body) {
   const lobby = await env.DB.prepare('SELECT code, host_id, status FROM lobbies WHERE code = ?1').bind(code).first();
   return lobby && lobby.host_id === v.user.id ? lobby : null;
 }
-async function apiLobbyStatus(env, body) {
+async function apiLobbyStatus(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
-  return json({ ok: true, code: lobby.code, status: lobby.status, players: await lobbyPlayers(env, lobby.code) });
+  try { await flushStaleInvites(env, bot, lobby.code); } catch (e) {}
+  const players = await lobbyPlayers(env, lobby.code); const profiles = await seatProfiles(env, players.map(p => p.tgId));
+  return json({ ok: true, code: lobby.code, status: lobby.status, players: players.map(p => Object.assign({}, p, profiles[p.tgId] ? { photo: profiles[p.tgId].photo, points: profiles[p.tgId].points, city: profiles[p.tgId].city, club: profiles[p.tgId].club, online: profiles[p.tgId].online } : {})) });
 }
+/* cards go to the app: each player's role is stored in their private table state; a short DM (no role text) pings those not looking at the table */
 async function apiLobbyDeal(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
   const members = new Map((await lobbyPlayers(env, lobby.code)).map(p => [p.tgId, p]));
   const cards = Array.isArray(body.cards) ? body.cards.slice(0, 40) : [];
-  const sent = [], failed = [];
+  const row = await tableRow(env, lobby.code); const pub = row ? parseJSON(row.pub, {}) : { phase: 'deal', code: lobby.code }; const priv = row ? parseJSON(row.priv, {}) : {};
+  const seen = new Map(((await env.DB.prepare('SELECT tg_id, seen_at FROM table_seen WHERE code = ?1').bind(lobby.code).all()).results || []).map(r => [r.tg_id, r.seen_at]));
+  const sent = [], failed = [], notified = [], ts = now();
   for (const c of cards) {
     const tgId = Number(c.tgId); const m = members.get(tgId);
     if (!m) { failed.push({ tgId, error: 'not_in_lobby' }); continue; }
-    const text = t(m.lang, 'card', { code: lobby.code, seat: esc(c.seat), text: String(c.text || '').slice(0, 3500) });
-    const r = await bot.send(tgId, text);
-    if (r && r.ok) sent.push(tgId); else failed.push({ tgId, error: (r && r.description) || 'send_failed' });
+    const roleId = String(c.roleId || '').slice(0, 32); if (!ID_RE.test(roleId)) { failed.push({ tgId, error: 'bad_role' }); continue; }
+    const had = priv[tgId] && priv[tgId].roleId;
+    priv[tgId] = Object.assign({}, priv[tgId] || {}, { seat: Number(c.seat) || null, roleId, family: c.family || null, alive: true, dealtAt: ts * 1000 });
+    sent.push(tgId);
+    if (had === roleId) continue;
+    if (ts - (seen.get(tgId) || 0) > TABLE_SEEN_SEC) { try { const r = await bot.send(tgId, t(m.lang, 'cardReady', { code: lobby.code }), tableButton(env, m.lang, lobby.code)); if (r && r.ok) notified.push(tgId); } catch (e) {} }
   }
+  if (pub.phase === 'lobby' || !pub.phase) pub.phase = 'deal';
+  const version = (row ? row.version : 0) + 1;
+  await env.DB.prepare('INSERT INTO table_state (code, host_id, version, pub, priv, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(code) DO UPDATE SET version = ?3, pub = ?4, priv = ?5, updated_at = ?6').bind(lobby.code, v.user.id, version, JSON.stringify(pub), JSON.stringify(priv), ts).run();
   if (sent.length) await env.DB.prepare('UPDATE lobbies SET status = ?1 WHERE code = ?2').bind('dealt', lobby.code).run();
   for (const id of sent) { try { await qualifyReferral(env, bot, id); } catch (e) { console.error('qualify', e); } }
-  return json({ ok: true, sent, failed });
+  return json({ ok: true, sent, failed, notified, version });
+}
+/* ---------- live tables: host publishes, players read and answer ---------- */
+const TABLE_SEEN_SEC = 25; // a player polling the table within this window gets no DM about the card
+async function tableRow(env, code) { return env.DB.prepare('SELECT * FROM table_state WHERE code = ?1').bind(code).first(); }
+async function lobbyAny(env, code) { return env.DB.prepare('SELECT code, host_id, status, created_at FROM lobbies WHERE code = ?1').bind(code).first(); }
+async function isAtTable(env, code, tgId) { return !!(await env.DB.prepare('SELECT 1 FROM lobby_players WHERE code = ?1 AND tg_id = ?2').bind(code, tgId).first()); }
+function parseJSON(txt, fallback) { try { return txt ? JSON.parse(txt) : fallback; } catch (e) { return fallback; } }
+function tableAppUrl(env, code) { return `${env.APP_URL}${env.APP_URL.includes('?') ? '&' : '?'}startapp=table_${code}`; }
+function tableButton(env, lang, code) { return { reply_markup: { inline_keyboard: [[{ text: t(lang, 'btnOpenTable', { code }), web_app: { url: tableAppUrl(env, code) } }]] } }; }
+/* seat enrichment for the waiting room: photo, rating, city, club */
+async function seatProfiles(env, ids) {
+  ids = [...new Set(ids.map(Number).filter(Boolean))].slice(0, 40); if (!ids.length) return {};
+  const q = ids.map((_, i) => '?' + (i + 1)).join(',');
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, uc.city, c.name AS club, c.logo AS clubLogo FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities uc ON uc.tg_id = u.tg_id LEFT JOIN club_members m ON m.tg_id = u.tg_id LEFT JOIN clubs c ON c.id = m.club_id AND c.status = 'active' WHERE u.tg_id IN (${q})`).bind(...ids).all()).results || [];
+  const ts = now(); const out = {};
+  for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, city: r.city || '', club: r.club || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
+  return out;
+}
+async function pendingInvites(env, tgId) {
+  const rows = (await env.DB.prepare('SELECT i.code, i.from_id, i.kind, i.created_at, u.first_name, u.last_name, u.username, u.photo_url, l.status FROM table_invites i LEFT JOIN users u ON u.tg_id = i.from_id LEFT JOIN lobbies l ON l.code = i.code WHERE i.tg_id = ?1 AND i.status = ?2 AND i.created_at > ?3 ORDER BY i.created_at DESC LIMIT 5').bind(tgId, 'pending', now() - 6 * 3600).all()).results || [];
+  return rows.filter(r => r.status === 'open' || r.status === 'dealt').map(r => ({ code: r.code, fromId: r.from_id, from: rowName(r) || String(r.from_id), username: r.username || '', photo: r.photo_url || '', kind: r.kind, at: r.created_at * 1000 }));
+}
+/* the table a player currently sits at (latest open / dealt / live lobby, last 8 hours) */
+async function tableOf(env, tgId) {
+  const r = await env.DB.prepare(`SELECT l.code, l.status, l.host_id, l.created_at, u.first_name, u.last_name, u.username FROM lobby_players p JOIN lobbies l ON l.code = p.code LEFT JOIN users u ON u.tg_id = l.host_id WHERE p.tg_id = ?1 AND l.status IN ('open', 'dealt', 'live') AND l.created_at > ?2 ORDER BY l.created_at DESC LIMIT 1`).bind(tgId, now() - 8 * 3600).first();
+  return r ? { code: r.code, status: r.status, hostId: r.host_id, host: rowName(r) || String(r.host_id) } : null;
+}
+/* invite a player to a table: in the app when they are online, otherwise a DM with a join button; unanswered in-app invites get the DM later */
+async function inviteToTable(env, bot, from, target, code, kind) {
+  const ts = now(); const online = ts - (target.seen_at || 0) <= ONLINE_SEC;
+  await env.DB.prepare('INSERT INTO table_invites (code, tg_id, from_id, kind, status, created_at, dm_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL) ON CONFLICT(code, tg_id) DO UPDATE SET from_id = ?3, kind = ?4, status = ?5, created_at = ?6, dm_at = NULL').bind(code, target.tg_id, from.id, kind, 'pending', ts).run();
+  if (online) return { ok: true, via: 'app' };
+  return inviteDm(env, bot, from, target, code);
+}
+async function inviteDm(env, bot, from, target, code) {
+  const fl = pickLang(target.lang); const username = await botUsername(env, bot);
+  const r = await bot.send(target.tg_id, t(fl, 'friendInvite', { name: esc(displayName(from)), code }), { reply_markup: { inline_keyboard: [[{ text: t(fl, 'btnJoin', { code }), url: `https://t.me/${username}?start=join_${code}` }]] } });
+  await env.DB.prepare('UPDATE table_invites SET dm_at = ?1 WHERE code = ?2 AND tg_id = ?3').bind(now(), code, target.tg_id).run();
+  return r && r.ok ? { ok: true, via: 'dm' } : { ok: false, error: (r && r.description) || 'send_failed' };
+}
+/* in-app invites unanswered for 45 s fall back to a DM (checked whenever the host polls the table) */
+async function flushStaleInvites(env, bot, code) {
+  const rows = (await env.DB.prepare('SELECT i.tg_id, i.from_id FROM table_invites i WHERE i.code = ?1 AND i.status = ?2 AND i.dm_at IS NULL AND i.created_at < ?3 LIMIT 20').bind(code, 'pending', now() - 45).all()).results || [];
+  for (const r of rows) { const target = await userRow(env, r.tg_id); const from = await userRow(env, r.from_id); if (!target || !from) continue; try { await inviteDm(env, bot, { id: from.tg_id, first_name: from.first_name, last_name: from.last_name, username: from.username }, target, code); } catch (e) {} }
+}
+async function seatPlayer(env, bot, code, u, lang) { // returns true when newly seated
+  const name = displayName(u);
+  const r = await env.DB.prepare('INSERT OR IGNORE INTO lobby_players (code, tg_id, name, username, lang, joined_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(code, u.id, name, u.username || null, lang, now()).run();
+  const inserted = !!(r.meta && r.meta.changes > 0);
+  const lobby = await lobbyAny(env, code);
+  if (inserted && lobby && lobby.host_id !== u.id) {
+    const host = await userRow(env, lobby.host_id); const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM lobby_players WHERE code = ?1').bind(code).first('n');
+    try { await bot.send(lobby.host_id, t(pickLang(host && host.lang), 'hostJoined', { code, name: esc(name), n })); } catch (e) {}
+  }
+  return inserted;
+}
+async function apiTablePublish(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
+  const pub = body.pub && typeof body.pub === 'object' ? body.pub : {}; const priv = body.priv && typeof body.priv === 'object' ? body.priv : {};
+  const pubTxt = JSON.stringify(pub), privTxt = JSON.stringify(priv);
+  if (pubTxt.length > 120000 || privTxt.length > 120000) return json({ ok: false, error: 'too_big' }, 413);
+  const prev = await tableRow(env, lobby.code); const prevPriv = prev ? parseJSON(prev.priv, {}) : {};
+  const version = (prev ? prev.version : 0) + 1;
+  await env.DB.prepare('INSERT INTO table_state (code, host_id, version, pub, priv, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(code) DO UPDATE SET version = ?3, pub = ?4, priv = ?5, updated_at = ?6').bind(lobby.code, v.user.id, version, pubTxt, privTxt, now()).run();
+  const phase = String(pub.phase || 'lobby');
+  const status = phase === 'end' ? 'finished' : ['night0', 'night', 'day', 'day0'].includes(phase) ? 'live' : phase === 'deal' ? 'dealt' : lobby.status;
+  if (status !== lobby.status) await env.DB.prepare('UPDATE lobbies SET status = ?1 WHERE code = ?2').bind(status, lobby.code).run();
+  // cards: players who just received a role see it in the app; those not looking at the table get a short DM (no role text)
+  const members = new Map((await lobbyPlayers(env, lobby.code)).map(p => [p.tgId, p]));
+  const seen = new Map(((await env.DB.prepare('SELECT tg_id, seen_at FROM table_seen WHERE code = ?1').bind(lobby.code).all()).results || []).map(r => [r.tg_id, r.seen_at]));
+  const delivered = [], notified = [], ts = now();
+  for (const [id, me] of Object.entries(priv)) {
+    const tgId = Number(id); if (!tgId || !me || !me.roleId || !members.has(tgId)) continue;
+    delivered.push(tgId);
+    const had = prevPriv[id] && prevPriv[id].roleId;
+    if (had) continue;
+    try { await qualifyReferral(env, bot, tgId); } catch (e) {}
+    if (ts - (seen.get(tgId) || 0) <= TABLE_SEEN_SEC) continue;
+    const m = members.get(tgId); try { const r = await bot.send(tgId, t(m.lang, 'cardReady', { code: lobby.code }), tableButton(env, m.lang, lobby.code)); if (r && r.ok) notified.push(tgId); } catch (e) {}
+  }
+  return json({ ok: true, version, delivered, notified });
+}
+/* what a seated player (or the host) sees; eliminated players get only the seats still at the table */
+function spectatorPub(pub) {
+  const seats = (pub.seats || []).filter(s => s.alive !== false);
+  return { phase: pub.phase, day: pub.day, night: pub.night, code: pub.code, host: pub.host, n: pub.n, mode: pub.mode, seats, spectator: true, result: pub.phase === 'end' ? pub.result : undefined, roles: pub.phase === 'end' ? pub.roles : undefined };
+}
+async function apiTableState(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  const lobby = await lobbyAny(env, code); if (!lobby) return json({ ok: false, error: 'not_found' }, 404);
+  const isHost = lobby.host_id === v.user.id; const seated = isHost || await isAtTable(env, code, v.user.id);
+  if (!seated) return json({ ok: false, error: 'not_seated' }, 403);
+  await env.DB.prepare('INSERT INTO table_seen (code, tg_id, seen_at) VALUES (?1, ?2, ?3) ON CONFLICT(code, tg_id) DO UPDATE SET seen_at = ?3').bind(code, v.user.id, now()).run();
+  const row = await tableRow(env, code); const players = await lobbyPlayers(env, code);
+  const host = await userRow(env, lobby.host_id);
+  let pub = row ? parseJSON(row.pub, {}) : { phase: 'lobby' }; const priv = row ? parseJSON(row.priv, {}) : {};
+  const me = priv[String(v.user.id)] || null;
+  const dead = !!(me && me.alive === false) && pub.phase !== 'end';
+  if (dead && !isHost) pub = spectatorPub(pub);
+  const profiles = await seatProfiles(env, players.map(p => p.tgId).concat([lobby.host_id]));
+  const since = Number(body.since) || 0;
+  const chat = dead || !row ? [] : ((await env.DB.prepare('SELECT id, tg_id, name, text, created_at FROM table_chat WHERE code = ?1 AND id > ?2 ORDER BY id LIMIT 100').bind(code, since).all()).results || []).map(m => ({ id: m.id, tgId: m.tg_id, name: m.name || '', text: m.text, at: m.created_at * 1000, me: m.tg_id === v.user.id }));
+  const invites = await pendingInvites(env, v.user.id);
+  const mySeat = me && me.seat ? me.seat : null;
+  return json({ ok: true, code, status: lobby.status, version: row ? row.version : 0, hostId: lobby.host_id, host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
+}
+async function apiTableAct(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  if (!(await isAtTable(env, code, v.user.id))) return json({ ok: false, error: 'not_seated' }, 403);
+  const key = String(body.key || '').slice(0, 64); if (!key) return json({ ok: false, error: 'bad_key' }, 400);
+  const payload = JSON.stringify(body.payload && typeof body.payload === 'object' ? body.payload : {}).slice(0, 2000);
+  await env.DB.prepare('DELETE FROM table_actions WHERE code = ?1 AND tg_id = ?2 AND key = ?3').bind(code, v.user.id, key).run();
+  const ins = await env.DB.prepare('INSERT INTO table_actions (code, tg_id, key, payload, created_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(code, v.user.id, key, payload, now()).run();
+  return json({ ok: true, id: ins.meta.last_row_id });
+}
+async function apiTableActions(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
+  const since = Number(body.since) || 0;
+  const rows = (await env.DB.prepare('SELECT id, tg_id, key, payload, created_at FROM table_actions WHERE code = ?1 AND id > ?2 ORDER BY id LIMIT 200').bind(lobby.code, since).all()).results || [];
+  try { await flushStaleInvites(env, bot, lobby.code); } catch (e) {}
+  const seen = ((await env.DB.prepare('SELECT tg_id, seen_at FROM table_seen WHERE code = ?1 AND seen_at > ?2').bind(lobby.code, now() - TABLE_SEEN_SEC).all()).results || []).map(r => r.tg_id);
+  return json({ ok: true, actions: rows.map(r => ({ id: r.id, tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })), watching: seen });
+}
+async function apiTableChatSend(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  const lobby = await lobbyAny(env, code); if (!lobby) return json({ ok: false, error: 'not_found' }, 404);
+  const isHost = lobby.host_id === v.user.id; if (!isHost && !(await isAtTable(env, code, v.user.id))) return json({ ok: false, error: 'not_seated' }, 403);
+  const row = await tableRow(env, code); const pub = row ? parseJSON(row.pub, {}) : {}; const priv = row ? parseJSON(row.priv, {}) : {}; const me = priv[String(v.user.id)];
+  if (!isHost && (!pub.chat || (me && me.alive === false))) return json({ ok: false, error: 'chat_closed' }, 403);
+  const text = String(body.text || '').trim().slice(0, 300); if (!text) return json({ ok: false, error: 'empty' }, 400);
+  const last = await env.DB.prepare('SELECT created_at FROM table_chat WHERE code = ?1 AND tg_id = ?2 ORDER BY id DESC LIMIT 1').bind(code, v.user.id).first();
+  if (last && now() - last.created_at < 1) return json({ ok: false, error: 'slow_down' }, 429);
+  const name = (me && me.seat ? me.seat + ' · ' : '') + displayName(v.user);
+  const ins = await env.DB.prepare('INSERT INTO table_chat (code, tg_id, name, text, created_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(code, v.user.id, name, text, now()).run();
+  await env.DB.prepare('DELETE FROM table_chat WHERE code = ?1 AND id < (SELECT MIN(id) FROM (SELECT id FROM table_chat WHERE code = ?1 ORDER BY id DESC LIMIT 500))').bind(code).run();
+  return json({ ok: true, id: ins.meta.last_row_id });
+}
+async function apiTableInviteRespond(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  const inv = await env.DB.prepare('SELECT status FROM table_invites WHERE code = ?1 AND tg_id = ?2').bind(code, v.user.id).first();
+  if (!inv || inv.status !== 'pending') return json({ ok: true, gone: true });
+  const accept = !!body.accept;
+  await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3').bind(accept ? 'accepted' : 'declined', code, v.user.id).run();
+  if (!accept) return json({ ok: true, joined: false });
+  const lobby = await lobbyAny(env, code); if (!lobby || (lobby.status !== 'open' && lobby.status !== 'dealt')) return json({ ok: false, error: 'lobby_closed' }, 409);
+  await seatPlayer(env, bot, code, v.user, pickLang(v.user.language_code));
+  return json({ ok: true, joined: true, code });
 }
 async function apiLeaderboard(env, url) {
   const limit = Math.max(1, Math.min(100, Number(url.searchParams.get('limit')) || 20));
@@ -874,8 +1041,14 @@ export default {
           case '/api/invoice': return wrap(apiInvoice(env, bot, body));
           case '/api/game/result': return wrap(apiResult(env, bot, body));
           case '/api/lobby': return wrap(apiLobbyCreate(env, bot, body));
-          case '/api/lobby/status': return wrap(apiLobbyStatus(env, body));
+          case '/api/lobby/status': return wrap(apiLobbyStatus(env, bot, body));
           case '/api/lobby/deal': return wrap(apiLobbyDeal(env, bot, body));
+          case '/api/table/publish': return wrap(apiTablePublish(env, bot, body));
+          case '/api/table/state': return wrap(apiTableState(env, bot, body));
+          case '/api/table/act': return wrap(apiTableAct(env, body));
+          case '/api/table/actions': return wrap(apiTableActions(env, bot, body));
+          case '/api/table/chat/send': return wrap(apiTableChatSend(env, body));
+          case '/api/table/invite/respond': return wrap(apiTableInviteRespond(env, bot, body));
           default: return wrap(Promise.resolve(json({ ok: false, error: 'not_found' }, 404)));
         }
       }

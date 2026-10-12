@@ -182,3 +182,55 @@ CREATE TABLE IF NOT EXISTS club_messages (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS club_messages_club ON club_messages (club_id, id);
+
+-- live tables (v27): the host app publishes a public state and per-player private states; players send actions and chat
+CREATE TABLE IF NOT EXISTS table_state (
+  code       TEXT PRIMARY KEY,
+  host_id    INTEGER NOT NULL,
+  version    INTEGER NOT NULL DEFAULT 0,
+  pub        TEXT,                   -- JSON seen by everyone at the table
+  priv       TEXT,                   -- JSON map tg_id → private state (card, prompts, results)
+  updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS table_actions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  code       TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  key        TEXT NOT NULL,          -- which prompt this answers (night step / vote round / …)
+  payload    TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS table_actions_code ON table_actions (code, id);
+CREATE TABLE IF NOT EXISTS table_chat (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  code       TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  name       TEXT,
+  text       TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS table_chat_code ON table_chat (code, id);
+-- invitations to a table shown inside the app (a DM goes out only when the player is offline or does not answer)
+CREATE TABLE IF NOT EXISTS table_invites (
+  code       TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  from_id    INTEGER NOT NULL,
+  kind       TEXT NOT NULL,          -- friend | club
+  status     TEXT NOT NULL,          -- pending | accepted | declined
+  created_at INTEGER NOT NULL,
+  dm_at      INTEGER,
+  PRIMARY KEY (code, tg_id)
+);
+-- who is looking at a table right now (card notices go only to players who are not)
+CREATE TABLE IF NOT EXISTS table_seen (
+  code       TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  seen_at    INTEGER NOT NULL,
+  PRIMARY KEY (code, tg_id)
+);
+-- city from the player's own profile (shown at the table)
+CREATE TABLE IF NOT EXISTS user_cities (
+  tg_id      INTEGER PRIMARY KEY,
+  city       TEXT,
+  updated_at INTEGER NOT NULL
+);
