@@ -3,6 +3,7 @@ name: Deploy backend (Cloudflare Worker)
 # Deploys backend/ to Cloudflare Workers + D1 and points the Telegram bot's webhook at it.
 # Secrets (Settings → Secrets and variables → Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, BOT_TOKEN.
 # Runs on every push that touches backend/, or manually: Actions → "Deploy backend" → Run workflow.
+# The (sanitized) log of the deploy steps is posted as a comment on the commit, so it can be read without opening the run.
 on:
   push:
     branches: [main]
@@ -25,6 +26,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       WRANGLER_SEND_METRICS: 'false'
+      LOG: ${{ runner.temp }}/deploy.log
     defaults:
       run:
         working-directory: backend
@@ -54,72 +56,79 @@ jobs:
 
       - name: Install wrangler
         if: steps.check.outputs.ready == 'true'
-        run: npm install --no-audit --no-fund
+        run: npm install --no-audit --no-fund 2>&1 | tail -3
 
       - name: Tests (worker + SQLite + mock Telegram)
         if: steps.check.outputs.ready == 'true'
-        run: node --no-warnings test/run.js
+        run: node --no-warnings test/run.js 2>&1 | tee -a "$LOG"
 
       - name: D1 database (create once, migrate every time)
         if: steps.check.outputs.ready == 'true'
         run: |
-          set -e
+          set -eo pipefail
+          { echo "## d1"
           ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);const d=l.find(x=>x.name==="mafia-pro");console.log(d?d.uuid:"")})')
           if [ -z "$ID" ]; then
             echo "creating D1 database mafia-pro"
-            npx wrangler d1 create mafia-pro > create.log 2>&1 || { cat create.log; exit 1; }
+            npx wrangler d1 create mafia-pro
             ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);const d=l.find(x=>x.name==="mafia-pro");console.log(d?d.uuid:"")})')
           fi
           [ -n "$ID" ] || { echo "::error::D1 database id not found"; exit 1; }
           sed -i "s/__D1_DATABASE_ID__/$ID/" wrangler.toml
           grep database_id wrangler.toml
           npx wrangler d1 execute mafia-pro --remote --file=schema.sql
+          } 2>&1 | tee -a "$LOG"
 
       - name: Deploy worker
         if: steps.check.outputs.ready == 'true'
         id: deploy
         run: |
-          set -e
-          npx wrangler deploy 2>&1 | tee deploy.log
-          URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
+          set -eo pipefail
+          { echo "## deploy"; npx wrangler deploy; } 2>&1 | tee -a "$LOG" | tee deploy.out
+          URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.out | head -1)
           [ -n "$URL" ] || { echo "::error::Worker URL not found in wrangler output"; exit 1; }
           echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "API: $URL"
+          echo "API: $URL" | tee -a "$LOG"
 
       - name: Worker secrets (bot token, webhook secret)
         if: steps.check.outputs.ready == 'true'
         run: |
-          set -e
+          set -eo pipefail
           WEBHOOK_SECRET=$(printf '%s' "$BOT_TOKEN:mafia-pro-webhook" | sha256sum | cut -c1-48)
+          { echo "## secrets"
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
           printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
+          } 2>&1 | tee -a "$LOG"
           echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$GITHUB_ENV"
 
       - name: Health check
         if: steps.check.outputs.ready == 'true'
         run: |
+          set -eo pipefail
           sleep 5
-          curl -sS --retry 5 --retry-delay 3 "${{ steps.deploy.outputs.url }}/" | tee health.json
+          { echo "## health"; curl -sS --retry 5 --retry-delay 3 "${{ steps.deploy.outputs.url }}/"; echo; } 2>&1 | tee -a "$LOG" | tee health.json
           grep -q '"ok":true' health.json
 
       - name: Telegram webhook → worker
         if: steps.check.outputs.ready == 'true'
         run: |
-          set -e
+          set -eo pipefail
           R=$(curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
             --data-urlencode "url=${{ steps.deploy.outputs.url }}/webhook" \
             --data-urlencode "secret_token=${WEBHOOK_SECRET}" \
             --data-urlencode 'allowed_updates=["message","pre_checkout_query"]' \
             --data-urlencode "drop_pending_updates=true")
-          echo "$R" | grep -q '"ok":true' || { echo "::error::setWebhook failed: $R"; exit 1; }
-          curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo" | sed 's/"url":"[^"]*"/"url":"<set>"/'
+          { echo "## webhook"; echo "$R"; } | tee -a "$LOG"
+          echo "$R" | grep -q '"ok":true' || { echo "::error::setWebhook failed"; exit 1; }
+          curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo" | sed 's/"url":"[^"]*"/"url":"<set>"/' | tee -a "$LOG"
 
       - name: Republish the site with the backend address
         if: steps.check.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           URL: ${{ steps.deploy.outputs.url }}
-        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" -f api_url="$URL" && echo "Pages redeploy triggered with api_url=$URL"
+        run: |
+          { echo "## pages"; gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" -f api_url="$URL" && echo "Pages redeploy triggered with api_url=$URL"; } 2>&1 | tee -a "$LOG"
 
       - name: Repository variable MAFIA_API_URL
         if: steps.check.outputs.ready == 'true'
@@ -127,15 +136,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           URL: ${{ steps.deploy.outputs.url }}
-        run: gh variable set MAFIA_API_URL --body "$URL" --repo "$GITHUB_REPOSITORY" && echo "variable MAFIA_API_URL = $URL"
+        run: |
+          { echo "## variable"; gh variable set MAFIA_API_URL --body "$URL" --repo "$GITHUB_REPOSITORY" && echo "variable MAFIA_API_URL = $URL"; } 2>&1 | tee -a "$LOG"
 
       - name: Commit the backend address (.mafia-api-url) for later site builds
         if: steps.check.outputs.ready == 'true'
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         env:
           URL: ${{ steps.deploy.outputs.url }}
         run: |
-          set -e
+          set -eo pipefail
+          { echo "## address file"
           if [ "$(cat .mafia-api-url 2>/dev/null)" = "$URL" ]; then echo "already up to date"; exit 0; fi
           echo "$URL" > .mafia-api-url
           git config user.name "mafia-pro-deploy"
@@ -146,6 +158,24 @@ jobs:
           git rebase origin/main
           git push origin HEAD:main
           echo "committed .mafia-api-url"
+          } 2>&1 | tee -a "$LOG"
+
+      - name: Post the deploy log as a commit comment
+        if: always() && steps.check.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # never leak secrets into the comment
+          node -e '
+            const fs = require("fs"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
+            for (const k of ["BOT_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "WEBHOOK_SECRET"]) { const v = process.env[k]; if (v && v.length > 3) s = s.split(v).join("<" + k + ">"); }
+            s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>");
+            if (s.length > 12000) s = s.slice(0, 4000) + "\n…\n" + s.slice(-8000);
+            const body = "**Deploy backend** run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s + "\n```";
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/comment.json", JSON.stringify({ body }));
+          '
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input "$RUNNER_TEMP/comment.json" > /dev/null && echo "log posted"
 
       - name: Summary
         if: steps.check.outputs.ready == 'true'
