@@ -80,7 +80,7 @@ const path = require('path'); const http = require('http');
   const card = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 201).pop();
   const role201 = await S(() => { const p = S.game.players.find(x => x.seat === 2); return I18N.uk.roles[p.roleId].name; });
   ok(card && card.params.text.includes('<b>' + role201 + '</b>') && card.params.text.includes('Ваша карта'), 'ukrainian card text for seat 2: ' + role201);
-  ok(await S(() => document.body.innerText.includes('✅')), 'delivered mark shown');
+  ok(await S(() => document.body.textContent.includes(U().tgViaTg)), 'delivered mark shown');
   await p.click('[data-a="tg-deal-done"]'); await p.waitForTimeout(200);
   ok(await S(() => S.game.dealIdx === S.game.players.length && document.body.textContent.includes(U().hostOnly)), 'host table after "cards dealt"');
 
@@ -136,6 +136,42 @@ const path = require('path'); const http = require('http');
   else { ok(await S(() => typeof cloudTopHTML() === 'string'), 'ratings screen not reachable by state — panel function exists'); }
 
   await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-ratings.png') }).catch(() => {});
+
+  console.log('pre-game table: open on setup → players join → auto-seated → game created → cards delivered automatically');
+  await S(() => { S.game = null; S.lobby = null; S.ui.sheet = null; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(150);
+  ok(await S(() => S.screen === 'setup' && !!document.querySelector('[data-a="tg-lobby"]')), 'setup shows the "open table" panel');
+  ok(!(await p.innerText('#app')).match(/демо|demo/i), 'no "demo" wording on the setup screen');
+  await p.click('[data-a="tg-lobby"]'); await p.waitForTimeout(400);
+  const code2 = await S(() => S.lobby && S.lobby.code); ok(/^[A-Z0-9]{6}$/.test(code2 || '') && !(await S(() => S.game)), 'table opened before the game: ' + code2);
+  await S(() => { S.setup.names = ['', 'Богдан', '', '', '', '', '', '', '', '']; render(); });
+  await hook({ update_id: 21, message: { message_id: 1, from: { id: 501, first_name: 'Богдан', language_code: 'uk' }, chat: { id: 501, type: 'private' }, text: `/start join_${code2}` } });
+  await hook({ update_id: 22, message: { message_id: 2, from: { id: 502, first_name: 'Ева', language_code: 'pl' }, chat: { id: 502, type: 'private' }, text: `/start join_${code2}` } });
+  await hook({ update_id: 23, message: { message_id: 3, from: { id: 503, first_name: 'Guest', language_code: 'en' }, chat: { id: 503, type: 'private' }, text: `/start join_${code2}` } });
+  ok(lastTo(100).params.text.includes('Guest') && lastTo(100).params.text.includes('(всего 3)'), 'host notified on each join');
+  await p.click('[data-a="tg-lobby-refresh"]'); await p.waitForTimeout(400);
+  const seats = await S(() => S.lobby.seats); ok(seats[501] === 1 && seats[502] === 0 && seats[503] === 2, 'auto-seated: Богдан matched seat 2 by name, others took empty seats: ' + JSON.stringify(seats));
+  ok(await S(() => S.setup.names[0] === 'Ева' && S.setup.names[2] === 'Guest'), 'seat names filled from Telegram names');
+  ok(await S(() => document.body.textContent.includes(tt(U().tgSeated, { seat: 2 }))), 'panel shows seat numbers');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-setup-table.png') }).catch(() => {});
+  tg.blocked.add(503);
+  await p.click('[data-a="deal"]'); await p.waitForTimeout(900);
+  ok(await S(() => S.screen === 'deal' && S.game && S.game.tg && S.game.tg.code === S.game.tg.code && !S.lobby), 'game created, table moved into the game');
+  ok(await S(() => JSON.stringify(S.game.tg.map) === JSON.stringify({ 501: 2, 502: 1, 503: 3 })), 'seat map by seat number: ' + await S(() => JSON.stringify(S.game.tg.map)));
+  ok(await S(() => S.game.tg.sent.length === 2 && S.game.tg.sent.includes(501) && S.game.tg.sent.includes(502)), 'cards auto-sent to the two reachable players');
+  const c501 = lastTo(501); const role2 = await S(() => I18N.uk.roles[S.game.players.find(x => x.seat === 2).roleId].name);
+  ok(c501 && c501.params.text.includes('<b>' + role2 + '</b>') && c501.params.text.includes('місце 2'), 'seat 2 got its card in Ukrainian');
+  ok(await S(() => S.game.dealIdx === 2 && S.game.players[2].seat === 3), 'phone-pass starts at seat 3 (seats 1–2 delivered, 3 blocked the bot)');
+  await S(() => { ACT.flip({ dataset: {} }); ACT.hide({ dataset: {} }); }); await p.waitForTimeout(100);
+  ok(await S(() => S.game.dealIdx === 3), 'next phone seat is 4');
+  tg.blocked.delete(503);
+  await p.click('[data-a="tg-deal"]'); await p.waitForTimeout(500);
+  ok(await S(() => S.game.tg.sent.includes(503)), 'retry delivered the remaining card');
+  ok((await p.innerText('#app')).includes('✓'), 'delivered marks on the deal panel');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-deal-auto.png') }).catch(() => {});
+  // shop wording
+  await S(() => { S.screen = 'shop'; render(); ACT.buy({ dataset: { kind: 'role', id: 'sniper' } }); }); await p.waitForTimeout(100);
+  const sheetText = await p.innerText('.sheet, #app'); ok(!/демо|demo/i.test(sheetText) && /Купить за/.test(sheetText), 'buy button says "Купить за …" without demo');
+  await S(() => { S.ui.sheet = null; render(); });
   ok(errs.length === 0, 'no page errors: ' + errs.join(' | ').slice(0, 300));
   await b.close(); await tg.close(); api.close();
   console.log(fails ? `\n${fails} of ${n} checks FAILED` : `\nALL OK (${n} checks)`); process.exit(fails ? 1 : 0);

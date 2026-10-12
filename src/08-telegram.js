@@ -129,12 +129,72 @@ function lobbyAutoSeat(g) {
     tgl.map[pl.tgId] = seat; if (seat) taken.add(seat);
   });
 }
+/* the table lives in S.lobby before the game exists and moves into S.game.tg when the game is created */
+function currentLobby() { return S.game && S.game.tg ? S.game.tg : (S.lobby || null); }
+function lobbyIsOpen() { const l = currentLobby(); return !!(l && l.code && !(S.game && S.game.dealIdx >= S.game.players.length)); }
+async function openTable(fresh) {
+  const d = await api('/api/lobby', { fresh: !!fresh }); if (!d.ok) { toast(U().tgOffline); return null; }
+  const l = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [], seats: {} };
+  if (S.game) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
+  save(); render(); return l;
+}
+async function refreshTable() {
+  const l = currentLobby(); if (!l || !l.code) return;
+  const d = await api('/api/lobby/status', { code: l.code }); if (!d.ok) return false;
+  const before = l.players.length; l.players = d.players || [];
+  if (S.game && S.game.tg === l) lobbyAutoSeat(S.game); else setupAutoSeat();
+  save(); render(); return l.players.length !== before;
+}
+/* setup screen: joined players take seats — by matching name, else the first empty seat; seats[tgId] = seat index */
+function setupAutoSeat() {
+  const l = S.lobby; if (!l) return; l.seats = l.seats || {}; const st = S.setup; st.names = st.names || [];
+  const norm = s => String(s || '').toLowerCase().replace(/^@/, '').trim(); const taken = new Set(Object.values(l.seats));
+  l.players.forEach(pl => {
+    if (l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n) { taken.add(l.seats[pl.tgId]); return; }
+    let i = -1;
+    for (let k = 0; k < st.n; k++) { if (taken.has(k)) continue; const nm = norm(st.names[k]); if (nm && (nm === norm(pl.name) || (pl.username && nm === norm(pl.username)))) { i = k; break; } }
+    if (i < 0) for (let k = 0; k < st.n; k++) { if (!taken.has(k) && !norm(st.names[k]) && !(st.seatProfiles || [])[k]) { i = k; break; } }
+    if (i < 0) return;
+    l.seats[pl.tgId] = i; taken.add(i); if (!norm(st.names[i])) st.names[i] = pl.name;
+  });
+}
+function setupLobbyHTML(st) {
+  if (!TG.app || !apiBase()) return '';
+  const u = U(); const l = S.lobby;
+  if (!l || !l.code) return `<div class="panel"><div class="eyebrow">${u.tgCards}</div><div class="hint" style="margin:6px 0 10px">${u.tgSetupHint}</div><div class="btn-row"><button class="btn" data-a="tg-lobby">${u.tgOpenTable}</button><button class="btn ghost" data-a="fr-go" style="flex:0 0 auto;width:auto">${u.frInviteFriends}</button></div></div>`;
+  const seated = pl => l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n;
+  const rows = l.players.map(pl => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div>${seated(pl) ? `<span class="hint" style="margin:0">${tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 })}</span>` : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`).join('');
+  const unseated = l.players.filter(pl => !seated(pl)).length;
+  return `<div class="panel"><div class="row"><div class="eyebrow grow">${tt(u.tgTable, { code: l.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: l.players.length })}</div></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="tg-share">${u.tgShare}</button><button class="btn sm grow" data-a="fr-go">${u.frInviteFriends}</button><button class="btn sm ghost" data-a="tg-lobby-refresh">${u.tgRefresh}</button></div>
+    ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
+    <button class="btn xs ghost" style="margin-top:8px;align-self:flex-start" data-a="tg-close-table">${u.tgCloseTable}</button></div>`;
+}
+/* send cards to every mapped player of the game's table; returns the number sent */
+async function sendCards(g, onlyUnsent) {
+  const l = g.tg; if (!l || !l.code) return 0;
+  const cards = l.players.filter(pl => l.map[pl.tgId] && !(onlyUnsent && (l.sent || []).includes(pl.tgId))).map(pl => { const p = g.players.find(x => x.seat === l.map[pl.tgId]); return { tgId: pl.tgId, seat: p.seat, text: cardTextFor(p, pl.lang) }; });
+  if (!cards.length) return 0;
+  const d = await api('/api/lobby/deal', { code: l.code, cards }); if (!d.ok) { toast(U().tgOffline); return 0; }
+  l.sent = (l.sent || []).concat(d.sent || []).filter((v, i, a) => a.indexOf(v) === i);
+  if ((d.failed || []).length) toast(tt(U().tgFailed, { n: d.failed.length }));
+  skipDeliveredSeats(g); save(); render(); return (d.sent || []).length;
+}
+const seatDelivered = (g, seat) => !!(g.tg && (g.tg.sent || []).some(id => g.tg.map[id] === seat));
+function skipDeliveredSeats(g) { while (g.dealIdx < g.players.length && seatDelivered(g, g.players[g.dealIdx].seat)) { g.dealIdx++; g.dealOpen = false; } }
+/* polling: while a table is open on the setup / deal / friends screens, refresh the player list every few seconds */
+let lobbyTimer = null;
+function lobbyPoll() {
+  const want = TG.app && apiBase() && lobbyIsOpen() && ['setup', 'deal', 'friends'].includes(S.screen);
+  if (want && !lobbyTimer) lobbyTimer = setInterval(() => { if (!lobbyIsOpen() || !['setup', 'deal', 'friends'].includes(S.screen)) { clearInterval(lobbyTimer); lobbyTimer = null; return; } refreshTable(); }, 6000);
+  if (!want && lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = null; }
+}
 function lobbyPanelHTML(g) {
   const u = U(); const tgl = g.tg;
   if (!tgl) return `<div class="panel"><div class="eyebrow">${u.tgCards}</div><div class="hint" style="margin:6px 0 10px">${u.tgCardsHint}</div><button class="btn" data-a="tg-lobby">${u.tgOpenTable}</button></div>`;
   const seatOpts = cur => `<option value="0" ${!cur ? 'selected' : ''}>${u.tgNoSeat}</option>` + g.players.map(p => `<option value="${p.seat}" ${cur === p.seat ? 'selected' : ''}>${p.seat} · ${esc(p.name)}</option>`).join('');
-  const rows = tgl.players.map(pl => `<div class="row" style="align-items:center;gap:8px"><div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pl.name)}${tgl.sent && tgl.sent.includes(pl.tgId) ? ' ✅' : ''}</div>${pl.username ? `<div class="hint" style="margin:0">@${esc(pl.username)}</div>` : ''}</div><select class="input" style="width:46%;flex:none" data-a="tg-seat" data-tg="${pl.tgId}">${seatOpts(tgl.map[pl.tgId])}</select></div>`).join('');
-  const n = tgl.players.filter(pl => tgl.map[pl.tgId]).length;
+  const rows = tgl.players.map(pl => `<div class="row" style="align-items:center;gap:8px"><div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pl.name)}${tgl.sent && tgl.sent.includes(pl.tgId) ? ` <span style="color:#9fe0ab;font-weight:600">✓ ${esc(u.tgViaTg)}</span>` : ''}</div>${pl.username ? `<div class="hint" style="margin:0">@${esc(pl.username)}</div>` : ''}</div><select class="input" style="width:46%;flex:none" data-a="tg-seat" data-tg="${pl.tgId}">${seatOpts(tgl.map[pl.tgId])}</select></div>`).join('');
+  const n = tgl.players.filter(pl => tgl.map[pl.tgId] && !(tgl.sent || []).includes(pl.tgId)).length;
   return `<div class="panel"><div class="row"><div class="eyebrow grow">${tt(u.tgTable, { code: tgl.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: tgl.players.length })}</div></div>
     <div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="tg-share">${u.tgShare}</button><button class="btn sm grow" data-a="fr-go">${u.frInviteFriends}</button><button class="btn sm ghost" data-a="tg-lobby-refresh">${u.tgRefresh}</button></div>
     ${tgl.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div>` : `<div class="hint" style="margin-top:10px">${u.tgNobody}</div>`}
@@ -142,30 +202,17 @@ function lobbyPanelHTML(g) {
     ${tgl.sent && tgl.sent.length ? `<button class="btn" style="margin-top:8px" data-a="tg-deal-done">${u.tgDealDone}</button>` : ''}</div>`;
 }
 Object.assign(ACT, {
-  async 'tg-lobby'() {
-    const g = S.game; if (!g) return; const d = await api('/api/lobby', { fresh: !!(g.tg && g.tg.code) });
-    if (!d.ok) { toast(U().tgOffline); return; }
-    g.tg = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [] }; lobbyAutoSeat(g); save(); render();
-  },
-  async 'tg-lobby-refresh'() {
-    const g = S.game; if (!g || !g.tg) return; const d = await api('/api/lobby/status', { code: g.tg.code });
-    if (!d.ok) { toast(U().tgOffline); return; }
-    g.tg.players = d.players || []; lobbyAutoSeat(g); save(); render();
-  },
+  async 'tg-lobby'() { const l = currentLobby(); await openTable(!!(l && l.code)); },
+  async 'tg-lobby-refresh'() { if ((await refreshTable()) === false) toast(U().tgOffline); },
+  'tg-seat-one'(el) { const l = S.lobby; if (!l) return; const id = Number(el.dataset.tg); const st = S.setup; const taken = new Set(Object.values(l.seats || {})); let i = -1; for (let k = 0; k < st.n; k++) if (!taken.has(k) && !String(st.names[k] || '').trim() && !(st.seatProfiles || [])[k]) { i = k; break; } if (i < 0) for (let k = 0; k < st.n; k++) if (!taken.has(k)) { i = k; break; } if (i < 0) return; l.seats = l.seats || {}; l.seats[id] = i; const pl = l.players.find(p => p.tgId === id); if (pl && !String(st.names[i] || '').trim()) st.names[i] = pl.name; save(); render(); },
+  'tg-seat-all'() { setupAutoSeat(); save(); render(); },
+  'tg-close-table'() { S.lobby = null; save(); render(); },
   'tg-share'() {
-    const g = S.game; if (!g || !g.tg) return; const url = 'https://t.me/share/url?url=' + encodeURIComponent(g.tg.link) + '&text=' + encodeURIComponent(U().tgShareText);
+    const l = currentLobby(); if (!l || !l.link) return; const url = 'https://t.me/share/url?url=' + encodeURIComponent(l.link) + '&text=' + encodeURIComponent(U().tgShareText);
     try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {}
   },
   'tg-seat'(el) { const g = S.game; if (!g || !g.tg) return; const seat = Number(el.value) || 0; Object.keys(g.tg.map).forEach(k => { if (seat && g.tg.map[k] === seat && k !== el.dataset.tg) g.tg.map[k] = 0; }); g.tg.map[el.dataset.tg] = seat; save(); render(); },
-  async 'tg-deal'() {
-    const g = S.game; if (!g || !g.tg) return;
-    const cards = g.tg.players.filter(pl => g.tg.map[pl.tgId]).map(pl => { const p = g.players.find(x => x.seat === g.tg.map[pl.tgId]); return { tgId: pl.tgId, seat: p.seat, text: cardTextFor(p, pl.lang) }; });
-    if (!cards.length) return;
-    const d = await api('/api/lobby/deal', { code: g.tg.code, cards });
-    if (!d.ok) { toast(U().tgOffline); return; }
-    g.tg.sent = (g.tg.sent || []).concat(d.sent || []).filter((v, i, a) => a.indexOf(v) === i);
-    toast(tt(U().tgSent, { n: (d.sent || []).length }) + ((d.failed || []).length ? ' · ' + tt(U().tgFailed, { n: d.failed.length }) : '')); tgHaptic('success'); save(); render();
-  },
+  async 'tg-deal'() { const g = S.game; if (!g || !g.tg) return; const n = await sendCards(g, true); if (n) { toast(tt(U().tgSent, { n })); tgHaptic('success'); } },
   'tg-deal-done'() { const g = S.game; if (!g) return; g.dealIdx = g.players.length; g.dealOpen = false; S.ui.showAll = false; save(); render(); },
   async 'tg-top'() { const d = await api('/api/leaderboard?limit=30', null, { method: 'GET' }); CLOUD.top = d.ok ? d.top : []; if (!d.ok) toast(U().tgOffline); render(); }
 });
@@ -185,14 +232,15 @@ function friendsScreen() {
   if (!TG.app || !apiBase()) return `${topbar(u.frTitle, u.frSub, false)}<div class="stack"><div class="panel"><div class="hint">${u.frOnlyTg}</div></div></div>`;
   if (!FR.list && !FR.busy) setTimeout(() => loadFriends(false), 0);
   const sel = S.ui.frSel = S.ui.frSel || [];
-  const g = S.game; const lobbyOpen = !!(g && g.tg && g.tg.code && g.dealIdx < g.players.length);
+  const g = S.game; const lobbyOpen = lobbyIsOpen();
   const linkPanel = `<div class="panel"><div class="eyebrow">${u.frMyLink}</div><div class="hint" style="margin:6px 0 8px">${u.frMyLinkHint}</div>
     <div class="fr-link">${FR.link ? esc(FR.link) : u.frLoading}</div>
     <div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="fr-share" ${FR.link ? '' : 'disabled'}>${u.frShare}</button><button class="btn ghost" data-a="fr-copy" ${FR.link ? '' : 'disabled'} style="flex:0 0 auto;width:auto">${u.frCopy}</button></div></div>`;
   const list = FR.list || [];
   const rows = list.map(f => `<div class="fr-row ${sel.includes(f.tgId) ? 'sel' : ''}" role="button" tabindex="0" data-a="fr-toggle" data-id="${f.tgId}"><span class="chk">${sel.includes(f.tgId) ? '✓' : ''}</span>${friendAvatar(f)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}${f.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(f.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${tt(u.frStats, { g: f.games, w: f.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${f.points}</span><button class="btn xs ghost" data-a="fr-remove-ask" data-id="${f.tgId}" aria-label="${u.frRemove}" style="color:var(--muted);border-color:transparent">✕</button></div>`).join('');
   const ask = S.ui.frAsk ? (() => { const f = list.find(x => x.tgId === S.ui.frAsk); return f ? `<div class="panel" style="border-color:var(--crimson-2)"><div>${tt(u.frRemoveAsk, { name: esc(f.name) })}</div><div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="fr-remove" data-id="${f.tgId}" style="color:var(--crimson-2)">${u.frRemove}</button><button class="btn sm ghost" data-a="fr-ask-cancel">${u.cancel}</button></div></div>` : ''; })() : '';
-  const inviteBar = list.length ? (g ? `<button class="btn primary" data-a="fr-invite" ${sel.length ? '' : 'disabled'}>${tt(u.frInviteTable, { n: sel.length })}</button>${lobbyOpen ? `<div class="hint" style="text-align:center">${tt(u.frTable, { code: g.tg.code, n: sel.length })}</div>` : ''}` : `<div class="panel"><div class="hint">${u.frNoGame}</div><button class="btn" style="margin-top:8px" data-a="tab" data-id="game">${u.frNewGame}</button></div>`) : '';
+  const cl = currentLobby();
+  const inviteBar = list.length ? `<button class="btn primary" data-a="fr-invite" ${sel.length ? '' : 'disabled'}>${tt(u.frInviteTable, { n: sel.length })}</button>${lobbyOpen && cl ? `<div class="hint" style="text-align:center">${tt(u.frTable, { code: cl.code, n: sel.length })}</div>` : (!g ? `<div class="hint" style="text-align:center">${u.frNoGame}</div>` : '')}` : '';
   return `${topbar(u.frTitle, u.frSub, false)}
   <div class="stack">
     ${linkPanel}
@@ -214,8 +262,14 @@ Object.assign(ACT, {
   async 'fr-remove'(el) { const id = Number(el.dataset.id); S.ui.frAsk = null; const d = await api('/api/friends/remove', { friendId: id }); if (d.ok) { FR.list = (FR.list || []).filter(f => f.tgId !== id); S.ui.frSel = (S.ui.frSel || []).filter(x => x !== id); toast(U().frRemoved); } else toast(U().tgOffline); render(); },
   async 'fr-accept'(el) { const code = el.dataset.id; const d = await api('/api/friends/accept', { code }); if (d.ok && d.friend) { toast(tt(U().frAccepted, { name: d.friend.name })); FR.at = 0; } else if (!d.ok) toast(d.error === 'not_found' ? U().tgNA : U().tgOffline); go('friends'); },
   async 'fr-invite'() {
-    const g = S.game; const sel = (S.ui.frSel || []).slice(); if (!g || !sel.length) return;
-    if (!g.tg || !g.tg.code || g.dealIdx >= g.players.length) { const d = await api('/api/lobby', { fresh: !!(g.tg && g.tg.code) }); if (!d.ok) { toast(U().tgOffline); return; } g.tg = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [] }; lobbyAutoSeat(g); save(); }
+    const sel = (S.ui.frSel || []).slice(); if (!sel.length) return;
+    if (!S.game) { // no game yet: open the pre-game table and invite there; seats are filled on the setup screen
+      if (!lobbyIsOpen()) { if (!(await openTable(false))) return; }
+      const r0 = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel }); if (!r0.ok) { toast(U().tgOffline); return; }
+      toast(tt(U().frInvited, { n: (r0.sent || []).length }) + ((r0.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r0.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = []; render(); return;
+    }
+    const g = S.game;
+    if (!g.tg || !g.tg.code || g.dealIdx >= g.players.length) { if (!(await openTable(!!(g.tg && g.tg.code)))) return; }
     const r = await api('/api/friends/invite', { code: g.tg.code, friendIds: sel });
     if (!r.ok) { toast(U().tgOffline); return; }
     toast(tt(U().frInvited, { n: (r.sent || []).length }) + ((r.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = []; render();
@@ -233,7 +287,7 @@ function cloudTopHTML() {
   const wrap = (name, kind) => { const f = ACT[name]; if (!f) return; ACT[name] = function (el) { tgHaptic(kind); return f.call(this, el); }; };
   wrap('flip', 'impact'); wrap('confirm', 'light'); wrap('vote-finish', 'success'); wrap('vote-close', 'success'); wrap('kam-confirm', 'warning'); wrap('roulette-guess', 'light'); wrap('lift-finish', 'success'); wrap('finish', 'success');
   const origRender = render;
-  render = function () { origRender(); if (TG.app) tgSync(); if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
+  render = function () { origRender(); if (TG.app) { tgSync(); try { lobbyPoll(); } catch (e) {} } if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
   // dealing screen: the "cards via Telegram" panel sits above the first card until dealing starts
   const origDeal = dealScreen;
   dealScreen = function () { const html = origDeal(); const g = S.game; if (!TG.app || !apiBase() || !g || S.ui.showAll || (g.dealIdx > 0 && !g.tg) || g.dealIdx >= g.players.length) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + lobbyPanelHTML(g) + html.slice(i + 19); };
@@ -241,6 +295,19 @@ function cloudTopHTML() {
   ratingsScreen = function () { const html = origRatings(); const extra = cloudTopHTML(); if (!extra) return html; const i = html.lastIndexOf('</div>'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
   const origProfile = profileScreen;
   profileScreen = function () { const html = origProfile(); const pr = profById(S.ui.profileId); if (!pr || !S.cloud || !S.cloud.user || pr.tgId !== S.cloud.user.id) return html; const r = S.cloud.rating || {}; const line = `<div class="quiet" style="text-align:center">☁︎ ${esc(U().tgRating)}: <b class="num" style="color:var(--gold-2)">${1000 + (r.points || 0)}</b> · ${esc(U().games)}: ${r.games || 0} · ${esc(U().wins)}: ${r.wins || 0}</div>`; const i = html.indexOf('<div class="eyebrow">' + U().stats + '</div>'); return i < 0 ? html : html.slice(0, i) + line + html.slice(i); };
+  // creating the game: the pre-game table becomes the game's table, seats map to players, cards go out at once
+  const origDealAct = ACT.deal;
+  ACT.deal = function (el) {
+    const seatsBefore = S.lobby && S.lobby.code ? S.lobby : null;
+    const r = origDealAct.call(this, el);
+    const g = S.game; if (!g || !seatsBefore) return r;
+    const map = {}; seatsBefore.players.forEach(pl => { const i = seatsBefore.seats && seatsBefore.seats[pl.tgId]; if (i !== undefined && i < g.players.length) map[pl.tgId] = g.players[i].seat; });
+    g.tg = { code: seatsBefore.code, link: seatsBefore.link, players: seatsBefore.players, map, sent: [] }; S.lobby = null; save();
+    if (TG.app && apiBase() && Object.keys(map).length) sendCards(g, true).then(n => { if (n) { toast(tt(U().tgAutoSent, { n })); tgHaptic('success'); } });
+    return r;
+  };
+  const origHide = ACT.hide;
+  ACT.hide = function (el) { const r = origHide.call(this, el); if (S.game) { skipDeliveredSeats(S.game); render(); } return r; };
   const origFinish = finishGame;
   finishGame = function (g, w) { const was = g.recorded; origFinish(g, w); if (!was && g.recorded && w) { try { sendResult(g, w); } catch (e) {} } };
 })();

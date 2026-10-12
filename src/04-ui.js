@@ -12,8 +12,8 @@ const $ = sel => document.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const U = () => L.ui;
 const SAVE_KEY = 'mafiapro.v1';
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); } } catch (e) {} }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null })); } catch (e) {} }
+function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; } } catch (e) {} }
 
 let toastT = null;
 function toast(msg) { const old = $('.toast'); if (old) old.remove(); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2800); }
@@ -262,6 +262,7 @@ function setupScreen() {
     ${rows}
     <h2>${u.names}</h2>
     <p class="hint">${u.namesHint}</p>
+    ${typeof setupLobbyHTML === 'function' ? setupLobbyHTML(st) : ''}
     ${chips}
     <div class="names">${names}</div>
     <div class="sticky-bottom"><button class="btn primary" data-a="deal" ${ok ? '' : 'disabled'}>${u.dealCards}</button></div>

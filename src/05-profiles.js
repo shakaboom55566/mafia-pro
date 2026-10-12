@@ -91,25 +91,8 @@ function resultFor(g, p, w) {
 }
 
 /* ---------- demo profiles ---------- */
-function seedDemoProfiles() {
-  if (S.demoSeeded || S.profiles.filter(p => !p.tgId).length) { S.demoSeeded = true; return; }
-  const seed = [['Артём', 'artem_k', 'Днепр', 'UA'], ['Олена', 'olena_sh', 'Київ', 'UA'], ['Mykola', 'mykola_dp', 'Днепр', 'UA'], ['Marek', 'marek_w', 'Warszawa', 'PL'], ['Kasia', 'kasia_kr', 'Kraków', 'PL'], ['Ani', 'ani_yer', 'Yerevan', 'AM'], ['Davit', 'davit_g', 'Gyumri', 'AM'], ['Sofia', 'sofia_b', 'Berlin', 'DE']];
-  const ids = ROLES.map(r => r.id);
-  let rnd = 7;
-  const rand = () => { rnd = (rnd * 9301 + 49297) % 233280; return rnd / 233280; };
-  seed.forEach(([name, username, city, country], i) => {
-    const pr = newProfile({ name, username, city, country, color: i % AV_COLORS.length, demo: true, likes: Math.floor(rand() * 40) });
-    const games = 12 + Math.floor(rand() * 30); const skill = 0.38 + rand() * 0.25;
-    const fav = ids[Math.floor(rand() * ids.length)];
-    for (let k = 0; k < games; k++) {
-      const roleId = rand() < 0.35 ? fav : ids[Math.floor(rand() * ids.length)];
-      const won = rand() < skill; const survived = won ? rand() < 0.6 : rand() < 0.25; const solo = (roleId === 'maniac' || roleId === 'jester') && won && rand() < 0.3;
-      const dead = !survived; const killedN1 = dead && rand() < 0.22; const votedD1 = dead && !killedN1 && rand() < 0.18;
-      pr.history.push({ id: uid(), date: Date.now() - Math.floor(rand() * 90) * 86400000 - Math.floor(rand() * 86400000), gameId: 'demo', n: 7 + Math.floor(rand() * 14), roleId, won, points: pointsFor(roleId, won, survived, solo), survived, killedN1, votedD1, winnerSide: won ? (ROLE[roleId].side === 'mafia' ? 'mafia' : 'city') : 'mafia' });
-    }
-    pr.history.sort((a, b) => a.date - b.date);
-    S.profiles.push(pr);
-  });
+function seedDemoProfiles() { // sample profiles were removed: drop any that are still saved on a device
+  if (S.profiles.some(p => p.demo)) S.profiles = S.profiles.filter(p => !p.demo);
   S.demoSeeded = true;
 }
 
@@ -123,7 +106,6 @@ function profilesScreen() {
     ${me ? `<div class="eyebrow">${u.myProfile}</div>${row(me, profStats(me), 'me')}` : `<button class="btn primary" data-a="prof-new" data-me="1">${u.createMy}</button>`}
     <div class="row"><div class="eyebrow grow">${u.allPlayers} · ${S.profiles.length}</div><button class="btn xs ghost" data-a="prof-new">+ ${u.newProfile}</button></div>
     ${list.length ? `<div class="stack-s">${list.map(x => row(x.p, x.st)).join('')}</div>` : `<p class="hint">${u.profilesEmpty}</p>`}
-    ${S.profiles.some(p => p.demo) ? `<button class="btn ghost sm" data-a="demo-remove" style="align-self:center">${u.removeDemo}</button>` : ''}
   </div>`;
 }
 function fmtDate(ts) { try { return new Date(ts).toLocaleDateString(L.code, { day: 'numeric', month: 'short' }); } catch (e) { return new Date(ts).toLocaleDateString(); } }

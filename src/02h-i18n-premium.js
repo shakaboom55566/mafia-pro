@@ -62,7 +62,7 @@ Object.assign(I18N.ru.e, {
 });
 Object.assign(I18N.ru.ui, {
   shop: 'Магазин', shopD: 'Премиум-карты по 2 $ и сценарии по 9,99 $', premium: 'Премиум', buy: 'Купить {price}', owned: 'Куплено', locked: 'Не куплено', priceCard: '2 $', priceScen: '9,99 $',
-  buyTitle: 'Покупка', buyDemo: 'Оплатить {price} (демо)', buyNote: 'В прототипе покупка демонстрационная: ничего не списывается. В Telegram оплата пройдёт через Telegram Stars.', bought: 'Куплено: {name}',
+  buyTitle: 'Покупка', buyDemo: 'Купить за {price}', buyNote: 'Оплата через Telegram Stars. Покупка привязывается к вашему аккаунту Telegram и доступна на всех ваших устройствах.', bought: 'Куплено: {name}',
   shopCards: 'Карты расширения', shopScen: 'Премиум-сценарии', scenRoles: 'Особые роли: {list}', scenPlayers: '{a}–{b} игроков', useScen: 'Создать игру', scenActive: 'Сценарий: {name}',
   lockedInComp: 'В составе есть некупленные карты: {list}', lawyerBtn: 'Адвокат {seat} объявляет защиту', contractInfo: 'Цель Контрактника {seat}: игрок {target}', extraWinners: 'Также победили: {list}',
   modGunsmith: 'Оружейник стреляет каждую ночь', modTwoFam: 'Две семьи с {n} игроков', modNoReveal: 'Карты выбывших не открываются', scenStd: 'Стандартные столы', tiltHint: 'Наклоните телефон или проведите по карте'
@@ -142,7 +142,7 @@ Object.assign(I18N.uk.e, {
 });
 Object.assign(I18N.uk.ui, {
   shop: 'Магазин', shopD: 'Преміум-карти по 2 $ і сценарії по 9,99 $', premium: 'Преміум', buy: 'Купити {price}', owned: 'Куплено', locked: 'Не куплено', priceCard: '2 $', priceScen: '9,99 $',
-  buyTitle: 'Покупка', buyDemo: 'Оплатити {price} (демо)', buyNote: 'У прототипі покупка демонстраційна: нічого не списується. У Telegram оплата пройде через Telegram Stars.', bought: 'Куплено: {name}',
+  buyTitle: 'Покупка', buyDemo: 'Купити за {price}', buyNote: 'Оплата через Telegram Stars. Покупка прив’язується до вашого акаунта Telegram і доступна на всіх ваших пристроях.', bought: 'Куплено: {name}',
   shopCards: 'Карти розширення', shopScen: 'Преміум-сценарії', scenRoles: 'Особливі ролі: {list}', scenPlayers: '{a}–{b} гравців', useScen: 'Створити гру', scenActive: 'Сценарій: {name}',
   lockedInComp: 'У складі є некуплені карти: {list}', lawyerBtn: 'Адвокат {seat} оголошує захист', contractInfo: 'Ціль Контрактника {seat}: гравець {target}', extraWinners: 'Також перемогли: {list}',
   modGunsmith: 'Зброяр стріляє щоночі', modTwoFam: 'Дві сім\'ї з {n} гравців', modNoReveal: 'Карти вибулих не відкриваються', scenStd: 'Стандартні столи', tiltHint: 'Нахиліть телефон або проведіть по карті'
@@ -222,7 +222,7 @@ Object.assign(I18N.en.e, {
 });
 Object.assign(I18N.en.ui, {
   shop: 'Shop', shopD: 'Premium cards for $2 and scenarios for $9.99', premium: 'Premium', buy: 'Buy {price}', owned: 'Owned', locked: 'Not owned', priceCard: '$2', priceScen: '$9.99',
-  buyTitle: 'Purchase', buyDemo: 'Pay {price} (demo)', buyNote: 'In the prototype the purchase is a demo: nothing is charged. In Telegram the payment goes through Telegram Stars.', bought: 'Purchased: {name}',
+  buyTitle: 'Purchase', buyDemo: 'Buy for {price}', buyNote: 'Paid with Telegram Stars. The purchase is tied to your Telegram account and available on all your devices.', bought: 'Purchased: {name}',
   shopCards: 'Expansion cards', shopScen: 'Premium scenarios', scenRoles: 'Special roles: {list}', scenPlayers: '{a}–{b} players', useScen: 'Create game', scenActive: 'Scenario: {name}',
   lockedInComp: 'The composition contains cards you don\'t own: {list}', lawyerBtn: 'Lawyer {seat} declares a defense', contractInfo: 'Contractor {seat}\'s target: player {target}', extraWinners: 'Also won: {list}',
   modGunsmith: 'The Gunsmith shoots every night', modTwoFam: 'Two families from {n} players', modNoReveal: 'Cards of the eliminated stay hidden', scenStd: 'Standard tables', tiltHint: 'Tilt the phone or swipe across the card'
@@ -302,7 +302,7 @@ Object.assign(I18N.pl.e, {
 });
 Object.assign(I18N.pl.ui, {
   shop: 'Sklep', shopD: 'Karty premium po 2 $ i scenariusze po 9,99 $', premium: 'Premium', buy: 'Kup {price}', owned: 'Kupione', locked: 'Nie kupione', priceCard: '2 $', priceScen: '9,99 $',
-  buyTitle: 'Zakup', buyDemo: 'Zapłać {price} (demo)', buyNote: 'W prototypie zakup jest demonstracyjny: nic nie jest pobierane. W Telegramie płatność przejdzie przez Telegram Stars.', bought: 'Kupiono: {name}',
+  buyTitle: 'Zakup', buyDemo: 'Kup za {price}', buyNote: 'Płatność przez Telegram Stars. Zakup jest powiązany z Twoim kontem Telegram i dostępny na wszystkich Twoich urządzeniach.', bought: 'Kupiono: {name}',
   shopCards: 'Karty rozszerzenia', shopScen: 'Scenariusze premium', scenRoles: 'Role specjalne: {list}', scenPlayers: '{a}–{b} graczy', useScen: 'Utwórz grę', scenActive: 'Scenariusz: {name}',
   lockedInComp: 'W składzie są niekupione karty: {list}', lawyerBtn: 'Adwokat {seat} ogłasza obronę', contractInfo: 'Cel Zleceniobiorcy {seat}: gracz {target}', extraWinners: 'Wygrali też: {list}',
   modGunsmith: 'Rusznikarz strzela co noc', modTwoFam: 'Dwie rodziny od {n} graczy', modNoReveal: 'Karty wyeliminowanych pozostają zakryte', scenStd: 'Stoły standardowe', tiltHint: 'Przechyl telefon lub przesuń po karcie'
@@ -382,7 +382,7 @@ Object.assign(I18N.hy.e, {
 });
 Object.assign(I18N.hy.ui, {
   shop: 'Խանութ', shopD: 'Պրեմիում քարտեր՝ 2 $, սցենարներ՝ 9,99 $', premium: 'Պրեմիում', buy: 'Գնել {price}', owned: 'Գնված է', locked: 'Գնված չէ', priceCard: '2 $', priceScen: '9,99 $',
-  buyTitle: 'Գնում', buyDemo: 'Վճարել {price} (դեմո)', buyNote: 'Նախատիպում գնումը ցուցադրական է. ոչինչ չի գանձվում։ Telegram-ում վճարումը կանցնի Telegram Stars-ով։', bought: 'Գնված է. {name}',
+  buyTitle: 'Գնում', buyDemo: 'Գնել {price}-ով', buyNote: 'Վճարում Telegram Stars-ով։ Գնումը կապվում է ձեր Telegram հաշվին և հասանելի է ձեր բոլոր սարքերում։', bought: 'Գնված է. {name}',
   shopCards: 'Ընդլայնման քարտեր', shopScen: 'Պրեմիում սցենարներ', scenRoles: 'Հատուկ դերեր. {list}', scenPlayers: '{a}–{b} խաղացող', useScen: 'Ստեղծել խաղ', scenActive: 'Սցենար. {name}',
   lockedInComp: 'Կազմում կան չգնված քարտեր. {list}', lawyerBtn: 'Փաստաբան {seat}-ը պաշտպանություն է հայտարարում', contractInfo: 'Պայմանագրային {seat}-ի թիրախը. խաղացող {target}', extraWinners: 'Նաև հաղթեցին. {list}',
   modGunsmith: 'Զինագործը կրակում է ամեն գիշեր', modTwoFam: 'Երկու ընտանիք {n} խաղացողից', modNoReveal: 'Դուրս եկածների քարտերը չեն բացվում', scenStd: 'Ստանդարտ սեղաններ', tiltHint: 'Թեքե՛ք հեռախոսը կամ սահեցրե՛ք քարտի վրայով'

@@ -18,6 +18,8 @@ let checks = 0; const SHOT = {};
   await page.goto(file);
   await page.waitForSelector('#app .screen, #app', { timeout: 10000 });
   await page.waitForTimeout(400);
+  // sample profiles are gone from the app: the test creates its own three players
+  await page.evaluate(() => { [['Артём', 'artem_k', 'Днепр', 'UA'], ['Олена', 'olena_sh', 'Київ', 'UA'], ['Mykola', 'mykola_dp', 'Днепр', 'UA']].forEach(([name, username, city, country], i) => S.profiles.push(newProfile({ name, username, city, country, color: i }))); save(); render(); });
 
   const act = (a, d = {}) => page.evaluate(([a, d]) => { const el = { dataset: Object.assign({ a }, d), value: d.value }; ACT[a](el); return S.screen; }, [a, d]);
   const state = (expr) => page.evaluate(expr);
