@@ -69,6 +69,7 @@ function timerHTML(sec, key) {
 
 /* ---------- icons ---------- */
 const I = {
+  friends: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="8" r="3.3"/><path d="M3.5 19c.4-3.4 2.9-5.3 6-5.3s5.6 1.9 6 5.3"/><path d="M18 7v6M15 10h6"/></svg>',
   back: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
   chev: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
   game: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.5-.8z"/></svg>',
@@ -110,7 +111,7 @@ function topbar(title, sub, back = true) {
 }
 function tabbar() {
   const t = (id, ico, lbl) => `<button class="tab ${S.tab === id ? 'active' : ''}" data-a="tab" data-id="${id}">${ico}<span>${lbl}</span></button>`;
-  return `<nav class="tabbar"><div class="inner">${t('game', I.game, U().tabGame)}${t('cards', I.cards, U().tabCards)}${t('profiles', I.users, U().tabPlayers)}${t('ratings', I.trophy, U().tabRatings)}${t('settings', I.gear, U().tabSettings)}</div></nav>`;
+  return `<nav class="tabbar"><div class="inner">${t('game', I.game, U().tabGame)}${t('cards', I.cards, U().tabCards)}${t('profiles', I.users, U().tabPlayers)}${t('friends', I.friends, U().tabFriends)}${t('ratings', I.trophy, U().tabRatings)}${t('settings', I.gear, U().tabSettings)}</div></nav>`;
 }
 function statsBar(st) {
   const seg = (k, c) => st[k] ? `<i class="b-${c}" style="width:${100 * st[k] / st.total}%"></i>` : '';
@@ -136,6 +137,7 @@ function render() {
     case 'profiles': html = profilesScreen(); break;
     case 'profile': html = profileScreen(); break;
     case 'ratings': html = ratingsScreen(); break;
+    case 'friends': html = friendsScreen(); break;
     case 'shop': html = shopScreen(); break;
   }
   // enter animations only when the screen / phase / sheet actually changes (not on every tap)
@@ -159,6 +161,8 @@ const RENDER = { key: null, sheetKey: null };
    mobile browsers that boost font sizes (iOS text autosizing), which the fixed px sizes cannot anticipate. */
 function fitCards() {
   if (!document.querySelectorAll) return;
+  // tab labels: six tabs on a phone — shrink a label that does not fit its cell instead of clipping it
+  document.querySelectorAll('.tab span').forEach(sp => { let fs = 10; sp.style.fontSize = ''; const cell = sp.parentElement; if (!cell || !cell.clientWidth) return; while (fs > 7 && sp.scrollWidth > cell.clientWidth - 4) { fs -= .5; sp.style.fontSize = fs + 'px'; } });
   document.querySelectorAll('.card:not(.mini)').forEach(card => {
     let fs = 1; card.style.setProperty('--fs', '1');
     const lore = card.querySelector('.lore'), rule = card.querySelector('.rule');
@@ -767,7 +771,7 @@ function sheetHTML(enter = true) {
 
 /* ============================================================ ACTIONS */
 function goGameOrHome() { S.screen = S.game ? 'game' : 'home'; }
-function go(screen) { S.screen = screen; S.tab = ['cards', 'settings', 'profiles', 'ratings'].includes(screen) ? screen : (screen === 'profile' ? 'profiles' : 'game'); window.scrollTo(0, 0); render(); }
+function go(screen) { S.screen = screen; S.tab = ['cards', 'settings', 'profiles', 'ratings', 'friends'].includes(screen) ? screen : (screen === 'profile' ? 'profiles' : 'game'); window.scrollTo(0, 0); render(); }
 
 const ACT = {
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },

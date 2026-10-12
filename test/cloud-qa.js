@@ -14,6 +14,7 @@ const path = require('path'); const http = require('http');
     const r = await worker.fetch(new Request('http://127.0.0.1:8791' + req.url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? undefined : b }), env, { waitUntil() {} });
     const h = {}; r.headers.forEach((v, k) => { h[k] = v; }); res.writeHead(r.status, h); res.end(Buffer.from(await r.arrayBuffer())); }); });
   await new Promise(r => api.listen(8791, '127.0.0.1', r));
+  const lastTo = chatId => [...tg.calls].reverse().find(c => c.method === 'sendMessage' && c.params.chat_id === chatId);
   const hook = upd => worker.fetch(new Request('http://x/webhook', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Telegram-Bot-Api-Secret-Token': 'hook' }, body: JSON.stringify(upd) }), env, { waitUntil() {} });
 
   const hostUser = { id: 100, first_name: 'Ведущий', username: 'host100', language_code: 'ru' };
@@ -89,6 +90,45 @@ const path = require('path'); const http = require('http');
   ok(res && res.winner === 'city' && JSON.parse(res.summary).find(x => x.seat === 2).tgId === 201, 'result stored with tgId of seat 2');
   const r201 = await env.DB.prepare('SELECT games FROM ratings WHERE tg_id = 201').first(); ok(r201 && r201.games === 1, 'player 201 rated');
   ok(await S(() => S.game.cloudSent === true), 'cloudSent flag');
+
+  console.log('friends tab: link → friend accepts via bot → list → invite to table → remove');
+  await S(() => go('friends')); await p.waitForTimeout(500);
+  ok(await S(() => document.querySelector('.tab.active [data-id]') === null || true) && (await p.innerText('.tabbar')).length > 0, 'tab bar rendered');
+  ok((await p.$$('.tab')).length === 6 && await S(() => document.querySelector('.tab.active').dataset.id === 'friends'), 'six tabs, friends active');
+  const link = await S(() => FR.link); ok(/^https:\/\/t\.me\/mafiapro_test_bot\?start=friend_[A-Z0-9]{8}$/.test(link || ''), 'invite link loaded: ' + link);
+  ok(await S(() => document.body.textContent.includes(U().frEmpty)), 'empty state');
+  await p.click('[data-a="fr-share"]'); ok(await S(() => window.__tg.links.some(l => l.includes('share/url') && l.includes('friend_'))), 'share link via Telegram');
+  // two friends accept: one through the bot, one through the app deep link
+  const frCode = link.split('friend_')[1];
+  await hook({ update_id: 11, message: { message_id: 1, from: { id: 401, first_name: 'Олег', username: 'oleg', language_code: 'uk' }, chat: { id: 401, type: 'private' }, text: `/start friend_${frCode}` } });
+  ok(lastTo(100) && lastTo(100).params.text.includes('Олег') && lastTo(100).params.text.includes('теперь вы друзья'), 'host notified about the new friend');
+  await p.click('[data-a="fr-refresh"]'); await p.waitForTimeout(500);
+  ok(await S(() => FR.list.length === 1 && FR.list[0].name === 'Олег' && document.body.textContent.includes('@oleg')), 'friend listed after refresh');
+  // deep link ?startapp=friend_<code> opened by a second user is handled by fr-accept; here we exercise the action directly with another signed identity via the API
+  const u402 = await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), query_id: 'Q2', user: { id: 402, first_name: 'Kasia', language_code: 'pl' } }, 'test-token');
+  const acc = await (await fetch('http://127.0.0.1:8791/api/friends/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: u402, code: frCode }) })).json();
+  ok(acc.ok && acc.isNew, 'second friend accepted via app API');
+  await p.click('[data-a="fr-refresh"]'); await p.waitForTimeout(500);
+  ok(await S(() => FR.list.length === 2), 'two friends');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-friends.png') }).catch(() => {});
+  // select all → invite to the current game's table (lobby exists from the earlier part of the test)
+  await p.click('[data-a="fr-sel-all"]'); await p.waitForTimeout(100); ok(await S(() => S.ui.frSel.length === 2), 'all selected');
+  ok((await p.innerText('[data-a="fr-invite"]')).includes('2'), 'invite button counts 2');
+  await p.click('[data-a="fr-invite"]'); await p.waitForTimeout(600);
+  const dm401 = lastTo(401); ok(dm401 && dm401.params.text.includes('кличе вас за стіл') && dm401.params.reply_markup.inline_keyboard[0][0].url.includes('start=join_'), 'friend 401 got a join button in Ukrainian');
+  const dm402 = lastTo(402); ok(dm402 && dm402.params.text.includes('zaprasza'), 'friend 402 got it in Polish');
+  ok(await S(() => S.ui.frSel.length === 0), 'selection cleared');
+  // remove with confirmation
+  await p.click('[data-a="fr-remove-ask"][data-id="402"]'); await p.waitForTimeout(100); ok(await S(() => document.body.textContent.includes('Kasia') && !!document.querySelector('[data-a="fr-remove"]')), 'confirm panel');
+  await p.click('[data-a="fr-remove"]'); await p.waitForTimeout(400); ok(await S(() => FR.list.length === 1 && FR.list[0].tgId === 401), 'removed');
+  // the deep link path: a fresh page opened with ?startapp=friend_<code> by user 402 accepts again
+  const p2 = await b.newPage({ viewport: { width: 390, height: 844 } }); p2.on('pageerror', e => errs.push('p2: ' + e.message));
+  await p2.addInitScript(({ initData, user, api }) => { window.MAFIA_API = api; const noop = () => {}; window.Telegram = { WebApp: { platform: 'android', initData, initDataUnsafe: { user, start_param: null }, ready: noop, expand: noop, setHeaderColor: noop, setBackgroundColor: noop, enableClosingConfirmation: noop, disableClosingConfirmation: noop, BackButton: { show: noop, hide: noop, onClick: noop }, openTelegramLink: noop } }; }, { initData: u402, user: { id: 402, first_name: 'Kasia', language_code: 'pl' }, api: 'http://127.0.0.1:8791' });
+  await p2.goto('file://' + path.resolve(__dirname, '..', 'mafia-pro.html') + '?startapp=friend_' + frCode.toLowerCase()); await p2.waitForTimeout(900);
+  ok(await p2.evaluate(() => S.screen === 'friends' && FR.list && FR.list.some(f => f.tgId === 100)), 'deep link accepted and landed on the friends tab (pl)');
+  ok(await p2.evaluate(() => document.documentElement.lang === 'pl' && document.querySelector('.tab.active span').textContent === 'Znajomi'), 'polish tab label');
+  await p2.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-friends-pl.png') }).catch(() => {});
+  await p2.close();
 
   console.log('global rating panel');
   await S(() => { go('ratings'); }); await p.waitForTimeout(100);

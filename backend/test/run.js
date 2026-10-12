@@ -24,6 +24,7 @@ const call = (p, init = {}) => worker.fetch(new Request('https://api.test' + p, 
 const post = (p, body, headers = {}) => call(p, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json', 'Origin': 'https://shakaboom55566.github.io' }, headers), body: JSON.stringify(body) });
 const hook = upd => post('/webhook', upd, { 'X-Telegram-Bot-Api-Secret-Token': 'hook-secret' });
 const lastCall = m => [...tg.calls].reverse().find(c => c.method === m);
+const lastTo = chatId => [...tg.calls].reverse().find(c => c.method === 'sendMessage' && c.params.chat_id === chatId);
 const user = (id, lang = 'ru', extra = {}) => Object.assign({ id, first_name: 'User' + id, username: 'user' + id, language_code: lang }, extra);
 const initData = (u, extra = {}) => signInitData(Object.assign({ auth_date: String(Math.floor(Date.now() / 1000)), query_id: 'AAE', user: u }, extra), 'test-token');
 const msg = (u, text) => ({ update_id: 1, message: { message_id: 1, from: u, chat: { id: u.id, type: 'private' }, text } });
@@ -91,8 +92,10 @@ let code;
 { const host = await initData(user(100, 'ru')); const r = await (await post('/api/lobby', { initData: host })).json();
   ok(r.ok && /^[A-Z0-9]{6}$/.test(r.code) && r.link === `https://t.me/mafiapro_test_bot?start=join_${r.code}`, 'lobby created with link'); code = r.code;
   const same = await (await post('/api/lobby', { initData: host })).json(); eq(same.code, code, 'same open lobby reused');
-  await hook(msg(user(201, 'uk'), `/start join_${code}`)); ok(lastCall('sendMessage').params.text.includes(code) && lastCall('sendMessage').params.text.includes('за столом'), 'player 201 joined (uk)');
-  await hook(msg(user(202, 'en'), `/start join_${code.toLowerCase()}`)); ok(lastCall('sendMessage').params.text.includes('You are at table'), 'player 202 joined (en, lowercase code)');
+  await hook(msg(user(201, 'uk'), `/start join_${code}`)); ok(lastTo(201).params.text.includes(code) && lastTo(201).params.text.includes('за столом'), 'player 201 joined (uk)');
+  ok(lastTo(100) && lastTo(100).params.text.includes('User201') && lastTo(100).params.text.includes('(всего 1)'), 'host notified about the first player (ru)');
+  await hook(msg(user(202, 'en'), `/start join_${code.toLowerCase()}`)); ok(lastTo(202).params.text.includes('You are at table'), 'player 202 joined (en, lowercase code)');
+  ok(lastTo(100).params.text.includes('(всего 2)'), 'host notified about the second player');
   await hook(msg(user(201, 'uk'), `/start join_${code}`)); ok(lastCall('sendMessage').params.text.includes('вже за столом'), 'joining twice → already');
   await hook(msg(user(203, 'ru'), '/start join_ZZZZZZ')); ok(lastCall('sendMessage').params.text.includes('не найден'), 'unknown table');
   const st = await (await post('/api/lobby/status', { initData: host, code })).json(); eq(st.players.map(p => p.tgId), [201, 202], 'status lists both'); eq(st.players[1].lang, 'en', 'lang kept');
@@ -103,6 +106,37 @@ let code;
   const card = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 201).pop(); ok(card.params.text.includes('Ваша карта') && card.params.text.includes('<b>Дон</b>') && card.params.text.includes(`стіл ${code}, місце 3`), 'card text localized to the player (uk frame, host-provided body)');
   await hook(msg(user(204, 'ru'), `/start join_${code}`)); ok(lastCall('sendMessage').params.text.includes('закрыт'), 'closed after deal');
   const fresh = await (await post('/api/lobby', { initData: host, fresh: true })).json(); ok(fresh.code !== code, 'fresh lobby gets a new code'); }
+
+console.log('friends: invite link → accept (bot and Mini App) → list → invite to table → remove');
+{ const a = await initData(user(100, 'ru')); const me = await (await post('/api/me', { initData: a })).json();
+  ok(me.bot === 'mafiapro_test_bot' && /^[A-Z0-9]{8}$/.test(me.invite.code) && me.invite.link === `https://t.me/mafiapro_test_bot?start=friend_${me.invite.code}`, 'me has invite link');
+  const again = await (await post('/api/me', { initData: a })).json(); eq(again.invite.code, me.invite.code, 'invite code is stable');
+  // friend 301 accepts through the bot (/start friend_<code>)
+  await hook(msg(user(301, 'en'), `/start friend_${me.invite.code}`));
+  ok(lastTo(301).params.text.includes('You and <b>User100</b> are now friends'), 'invitee told (en)'); ok(lastTo(100).params.text.includes('User301') && lastTo(100).params.text.includes('теперь вы друзья'), 'inviter told (ru)');
+  await hook(msg(user(100, 'ru'), `/start friend_${me.invite.code}`)); ok(lastTo(100).params.text.includes('собственная ссылка'), 'own link → hint');
+  await hook(msg(user(302, 'pl'), '/start friend_NOPE1234')); ok(lastTo(302).params.text.includes('Nie znaleziono zaproszenia'), 'unknown invite (pl)');
+  // friend 302 accepts inside the Mini App (?startapp=friend_<code>)
+  const b = await initData(user(302, 'pl')); const acc = await (await post('/api/friends/accept', { initData: b, code: me.invite.code.toLowerCase() })).json();
+  ok(acc.ok && acc.isNew && acc.friend.tgId === 100 && acc.friend.name === 'User100', 'accepted via app');
+  const acc2 = await (await post('/api/friends/accept', { initData: b, code: me.invite.code })).json(); ok(acc2.ok && !acc2.isNew, 'accepting twice is idempotent');
+  eq((await post('/api/friends/accept', { initData: b, code: 'ZZZZZZZZ' })).status, 404, 'unknown code 404');
+  ok((await (await post('/api/friends/accept', { initData: a, code: me.invite.code })).json()).self === true, 'own code → self');
+  const list = await (await post('/api/friends', { initData: a })).json();
+  eq(list.friends.map(f => f.tgId).sort(), [301, 302], 'both friends listed'); ok(list.friends.every(f => f.points === 1000 && f.name.startsWith('User')), 'friend rows carry name and rating');
+  const list301 = await (await post('/api/friends', { initData: await initData(user(301, 'en')) })).json(); eq(list301.friends.map(f => f.tgId), [100], 'friendship is symmetric');
+  // invite friends to my open table
+  const lob = await (await post('/api/lobby', { initData: a, fresh: true })).json();
+  tg.blocked.add(302);
+  const inv = await (await post('/api/friends/invite', { initData: a, code: lob.code, friendIds: [301, 302, 999] })).json();
+  eq(inv.sent, [301], '301 invited'); eq(inv.failed.map(f => f.error), ['Forbidden: bot was blocked by the user', 'not_friend'], '302 blocked, 999 not a friend');
+  const dm = lastTo(301); ok(dm.params.text.includes('User100') && dm.params.text.includes(lob.code) && dm.params.reply_markup.inline_keyboard[0][0].url === `https://t.me/mafiapro_test_bot?start=join_${lob.code}`, 'invite DM has a join button (en)');
+  eq((await post('/api/friends/invite', { initData: b, code: lob.code, friendIds: [100] })).status, 404, 'only the host can invite to a table');
+  tg.blocked.delete(302);
+  // remove
+  ok((await (await post('/api/friends/remove', { initData: a, friendId: 301 })).json()).ok, 'removed');
+  eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId), [302], 'list after removal');
+  eq((await (await post('/api/friends', { initData: await initData(user(301, 'en')) })).json()).friends, [], 'removed on both sides'); }
 
 console.log('game result → ratings');
 { const host = await initData(user(100));

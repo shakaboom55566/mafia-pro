@@ -44,3 +44,44 @@ Object.assign(I18N.hy.ui, {
   tgPayFail: 'Վճարումը չի անցել', tgRating: 'Վարկանիշ Telegram-ում', tgTop: 'Ընդհանուր վարկանիշ', tgTopHint: 'Խաղացողներ, որոնք քարտեր են ստացել Telegram-ով։ Խաղերի միավորները գումարվում են սերվերում։',
   tgTopEmpty: 'Դեռ դատարկ է', tgLoad: 'Բեռնել', tgSynced: 'Գնումները և վարկանիշը վերականգնված են Telegram-ից', tgOffline: 'Սերվերն անհասանելի է'
 });
+/* ---------------- Friends tab ---------------- */
+Object.assign(I18N.ru.ui, {
+  tabFriends: 'Друзья', frTitle: 'Друзья', frSub: 'Зовите друзей за стол одной кнопкой', frMyLink: 'Моя ссылка-приглашение', frMyLinkHint: 'Кто откроет её и нажмёт Start у бота — станет вашим другом в Mafia Pro.',
+  frShare: 'Отправить другу', frCopy: 'Копировать', frCopied: 'Ссылка скопирована', frShareText: 'Добавь меня в друзья в Mafia Pro — будем играть в мафию вместе',
+  frList: 'Мои друзья', frEmpty: 'Друзей пока нет', frEmptyHint: 'Отправьте ссылку выше — друзья появятся здесь, и их можно будет звать за стол.',
+  frInviteTable: 'Позвать за стол ({n})', frInviteAll: 'Все', frInviteNone: 'Никого', frNoGame: 'Чтобы позвать друзей за стол, сначала создайте игру — стол откроется автоматически.', frNewGame: 'Новая игра',
+  frInvited: 'Приглашения отправлены: {n}', frInviteFail: 'Не доставлено: {n}', frRemove: 'Удалить из друзей', frRemoveAsk: 'Удалить {name} из друзей?', frRemoved: 'Удалено', frAccepted: 'Теперь вы друзья с {name}',
+  frOnlyTg: 'Список друзей работает в Telegram-версии: откройте приложение через бота, и здесь появятся ваши друзья и ссылка-приглашение.', frLoading: 'Загружаем…', frStats: '{g} игр · {w} побед', frTable: 'Стол {code} открыт — ждём {n} друзей', frInviteFriends: 'Позвать друзей', frRefresh: 'Обновить'
+});
+Object.assign(I18N.uk.ui, {
+  tabFriends: 'Друзі', frTitle: 'Друзі', frSub: 'Кличте друзів за стіл однією кнопкою', frMyLink: 'Моє посилання-запрошення', frMyLinkHint: 'Хто відкриє його і натисне Start у бота — стане вашим другом у Mafia Pro.',
+  frShare: 'Надіслати другові', frCopy: 'Копіювати', frCopied: 'Посилання скопійовано', frShareText: 'Додай мене в друзі в Mafia Pro — гратимемо в мафію разом',
+  frList: 'Мої друзі', frEmpty: 'Друзів поки немає', frEmptyHint: 'Надішліть посилання вище — друзі з’являться тут, і їх можна буде кликати за стіл.',
+  frInviteTable: 'Покликати за стіл ({n})', frInviteAll: 'Усі', frInviteNone: 'Нікого', frNoGame: 'Щоб покликати друзів за стіл, спершу створіть гру — стіл відкриється автоматично.', frNewGame: 'Нова гра',
+  frInvited: 'Запрошення надіслано: {n}', frInviteFail: 'Не доставлено: {n}', frRemove: 'Видалити з друзів', frRemoveAsk: 'Видалити {name} з друзів?', frRemoved: 'Видалено', frAccepted: 'Тепер ви друзі з {name}',
+  frOnlyTg: 'Список друзів працює в Telegram-версії: відкрийте застосунок через бота, і тут з’являться ваші друзі та посилання-запрошення.', frLoading: 'Завантажуємо…', frStats: '{g} ігор · {w} перемог', frTable: 'Стіл {code} відкрито — чекаємо {n} друзів', frInviteFriends: 'Покликати друзів', frRefresh: 'Оновити'
+});
+Object.assign(I18N.en.ui, {
+  tabFriends: 'Friends', frTitle: 'Friends', frSub: 'Invite friends to your table with one tap', frMyLink: 'My invite link', frMyLinkHint: 'Anyone who opens it and taps Start in the bot becomes your friend in Mafia Pro.',
+  frShare: 'Send to a friend', frCopy: 'Copy', frCopied: 'Link copied', frShareText: 'Add me as a friend in Mafia Pro — let’s play Mafia together',
+  frList: 'My friends', frEmpty: 'No friends yet', frEmptyHint: 'Send the link above — friends will appear here and can be invited to a table.',
+  frInviteTable: 'Invite to table ({n})', frInviteAll: 'All', frInviteNone: 'None', frNoGame: 'To invite friends to a table, create a game first — the table opens automatically.', frNewGame: 'New game',
+  frInvited: 'Invitations sent: {n}', frInviteFail: 'Not delivered: {n}', frRemove: 'Remove friend', frRemoveAsk: 'Remove {name} from friends?', frRemoved: 'Removed', frAccepted: 'You are now friends with {name}',
+  frOnlyTg: 'The friends list works in the Telegram version: open the app through the bot and your friends and invite link will appear here.', frLoading: 'Loading…', frStats: '{g} games · {w} wins', frTable: 'Table {code} is open — waiting for {n} friends', frInviteFriends: 'Invite friends', frRefresh: 'Refresh'
+});
+Object.assign(I18N.pl.ui, {
+  tabFriends: 'Znajomi', frTitle: 'Znajomi', frSub: 'Zaproś znajomych do stołu jednym dotknięciem', frMyLink: 'Mój link z zaproszeniem', frMyLinkHint: 'Kto go otworzy i naciśnie Start u bota — zostanie Twoim znajomym w Mafia Pro.',
+  frShare: 'Wyślij znajomemu', frCopy: 'Kopiuj', frCopied: 'Link skopiowany', frShareText: 'Dodaj mnie do znajomych w Mafia Pro — zagramy w mafię razem',
+  frList: 'Moi znajomi', frEmpty: 'Brak znajomych', frEmptyHint: 'Wyślij link powyżej — znajomi pojawią się tutaj i będzie można zaprosić ich do stołu.',
+  frInviteTable: 'Zaproś do stołu ({n})', frInviteAll: 'Wszyscy', frInviteNone: 'Nikt', frNoGame: 'Aby zaprosić znajomych do stołu, najpierw utwórz grę — stół otworzy się automatycznie.', frNewGame: 'Nowa gra',
+  frInvited: 'Wysłano zaproszeń: {n}', frInviteFail: 'Nie dostarczono: {n}', frRemove: 'Usuń ze znajomych', frRemoveAsk: 'Usunąć {name} ze znajomych?', frRemoved: 'Usunięto', frAccepted: 'Jesteś teraz znajomym z {name}',
+  frOnlyTg: 'Lista znajomych działa w wersji Telegram: otwórz aplikację przez bota, a pojawią się tu Twoi znajomi i link z zaproszeniem.', frLoading: 'Wczytywanie…', frStats: '{g} gier · {w} wygranych', frTable: 'Stół {code} otwarty — czekamy na {n} znajomych', frInviteFriends: 'Zaproś znajomych', frRefresh: 'Odśwież'
+});
+Object.assign(I18N.hy.ui, {
+  tabFriends: 'Ընկերներ', frTitle: 'Ընկերներ', frSub: 'Կանչեք ընկերներին սեղանի մոտ մեկ սեղմումով', frMyLink: 'Իմ հրավերի հղումը', frMyLinkHint: 'Ով բացի այն և սեղմի Start բոտում՝ կդառնա ձեր ընկերը Mafia Pro-ում։',
+  frShare: 'Ուղարկել ընկերոջը', frCopy: 'Պատճենել', frCopied: 'Հղումը պատճենված է', frShareText: 'Ավելացրու ինձ ընկերների մեջ Mafia Pro-ում — միասին մաֆիա խաղանք',
+  frList: 'Իմ ընկերները', frEmpty: 'Ընկերներ դեռ չկան', frEmptyHint: 'Ուղարկեք վերևի հղումը — ընկերները կհայտնվեն այստեղ, և նրանց կարելի կլինի կանչել սեղանի մոտ։',
+  frInviteTable: 'Կանչել սեղանի մոտ ({n})', frInviteAll: 'Բոլորը', frInviteNone: 'Ոչ ոք', frNoGame: 'Ընկերներին սեղանի մոտ կանչելու համար նախ ստեղծեք խաղ — սեղանը կբացվի ինքնաբերաբար։', frNewGame: 'Նոր խաղ',
+  frInvited: 'Հրավերներն ուղարկված են՝ {n}', frInviteFail: 'Չի հասել՝ {n}', frRemove: 'Հեռացնել ընկերներից', frRemoveAsk: 'Հեռացնե՞լ {name}-ին ընկերներից։', frRemoved: 'Հեռացված է', frAccepted: 'Այժմ ընկերներ եք {name}-ի հետ',
+  frOnlyTg: 'Ընկերների ցանկն աշխատում է Telegram տարբերակում․ բացեք հավելվածը բոտի միջոցով, և այստեղ կհայտնվեն ձեր ընկերները և հրավերի հղումը։', frLoading: 'Բեռնվում է…', frStats: '{g} խաղ · {w} հաղթանակ', frTable: '{code} սեղանը բաց է — սպասում ենք {n} ընկերոջ', frInviteFriends: 'Կանչել ընկերներին', frRefresh: 'Թարմացնել'
+});

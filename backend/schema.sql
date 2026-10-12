@@ -63,3 +63,16 @@ CREATE TABLE IF NOT EXISTS lobby_players (
   joined_at  INTEGER NOT NULL,
   PRIMARY KEY (code, tg_id)
 );
+
+-- friends: invite codes (one per user) and symmetric friendships (both directions are stored)
+CREATE TABLE IF NOT EXISTS invites (
+  code       TEXT PRIMARY KEY,
+  tg_id      INTEGER NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS friends (
+  tg_id      INTEGER NOT NULL,
+  friend_id  INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (tg_id, friend_id)
+);

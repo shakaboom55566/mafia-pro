@@ -7,6 +7,10 @@
    - POST /api/lobby          open a table: players join via t.me/<bot>?start=join_<code>
    - POST /api/lobby/status   who has joined
    - POST /api/lobby/deal     send each player their card in a private message
+   - POST /api/friends        my friends + my invite link (t.me/<bot>?start=friend_<code>)
+   - POST /api/friends/accept accept an invite code opened inside the Mini App (?startapp=friend_<code>)
+   - POST /api/friends/remove drop a friend (both directions)
+   - POST /api/friends/invite DM selected friends a "join table" button for my open lobby
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
    ============================================================ */
@@ -58,6 +62,32 @@ async function bumpRating(env, tgId, dPoints, dGames, dWins, dHosted) {
     .bind(tgId, dPoints | 0, dGames | 0, dWins | 0, dHosted | 0, now()).run();
 }
 
+const displayName = u => [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || String(u.id);
+async function inviteCodeFor(env, tgId) {
+  const r = await env.DB.prepare('SELECT code FROM invites WHERE tg_id = ?1').bind(tgId).first();
+  if (r) return r.code;
+  for (let i = 0; i < 5; i++) {
+    const code = randomCode(8);
+    const ins = await env.DB.prepare('INSERT OR IGNORE INTO invites (code, tg_id, created_at) VALUES (?1, ?2, ?3)').bind(code, tgId, now()).run();
+    if (ins.meta && ins.meta.changes > 0) return code;
+    const again = await env.DB.prepare('SELECT code FROM invites WHERE tg_id = ?1').bind(tgId).first(); if (again) return again.code;
+  }
+  throw new Error('invite code');
+}
+async function befriend(env, a, b) { // symmetric; returns true when the pair is new
+  if (!a || !b || a === b) return false;
+  const ts = now();
+  const r = await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (?1, ?2, ?3)').bind(a, b, ts).run();
+  await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (?1, ?2, ?3)').bind(b, a, ts).run();
+  return !!(r.meta && r.meta.changes > 0);
+}
+async function userRow(env, tgId) { return env.DB.prepare('SELECT tg_id, username, first_name, last_name, lang, photo_url FROM users WHERE tg_id = ?1').bind(tgId).first(); }
+const rowName = r => (r ? ([r.first_name, r.last_name].filter(Boolean).join(' ') || r.username || String(r.tg_id)) : '');
+async function friendsOf(env, tgId) {
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.lang, u.photo_url, f.created_at, r.points, r.games, r.wins
+    FROM friends f JOIN users u ON u.tg_id = f.friend_id LEFT JOIN ratings r ON r.tg_id = f.friend_id WHERE f.tg_id = ?1 ORDER BY f.created_at DESC`).bind(tgId).all()).results || [];
+  return rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', lang: r.lang || 'ru', since: r.created_at, points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0 }));
+}
 let botUsernameCache = null;
 async function botUsername(env, bot) {
   if (env.BOT_USERNAME) return env.BOT_USERNAME;
@@ -83,20 +113,35 @@ async function onText(env, bot, msg) {
     const param = m[1] || '';
     const j = /^join_([A-Z0-9]{4,8})$/i.exec(param);
     if (j) return joinLobby(env, bot, chat, u, lang, j[1].toUpperCase());
+    const f = /^friend_([A-Z0-9]{6,10})$/i.exec(param);
+    if (f) return acceptFriend(env, bot, chat, u, lang, f[1].toUpperCase(), play);
     return bot.send(chat, t(lang, 'welcome'), play);
   }
   if (/^\/(help|rules)/.test(text)) return bot.send(chat, t(lang, 'help'), play);
   return bot.send(chat, t(lang, 'unknown'), play);
 }
+async function acceptFriend(env, bot, chat, u, lang, code, play) {
+  const inv = await env.DB.prepare('SELECT tg_id FROM invites WHERE code = ?1').bind(code).first();
+  if (!inv) return bot.send(chat, t(lang, 'inviteNotFound'), play);
+  if (inv.tg_id === u.id) return bot.send(chat, t(lang, 'friendSelf'), play);
+  const isNew = await befriend(env, u.id, inv.tg_id);
+  const inviter = await userRow(env, inv.tg_id);
+  await bot.send(chat, t(lang, 'friendAccepted', { name: esc(rowName(inviter) || '…') }), play);
+  if (isNew && inviter) { const il = pickLang(inviter.lang); await bot.send(inv.tg_id, t(il, 'friendJoined', { name: esc(displayName(u)) }), bot.playButton(t(il, 'play'), env.APP_URL)); }
+}
 async function joinLobby(env, bot, chat, u, lang, code) {
-  const lobby = await env.DB.prepare('SELECT code, status FROM lobbies WHERE code = ?1').bind(code).first();
+  const lobby = await env.DB.prepare('SELECT code, status, host_id FROM lobbies WHERE code = ?1').bind(code).first();
   if (!lobby) return bot.send(chat, t(lang, 'lobbyNotFound', { code }));
   if (lobby.status !== 'open') return bot.send(chat, t(lang, 'lobbyClosed', { code }));
-  const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || String(u.id);
+  const name = displayName(u);
   const r = await env.DB.prepare('INSERT OR IGNORE INTO lobby_players (code, tg_id, name, username, lang, joined_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
     .bind(code, u.id, name, u.username || null, lang, now()).run();
   const inserted = r.meta && r.meta.changes > 0;
-  return bot.send(chat, t(lang, inserted ? 'joined' : 'alreadyJoined', { code }));
+  await bot.send(chat, t(lang, inserted ? 'joined' : 'alreadyJoined', { code }));
+  if (inserted && lobby.host_id !== u.id) { // tell the host who sat down
+    const host = await userRow(env, lobby.host_id); const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM lobby_players WHERE code = ?1').bind(code).first('n');
+    await bot.send(lobby.host_id, t(pickLang(host && host.lang), 'hostJoined', { code, name: esc(name), n }));
+  }
 }
 async function onPreCheckout(env, bot, q) {
   const p = await env.DB.prepare('SELECT id, status, stars FROM purchases WHERE payload = ?1').bind(q.invoice_payload || '').first();
@@ -122,11 +167,49 @@ async function auth(env, body) {
   await touchUser(env, v.user);
   return v;
 }
-async function apiMe(env, body) {
+async function apiMe(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
-  const [owned, rating] = await Promise.all([ownedFor(env, v.user.id), ratingFor(env, v.user.id)]);
+  const [owned, rating, code, username] = await Promise.all([ownedFor(env, v.user.id), ratingFor(env, v.user.id), inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
   const u = v.user;
-  return json({ ok: true, user: { id: u.id, name: [u.first_name, u.last_name].filter(Boolean).join(' '), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam });
+  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}` } });
+}
+/* ---------- friends ---------- */
+async function apiFriends(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const [list, code, username] = await Promise.all([friendsOf(env, v.user.id), inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
+  return json({ ok: true, friends: list, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}` } });
+}
+async function apiFriendAccept(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase(); if (!/^[A-Z0-9]{6,10}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  const inv = await env.DB.prepare('SELECT tg_id FROM invites WHERE code = ?1').bind(code).first();
+  if (!inv) return json({ ok: false, error: 'not_found' }, 404);
+  if (inv.tg_id === v.user.id) return json({ ok: true, self: true });
+  const isNew = await befriend(env, v.user.id, inv.tg_id);
+  const inviter = await userRow(env, inv.tg_id);
+  if (isNew && inviter) { const il = pickLang(inviter.lang); await bot.send(inv.tg_id, t(il, 'friendJoined', { name: esc(displayName(v.user)) }), bot.playButton(t(il, 'play'), env.APP_URL)); }
+  return json({ ok: true, isNew, friend: { tgId: inv.tg_id, name: rowName(inviter) } });
+}
+async function apiFriendRemove(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const fid = Number(body.friendId); if (!fid) return json({ ok: false, error: 'bad_friend' }, 400);
+  await env.DB.prepare('DELETE FROM friends WHERE (tg_id = ?1 AND friend_id = ?2) OR (tg_id = ?2 AND friend_id = ?1)').bind(v.user.id, fid).run();
+  return json({ ok: true });
+}
+async function apiFriendInvite(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const lobby = await hostLobby(env, v, body); if (!lobby || lobby.status !== 'open') return json({ ok: false, error: 'no_lobby' }, 404);
+  const ids = (Array.isArray(body.friendIds) ? body.friendIds : []).map(Number).filter(Boolean).slice(0, 40);
+  const mine = new Set((await friendsOf(env, v.user.id)).map(f => f.tgId));
+  const username = await botUsername(env, bot); const me = esc(displayName(v.user));
+  const sent = [], failed = [];
+  for (const fid of ids) {
+    if (!mine.has(fid)) { failed.push({ tgId: fid, error: 'not_friend' }); continue; }
+    const fr = await userRow(env, fid); const fl = pickLang(fr && fr.lang);
+    const r = await bot.send(fid, t(fl, 'friendInvite', { name: me, code: lobby.code }), { reply_markup: { inline_keyboard: [[{ text: t(fl, 'btnJoin', { code: lobby.code }), url: `https://t.me/${username}?start=join_${lobby.code}` }]] } });
+    if (r && r.ok) sent.push(fid); else failed.push({ tgId: fid, error: (r && r.description) || 'send_failed' });
+  }
+  return json({ ok: true, sent, failed });
 }
 async function apiInvoice(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -230,7 +313,11 @@ export default {
         if (req.method !== 'POST') return wrap(Promise.resolve(json({ ok: false, error: 'method' }, 405)));
         let body = null; try { body = await req.json(); } catch (e) { return wrap(Promise.resolve(json({ ok: false, error: 'bad_json' }, 400))); }
         switch (path) {
-          case '/api/me': return wrap(apiMe(env, body));
+          case '/api/me': return wrap(apiMe(env, bot, body));
+          case '/api/friends': return wrap(apiFriends(env, bot, body));
+          case '/api/friends/accept': return wrap(apiFriendAccept(env, bot, body));
+          case '/api/friends/remove': return wrap(apiFriendRemove(env, body));
+          case '/api/friends/invite': return wrap(apiFriendInvite(env, bot, body));
           case '/api/invoice': return wrap(apiInvoice(env, bot, body));
           case '/api/game/result': return wrap(apiResult(env, body));
           case '/api/lobby': return wrap(apiLobbyCreate(env, bot, body));

@@ -165,7 +165,7 @@ I18N.hy = {
     logKamikaze: 'Կամիկաձե {player}-ը բացում է քարտը։', logSkip: '{role} {player}. քայլը բաց թողնված է', logReturn: 'Վարողը խաղ վերադարձրեց {player}-ին', logEnd: 'Խաղն ավարտված է. {title}'
   },
   ui: {
-    tabGame: 'Խաղ', tabCards: 'Քարտեր', tabScen: 'Կազմեր', tabSettings: 'Կարգավորումներ', back: 'Հետ', close: 'Փակել', cancel: 'Չեղարկել', confirm: 'Հաստատել', next: 'Առաջ', skip: 'Բաց թողնել',
+    tabGame: 'Խաղ', tabCards: 'Քարտեր', tabScen: 'Կազմեր', tabSettings: 'Ընտրանքներ', back: 'Հետ', close: 'Փակել', cancel: 'Չեղարկել', confirm: 'Հաստատել', next: 'Առաջ', skip: 'Բաց թողնել',
     heroEyebrow: 'Կաստելմար · դերային մաֆիա', heroTag: 'Վարողը ստեղծում է խաղը, հավելվածը բաժանում է քարտերը, վարում գիշերը, ցերեկը և քվեարկությունը։',
     continueGame: 'Շարունակել խաղը', aliveOf: '{alive} ողջ {n}-ից', newGame: 'Նոր խաղ', newGameD: '7-ից 24 խաղացող, 20-ից՝ երկու ընտանիք',
     cardsTitle: 'Դերերի քարտեր', cardsD: '{n} {roles}. մեխանիկա, պատմություն, խորհուրդներ', scenTitle: 'Հավասարակշռված կազմեր', scenD: 'Պատրաստի կազմ խաղացողների յուրաքանչյուր քանակի համար',
