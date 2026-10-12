@@ -12,19 +12,20 @@
 
 ## Публикация как Telegram Mini App
 
-Приложение уже выложено на GitHub Pages по адресу выше. Привязка к боту делается в [@BotFather](https://t.me/BotFather):
+Приложение выложено на GitHub Pages по адресу выше. Бот настраивается в два шага.
 
-1. `/newbot` → имя **Mafia Pro**, username вида `mafiapro_bot`. Сохранить токен.
-2. `/newapp` → выбрать бота → название **Mafia Pro** → описание → картинка 640×360 → **Web App URL:** `https://shakaboom55566.github.io/mafia-pro/` → короткое имя `app`.
-   Ссылка на приложение: `https://t.me/mafiapro_bot/app`
-3. `/mybots` → бот → **Bot Settings → Menu Button** → тот же URL, чтобы приложение открывалось кнопкой в чате.
-4. `/setuserpic`, `/setdescription`, `/setabouttext` — иконка и описание.
+**1. Токен бота — в секреты репозитория, не в чат и не в код.** В [@BotFather](https://t.me/BotFather): `/newbot` → имя **Mafia Pro**, username вида `mafiapro_bot`. Полученный токен положить сюда: репозиторий → **Settings → Secrets and variables → Actions → New repository secret**, имя `BOT_TOKEN`. Если токен когда-либо попадал в переписку или логи — `/mybots` → бот → **API Token → Revoke current token**, и в секрет положить новый.
+
+**2. Настройка бота одной кнопкой.** Вкладка **Actions → «Configure Telegram bot» → Run workflow**. Скрипт `bot/setup.sh` через Bot API ставит кнопку меню «Играть · Play», открывающую приложение, имя бота, короткое описание и описание на ru/uk/en/pl/hy (тексты — `bot/texts/`).
+
+**3. Только вручную в BotFather** (через API не делается): `/newapp` → выбрать бота → название **Mafia Pro** → описание → картинка 640×360 → **Web App URL:** `https://shakaboom55566.github.io/mafia-pro/` → короткое имя `app`. Это даёт прямую ссылку `https://t.me/<бот>/app` и рекламные ссылки ниже. Иконка бота — `/setuserpic`.
 
 ### Глубокие ссылки для рекламы
 
 | Ссылка | Что открывает |
 | --- | --- |
 | `t.me/mafiapro_bot/app?startapp=classic` | сразу стол классической мафии на 10 |
+| `shakaboom55566.github.io/mafia-pro/?startapp=classic` | то же из обычного браузера или с кнопки меню |
 | `?startapp=shop` | магазин |
 | `?startapp=cards` | все карты |
 | `?startapp=card_<id>` | карта роли (`don`, `sheriff`, `kamikaze`, `sapper`, …) |
@@ -63,7 +64,8 @@ src/
   08-telegram.js          интеграция с Telegram Mini App
   06-shop.js              магазин
 test/                     симуляторы и тесты
-.github/workflows/        автопубликация на GitHub Pages при пуше в main
+bot/                      настройка Telegram-бота через Bot API (setup.sh + тексты на 5 языках)
+.github/workflows/        pages.yml — автопубликация при пуше в main; bot-setup.yml — настройка бота по кнопке
 ```
 
 Деплой автоматический: любой пуш в `main` пересобирает и публикует сайт (Settings → Pages → Source: GitHub Actions). Запасной вариант без Actions — Source: Deploy from a branch, `main` / `(root)`: в корне лежит готовый `index.html`.

@@ -1,0 +1,48 @@
+name: Configure Telegram bot
+
+# Configures the bot through the Bot API using the BOT_TOKEN repository secret
+# (Settings → Secrets and variables → Actions → New repository secret → BOT_TOKEN).
+# Run it manually: Actions → "Configure Telegram bot" → Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: Mini App URL (https)
+        default: https://shakaboom55566.github.io/mafia-pro/
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      APP_URL: ${{ inputs.app_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secret
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "::error::Секрет BOT_TOKEN не задан. Settings → Secrets and variables → Actions → New repository secret → имя BOT_TOKEN, значение — токен из @BotFather."
+            exit 1
+          fi
+
+      - name: Configure bot (menu button, name, descriptions ru/uk/en/pl/hy)
+        run: bash bot/setup.sh
+
+      - name: Summary
+        run: |
+          U=$(cat /tmp/bot_username.txt)
+          {
+            echo "## Бот настроен"
+            echo
+            echo "- Бот: https://t.me/$U"
+            echo "- Кнопка меню «Играть · Play» открывает: $APP_URL"
+            echo "- Имя, короткое описание и описание заданы на ru/uk/en/pl/hy"
+            echo
+            echo "Ссылка вида t.me/$U/app?startapp=… появится после /newapp в @BotFather (через API это не делается)."
+          } >> "$GITHUB_STEP_SUMMARY"

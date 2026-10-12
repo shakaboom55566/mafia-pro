@@ -1,0 +1,5 @@
+Mafia Pro — stół prowadzącego do gry w mafię na żywo.
+
+Naciśnij przycisk «Играть · Play» poniżej, aby otworzyć aplikację: rozdanie kart, noc i dzień krok po kroku, głosowanie z dogrywką i ruletką, analiza partii i rankingi graczy.
+
+Klasyczna mafia na 10 osób — bezpłatnie. 55 ról, pięć języków.

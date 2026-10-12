@@ -1,0 +1,1 @@
+Host app for live Mafia: 55 roles, classic 10-player mode, rule-driven voting, post-game review.

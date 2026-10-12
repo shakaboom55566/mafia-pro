@@ -1,0 +1,5 @@
+Mafia Pro — the host's table for live Mafia games.
+
+Tap the «Играть · Play» button below to open the app: card dealing, step-by-step night and day, voting with re-votes and roulette, post-game review and player ratings.
+
+Classic 10-player Mafia is free. 55 roles, five languages.

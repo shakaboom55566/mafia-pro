@@ -5519,24 +5519,27 @@ function reviewGame(g) {
    Everything here is optional: outside Telegram the app behaves exactly as before.
    ============================================================ */
 const TG = { app: null, ready: false };
+/* ?startapp=… — from Telegram (initDataUnsafe.start_param) or from the page URL (menu button / plain browser link) */
+function applyStartParam(sp) {
+  if (!sp || S.game) return;
+  if (sp === 'classic') { S.ui.tgStart = { a: 'scen-use', id: 'classic' }; }
+  else if (sp === 'shop') S.screen = 'shop';
+  else if (sp === 'cards') S.screen = 'cards';
+  else if (sp.startsWith('card_') && ROLE[sp.slice(5)]) { S.screen = 'cards'; S.ui.sheet = { type: 'role', id: sp.slice(5) }; }
+  else if (sp.startsWith('scen_') && SCENARIO[sp.slice(5)]) { S.ui.tgStart = { a: 'scen-use', id: sp.slice(5) }; }
+}
 function tgInit() {
   try {
-    const tg = window.Telegram && window.Telegram.WebApp; if (!tg || tg.platform === 'unknown') return;
+    const q = typeof location !== 'undefined' && location.search ? new URLSearchParams(location.search).get('startapp') : null;
+    const tg = window.Telegram && window.Telegram.WebApp; if (!tg || tg.platform === 'unknown') { applyStartParam(q); return; }
     TG.app = tg; TG.ready = true;
     tg.ready(); tg.expand();
     try { tg.setHeaderColor('#0b0a0e'); tg.setBackgroundColor('#0b0a0e'); if (tg.setBottomBarColor) tg.setBottomBarColor('#0b0a0e'); } catch (e) {}
     // a vertical swipe closes the mini app by default — that kills the 3D card drag and the pickers
     try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
     try { if (tg.lockOrientation) tg.lockOrientation(); } catch (e) {}
-    // deep links: t.me/<bot>/<app>?startapp=classic | shop | card_<id> | scen_<id>
-    const sp = tg.initDataUnsafe && tg.initDataUnsafe.start_param;
-    if (sp && !S.game) {
-      if (sp === 'classic') { S.ui.tgStart = { a: 'scen-use', id: 'classic' }; }
-      else if (sp === 'shop') S.screen = 'shop';
-      else if (sp === 'cards') S.screen = 'cards';
-      else if (sp.startsWith('card_') && ROLE[sp.slice(5)]) { S.screen = 'cards'; S.ui.sheet = { type: 'role', id: sp.slice(5) }; }
-      else if (sp.startsWith('scen_') && SCENARIO[sp.slice(5)]) { S.ui.tgStart = { a: 'scen-use', id: sp.slice(5) }; }
-    }
+    // deep links: t.me/<bot>/<app>?startapp=classic | shop | cards | card_<id> | scen_<id>
+    applyStartParam((tg.initDataUnsafe && tg.initDataUnsafe.start_param) || q);
     // native Back button mirrors the app's own navigation
     if (tg.BackButton) tg.BackButton.onClick(() => { if (S.ui.sheet) { S.ui.sheet = null; render(); } else ACT.back({ dataset: {} }); });
     // purchases go through Telegram Stars when the backend is configured (window.MAFIA_API); otherwise the demo purchase stays
@@ -5579,7 +5582,7 @@ function tgBuy(kind, id, onDone) {
   const wrap = (name, kind) => { const f = ACT[name]; if (!f) return; ACT[name] = function (el) { tgHaptic(kind); return f.call(this, el); }; };
   wrap('flip', 'impact'); wrap('confirm', 'light'); wrap('vote-finish', 'success'); wrap('vote-close', 'success'); wrap('kam-confirm', 'warning'); wrap('roulette-guess', 'light'); wrap('lift-finish', 'success'); wrap('finish', 'success');
   const origRender = render;
-  render = function () { origRender(); if (TG.app) { tgSync(); if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } } };
+  render = function () { origRender(); if (TG.app) tgSync(); if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
 })();
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
