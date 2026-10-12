@@ -284,7 +284,17 @@ console.log('partner programme: apply → admin approves → stats & earnings');
   const ap = await (await post('/api/partner/apply', { initData: pi, name: 'Клуб Мафии Днепр', channel: 't.me/mafia_dnepr', audience: '1200 игроков' })).json(); eq(ap.status, 'pending', 'application pending');
   ok(lastTo(910).params.text.includes('Заявка') && lastTo(777).params.text.includes('Клуб Мафии Днепр') && lastTo(777).params.text.includes('/partner 910'), 'applicant and admin notified');
   eq((await post('/api/admin/partner', { initData: pi, q: '910', approve: true })).status, 403, 'only admins approve');
-  await hook(msg(user(777, 'ru'), '/partner @club910')); ok(lastTo(777).params.text.includes('подтверждён') && lastTo(910).params.text.includes('20%'), 'approved via bot');
+  const before910 = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 910).length;
+  await hook(msg(user(777, 'ru'), '/partner @club910'));
+  const msgs910 = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 910).slice(before910).map(c => c.params.text);
+  ok(lastTo(777).params.text.includes('подтверждён') && msgs910.some(x => x.includes('20%')), 'approved via bot');
+  // a partner lands in Clubs at once: an active club is created from the application (name + channel link), partner is its head
+  ok(msgs910.some(x => x.includes('создан клуб «Клуб Мафии Днепр»')), 'partner told about the auto-created club');
+  const pc = await (await post('/api/partner', { initData: pi })).json(); ok(pc.club && pc.club.name === 'Клуб Мафии Днепр' && pc.club.id > 0, '/api/partner reports the club');
+  const pme = await (await post('/api/me', { initData: pi })).json(); ok(pme.club && pme.club.id === pc.club.id && pme.club.role === 'owner' && pme.club.partner === true, 'me.club: owner of a partner club');
+  const pcl = await (await post('/api/clubs', { initData: pi })).json(); ok(pcl.clubs.length === 1 && pcl.clubs[0].id === pc.club.id && pcl.clubs[0].link === 't.me/mafia_dnepr' && pcl.clubs[0].status === 'active' && pcl.mine.role === 'owner', 'club listed as active with the channel link');
+  eq((await post('/api/club/apply', { initData: pi, name: 'Another' })).status, 409, 'partner cannot found a second club');
+  const top0 = await (await call(`/api/clubs/top`)).json(); ok(top0.ok && top0.top.length === 1 && top0.top[0].members === 1 && top0.top[0].partner === true && top0.top[0].rank === 1, 'public top of clubs');
   // the partner brings two new players; one buys a scenario (500 stars) and a card (100)
   const pcode = (await (await post('/api/me', { initData: pi })).json()).invite.code;
   await hook(msg(user(911, 'en', { first_name: 'Buyer' }), `/start ref_${pcode}`)); await hook(msg(user(912, 'en', { first_name: 'Free' }), `/start ref_${pcode}`));
@@ -308,11 +318,11 @@ console.log('clubs: apply → admin approves → listed → invite / apply / res
   ok(lastTo(1000).params.text.includes('Заявка на клуб') && lastTo(777).params.text.includes('Клуб Кастельмар') && lastTo(777).params.text.includes(`/club_ok ${cid}`), 'head and admin notified');
   eq((await post('/api/club/apply', { initData: hi, name: 'Second' })).status, 409, 'one pending application per head');
   eq((await post('/api/club/apply', { initData: hi, name: 'X' })).status, 400, 'short name refused');
-  ok((await (await post('/api/clubs', { initData: hi })).json()).clubs.length === 0, 'pending club is not listed');
+  ok((await (await post('/api/clubs', { initData: hi })).json()).clubs.every(c => c.name !== 'Клуб Кастельмар'), 'pending club is not listed');
   eq((await post('/api/admin/club', { initData: hi, id: cid, approve: true })).status, 403, 'only admins approve');
   await hook(msg(user(777, 'ru'), `/club_ok ${cid}`)); ok(lastTo(777).params.text.includes('подтверждён') && lastTo(1000).params.text.includes('подтверждён'), 'approved via bot');
-  const lst = await (await post('/api/clubs', { initData: hi })).json();
-  ok(lst.clubs.length === 1 && lst.clubs[0].name === 'Клуб Кастельмар' && lst.clubs[0].city === 'Київ' && lst.clubs[0].logo === logo && lst.clubs[0].members === 1 && lst.clubs[0].online === 1 && lst.mine.role === 'owner', 'listed with logo, city, 1 member online; head is owner');
+  const lst0 = await (await post('/api/clubs', { initData: hi })).json(); const lst = Object.assign({}, lst0, { clubs: lst0.clubs.filter(c => c.name === 'Клуб Кастельмар') });
+  ok(lst0.clubs.length === 2 && lst.clubs.length === 1 && lst.clubs[0].name === 'Клуб Кастельмар' && lst.clubs[0].city === 'Київ' && lst.clubs[0].logo === logo && lst.clubs[0].members === 1 && lst.clubs[0].online === 1 && lst.mine.role === 'owner', 'listed with logo, city, 1 member online; head is owner');
   ok((await (await post('/api/me', { initData: hi })).json()).club.id === cid, 'me.club');
   // invite a player (bot buttons) and a player applies (head approves in app)
   const p1 = user(1001, 'uk', { first_name: 'Гравець', username: 'pl1001' }), p2 = user(1002, 'en', { first_name: 'Applicant' }); await hook(msg(p1, '/start')); await hook(msg(p2, '/start'));
@@ -355,10 +365,11 @@ console.log('clubs: apply → admin approves → listed → invite / apply / res
   const ch2 = await (await post('/api/club/chat', { initData: hi, since: s1.id })).json(); ok(ch2.messages.some(m => m.kind === 'lobby' && m.code === lob.code), 'lobby message in chat');
   // admin list + reject
   const adm = await initData(user(777, 'ru'));
-  const al = await (await post('/api/admin/clubs', { initData: adm })).json(); ok(al.clubs.length === 2 && al.clubs.every(c => c.status === 'active') && al.clubs[0].owner, 'admin list');
+  const al = await (await post('/api/admin/clubs', { initData: adm })).json(); ok(al.clubs.length === 3 && al.clubs.every(c => c.status === 'active') && al.clubs[0].owner, 'admin list');
   await hook(msg(user(777, 'ru'), '/clubs')); ok(lastTo(777).params.text.includes('Кастельмар') && lastTo(777).params.text.includes('Warszawa'), '/clubs');
   const rj = await (await post('/api/admin/club', { initData: adm, id: ap3.id, approve: false })).json(); ok(rj.ok && lastTo(1010).params.text.includes('odrzucone'), 'rejected via API (pl)');
-  ok((await (await post('/api/clubs', { initData: hi })).json()).clubs.length === 1, 'rejected club not listed');
+  ok((await (await post('/api/clubs', { initData: hi })).json()).clubs.length === 2, 'rejected club not listed');
+  const top = await (await call(`/api/clubs/top?limit=10`)).json(); ok(top.ok && top.top[0].id === cid && top.top[0].members === 2 && top.top[0].online >= 1 && top.top.length === 2 && top.top[1].members === 1, 'top of clubs by members: ' + top.top.map(c => c.name + ':' + c.members).join(', '));
   const up = await (await post('/api/club/update', { initData: hi, id: cid, city: 'Киев', logo: '' })).json(); ok(up.ok && up.club.city === 'Киев' && up.club.logo === '', 'head edited city and removed the logo');
   eq((await post('/api/club/update', { initData: await initData(p3), id: cid, city: 'X' })).status, 403, 'members cannot edit'); }
 

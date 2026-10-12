@@ -544,6 +544,16 @@ p { margin: 0; }
 .club-logo { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; background: var(--bg-3); border: 1px solid var(--line-2); flex: none; display: grid; place-items: center; font-family: var(--font-display); font-weight: 900; color: var(--gold-2); font-size: 22px; overflow: hidden; }
 .club-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .club-logo.lg { width: 84px; height: 84px; border-radius: 20px; font-size: 32px; }
+.rank-row .club-logo { width: 40px; height: 40px; border-radius: 11px; font-size: 16px; }
+/* partner club branding above the game field */
+.club-brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: -4px 0 12px; border-radius: 14px; background: linear-gradient(135deg, rgba(240,205,122,.14), rgba(240,205,122,.04)); border: 1px solid rgba(240,205,122,.4); cursor: pointer; }
+.club-brand .club-logo { width: 42px; height: 42px; border-radius: 12px; font-size: 17px; }
+.club-brand .nm { font-family: var(--font-display); font-weight: 900; font-size: 15px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-brand .sub { font-size: 11.5px; color: var(--gold-2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-brand .mp { font-family: var(--font-display); font-weight: 900; font-size: 12px; color: var(--muted); flex: none; letter-spacing: .02em; }
+.club-brand .mp em { font-style: normal; color: var(--gold-2); }
+html.lite .club-brand { background: var(--bg-2); }
+.scen-tabs button { font-size: 12.5px; padding: 10px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chat { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; padding: 4px 2px; }
 .msg { max-width: 86%; padding: 8px 12px; border-radius: 14px; background: var(--bg-3); border: 1px solid var(--line); font-size: 14px; line-height: 1.35; word-break: break-word; }
 .msg.me { align-self: flex-end; background: rgba(216,169,76,.14); border-color: rgba(216,169,76,.35); }
@@ -3256,6 +3266,30 @@ Object.assign(I18N.hy.ui, {
   clubChat: 'Ակումբի չատ', clubChatPh: 'Հաղորդագրություն…', clubChatSend: 'Ուղարկել', clubChatEmpty: 'Առայժմ լուռ է — գրեք առաջինը', clubCallTable: 'Կանչել ակումբը սեղանի մոտ', clubCalled: 'Ակումբը կանչված է — ցանցում գտնվող անդամները հրավեր ստացան', clubLobbyMsg: '{name}-ը կանչում է {code} սեղանի մոտ', clubJoinTable: 'Նստել սեղանի մոտ', clubSysJoined: '{name}-ը միացավ ակումբին', clubSysCreated: 'Ակումբը ստեղծված է', clubNoLobby: 'Նախ բացեք սեղան (Նոր խաղ → Քարտեր Telegram-ով)',
   clubAdminTitle: 'Ակումբների հայտեր', clubApprove: 'Հաստատել', clubReject: 'Մերժել'
 });
+/* v26: Clubs in the tab bar, "My profile", player stats screen, top of clubs, club branding, free/paid scenario tabs */
+Object.assign(I18N.ru.ui, { tabClubs: 'Клубы', myProfileD: 'Ваша статистика, лучшая карта, история партий', psBtn: 'Профиль', psTitle: 'Статистика игрока', psSub: 'Партии, сыгранные через Telegram', psAllRoles: 'Карты', psSince: 'В игре с {date}', psCloud: 'Общий рейтинг Telegram', psLocal: 'Партии на этом телефоне',
+  clubsTop: 'Топ клубов', clubsTopHint: 'По числу участников; очки — сумма рейтинга участников.', clubPartner: 'Партнёрский клуб', clubPoints: 'очков', clubGoto: 'Перейти в клуб', ptClubReady: 'Ваш клуб уже в списке клубов — настройте логотип и город и приглашайте игроков.',
+  scenFreeTab: 'Бесплатные сценарии', scenPaidTab: 'Платные сценарии', scenPaidHint: 'Особые роли и правила. Куплено один раз — доступно навсегда на всех устройствах с вашим Telegram.',
+  plLocalBtn: 'Профили без Telegram', plLocalD: 'Для рассадки игроков, которых нет в Telegram', noProfilesHint: 'Нажмите «+ Новый профиль», чтобы завести игрока без Telegram — статистика партий будет записываться автоматически.' });
+Object.assign(I18N.uk.ui, { tabClubs: 'Клуби', myProfileD: 'Ваша статистика, найкраща карта, історія партій', psBtn: 'Профіль', psTitle: 'Статистика гравця', psSub: 'Партії, зіграні через Telegram', psAllRoles: 'Карти', psSince: 'У грі з {date}', psCloud: 'Загальний рейтинг Telegram', psLocal: 'Партії на цьому телефоні',
+  clubsTop: 'Топ клубів', clubsTopHint: 'За кількістю учасників; очки — сума рейтингу учасників.', clubPartner: 'Партнерський клуб', clubPoints: 'очок', clubGoto: 'Перейти в клуб', ptClubReady: 'Ваш клуб уже в списку клубів — налаштуйте логотип і місто та запрошуйте гравців.',
+  scenFreeTab: 'Безплатні сценарії', scenPaidTab: 'Платні сценарії', scenPaidHint: 'Особливі ролі та правила. Куплено один раз — доступно назавжди на всіх пристроях із вашим Telegram.',
+  plLocalBtn: 'Профілі без Telegram', plLocalD: 'Для розсадки гравців, яких немає в Telegram', noProfilesHint: 'Натисніть «+ Новий профіль», щоб додати гравця без Telegram — статистика партій записуватиметься автоматично.' });
+Object.assign(I18N.en.ui, { tabClubs: 'Clubs', myProfileD: 'Your stats, best card, game history', psBtn: 'Profile', psTitle: 'Player stats', psSub: 'Games played through Telegram', psAllRoles: 'Cards', psSince: 'Playing since {date}', psCloud: 'Global Telegram rating', psLocal: 'Games on this phone',
+  clubsTop: 'Top clubs', clubsTopHint: 'By number of members; points are the sum of member ratings.', clubPartner: 'Partner club', clubPoints: 'points', clubGoto: 'Open the club', ptClubReady: 'Your club is already listed — add a logo and city, then invite players.',
+  scenFreeTab: 'Free scenarios', scenPaidTab: 'Paid scenarios', scenPaidHint: 'Special roles and rules. Buy once — yours forever on every device with your Telegram.',
+  plLocalBtn: 'Profiles without Telegram', plLocalD: 'For seating players who are not on Telegram', noProfilesHint: 'Tap “+ New profile” to add a player without Telegram — game stats are recorded automatically.' });
+Object.assign(I18N.pl.ui, { tabClubs: 'Kluby', myProfileD: 'Twoje statystyki, najlepsza karta, historia partii', psBtn: 'Profil', psTitle: 'Statystyki gracza', psSub: 'Partie rozegrane przez Telegram', psAllRoles: 'Karty', psSince: 'Gra od {date}', psCloud: 'Ranking globalny Telegram', psLocal: 'Partie na tym telefonie',
+  clubsTop: 'Top klubów', clubsTopHint: 'Według liczby członków; punkty to suma rankingu członków.', clubPartner: 'Klub partnerski', clubPoints: 'pkt', clubGoto: 'Otwórz klub', ptClubReady: 'Twój klub jest już na liście — dodaj logo i miasto, zapraszaj graczy.',
+  scenFreeTab: 'Darmowe scenariusze', scenPaidTab: 'Płatne scenariusze', scenPaidHint: 'Role specjalne i zasady. Kupione raz — na zawsze na każdym urządzeniu z Twoim Telegramem.',
+  plLocalBtn: 'Profile bez Telegrama', plLocalD: 'Do rozsadzania graczy spoza Telegrama', noProfilesHint: 'Dotknij „+ Nowy profil”, aby dodać gracza spoza Telegrama — statystyki partii zapisują się automatycznie.' });
+Object.assign(I18N.hy.ui, { tabClubs: 'Ակումբներ', myProfileD: 'Ձեր վիճակագրությունը, լավագույն քարտը, խաղերի պատմությունը', psBtn: 'Պրոֆիլ', psTitle: 'Խաղացողի վիճակագրություն', psSub: 'Telegram-ով խաղացած խաղեր', psAllRoles: 'Քարտեր', psSince: 'Խաղում է {date}-ից', psCloud: 'Telegram-ի ընդհանուր վարկանիշ', psLocal: 'Խաղեր այս հեռախոսում',
+  clubsTop: 'Լավագույն ակումբներ', clubsTopHint: 'Ըստ անդամների թվի․ միավորները՝ անդամների վարկանիշների գումարը։', clubPartner: 'Գործընկեր ակումբ', clubPoints: 'միավոր', clubGoto: 'Բացել ակումբը', ptClubReady: 'Ձեր ակումբն արդեն ցանկում է․ ավելացրեք լոգո և քաղաք, հրավիրեք խաղացողների։',
+  scenFreeTab: 'Անվճար սցենարներ', scenPaidTab: 'Վճարովի սցենարներ', scenPaidHint: 'Հատուկ դերեր և կանոններ։ Գնում եք մեկ անգամ՝ ձերն է ընդմիշտ ձեր Telegram-ով բոլոր սարքերում։',
+  plLocalBtn: 'Պրոֆիլներ առանց Telegram-ի', plLocalD: 'Telegram-ում չգտնվող խաղացողների նստեցման համար', noProfilesHint: 'Սեղմեք «+ Նոր պրոֆիլ»՝ առանց Telegram-ի խաղացող ավելացնելու համար․ խաղերի վիճակագրությունը գրանցվում է ավտոմատ։' });
+/* the scenarios screen: just "Scenarios" */
+I18N.ru.ui.scenTitle = 'Сценарии'; I18N.uk.ui.scenTitle = 'Сценарії'; I18N.en.ui.scenTitle = 'Scenarios'; I18N.pl.ui.scenTitle = 'Scenariusze'; I18N.hy.ui.scenTitle = 'Սցենարներ';
+I18N.ru.ui.tabPlayers = 'Мой профиль'; I18N.uk.ui.tabPlayers = 'Мій профіль'; I18N.en.ui.tabPlayers = 'My profile'; I18N.pl.ui.tabPlayers = 'Mój profil'; I18N.hy.ui.tabPlayers = 'Իմ պրոֆիլը';
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
@@ -4527,7 +4561,9 @@ const I = {
   globe: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
   trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v3M8 21h8M9 21v-1a3 3 0 0 1 3-3 3 3 0 0 1 3 3v1"/></svg>',
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-8.5-9A4 4 0 0 1 12 7a4 4 0 0 1 8.5 4C19 15.5 12 20 12 20z"/></svg>',
-  edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M12.5 7.5l4 4"/></svg>'
+  edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M12.5 7.5l4 4"/></svg>',
+  club: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9"/><path d="M3 19h18"/></svg>',
+  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>'
 };
 
 /* ---------- shared pieces ---------- */
@@ -4554,7 +4590,7 @@ function topbar(title, sub, back = true) {
 }
 function tabbar() {
   const t = (id, ico, lbl) => `<button class="tab ${S.tab === id ? 'active' : ''}" data-a="tab" data-id="${id}">${ico}<span>${lbl}</span></button>`;
-  return `<nav class="tabbar"><div class="inner">${t('game', I.game, U().tabGame)}${t('cards', I.cards, U().tabCards)}${t('profiles', I.users, U().tabPlayers)}${t('friends', I.friends, U().tabFriends)}${t('ratings', I.trophy, U().tabRatings)}${t('settings', I.gear, U().tabSettings)}</div></nav>`;
+  return `<nav class="tabbar"><div class="inner">${t('game', I.game, U().tabGame)}${t('cards', I.cards, U().tabCards)}${t('clubs', I.club, U().tabClubs)}${t('friends', I.friends, U().tabFriends)}${t('ratings', I.trophy, U().tabRatings)}${t('settings', I.gear, U().tabSettings)}</div></nav>`;
 }
 function statsBar(st) {
   const seg = (k, c) => st[k] ? `<i class="b-${c}" style="width:${100 * st[k] / st.total}%"></i>` : '';
@@ -4578,6 +4614,8 @@ function render() {
     case 'scenarios': html = scenariosScreen(); break;
     case 'settings': html = settingsScreen(); break;
     case 'profiles': html = profilesScreen(); break;
+    case 'myprofile': html = myProfileScreen(); break;
+    case 'pstats': html = typeof playerStatsScreen === 'function' ? playerStatsScreen() : myProfileScreen(); break;
     case 'profile': html = profileScreen(); break;
     case 'ratings': html = ratingsScreen(); break;
     case 'friends': html = friendsScreen(); break;
@@ -4669,7 +4707,8 @@ function homeScreen() {
     <button class="menu-item" data-a="scen-use" data-id="classic"><div class="ico">${I.users}</div><div><div class="t">${u.classicTitle}</div><div class="d">${u.classicSub}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="cards"><div class="ico">${I.cards}</div><div><div class="t">${u.cardsTitle}</div><div class="d">${tt(u.cardsD, { n: ROLES.length, roles: plural(ROLES.length, 'roles') })}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="scenarios"><div class="ico">${I.scen}</div><div><div class="t">${u.scenTitle}</div><div class="d">${u.scenD}</div></div><span class="chev">${I.chev}</span></button>
-    <button class="menu-item" data-a="go" data-to="profiles"><div class="ico">${I.users}</div><div><div class="t">${u.tabPlayers}</div><div class="d">${u.profilesD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="go" data-to="clubs"><div class="ico">${I.club}</div><div><div class="t">${u.tabClubs}</div><div class="d">${u.clubsSub}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="ratings"><div class="ico">${I.trophy}</div><div><div class="t">${u.tabRatings}</div><div class="d">${u.ratingsD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="shop"><div class="ico" style="background:#f0cd7a;color:#1a1206;border-color:transparent">${I.cards}</div><div><div class="t">${u.shop}</div><div class="d">${u.shopD}</div></div><span class="chev">${I.chev}</span></button>
   </div>
@@ -4714,11 +4753,11 @@ function setupScreen() {
   const sp = st.seatProfiles || [];
   const names = Array.from({ length: st.n }, (_, i) => {
     const pr = sp[i] ? profById(sp[i]) : null;
-    const inner = pr ? `<div class="seat-prof">${avatarHTML(pr, 'xs')}<span class="n">${esc(pr.name)}</span><button class="x" data-a="seat-clear" data-i="${i}" aria-label="${u.remove}">×</button></div>`
+    const inner = pr ? `<div class="seat-prof">${avatarHTML(pr, 'xs')}<span class="n" data-a="prof-open" data-id="${pr.id}" role="button">${esc(pr.name)}</span><button class="x" data-a="seat-clear" data-i="${i}" aria-label="${u.remove}">×</button></div>`
       : `<input class="input" id="name-${i}" data-i="${i}" data-a="name" placeholder="${tt(L.e.player, { n: i + 1 })}" value="${esc(st.names[i] || '')}" autocomplete="off">`;
     return `<div class="name-row"><span class="seat">${i + 1}</span>${inner}</div>`;
   }).join('');
-  const chips = S.profiles.length ? `<div class="prof-chips">${S.profiles.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}</div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p>`;
+  const chips = `${S.profiles.length ? `<div class="prof-chips">${S.profiles.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}<button class="prof-chip" data-a="prof-new" style="border-style:dashed">+ ${u.newProfile}</button></div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p><button class="btn sm ghost" data-a="prof-new" style="align-self:flex-start">+ ${u.newProfile}</button>`}`;
   return `${topbar(u.newGame, u.setupSub)}
   <div class="stack">
     ${scenBanner}
@@ -5191,14 +5230,19 @@ function scenariosScreen() {
     const sim = b ? `<div class="d wrap" style="margin-top:4px;color:var(--fg-2)"><span style="color:var(--steel-2)">${tt(u.simMafia, { v: b.mafia })}</span> · <span style="color:var(--crimson-2)">${tt(u.simCity, { v: b.city })}</span>${b.maniac ? ` · <span style="color:#d3bdf5">${tt(u.simManiac, { v: b.maniac })}</span>` : ''} · ${tt(u.simNights, { v: b.nights })}</div>` : '';
     rows.push(`<button class="scen-row" data-a="scen" data-n="${n}"><span class="n num">${n}</span><div class="m"><div class="t">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div><div class="d">${names.join(', ')}</div>${sim}${statsBar(st)}</div><span class="chev">${I.chev}</span></button>`);
   }
-  return `${topbar(u.scenTitle, u.scenSub, false)}
-  <div class="stack">
-  ${classicCardHTML()}
-  <div class="row"><h2 class="grow">${u.shopScen}</h2><button class="btn xs ghost" data-a="go" data-to="shop">${u.shop}</button></div>
-  <div class="stack-s">${SCENARIOS.map(sc => scenarioCardHTML(sc)).join('')}</div>
+  const tab = S.ui.scenTab === 'paid' ? 'paid' : 'free';
+  const seg = `<div class="segment n2 scen-tabs"><button class="${tab === 'free' ? 'active' : ''}" data-a="scen-tab" data-id="free">${u.scenFreeTab}</button><button class="${tab === 'paid' ? 'active' : ''}" data-a="scen-tab" data-id="paid">${u.scenPaidTab}</button></div>`;
+  const free = `${classicCardHTML()}
   <h2>${u.scenStd}</h2>
   <p class="hint">${tt(u.scenIntro, { note: u.balanceNote })}</p>
-  <div class="scen">${rows.join('')}</div></div>`;
+  <div class="scen">${rows.join('')}</div>`;
+  const paid = `<div class="row"><h2 class="grow">${u.shopScen}</h2><button class="btn xs ghost" data-a="go" data-to="shop">${u.shop}</button></div>
+  <p class="hint">${u.scenPaidHint}</p>
+  <div class="stack-s">${SCENARIOS.map(sc => scenarioCardHTML(sc)).join('')}</div>`;
+  return `${topbar(u.scenTitle, u.scenSub, false)}
+  <div class="stack">
+  ${seg}
+  ${tab === 'paid' ? paid : free}</div>`;
 }
 
 /* ---------- Settings ---------- */
@@ -5216,6 +5260,10 @@ function settingsScreen() {
     ${sw('revealDead', u.sReveal, u.sRevealD)}
     ${sw('sound', u.sSound, u.sSoundD)}
     <div class="setting"><div><div class="t">${u.sLite}</div><div class="d">${u.sLiteD}${LITE.bench ? ` <span class="num" style="opacity:.6">(${Math.round(LITE.bench)} ms)</span>` : ''}</div></div><div class="ctl"><div class="segment n3" style="min-width:150px">${[['auto', u.liteAuto], ['on', u.liteOn], ['off', u.liteOff]].map(([v, l]) => `<button class="${(s.lite || 'auto') === v ? 'active' : ''}" data-a="lite" data-v="${v}">${l}</button>`).join('')}</div></div></div>
+  </div>
+  <div class="menu" style="margin-top:12px">
+    <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="go" data-to="profiles"><div class="ico">${I.users}</div><div><div class="t">${u.plLocalBtn}</div><div class="d">${u.plLocalD}</div></div><span class="chev">${I.chev}</span></button>
   </div>
   <div class="panel" style="margin-top:12px"><div class="eyebrow">${u.about}</div><p class="hint" style="margin-top:6px">${u.aboutText}</p></div>`;
 }
@@ -5249,13 +5297,19 @@ function sheetHTML(enter = true) {
 
 /* ============================================================ ACTIONS */
 function goGameOrHome() { S.screen = S.game ? 'game' : 'home'; }
-function go(screen) { S.screen = screen; S.tab = ['cards', 'settings', 'profiles', 'ratings', 'friends'].includes(screen) ? screen : (['profile', 'clubs', 'club'].includes(screen) ? 'profiles' : 'game'); window.scrollTo(0, 0); render(); }
+function go(screen) {
+  if (screen === 'scenarios') S.ui.scenTab = 'free'; // the free scenarios always come first
+  if (['profile', 'myprofile', 'pstats'].includes(screen)) { if (!['profile', 'myprofile', 'pstats'].includes(S.screen)) S.ui.profileFrom = S.screen; } // remember where a profile was opened from
+  S.screen = screen; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(screen) ? screen : (screen === 'club' ? 'clubs' : (['profile', 'myprofile', 'pstats', 'profiles'].includes(screen) ? (S.tab || 'game') : 'game'));
+  window.scrollTo(0, 0); render();
+}
+function profileBackTarget() { const f = S.ui.profileFrom; return f && !['profile', 'myprofile', 'pstats', 'deal'].includes(f) ? f : (S.game && f === 'game' ? 'game' : 'home'); }
 
 const ACT = {
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
-  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'profile' || S.screen === 'clubs') { S.screen = 'profiles'; } else if (S.screen === 'club') { S.screen = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
+  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
   new() { S.setup.scenario = null; S.setup.comp = presetFor(S.setup.n); S.ui.showAll = false; go('setup'); },
   continue() { go('game'); },
   n(el) { const d = +el.dataset.d; setN(S.setup.n + d); },
@@ -5264,6 +5318,7 @@ const ACT = {
   comp(el) { const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
   preset() { S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
+  'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
     const sp = S.setup.seatProfiles || [];
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));
@@ -5500,7 +5555,7 @@ function profilesScreen() {
   const u = U(); const me = S.meId ? profById(S.meId) : null;
   const list = S.profiles.filter(p => !me || p.id !== me.id).map(p => Object.assign({ p }, { st: profStats(p) })).sort((a, b) => b.st.rating - a.st.rating);
   const row = (p, st, cls = '') => `<button class="prof-card ${cls}" data-a="prof-open" data-id="${p.id}">${avatarHTML(p, 'sm')}<div><div class="nm">${esc(p.name)} ${p.demo ? `<span class="demo-badge">${u.demoLabel}</span>` : ''}</div><div class="sub">${[flagOf(p.country), esc(p.city)].filter(Boolean).join(' ')}${p.city ? ' · ' : ''}${tt(u.rtGW, { g: st.games, w: st.wins })}</div></div><span class="r">${st.rating}<span class="k">${u.rating}</span></span></button>`;
-  return `${topbar(u.tabPlayers, u.profilesD, false)}
+  return `${topbar(u.plLocalBtn || u.allPlayers, u.plLocalD || u.profilesD)}
   <div class="stack">
     ${me ? `<div class="eyebrow">${u.myProfile}</div>${row(me, profStats(me), 'me')}` : `<button class="btn primary" data-a="prof-new" data-me="1">${u.createMy}</button>`}
     <div class="row"><div class="eyebrow grow">${u.allPlayers} · ${S.profiles.length}</div><button class="btn xs ghost" data-a="prof-new">+ ${u.newProfile}</button></div>
@@ -5511,8 +5566,14 @@ function fmtDate(ts) { try { return new Date(ts).toLocaleDateString(L.code, { da
 function card3dHTML(role, key = 'profile') {
   return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${cardHTML(role)}</div><div class="face back cardback ${role.premium ? 'premium' : ''}">${cardBackHTML(!!role.premium, role.name)}</div></div></div>`;
 }
+/* "My profile": only the player's own profile (created from the Telegram account, or by hand) */
+function myProfileScreen() {
+  const u = U(); const me = S.meId ? profById(S.meId) : null;
+  if (!me) return `${topbar(u.myProfile, u.myProfileD)}<div class="stack"><div class="panel" style="text-align:center"><div style="font-weight:800;font-size:16px">${u.myProfile}</div><div class="hint" style="margin:6px 0 12px">${u.profilesEmpty}</div><button class="btn primary" data-a="prof-new" data-me="1">${u.createMy}</button></div></div>`;
+  S.ui.profileId = me.id; return profileScreen();
+}
 function profileScreen() {
-  const u = U(); const pr = profById(S.ui.profileId); if (!pr) { S.screen = 'profiles'; return profilesScreen(); }
+  const u = U(); const pr = profById(S.ui.profileId); if (!pr) { S.screen = 'myprofile'; return myProfileScreen(); }
   const st = profStats(pr); const best = bestRoleOf(pr);
   const bestRole = best ? ROLE[best.id] : (pr.history.length ? ROLE[pr.history[pr.history.length - 1].roleId] : ROLE.sheriff);
   const favs = favoritesOf(pr, S.ui.allRoles ? 99 : 3);
@@ -5520,7 +5581,8 @@ function profileScreen() {
   const loc = [flagOf(pr.country), esc(pr.city), pr.country ? esc(countryName(pr.country)) : ''].filter(Boolean).join(' · ');
   const hist = pr.history.slice().reverse().slice(0, 25);
   const sideRow = (k, lbl) => { const b = st.bySide[k]; return `<div class="fav">${sealHTML(k === 'city' ? ROLE.sheriff : k === 'mafia' ? ROLE.don : ROLE.maniac)}<div><div class="n">${lbl}</div><div class="s">${tt(u.rtGW, { g: b.g, w: b.w })}</div></div><span class="w">${b.g ? Math.round(100 * b.w / b.g) : 0}%</span></div>`; };
-  return `${topbar(u.editProfile, pr.demo ? u.demoLabel : (pr.id === S.meId ? u.myProfile : ''))}
+  const isMe = pr.id === S.meId;
+  return `${topbar(isMe ? u.myProfile : u.editProfile, pr.demo ? u.demoLabel : (isMe ? u.myProfileD : ''))}
   <div class="stack">
     <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
@@ -5632,7 +5694,7 @@ function readAvatar(file, cb) {
   } catch (e) {}
 }
 Object.assign(ACT, {
-  'prof-open'(el) { S.ui.profileId = el.dataset.id; S.ui.allRoles = false; go('profile'); },
+  'prof-open'(el) { S.ui.profileId = el.dataset.id; S.ui.allRoles = false; go(el.dataset.id === S.meId ? 'myprofile' : 'profile'); },
   'prof-new'(el) { S.ui.pf = { me: !!el.dataset.me }; S.ui.sheet = { type: 'profEdit', id: null }; render(); },
   'prof-edit'(el) { const pr = profById(el.dataset.id); S.ui.pf = { name: pr.name, username: pr.username, city: pr.city, country: pr.country, avatar: pr.avatar, me: pr.id === S.meId }; S.ui.sheet = { type: 'profEdit', id: pr.id }; render(); },
   pf(el) { S.ui.pf = S.ui.pf || {}; S.ui.pf[el.dataset.k] = el.value; },
@@ -5652,9 +5714,9 @@ Object.assign(ACT, {
     if (!pr) { pr = newProfile(); S.profiles.push(pr); }
     Object.assign(pr, { name, username: (d.username || '').replace(/^@/, '').trim(), city: (d.city || '').trim(), country: d.country || '', avatar: d.avatar || pr.avatar || null, tgId: d.tgId || pr.tgId || null, demo: false });
     if (d.me) S.meId = pr.id; else if (S.meId === pr.id) S.meId = null;
-    S.ui.sheet = null; S.ui.pf = null; S.ui.profileId = pr.id; go('profile');
+    S.ui.sheet = null; S.ui.pf = null; S.ui.profileId = pr.id; go(S.meId === pr.id ? 'myprofile' : 'profile');
   },
-  'prof-del'(el) { if (S.ui.confirmDel !== el.dataset.id) { S.ui.confirmDel = el.dataset.id; toast(U().deleteConfirm); return; } S.profiles = S.profiles.filter(p => p.id !== el.dataset.id); if (S.meId === el.dataset.id) S.meId = null; S.ui.confirmDel = null; go('profiles'); },
+  'prof-del'(el) { if (S.ui.confirmDel !== el.dataset.id) { S.ui.confirmDel = el.dataset.id; toast(U().deleteConfirm); return; } S.profiles = S.profiles.filter(p => p.id !== el.dataset.id); if (S.meId === el.dataset.id) S.meId = null; S.ui.confirmDel = null; go(profileBackTarget()); },
   'prof-like'(el) { const pr = profById(el.dataset.id); if (!pr) return; pr.likedByMe = !pr.likedByMe; pr.likes = Math.max(0, pr.likes + (pr.likedByMe ? 1 : -1)); render(); },
   'prof-allroles'() { S.ui.allRoles = !S.ui.allRoles; render(); },
   'demo-remove'() { S.profiles = S.profiles.filter(p => !p.demo); render(); },
@@ -6049,7 +6111,8 @@ Object.assign(ACT, {
   'tg-seat'(el) { const g = S.game; if (!g || !g.tg) return; const seat = Number(el.value) || 0; Object.keys(g.tg.map).forEach(k => { if (seat && g.tg.map[k] === seat && k !== el.dataset.tg) g.tg.map[k] = 0; }); g.tg.map[el.dataset.tg] = seat; save(); render(); },
   async 'tg-deal'() { const g = S.game; if (!g || !g.tg) return; const n = await sendCards(g, true); if (n) { toast(tt(U().tgSent, { n })); tgHaptic('success'); } },
   'tg-deal-done'() { const g = S.game; if (!g) return; g.dealIdx = g.players.length; g.dealOpen = false; S.ui.showAll = false; save(); render(); },
-  async 'tg-top'() { const d = await api('/api/leaderboard?limit=30', null, { method: 'GET' }); CLOUD.top = d.ok ? d.top : []; if (!d.ok) toast(U().tgOffline); render(); }
+  async 'tg-top'() { const d = await api('/api/leaderboard?limit=30', null, { method: 'GET' }); CLOUD.top = d.ok ? d.top : []; if (!d.ok) toast(U().tgOffline); render(); },
+  'clubs-top-refresh'() { CLOUD.clubsAt = 0; render(); }
 });
 /* ---------- friends: invite link, list, invite to my table ---------- */
 const FR = { list: null, link: '', code: '', bot: '', busy: false, at: 0, q: '', results: null, searching: false, incoming: [], outgoing: [] };
@@ -6157,11 +6220,48 @@ function friendSheetHTML(id) {
       <div class="eyebrow" style="margin-top:12px">${u.frRecent}</div>${recent ? `<div class="hist">${recent}</div>` : `<div class="hint">${u.frNoGames}</div>`}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id); const isMe = S.cloud && S.cloud.user && S.cloud.user.id === id;
-  const actions = isMe ? '' : `<div class="btn-row" style="margin-top:14px">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>${isFriend ? `<button class="btn ghost sm" style="margin-top:8px;color:var(--crimson-2);align-self:center" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}`;
+  const primary = isMe ? '' : (isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : ''));
+  const secondary = `${!isMe && usr.username ? `<button class="btn ghost sm" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}${isFriend ? `<button class="btn ghost sm" style="color:var(--crimson-2)" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}`;
+  const actions = `<div class="btn-row" style="margin-top:14px"><button class="btn" data-a="ps-open" data-id="${id}">${I.person} ${u.psBtn}</button>${primary}</div>${secondary ? `<div class="btn-row" style="margin-top:8px">${secondary}</div>` : ''}`;
   return head + body + actions;
+}
+/* ---------- full player statistics screen (server data), opened with the "Profile" button anywhere a player is tapped ---------- */
+function knownUser(id) { return (FR.list || []).find(f => f.tgId === id) || (FR.results || []).find(f => f.tgId === id) || (CLOUD.top || []).find(f => f.tgId === id) || (PL.list || []).find(f => f.tgId === id) || (CL.cur && CL.cur.members || []).find(f => f.tgId === id) || { tgId: id, name: '…', username: '' }; }
+function loadPlayerProfile(id, force) { if (FRP[id] && !force) return; FRP[id] = { loading: true }; setTimeout(async () => { const d = await api('/api/profile', { tgId: id }); FRP[id] = d.ok ? d : { error: d.error || 'network' }; render(); }, 0); }
+function cloudStatsHTML(d, opts = {}) { // tiles + roles + by side + recent games, from /api/profile
+  const u = U(); const r = d.rating; const wr = r.games ? Math.round(100 * r.wins / r.games) : 0;
+  const tile = (v, k, col = '') => `<div class="st"><div class="v num" style="${col}">${v}</div><div class="k">${k}</div></div>`;
+  const fmt = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+  const roles = (opts.allRoles ? d.roles : d.roles.slice(0, 3)).map(x => { const role = ROLE[x.roleId]; return role ? `<div class="fav">${sealHTML(role)}<div class="grow" style="min-width:0"><div class="n">${role.name}</div><div class="s">${tt(u.rtGW, { g: x.games, w: x.wins })}</div><div class="bar"><i style="width:${x.games ? 100 * x.wins / x.games : 0}%"></i></div></div><span class="w">${x.games ? Math.round(100 * x.wins / x.games) : 0}%</span></div>` : ''; }).join('');
+  const side = { city: { g: 0, w: 0 }, mafia: { g: 0, w: 0 }, self: { g: 0, w: 0 } };
+  d.roles.forEach(x => { const role = ROLE[x.roleId]; const k = role && role.side === 'mafia' ? 'mafia' : role && role.side === 'city' ? 'city' : 'self'; side[k].g += x.games; side[k].w += x.wins; });
+  const sideRow = (k, lbl) => { const b = side[k]; return `<div class="fav">${sealHTML(k === 'city' ? ROLE.sheriff : k === 'mafia' ? ROLE.don : ROLE.maniac)}<div><div class="n">${lbl}</div><div class="s">${tt(u.rtGW, { g: b.g, w: b.w })}</div></div><span class="w">${b.g ? Math.round(100 * b.w / b.g) : 0}%</span></div>`; };
+  const recent = d.recent.slice(0, opts.recent || 12).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmt(h.at) })}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
+  return `<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>
+    ${roles ? `<div class="eyebrow">${opts.allRoles ? u.psAllRoles : u.frBestRoles}</div><div class="stack-s">${roles}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
+    ${opts.sides && d.roles.length ? `<div class="eyebrow">${u.bySide}</div><div class="stack-s">${sideRow('city', u.sideCity)}${sideRow('mafia', u.sideMafia)}${sideRow('self', u.sideSolo)}</div>` : ''}
+    <div class="eyebrow">${u.frRecent}</div>${recent ? `<div class="hist">${recent}</div>` : `<p class="hint">${u.frNoGames}</p>`}`;
+}
+function playerStatsScreen() {
+  const u = U(); const id = Number(S.ui.pstatsId); if (!id || !TG.app || !apiBase()) { S.screen = 'home'; return homeScreen(); }
+  loadPlayerProfile(id, false); const c = FRP[id]; const d = c && !c.loading && !c.error ? c : null;
+  const usr = d ? d.user : knownUser(id); const isMe = S.cloud && S.cloud.user && S.cloud.user.id === id;
+  const fmt = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
+  const head = `<div class="prof-head">${usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow" style="min-width:0"><div class="nm">${esc(usr.name)}</div>${usr.username ? `<div class="un">@${esc(usr.username)}</div>` : ''}<div class="loc">${presenceHTML(usr)}${usr.since ? ` · ${tt(u.psSince, { date: fmt(usr.since) })}` : ''}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
+  let body;
+  if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
+  else {
+    const best = d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = best || ROLE.sheriff;
+    body = `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole, 'pstats')}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12 })}`;
+  }
+  const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
+  const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
+  return `${topbar(u.psTitle, u.psSub)}<div class="stack">${head}${body}${actions}</div>`;
 }
 Object.assign(ACT, {
   'fr-open'(el) { S.ui.sheet = { type: 'friend', id: Number(el.dataset.id) }; render(); },
+  'ps-open'(el) { S.ui.pstatsId = Number(el.dataset.id); S.ui.sheet = null; if (S.screen !== 'pstats') S.ui.pstatsFrom = S.screen; go('pstats'); },
+  'ps-refresh'() { if (S.ui.pstatsId) loadPlayerProfile(Number(S.ui.pstatsId), true); },
   'fr-open-tg'(el) { const url = 'https://t.me/' + el.dataset.u; try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} },
   'fr-invite-one'(el) { S.ui.frSel = [Number(el.dataset.id)]; S.ui.sheet = null; go('friends'); ACT['fr-invite'](); },
   'fr-remove-from-sheet'(el) { S.ui.sheet = null; S.ui.frAsk = Number(el.dataset.id); go('friends'); }
@@ -6178,8 +6278,7 @@ function playersDirectoryHTML() {
   const u = U(); if (!PL.list && !PL.busy) setTimeout(() => loadPlayers(true), 0);
   const row = p => `<div class="fr-row" role="button" data-a="fr-open" data-id="${p.tgId}"><span style="width:0"></span>${friendAvatar(p)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}${p.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(p.username)}</span>` : ''}${p.isFriend ? ` <span class="hint" style="margin:0;display:inline">· ${u.plFriend}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(p)} · ${tt(u.frStats, { g: p.games, w: p.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${p.points}</span></div>`;
   const list = PL.list || [];
-  const myClub = S.cloud && S.cloud.club; const clubsCard = `<div class="fr-row" role="button" data-a="clubs-open" style="padding:10px;border-color:rgba(240,205,122,.45)"><div class="club-logo">🏛</div><div class="grow" style="min-width:0"><div style="font-weight:800;font-size:15px">${u.clubs}</div><div class="hint" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${myClub ? `${u.clubMine}: ${esc(myClub.name)}` : u.clubsSub}</div></div><span style="color:var(--muted)">›</span></div>`;
-  return `${clubsCard}<div class="row"><div class="eyebrow grow">${u.plAll}${PL.list ? ` · ${PL.total}` : ''}</div>${PL.list ? `<span class="fr-on" style="font-size:12px">● ${tt(u.plOnline, { n: PL.online })}</span>` : ''}<button class="btn xs ghost" data-a="pl-refresh">${PL.busy ? '…' : u.tgRefresh}</button></div>
+  return `<div class="row"><div class="eyebrow grow">${u.plAll}${PL.list ? ` · ${PL.total}` : ''}</div>${PL.list ? `<span class="fr-on" style="font-size:12px">● ${tt(u.plOnline, { n: PL.online })}</span>` : ''}<button class="btn xs ghost" data-a="pl-refresh">${PL.busy ? '…' : u.tgRefresh}</button></div>
     <div class="row"><input class="input grow" id="pl-q" data-a="pl-q" placeholder="${u.plSearchPh}" value="${esc(PL.q)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" data-a="pl-search" style="flex:0 0 auto">🔍</button></div>
     ${list.length ? `<div class="stack-s">${list.map(row).join('')}</div>${PL.more ? `<button class="btn ghost sm" data-a="pl-more" style="align-self:center">${u.plMore}</button>` : ''}` : (PL.list ? `<p class="hint">${u.plEmpty}</p>` : `<p class="hint">${u.frLoading}</p>`)}`;
 }
@@ -6227,6 +6326,7 @@ function partnerSheetHTML() {
       <div class="status" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">${tile(st.invited || 0, u.ptInvited)}${tile(st.qualified || 0, u.ptQualified, 'color:#9fe0ab')}${tile(st.purchases || 0, u.ptPurchases)}</div>
       <div class="status" style="grid-template-columns:repeat(3,1fr)">${tile((st.earnedStars || 0) + '⭐', u.ptEarned, 'color:var(--gold-2)')}${tile((st.balanceStars || 0) + '⭐', u.ptBalance, 'color:var(--gold-2)')}${tile((st.paidStars || 0) + '⭐', u.ptPaid)}</div>
       <div class="hint" style="text-align:center">${tt(u.ptApprox, { usd: usd(st.balanceStars || 0) })} · ${tt(u.ptPayoutNote, { admin: adminName })}</div>
+      ${d.club ? `<div class="panel" style="margin-top:12px;border-color:rgba(240,205,122,.5)"><div class="row" style="gap:10px"><div class="club-logo">${S.cloud && S.cloud.club && S.cloud.club.logo ? `<img src="${esc(S.cloud.club.logo)}" alt="">` : '🏛'}</div><div class="grow" style="min-width:0"><div style="font-weight:800">${esc(d.club.name)}</div><div class="hint" style="margin:0">${u.ptClubReady}</div></div></div><button class="btn sm primary" style="margin-top:10px" data-a="club-open" data-id="${d.club.id}">${u.clubGoto}</button></div>` : ''}
       <div class="eyebrow" style="margin-top:12px">${u.ptMaterials}</div><div class="hint">${u.ptMaterialsText}</div>`;
   } else if (d.status === 'pending') body = `<div class="panel"><div>${u.ptPending}</div></div>`;
   else {
@@ -6324,7 +6424,7 @@ function resizeLogo(file, cb) {
 Object.assign(ACT, {
   'clubs-open'() { go('clubs'); },
   'clubs-refresh'() { loadClubs(true); },
-  'club-open'(el) { CL.id = Number(el.dataset.id); CL.cur = null; CL.chat = []; CL.lastId = 0; go('club'); },
+  'club-open'(el) { CL.id = Number(el.dataset.id); CL.cur = null; CL.chat = []; CL.lastId = 0; S.ui.sheet = null; go('club'); },
   'club-create'() { CL.form = { name: '', city: '', about: '', link: '', logo: '' }; S.ui.sheet = { type: 'clubEdit', id: null }; render(); },
   'club-edit'(el) { const c = CL.cur.club; CL.form = { name: c.name, city: c.city, about: c.about, link: c.link, logo: c.logo }; S.ui.sheet = { type: 'clubEdit', id: c.id }; render(); },
   'cl-f'(el) { CL.form[el.dataset.k] = el.value || ''; const b = document.querySelector('[data-a="club-submit"]'); if (b) b.disabled = CL.form.name.trim().length < 2; },
@@ -6335,7 +6435,7 @@ Object.assign(ACT, {
     const d = id ? await api('/api/club/update', Object.assign({ id }, CL.form)) : await api('/api/club/apply', CL.form);
     if (!d.ok) { toast(d.error === 'in_club' ? u.clubInOther : d.error === 'has_club' ? u.clubPending : u.tgOffline); return; }
     S.ui.sheet = null; CL.at = 0; tgHaptic('success');
-    if (id) { await loadClub(id); } else { toast(u.clubApplied); loadClubs(true); }
+    if (id) { await loadClub(id); if (d.club && S.cloud && S.cloud.club && S.cloud.club.id === id) Object.assign(S.cloud.club, { name: d.club.name, city: d.club.city, logo: d.club.logo }); CLOUD.clubs = null; } else { toast(u.clubApplied); loadClubs(true); }
     render();
   },
   async 'club-join'(el) { const d = await api('/api/club/join', { id: Number(el.dataset.id) }); if (!d.ok) { toast(d.error === 'in_club' ? U().clubInOther : U().tgOffline); return; } toast(d.status === 'joined' ? U().clubInviteJoined : U().clubApplied); CL.at = 0; await loadClub(CL.id); loadChat(true); },
@@ -6385,7 +6485,7 @@ Object.assign(ACT, {
     ADM.grants = d.grants || ADM.grants; ADM.q = ''; toast(tt(U().adminGranted, { name: d.granted.name, date: new Date(d.granted.until).toLocaleDateString() })); tgHaptic('success'); render();
   },
   async 'adm-club'(el) { const d = await api('/api/admin/club', { id: Number(el.dataset.id), approve: el.dataset.ok === '1' }); if (!d.ok) { toast(U().tgOffline); return; } ADM.clubs = d.clubs || []; CL.at = 0; tgHaptic('success'); render(); },
-  async 'adm-partner'(el) { const d = await api('/api/admin/partner', { q: String(el.dataset.id), approve: el.dataset.ok === '1' }); if (!d.ok) { toast(U().tgOffline); return; } ADM.partners = d.partners || []; tgHaptic('success'); render(); },
+  async 'adm-partner'(el) { const d = await api('/api/admin/partner', { q: String(el.dataset.id), approve: el.dataset.ok === '1' }); if (!d.ok) { toast(U().tgOffline); return; } ADM.partners = d.partners || []; ADM.clubs = null; CL.at = 0; CLOUD.clubs = null; tgHaptic('success'); render(); },
   async 'adm-revoke'(el) { const d = await api('/api/admin/revoke', { q: String(el.dataset.id) }); if (!d.ok) { toast(U().tgOffline); return; } ADM.grants = d.grants || []; toast(U().adminRevoked); render(); }
 });
 /* global rating panel on the ratings screen; Telegram rating line on my profile */
@@ -6393,8 +6493,23 @@ function cloudTopHTML() {
   const u = U(); if (!TG.app || !apiBase()) return '';
   const av = r => r.photo ? `<img class="avatar sm" src="${esc(r.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((r.name || '?').slice(0, 1).toUpperCase())}</div>`;
   const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : '';
-  return `<div class="panel" style="margin-top:12px"><div class="row"><div class="eyebrow grow">${u.tgTop}</div><button class="btn xs ghost" data-a="tg-top">${CLOUD.top ? u.tgRefresh : u.tgLoad}</button></div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}</div>`;
+  return `<div class="panel" style="margin-top:12px"><div class="row"><div class="eyebrow grow">${u.tgTop}</div><button class="btn xs ghost" data-a="tg-top">${CLOUD.top ? u.tgRefresh : u.tgLoad}</button></div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
 }
+/* top of clubs by members (public endpoint), refreshed every minute while the ratings screen is open */
+function clubsTopHTML() {
+  const u = U(); if (!TG.app || !apiBase()) return '';
+  if ((!CLOUD.clubs || Date.now() - (CLOUD.clubsAt || 0) > 60000) && !CLOUD.clubsBusy) { CLOUD.clubsBusy = true; setTimeout(async () => { const d = await api('/api/clubs/top?limit=30', null, { method: 'GET' }); if (d.ok) CLOUD.clubs = d.top; else if (!CLOUD.clubs) CLOUD.clubs = []; CLOUD.clubsAt = Date.now(); CLOUD.clubsBusy = false; render(); }, 0); }
+  const mine = S.cloud && S.cloud.club ? S.cloud.club.id : 0;
+  const rows = CLOUD.clubs ? (CLOUD.clubs.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.clubs.map((c, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${c.id === mine ? 'me' : ''}" role="button" tabindex="0" data-a="club-open" data-id="${c.id}"><span class="pos">${c.rank}</span>${clubLogoHTML(c)}<div class="mid"><div class="nm">${esc(c.name)}</div><div class="sub">${c.partner ? `<span class="premium-pill" style="font-size:9.5px;padding:1px 6px;vertical-align:middle">${u.clubPartner}</span> · ` : ''}${c.city ? esc(c.city) + ' · ' : ''}<span class="${c.online ? 'fr-on' : 'fr-off'}">● ${tt(u.clubOnline, { n: c.online })}</span></div></div><span class="pts">${c.members}<span class="k">${u.clubMembersTitle.toLowerCase()}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.clubsEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${u.frLoading}</div>`;
+  return `<div class="panel" style="margin-top:12px"><div class="row"><div class="eyebrow grow">${u.clubsTop}</div><button class="btn xs ghost" data-a="clubs-top-refresh">${CLOUD.clubsBusy ? '…' : u.tgRefresh}</button></div><div class="hint" style="margin-top:4px">${u.clubsTopHint}</div>${rows}</div>`;
+}
+/* partner clubs: the host's club brand sits above the game field (dealing, night/day, results) */
+function clubBrandHTML() {
+  const c = S.cloud && S.cloud.club; if (!TG.app || !c || !c.partner) return '';
+  const u = U();
+  return `<div class="club-brand" role="button" data-a="club-open" data-id="${c.id}">${clubLogoHTML(c)}<div class="grow" style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="sub">${c.city ? esc(c.city) + ' · ' : ''}${u.clubPartner}</div></div><span class="mp">Mafia <em>Pro</em></span></div>`;
+}
+function withClubBrand(html) { const b = clubBrandHTML(); if (!b) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i) + b + html.slice(i); }
 // hooks into the app: haptics on key taps, back button sync after every render, deep-link start
 (function () {
   const wrap = (name, kind) => { const f = ACT[name]; if (!f) return; ACT[name] = function (el) { tgHaptic(kind); return f.call(this, el); }; };
@@ -6404,19 +6519,27 @@ function cloudTopHTML() {
   render = function () { origRender(); if (TG.app) { tgSync(); try { lobbyPoll(); clubPoll(); } catch (e) {} } if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
   // dealing screen: the "cards via Telegram" panel sits above the first card until dealing starts
   const origDeal = dealScreen;
-  dealScreen = function () { const html = origDeal(); const g = S.game; if (!TG.app || !apiBase() || !g || S.ui.showAll || (g.dealIdx > 0 && !g.tg) || g.dealIdx >= g.players.length) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + lobbyPanelHTML(g) + html.slice(i + 19); };
+  dealScreen = function () { const html = withClubBrand(origDeal()); const g = S.game; if (!TG.app || !apiBase() || !g || S.ui.showAll || (g.dealIdx > 0 && !g.tg) || g.dealIdx >= g.players.length) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + lobbyPanelHTML(g) + html.slice(i + 19); };
   const origRatings = ratingsScreen;
   ratingsScreen = function () { const html = origRatings(); const extra = cloudTopHTML(); if (!extra) return html; const i = html.lastIndexOf('</div>'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
-  // players tab: the server directory goes first; device-only profiles become a secondary section
-  const origProfiles = profilesScreen;
-  profilesScreen = function () { const html = origProfiles(); const dir = playersDirectoryHTML(); if (!dir) return html; const u = U(); const marker = `<div class="eyebrow grow">${u.allPlayers} · ${S.profiles.length}</div>`; const i = html.indexOf('<div class="row">' + marker); if (i < 0) return html; return html.slice(0, i) + dir + `<div class="hint" style="margin-top:6px">${u.plLocalHint}</div>` + html.slice(i).replace(marker, `<div class="eyebrow grow">${u.plLocal} · ${S.profiles.length}</div>`); };
+  // partner club branding above the game field
+  const origGame = gameScreen; gameScreen = function () { return withClubBrand(origGame()); };
+  const origEnd = endScreen; endScreen = function () { return withClubBrand(origEnd()); };
   try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'pl-q') { e.preventDefault(); ACT['pl-search'](); } if (e.key === 'Enter' && e.target && e.target.id === 'cl-msg') { e.preventDefault(); ACT['club-send'](); } if (e.key === 'Enter' && e.target && e.target.id === 'cl-inv-q') { e.preventDefault(); ACT['club-invite'](); } }); } catch (e) {}
   const origSheet = sheetHTML;
   sheetHTML = function (enter) { const sh = S.ui.sheet; if (sh && (sh.type === 'referral' || sh.type === 'partner')) { const body = sh.type === 'referral' ? referralSheetHTML() : partnerSheetHTML(); const u = U(); return `<div class="sheet-bg ${enter !== false ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`; } return origSheet(enter); };
   const origSettings = settingsScreen;
   settingsScreen = function () { const html = origSettings(); const extra = adminPanelHTML(); if (!extra) return html; const i = html.indexOf('<div class="panel" style="margin-top:12px">'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
+  // my profile: the Telegram-wide statistics (rating, cards, recent games from the server) sit above the device-only stats
   const origProfile = profileScreen;
-  profileScreen = function () { const html = origProfile(); const pr = profById(S.ui.profileId); if (!pr || !S.cloud || !S.cloud.user || pr.tgId !== S.cloud.user.id) return html; const r = S.cloud.rating || {}; const line = `<div class="quiet" style="text-align:center">☁︎ ${esc(U().tgRating)}: <b class="num" style="color:var(--gold-2)">${1000 + (r.points || 0)}</b> · ${esc(U().games)}: ${r.games || 0} · ${esc(U().wins)}: ${r.wins || 0}</div>`; const i = html.indexOf('<div class="eyebrow">' + U().stats + '</div>'); return i < 0 ? html : html.slice(0, i) + line + html.slice(i); };
+  profileScreen = function () {
+    const html = origProfile(); const pr = profById(S.ui.profileId); if (!pr || !TG.app || !apiBase() || !S.cloud || !S.cloud.user || pr.tgId !== S.cloud.user.id) return html;
+    const u = U(); const id = S.cloud.user.id; loadPlayerProfile(id, false); const c = FRP[id]; const d = c && !c.loading && !c.error ? c : null;
+    const r = (d && d.rating) || Object.assign({}, S.cloud.rating || {}, { points: 1000 + ((S.cloud.rating || {}).points || 0) });
+    const cloud = `<div class="panel" style="border-color:rgba(240,205,122,.45)"><div class="row"><div class="eyebrow gold grow">☁︎ ${u.psCloud}</div><button class="btn xs ghost" data-a="ps-open" data-id="${id}">${u.psBtn}</button></div>
+      ${d ? cloudStatsHTML(d, { allRoles: false, sides: false, recent: 5 }) : `<div class="status" style="margin-top:8px"><div class="st"><div class="v num" style="color:var(--gold-2)">${r.points || 1000}</div><div class="k">${u.rating}</div></div><div class="st"><div class="v num">${r.games || 0}</div><div class="k">${u.games}</div></div><div class="st"><div class="v num" style="color:#9fe0ab">${r.wins || 0}</div><div class="k">${u.wins}</div></div></div>${c && c.error ? '' : `<div class="hint" style="text-align:center">${u.frLoading}</div>`}`}</div>`;
+    const marker = '<div class="eyebrow">' + u.stats + '</div>'; const i = html.indexOf(marker); return i < 0 ? html : html.slice(0, i) + cloud + `<div class="eyebrow">${u.psLocal}</div>` + html.slice(i + marker.length);
+  };
   // creating the game: the pre-game table becomes the game's table, seats map to players, cards go out at once
   const origDealAct = ACT.deal;
   ACT.deal = function (el) {

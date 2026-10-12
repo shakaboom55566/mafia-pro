@@ -84,7 +84,9 @@ const I = {
   globe: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
   trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v3M8 21h8M9 21v-1a3 3 0 0 1 3-3 3 3 0 0 1 3 3v1"/></svg>',
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-8.5-9A4 4 0 0 1 12 7a4 4 0 0 1 8.5 4C19 15.5 12 20 12 20z"/></svg>',
-  edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M12.5 7.5l4 4"/></svg>'
+  edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M12.5 7.5l4 4"/></svg>',
+  club: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9"/><path d="M3 19h18"/></svg>',
+  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>'
 };
 
 /* ---------- shared pieces ---------- */
@@ -111,7 +113,7 @@ function topbar(title, sub, back = true) {
 }
 function tabbar() {
   const t = (id, ico, lbl) => `<button class="tab ${S.tab === id ? 'active' : ''}" data-a="tab" data-id="${id}">${ico}<span>${lbl}</span></button>`;
-  return `<nav class="tabbar"><div class="inner">${t('game', I.game, U().tabGame)}${t('cards', I.cards, U().tabCards)}${t('profiles', I.users, U().tabPlayers)}${t('friends', I.friends, U().tabFriends)}${t('ratings', I.trophy, U().tabRatings)}${t('settings', I.gear, U().tabSettings)}</div></nav>`;
+  return `<nav class="tabbar"><div class="inner">${t('game', I.game, U().tabGame)}${t('cards', I.cards, U().tabCards)}${t('clubs', I.club, U().tabClubs)}${t('friends', I.friends, U().tabFriends)}${t('ratings', I.trophy, U().tabRatings)}${t('settings', I.gear, U().tabSettings)}</div></nav>`;
 }
 function statsBar(st) {
   const seg = (k, c) => st[k] ? `<i class="b-${c}" style="width:${100 * st[k] / st.total}%"></i>` : '';
@@ -135,6 +137,8 @@ function render() {
     case 'scenarios': html = scenariosScreen(); break;
     case 'settings': html = settingsScreen(); break;
     case 'profiles': html = profilesScreen(); break;
+    case 'myprofile': html = myProfileScreen(); break;
+    case 'pstats': html = typeof playerStatsScreen === 'function' ? playerStatsScreen() : myProfileScreen(); break;
     case 'profile': html = profileScreen(); break;
     case 'ratings': html = ratingsScreen(); break;
     case 'friends': html = friendsScreen(); break;
@@ -226,7 +230,8 @@ function homeScreen() {
     <button class="menu-item" data-a="scen-use" data-id="classic"><div class="ico">${I.users}</div><div><div class="t">${u.classicTitle}</div><div class="d">${u.classicSub}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="cards"><div class="ico">${I.cards}</div><div><div class="t">${u.cardsTitle}</div><div class="d">${tt(u.cardsD, { n: ROLES.length, roles: plural(ROLES.length, 'roles') })}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="scenarios"><div class="ico">${I.scen}</div><div><div class="t">${u.scenTitle}</div><div class="d">${u.scenD}</div></div><span class="chev">${I.chev}</span></button>
-    <button class="menu-item" data-a="go" data-to="profiles"><div class="ico">${I.users}</div><div><div class="t">${u.tabPlayers}</div><div class="d">${u.profilesD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="go" data-to="clubs"><div class="ico">${I.club}</div><div><div class="t">${u.tabClubs}</div><div class="d">${u.clubsSub}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="ratings"><div class="ico">${I.trophy}</div><div><div class="t">${u.tabRatings}</div><div class="d">${u.ratingsD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="shop"><div class="ico" style="background:#f0cd7a;color:#1a1206;border-color:transparent">${I.cards}</div><div><div class="t">${u.shop}</div><div class="d">${u.shopD}</div></div><span class="chev">${I.chev}</span></button>
   </div>
@@ -271,11 +276,11 @@ function setupScreen() {
   const sp = st.seatProfiles || [];
   const names = Array.from({ length: st.n }, (_, i) => {
     const pr = sp[i] ? profById(sp[i]) : null;
-    const inner = pr ? `<div class="seat-prof">${avatarHTML(pr, 'xs')}<span class="n">${esc(pr.name)}</span><button class="x" data-a="seat-clear" data-i="${i}" aria-label="${u.remove}">×</button></div>`
+    const inner = pr ? `<div class="seat-prof">${avatarHTML(pr, 'xs')}<span class="n" data-a="prof-open" data-id="${pr.id}" role="button">${esc(pr.name)}</span><button class="x" data-a="seat-clear" data-i="${i}" aria-label="${u.remove}">×</button></div>`
       : `<input class="input" id="name-${i}" data-i="${i}" data-a="name" placeholder="${tt(L.e.player, { n: i + 1 })}" value="${esc(st.names[i] || '')}" autocomplete="off">`;
     return `<div class="name-row"><span class="seat">${i + 1}</span>${inner}</div>`;
   }).join('');
-  const chips = S.profiles.length ? `<div class="prof-chips">${S.profiles.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}</div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p>`;
+  const chips = `${S.profiles.length ? `<div class="prof-chips">${S.profiles.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}<button class="prof-chip" data-a="prof-new" style="border-style:dashed">+ ${u.newProfile}</button></div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p><button class="btn sm ghost" data-a="prof-new" style="align-self:flex-start">+ ${u.newProfile}</button>`}`;
   return `${topbar(u.newGame, u.setupSub)}
   <div class="stack">
     ${scenBanner}
@@ -748,14 +753,19 @@ function scenariosScreen() {
     const sim = b ? `<div class="d wrap" style="margin-top:4px;color:var(--fg-2)"><span style="color:var(--steel-2)">${tt(u.simMafia, { v: b.mafia })}</span> · <span style="color:var(--crimson-2)">${tt(u.simCity, { v: b.city })}</span>${b.maniac ? ` · <span style="color:#d3bdf5">${tt(u.simManiac, { v: b.maniac })}</span>` : ''} · ${tt(u.simNights, { v: b.nights })}</div>` : '';
     rows.push(`<button class="scen-row" data-a="scen" data-n="${n}"><span class="n num">${n}</span><div class="m"><div class="t">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div><div class="d">${names.join(', ')}</div>${sim}${statsBar(st)}</div><span class="chev">${I.chev}</span></button>`);
   }
-  return `${topbar(u.scenTitle, u.scenSub, false)}
-  <div class="stack">
-  ${classicCardHTML()}
-  <div class="row"><h2 class="grow">${u.shopScen}</h2><button class="btn xs ghost" data-a="go" data-to="shop">${u.shop}</button></div>
-  <div class="stack-s">${SCENARIOS.map(sc => scenarioCardHTML(sc)).join('')}</div>
+  const tab = S.ui.scenTab === 'paid' ? 'paid' : 'free';
+  const seg = `<div class="segment n2 scen-tabs"><button class="${tab === 'free' ? 'active' : ''}" data-a="scen-tab" data-id="free">${u.scenFreeTab}</button><button class="${tab === 'paid' ? 'active' : ''}" data-a="scen-tab" data-id="paid">${u.scenPaidTab}</button></div>`;
+  const free = `${classicCardHTML()}
   <h2>${u.scenStd}</h2>
   <p class="hint">${tt(u.scenIntro, { note: u.balanceNote })}</p>
-  <div class="scen">${rows.join('')}</div></div>`;
+  <div class="scen">${rows.join('')}</div>`;
+  const paid = `<div class="row"><h2 class="grow">${u.shopScen}</h2><button class="btn xs ghost" data-a="go" data-to="shop">${u.shop}</button></div>
+  <p class="hint">${u.scenPaidHint}</p>
+  <div class="stack-s">${SCENARIOS.map(sc => scenarioCardHTML(sc)).join('')}</div>`;
+  return `${topbar(u.scenTitle, u.scenSub, false)}
+  <div class="stack">
+  ${seg}
+  ${tab === 'paid' ? paid : free}</div>`;
 }
 
 /* ---------- Settings ---------- */
@@ -773,6 +783,10 @@ function settingsScreen() {
     ${sw('revealDead', u.sReveal, u.sRevealD)}
     ${sw('sound', u.sSound, u.sSoundD)}
     <div class="setting"><div><div class="t">${u.sLite}</div><div class="d">${u.sLiteD}${LITE.bench ? ` <span class="num" style="opacity:.6">(${Math.round(LITE.bench)} ms)</span>` : ''}</div></div><div class="ctl"><div class="segment n3" style="min-width:150px">${[['auto', u.liteAuto], ['on', u.liteOn], ['off', u.liteOff]].map(([v, l]) => `<button class="${(s.lite || 'auto') === v ? 'active' : ''}" data-a="lite" data-v="${v}">${l}</button>`).join('')}</div></div></div>
+  </div>
+  <div class="menu" style="margin-top:12px">
+    <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="go" data-to="profiles"><div class="ico">${I.users}</div><div><div class="t">${u.plLocalBtn}</div><div class="d">${u.plLocalD}</div></div><span class="chev">${I.chev}</span></button>
   </div>
   <div class="panel" style="margin-top:12px"><div class="eyebrow">${u.about}</div><p class="hint" style="margin-top:6px">${u.aboutText}</p></div>`;
 }
@@ -806,13 +820,19 @@ function sheetHTML(enter = true) {
 
 /* ============================================================ ACTIONS */
 function goGameOrHome() { S.screen = S.game ? 'game' : 'home'; }
-function go(screen) { S.screen = screen; S.tab = ['cards', 'settings', 'profiles', 'ratings', 'friends'].includes(screen) ? screen : (['profile', 'clubs', 'club'].includes(screen) ? 'profiles' : 'game'); window.scrollTo(0, 0); render(); }
+function go(screen) {
+  if (screen === 'scenarios') S.ui.scenTab = 'free'; // the free scenarios always come first
+  if (['profile', 'myprofile', 'pstats'].includes(screen)) { if (!['profile', 'myprofile', 'pstats'].includes(S.screen)) S.ui.profileFrom = S.screen; } // remember where a profile was opened from
+  S.screen = screen; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(screen) ? screen : (screen === 'club' ? 'clubs' : (['profile', 'myprofile', 'pstats', 'profiles'].includes(screen) ? (S.tab || 'game') : 'game'));
+  window.scrollTo(0, 0); render();
+}
+function profileBackTarget() { const f = S.ui.profileFrom; return f && !['profile', 'myprofile', 'pstats', 'deal'].includes(f) ? f : (S.game && f === 'game' ? 'game' : 'home'); }
 
 const ACT = {
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
-  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'profile' || S.screen === 'clubs') { S.screen = 'profiles'; } else if (S.screen === 'club') { S.screen = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
+  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
   new() { S.setup.scenario = null; S.setup.comp = presetFor(S.setup.n); S.ui.showAll = false; go('setup'); },
   continue() { go('game'); },
   n(el) { const d = +el.dataset.d; setN(S.setup.n + d); },
@@ -821,6 +841,7 @@ const ACT = {
   comp(el) { const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
   preset() { S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
+  'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
     const sp = S.setup.seatProfiles || [];
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));

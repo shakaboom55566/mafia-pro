@@ -101,7 +101,7 @@ function profilesScreen() {
   const u = U(); const me = S.meId ? profById(S.meId) : null;
   const list = S.profiles.filter(p => !me || p.id !== me.id).map(p => Object.assign({ p }, { st: profStats(p) })).sort((a, b) => b.st.rating - a.st.rating);
   const row = (p, st, cls = '') => `<button class="prof-card ${cls}" data-a="prof-open" data-id="${p.id}">${avatarHTML(p, 'sm')}<div><div class="nm">${esc(p.name)} ${p.demo ? `<span class="demo-badge">${u.demoLabel}</span>` : ''}</div><div class="sub">${[flagOf(p.country), esc(p.city)].filter(Boolean).join(' ')}${p.city ? ' · ' : ''}${tt(u.rtGW, { g: st.games, w: st.wins })}</div></div><span class="r">${st.rating}<span class="k">${u.rating}</span></span></button>`;
-  return `${topbar(u.tabPlayers, u.profilesD, false)}
+  return `${topbar(u.plLocalBtn || u.allPlayers, u.plLocalD || u.profilesD)}
   <div class="stack">
     ${me ? `<div class="eyebrow">${u.myProfile}</div>${row(me, profStats(me), 'me')}` : `<button class="btn primary" data-a="prof-new" data-me="1">${u.createMy}</button>`}
     <div class="row"><div class="eyebrow grow">${u.allPlayers} · ${S.profiles.length}</div><button class="btn xs ghost" data-a="prof-new">+ ${u.newProfile}</button></div>
@@ -112,8 +112,14 @@ function fmtDate(ts) { try { return new Date(ts).toLocaleDateString(L.code, { da
 function card3dHTML(role, key = 'profile') {
   return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${cardHTML(role)}</div><div class="face back cardback ${role.premium ? 'premium' : ''}">${cardBackHTML(!!role.premium, role.name)}</div></div></div>`;
 }
+/* "My profile": only the player's own profile (created from the Telegram account, or by hand) */
+function myProfileScreen() {
+  const u = U(); const me = S.meId ? profById(S.meId) : null;
+  if (!me) return `${topbar(u.myProfile, u.myProfileD)}<div class="stack"><div class="panel" style="text-align:center"><div style="font-weight:800;font-size:16px">${u.myProfile}</div><div class="hint" style="margin:6px 0 12px">${u.profilesEmpty}</div><button class="btn primary" data-a="prof-new" data-me="1">${u.createMy}</button></div></div>`;
+  S.ui.profileId = me.id; return profileScreen();
+}
 function profileScreen() {
-  const u = U(); const pr = profById(S.ui.profileId); if (!pr) { S.screen = 'profiles'; return profilesScreen(); }
+  const u = U(); const pr = profById(S.ui.profileId); if (!pr) { S.screen = 'myprofile'; return myProfileScreen(); }
   const st = profStats(pr); const best = bestRoleOf(pr);
   const bestRole = best ? ROLE[best.id] : (pr.history.length ? ROLE[pr.history[pr.history.length - 1].roleId] : ROLE.sheriff);
   const favs = favoritesOf(pr, S.ui.allRoles ? 99 : 3);
@@ -121,7 +127,8 @@ function profileScreen() {
   const loc = [flagOf(pr.country), esc(pr.city), pr.country ? esc(countryName(pr.country)) : ''].filter(Boolean).join(' · ');
   const hist = pr.history.slice().reverse().slice(0, 25);
   const sideRow = (k, lbl) => { const b = st.bySide[k]; return `<div class="fav">${sealHTML(k === 'city' ? ROLE.sheriff : k === 'mafia' ? ROLE.don : ROLE.maniac)}<div><div class="n">${lbl}</div><div class="s">${tt(u.rtGW, { g: b.g, w: b.w })}</div></div><span class="w">${b.g ? Math.round(100 * b.w / b.g) : 0}%</span></div>`; };
-  return `${topbar(u.editProfile, pr.demo ? u.demoLabel : (pr.id === S.meId ? u.myProfile : ''))}
+  const isMe = pr.id === S.meId;
+  return `${topbar(isMe ? u.myProfile : u.editProfile, pr.demo ? u.demoLabel : (isMe ? u.myProfileD : ''))}
   <div class="stack">
     <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
@@ -233,7 +240,7 @@ function readAvatar(file, cb) {
   } catch (e) {}
 }
 Object.assign(ACT, {
-  'prof-open'(el) { S.ui.profileId = el.dataset.id; S.ui.allRoles = false; go('profile'); },
+  'prof-open'(el) { S.ui.profileId = el.dataset.id; S.ui.allRoles = false; go(el.dataset.id === S.meId ? 'myprofile' : 'profile'); },
   'prof-new'(el) { S.ui.pf = { me: !!el.dataset.me }; S.ui.sheet = { type: 'profEdit', id: null }; render(); },
   'prof-edit'(el) { const pr = profById(el.dataset.id); S.ui.pf = { name: pr.name, username: pr.username, city: pr.city, country: pr.country, avatar: pr.avatar, me: pr.id === S.meId }; S.ui.sheet = { type: 'profEdit', id: pr.id }; render(); },
   pf(el) { S.ui.pf = S.ui.pf || {}; S.ui.pf[el.dataset.k] = el.value; },
@@ -253,9 +260,9 @@ Object.assign(ACT, {
     if (!pr) { pr = newProfile(); S.profiles.push(pr); }
     Object.assign(pr, { name, username: (d.username || '').replace(/^@/, '').trim(), city: (d.city || '').trim(), country: d.country || '', avatar: d.avatar || pr.avatar || null, tgId: d.tgId || pr.tgId || null, demo: false });
     if (d.me) S.meId = pr.id; else if (S.meId === pr.id) S.meId = null;
-    S.ui.sheet = null; S.ui.pf = null; S.ui.profileId = pr.id; go('profile');
+    S.ui.sheet = null; S.ui.pf = null; S.ui.profileId = pr.id; go(S.meId === pr.id ? 'myprofile' : 'profile');
   },
-  'prof-del'(el) { if (S.ui.confirmDel !== el.dataset.id) { S.ui.confirmDel = el.dataset.id; toast(U().deleteConfirm); return; } S.profiles = S.profiles.filter(p => p.id !== el.dataset.id); if (S.meId === el.dataset.id) S.meId = null; S.ui.confirmDel = null; go('profiles'); },
+  'prof-del'(el) { if (S.ui.confirmDel !== el.dataset.id) { S.ui.confirmDel = el.dataset.id; toast(U().deleteConfirm); return; } S.profiles = S.profiles.filter(p => p.id !== el.dataset.id); if (S.meId === el.dataset.id) S.meId = null; S.ui.confirmDel = null; go(profileBackTarget()); },
   'prof-like'(el) { const pr = profById(el.dataset.id); if (!pr) return; pr.likedByMe = !pr.likedByMe; pr.likes = Math.max(0, pr.likes + (pr.likedByMe ? 1 : -1)); render(); },
   'prof-allroles'() { S.ui.allRoles = !S.ui.allRoles; render(); },
   'demo-remove'() { S.profiles = S.profiles.filter(p => !p.demo); render(); },

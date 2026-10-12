@@ -67,7 +67,16 @@ A.go(el('go', { to: 'cards' })); check('cards');
 A.filter(el('filter', { id: 'black' })); check('cards black');
 A.role(el('role', { id: 'rabbi' })); check('role sheet');
 A['sheet-close']();
-A.go(el('go', { to: 'scenarios' })); check('scenarios');
+A.go(el('go', { to: 'scenarios' })); check('scenarios (free tab)');
+{ const h = app.innerHTML; const u = X.U(); if (!h.includes(u.scenFreeTab) || !h.includes(u.scenPaidTab)) { fails++; console.log('FAIL scenario tabs missing'); } if (h.includes('scen-card classic') === false) { fails++; console.log('FAIL free tab must show the classic card'); } if (/баланса|балансу/i.test(h.split('<div class="stack">')[0])) { fails++; console.log('FAIL title still says "баланса"'); }
+  if (X.S().ui.scenTab !== 'free') { fails++; console.log('FAIL scenarios must open on the free tab'); } }
+A['scen-tab'](el('scen-tab', { id: 'paid' })); check('scenarios (paid tab)');
+{ const h = app.innerHTML; if (!h.includes('scen-card premium') || h.includes('scen-card classic')) { fails++; console.log('FAIL paid tab must list premium scenarios only'); } }
+A.go(el('go', { to: 'home' })); A.go(el('go', { to: 'scenarios' })); if (X.S().ui.scenTab !== 'free') { fails++; console.log('FAIL reopening scenarios must reset to the free tab'); }
+A.go(el('go', { to: 'myprofile' })); check('my profile (none yet)');
+{ const h = app.innerHTML; if (!h.includes('data-a="prof-new"')) { fails++; console.log('FAIL my profile should offer to create one'); } }
+A.go(el('go', { to: 'clubs' })); check('clubs (outside Telegram)');
+if (X.S().tab !== 'clubs') { fails++; console.log('FAIL clubs tab not highlighted'); }
 A.scen(el('scen', { n: '12' })); check('setup 12');
 A.n(el('n', { d: '1' })); check('setup 13');
 A.comp(el('comp', { id: 'mafia', d: '1' })); check('setup 14 cards warn');
@@ -169,6 +178,10 @@ console.log('profiles with recorded game:', recorded);
 if (recorded < 1) { fails++; console.log('FAIL: game result not recorded into profiles'); }
 A.go(el('go', { to: 'profiles' })); check('profiles list');
 A['prof-open'](el('prof-open', { id: S.profiles[0].id })); check('profile page');
+A.back(); if (X.S().screen !== 'profiles') { fails++; console.log('FAIL back from a profile must return where it was opened from, got ' + X.S().screen); }
+A['prof-new'](el('prof-new', { me: '1' })); A.pf({ dataset: { a: 'pf', k: 'name' }, value: 'Я' }); A['prof-save'](el('prof-save', { id: '' })); check('my profile created');
+if (X.S().screen !== 'myprofile' || !X.S().meId) { fails++; console.log('FAIL saving "my profile" should open the My profile screen, got ' + X.S().screen); }
+A['prof-open'](el('prof-open', { id: S.profiles[0].id })); check('profile page again');
 A['prof-allroles'](); check('profile all roles');
 A['prof-like'](el('prof-like', { id: S.profiles[0].id })); check('profile liked');
 A['prof-edit'](el('prof-edit', { id: S.profiles[0].id })); check('profile edit sheet');

@@ -47,7 +47,11 @@ let checks = 0; const SHOT = {};
   for (const lang of LANGS) {
     await act('lang', { id: lang });
     await act('go', { to: 'home' }); await check(lang + ' home', lang === 'ru' ? 'home' : null);
-    for (const to of ['cards', 'scenarios', 'shop', 'profiles', 'ratings', 'settings']) { await act('go', { to }); await check(lang + ' ' + to, lang === 'ru' ? to : null); }
+    for (const to of ['cards', 'scenarios', 'shop', 'profiles', 'myprofile', 'clubs', 'ratings', 'settings']) { await act('go', { to }); await check(lang + ' ' + to, lang === 'ru' ? to : null); }
+    await act('go', { to: 'scenarios' }); await act('scen-tab', { id: 'paid' }); await check(lang + ' scenarios paid', lang === 'ru' ? 'scenarios-paid' : null);
+    // the tab bar must fit six tabs without clipping the labels
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('.tab')].map(t => ({ id: t.dataset.id, clipped: t.scrollWidth > t.clientWidth + 1 || (t.querySelector('span') && t.querySelector('span').scrollWidth > t.clientWidth + 1) })));
+    if (tabs.length !== 6 || tabs.some(t => t.clipped) || !tabs.some(t => t.id === 'clubs') || tabs.some(t => t.id === 'profiles')) problems.push(`[${lang} tabbar] ` + JSON.stringify(tabs));
     await act('go', { to: 'cards' });
     for (const f of ['all', 'black', 'red', 'neutral', 'premium']) { await act('filter', { id: f }); await check(lang + ' cards filter ' + f); }
     // every role sheet: text + card overflow

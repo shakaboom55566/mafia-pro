@@ -179,7 +179,14 @@ async function referralStats(env, tgId) {
 /* ---------- clubs ---------- */
 const CLUB_LOGO_MAX = 24000; // data URL bytes (the app resizes to 96px)
 async function clubRow(env, id) { return env.DB.prepare('SELECT * FROM clubs WHERE id = ?1').bind(id).first(); }
-async function membershipOf(env, tgId) { return env.DB.prepare('SELECT m.club_id, m.role, c.name, c.status FROM club_members m JOIN clubs c ON c.id = m.club_id WHERE m.tg_id = ?1').bind(tgId).first(); }
+async function membershipOf(env, tgId) { return env.DB.prepare('SELECT m.club_id, m.role, c.name, c.status, c.city, c.logo, c.owner_id FROM club_members m JOIN clubs c ON c.id = m.club_id WHERE m.tg_id = ?1').bind(tgId).first(); }
+/* public top of clubs by members (ratings tab) */
+async function apiClubsTop(env, url) {
+  const limit = Math.max(1, Math.min(50, Number(url.searchParams.get('limit')) || 20));
+  const rows = (await env.DB.prepare('SELECT c.id, c.name, c.city, c.logo, c.owner_id, c.created_at, COUNT(m.tg_id) AS n, SUM(CASE WHEN u.seen_at > ?2 THEN 1 ELSE 0 END) AS online, COALESCE(SUM(r.points), 0) AS points, COALESCE(SUM(r.games), 0) AS games FROM clubs c LEFT JOIN club_members m ON m.club_id = c.id LEFT JOIN users u ON u.tg_id = m.tg_id LEFT JOIN ratings r ON r.tg_id = m.tg_id WHERE c.status = ?1 GROUP BY c.id ORDER BY n DESC, online DESC, points DESC, c.created_at LIMIT ?3').bind('active', now() - ONLINE_SEC, limit).all()).results || [];
+  const partners = new Set(((await env.DB.prepare('SELECT tg_id FROM partners WHERE status = ?1').bind('active').all()).results || []).map(r => r.tg_id));
+  return json({ ok: true, top: rows.map((c, i) => ({ rank: i + 1, id: c.id, name: c.name, city: c.city || '', logo: c.logo || '', members: c.n || 0, online: c.online || 0, points: c.points || 0, games: c.games || 0, partner: partners.has(c.owner_id) })) });
+}
 async function clubMembers(env, clubId) {
   const ts = now();
   const rows = (await env.DB.prepare('SELECT m.tg_id, m.role, m.joined_at, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins FROM club_members m LEFT JOIN users u ON u.tg_id = m.tg_id LEFT JOIN ratings r ON r.tg_id = m.tg_id WHERE m.club_id = ?1 ORDER BY (m.role = ?2) DESC, (u.seen_at > ?3) DESC, u.seen_at DESC').bind(clubId, 'owner', ts - ONLINE_SEC).all()).results || [];
@@ -526,7 +533,8 @@ async function apiMe(env, bot, body) {
   const u = v.user;
   if (isAdmin(env, u.id)) owned.allUntil = Math.max(owned.allUntil || 0, Date.now() + 3650 * 86400000); // admins own everything
   const credits = await creditsFor(env, u.id); const club = await membershipOf(env, u.id);
-  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), credits, club: club ? { id: club.club_id, role: club.role, name: club.name } : null });
+  const partner = club && club.owner_id ? await env.DB.prepare('SELECT 1 FROM partners WHERE tg_id = ?1 AND status = ?2').bind(club.owner_id, 'active').first() : null;
+  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -559,7 +567,25 @@ async function apiPartner(env, bot, body, action) {
   const [code, username] = await Promise.all([inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
   const share = p ? p.share : 20;
   const stats = p && p.status === 'active' ? await partnerStats(env, v.user.id, share) : null;
-  return json({ ok: true, status: p ? p.status : 'none', share, name: p ? p.name : '', channel: p ? p.channel : '', link: `https://t.me/${username}?start=ref_${code}`, appLink: `${env.APP_URL}?startapp=ref_${code}`, stats, minPayout: 1000, support: env.SUPPORT_USERNAME || username });
+  let club = null;
+  if (p && p.status === 'active') { // partners always have a club (created on approval; repaired here if it is missing)
+    try { club = await partnerClub(env, bot, Object.assign({ tg_id: v.user.id, lang: v.user.language_code, first_name: v.user.first_name, last_name: v.user.last_name, username: v.user.username }, await userRow(env, v.user.id) || {}), p); } catch (e) { console.error('partner club', e); }
+    if (club) club = { id: club.id, name: club.name };
+  }
+  return json({ ok: true, status: p ? p.status : 'none', share, name: p ? p.name : '', channel: p ? p.channel : '', link: `https://t.me/${username}?start=ref_${code}`, appLink: `${env.APP_URL}?startapp=ref_${code}`, stats, minPayout: 1000, support: env.SUPPORT_USERNAME || username, club });
+}
+/* an approved partner gets a club straight away: their pending club is approved, otherwise one is created from the application (name, channel link) */
+async function partnerClub(env, bot, target, p) {
+  const mine = await membershipOf(env, target.tg_id);
+  if (mine) return { id: mine.club_id, name: mine.name, created: false };
+  const own = await env.DB.prepare('SELECT * FROM clubs WHERE owner_id = ?1 AND status != ?2 ORDER BY created_at DESC LIMIT 1').bind(target.tg_id, 'rejected').first();
+  if (own) { if (own.status !== 'active') await setClubStatus(env, bot, own, true); else await addMember(env, own.id, target.tg_id, 'owner'); return { id: own.id, name: own.name, created: false }; }
+  const f = cleanClubFields({ name: (p && p.name) || rowName(target) || ('Club ' + target.tg_id), link: /^(https?:\/\/|@|t\.me)/i.test(String((p && p.channel) || '')) ? p.channel : '' });
+  if (f.name.length < 2) f.name = 'Club ' + target.tg_id;
+  const ins = await env.DB.prepare('INSERT INTO clubs (name, city, about, link, logo, owner_id, status, created_at, approved_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)').bind(f.name, '', '', f.link, '', target.tg_id, 'active', now()).run();
+  const id = ins.meta.last_row_id;
+  await addMember(env, id, target.tg_id, 'owner'); await clubSystem(env, id, '🏛');
+  return { id, name: f.name, created: true };
 }
 async function setPartner(env, bot, target, approve) {
   const lang = pickLang(target.lang);
@@ -567,6 +593,8 @@ async function setPartner(env, bot, target, approve) {
     await env.DB.prepare('INSERT INTO partners (tg_id, status, name, share, created_at, approved_at) VALUES (?1, ?2, ?3, 20, ?4, ?4) ON CONFLICT(tg_id) DO UPDATE SET status = ?2, approved_at = ?4').bind(target.tg_id, 'active', rowName(target), now()).run();
     const p = await partnerRow(env, target.tg_id);
     await bot.send(target.tg_id, t(lang, 'partnerApproved', { share: p.share }), bot.playButton(t(lang, 'play'), env.APP_URL));
+    let club = null; try { club = await partnerClub(env, bot, target, p); } catch (e) { console.error('partner club', e); }
+    if (club && club.created) { try { await bot.send(target.tg_id, t(lang, 'partnerClub', { name: esc(club.name) }), bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) {} }
   } else {
     await env.DB.prepare('UPDATE partners SET status = ?1 WHERE tg_id = ?2').bind('rejected', target.tg_id).run();
     await bot.send(target.tg_id, t(lang, 'partnerRejected'));
@@ -804,6 +832,7 @@ export default {
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
         const wrap = p => p.then(r => { for (const [k, v] of Object.entries(cors)) r.headers.set(k, v); return r; });
         if (req.method === 'GET' && path === '/api/leaderboard') return wrap(apiLeaderboard(env, url));
+        if (req.method === 'GET' && path === '/api/clubs/top') return wrap(apiClubsTop(env, url));
         if (req.method !== 'POST') return wrap(Promise.resolve(json({ ok: false, error: 'method' }, 405)));
         let body = null; try { body = await req.json(); } catch (e) { return wrap(Promise.resolve(json({ ok: false, error: 'bad_json' }, 400))); }
         switch (path) {
