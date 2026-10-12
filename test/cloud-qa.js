@@ -127,6 +127,8 @@ const path = require('path'); const http = require('http');
   const dm401 = lastTo(401); ok(dm401 && dm401.params.text.includes('кличе вас за стіл') && dm401.params.reply_markup.inline_keyboard[0][0].callback_data.startsWith('tb_acc_') && dm401.params.reply_markup.inline_keyboard[0][1].callback_data.startsWith('tb_dec_'), 'unanswered → friend 401 got "I’m in / Decline" buttons in Ukrainian');
   const dm402 = lastTo(402); ok(dm402 && dm402.params.text.includes('zaprasza'), 'friend 402 got it in Polish');
   ok(await S(() => S.ui.frSel.length === 0), 'selection cleared');
+  ok(await S(() => S.screen === 'setup'), 'after inviting the host goes on to the table (setup screen), not the menu');
+  await S(() => go('friends')); await p.waitForTimeout(400);
   // remove with confirmation
   await p.click('[data-a="fr-remove-ask"][data-id="402"]'); await p.waitForTimeout(100); ok(await S(() => document.body.textContent.includes('Kasia') && !!document.querySelector('[data-a="fr-remove"]')), 'confirm panel');
   await p.click('[data-a="fr-remove"]'); await p.waitForTimeout(400); ok(await S(() => FR.list.length === 1 && FR.list[0].tgId === 401), 'removed');
@@ -416,9 +418,22 @@ const path = require('path'); const http = require('http');
   await S(() => go('friends')); await p.waitForTimeout(700);
   await S(() => { S.ui.frSel = [601]; }); await S(() => ACT['fr-invite']()); await p.waitForTimeout(800);
   ok(!tg.calls.some(c => c.method === 'sendMessage' && c.params.chat_id === 601 && c.params.text.includes(oc)), 'online friend gets no DM');
+  ok(await p.evaluate(c => S.screen === 'setup' && S.lobby && S.lobby.code === c, oc), 'host lands on the table setup after inviting');
+  // the open-tables list on the player's home screen shows the host's table with "invited"
+  await Q(() => { LB.at = 0; go('home'); }); await q.waitForTimeout(900);
+  ok(await Q(() => Array.isArray(LB.list)), 'open tables loaded');
+  const lbTxt = await q.$eval('#app', el => el.textContent);
+  ok(await Q(() => (LB.list || []).some(l => l.host.name === 'Ведущий' && l.via === 'invite')) && lbTxt.includes(await Q(() => U().lbTitle)) && lbTxt.includes('Ведущий') && !!(await q.$('[data-a="lb-join"]')), 'player sees "Open tables" with the host’s table marked as an invitation');
+  await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-lobbies.png') }).catch(() => {});
   await Q(async () => { const d = await api('/api/ping', {}); S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); }); await q.waitForTimeout(300);
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'tableInvite') && (await q.$eval('.sheet', el => el.textContent)).includes('Ведущий') && (await q.$eval('.sheet', el => el.textContent)).includes(oc), 'invitation sheet on the player’s screen with the host’s name and the table code');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-invite.png') }).catch(() => {});
+  // closed with × → not asked again this session, but still offered in the open-tables list
+  await q.click('.sheet button[data-a="sheet-close"]'); await q.waitForTimeout(200);
+  await Q(() => showInvites()); await q.waitForTimeout(200);
+  ok(await Q(() => !S.ui.sheet && TB.dismissed.has(S.cloud.invites[0].code)), 'invitation closed with × does not pop up again');
+  await Q(() => { TB.dismissed.clear(); showInvites(); }); await q.waitForTimeout(200);
+  ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'tableInvite'), 'invitation sheet shown again');
   await q.click('.sheet [data-a="inv-respond"][data-ok="1"]'); await q.waitForTimeout(900);
   ok(await Q(() => S.screen === 'table' && TB.code === S.cloud.table.code), 'accepted → the waiting room opens');
   ok(lastTo(100) && lastTo(100).params.text.includes('Нина') && lastTo(100).params.text.includes(oc), 'host notified that Нина sat down');
@@ -532,6 +547,17 @@ const path = require('path'); const http = require('http');
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'friend' && S.ui.sheet.id === 602) && (await q.$eval('.sheet', el => el.textContent)).includes('Гена'), 'tapping a player on the podium opens his profile');
   await Q(() => { S.ui.sheet = null; render(); });
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-end.png') }).catch(() => {});
+  // a new table: Нина joins by code from the home screen, the host closes the table → she sees "the host closed the table"
+  await S(() => { S.game = null; S.lobby = null; save(); go('setup'); S.setup.online = true; return openTable(true); }); await p.waitForTimeout(600);
+  const nc = await S(() => S.lobby && S.lobby.code); ok(!!nc && nc !== oc, 'host opened a fresh table ' + nc);
+  await Q(() => { S.ui.sheet = null; go('home'); }); await q.waitForTimeout(300);
+  await q.fill('#lb-code', nc.toLowerCase()); await q.click('[data-a="lb-join"][data-code=""]'); await q.waitForTimeout(1200);
+  ok(await q.evaluate(c => S.screen === 'table' && TB.code === c && TB.data && TB.data.status === 'open', nc), 'joined by code typed in lowercase → waiting room');
+  await S(() => go('setup')); await p.waitForTimeout(300); await p.click('[data-a="tg-close-table"]'); await p.waitForTimeout(900);
+  ok(await S(() => !S.lobby), 'host closed the table');
+  await Q(() => tableFetch()); await q.waitForTimeout(700);
+  const closedTxt = await q.$eval('#app', el => el.textContent);
+  ok(await Q(() => TB.data && TB.data.status === 'closed') && closedTxt.includes(await Q(() => U().tbClosedByHost)) && !(await q.$('.rtable')), 'player sees "the host closed the table" instead of the waiting room: ' + await Q(() => JSON.stringify({ st: TB.data && TB.data.status, err: TB.err, scr: S.screen })) + ' host=' + await S(() => JSON.stringify({ lobby: S.lobby, calls: window.__closeCalls })));
   ok(errs2.length === 0, 'no page errors on the player’s phone: ' + errs2.join(' | ').slice(0, 300));
   await ctx2.close();
 

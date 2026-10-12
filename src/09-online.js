@@ -194,7 +194,7 @@ async function tableFetch() {
   try {
     const d = await api('/api/table/state', { code: TB.code, since: TB.lastChat }); if (!d.ok) { TB.err = d.error || 'network'; if (S.screen === 'table') render(); return; }
     const prevKey = TB.data && TB.data.me && TB.data.me.ask ? TB.data.me.ask.key : null; const prevPhase = TB.data && TB.data.pub ? TB.data.pub.phase + (TB.data.pub.day || '') : '';
-    const prevSig = TB.data ? TB.data.version + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
+    const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
     const first = !TB.data; TB.data = d; TB.err = null; TB.at = Date.now();
     const newChat = !!(d.chat && d.chat.length);
     if (newChat) { TB.chat = TB.chat.concat(d.chat).slice(-300); TB.lastChat = TB.chat[TB.chat.length - 1].id; }
@@ -204,7 +204,7 @@ async function tableFetch() {
     if (d.pub && d.pub.phase + (d.pub.day || '') !== prevPhase) TB.pick = [];
     if (Array.isArray(d.invites)) { S.cloud = S.cloud || {}; S.cloud.invites = d.invites; }
     if (d.pub && d.pub.phase === 'end' && !TB.endSynced) { TB.endSynced = true; setTimeout(() => { try { cloudSync(); } catch (e) {} }, 500); } // my rating is updated after the game
-    const sig = d.version + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
+    const sig = d.version + '|' + d.status + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
     if (S.screen === 'table' && (first || newChat || sig !== prevSig)) { keepFocus(render); if (newChat) scrollTbChat(); }
   } finally { TB.busy = false; }
 }
@@ -288,6 +288,7 @@ function tableScreen() {
   if (!TG.app || !apiBase()) return `${topbar(u.tbLobby, '')}<div class="stack"><div class="panel"><div class="hint">${u.frOnlyTg}</div></div></div>`;
   if (!d) return `${topbar(tt(u.tbTitle, { code: TB.code || '' }), u.tbLobby)}<div class="stack"><p class="hint" style="text-align:center">${TB.err === 'not_seated' ? u.tbNotSeated : TB.err ? u.tgOffline : u.tbLoading}</p>${TB.err ? `<button class="btn ghost" data-a="go" data-to="home">${u.tbBackHome}</button>` : ''}</div>`;
   const pub = d.pub || { phase: 'lobby' }; const me = d.me; const profiles = d.profiles || {}; const myId = S.cloud && S.cloud.user ? S.cloud.user.id : 0;
+  if (d.status === 'closed' && pub.phase !== 'end') return `${topbar(tt(u.tbTitle, { code: TB.code || '' }), u.tbLobby)}<div class="stack"><div class="panel" style="text-align:center"><div class="ico" style="margin:0 auto 8px;color:var(--muted)">${I.game}</div><div style="font-weight:800">${u.tbClosedByHost}</div><div class="hint" style="margin-top:4px">${esc(d.host ? d.host.name : '')}</div></div><button class="btn ghost" data-a="go" data-to="home">${u.tbBackHome}</button></div>`;
   let seats = (pub.seats || []).slice();
   if (!seats.length) seats = (d.players || []).map((p, i) => ({ seat: i + 1, name: p.name, tgId: p.tgId, alive: true }));
   const mySeat = me && me.seat ? me.seat : (seats.find(s => s.tgId === myId) || {}).seat;
@@ -371,11 +372,37 @@ function tableInviteHTML(code) {
   return `<h2>${tt(inv.kind === 'club' ? u.tbInviteClub : u.tbInvite, { name: esc(inv.from), code: esc(inv.code) })}</h2><div class="row" style="gap:12px;margin-top:10px">${inv.photo ? `<img class="avatar lg" src="${esc(inv.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((inv.from || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow"><div style="font-weight:800">${esc(inv.from)}${inv.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(inv.username)}</span>` : ''}</div><div class="hint" style="margin:0">${tt(u.tbTitle, { code: esc(inv.code) })}</div></div></div>
     <div class="btn-row" style="margin-top:14px"><button class="btn ghost" data-a="inv-respond" data-code="${esc(inv.code)}" data-ok="0">${u.tbDecline}</button><button class="btn primary" data-a="inv-respond" data-code="${esc(inv.code)}" data-ok="1">${u.tbAccept}</button></div>`;
 }
+/* an invitation closed with × is not asked again this session — it stays in the open-tables list on the home screen */
+TB.dismissed = new Set();
+{ const origClose = ACT['sheet-close']; ACT['sheet-close'] = function (el) { if (S.ui.sheet && S.ui.sheet.type === 'tableInvite') TB.dismissed.add(S.ui.sheet.code); return origClose.call(this, el); }; }
 function showInvites() {
   const list = (S.cloud && S.cloud.invites) || []; if (!list.length || S.ui.sheet) return;
-  const inv = list.find(i => !(S.screen === 'table' && TB.code === i.code) && !(S.game && S.game.tg && S.game.tg.code === i.code)); if (!inv) return;
+  const inv = list.find(i => !TB.dismissed.has(i.code) && !(S.screen === 'table' && TB.code === i.code) && !(S.game && S.game.tg && S.game.tg.code === i.code)); if (!inv) return;
   S.ui.sheet = { type: 'tableInvite', code: inv.code }; tgHaptic('warning'); render();
 }
+/* open tables on the home screen: friends', club mates', invitations, my seats; join by code */
+const LB = { list: null, at: 0, busy: false, code: '' };
+async function loadLobbies(force) { if (!TG.app || !apiBase() || LB.busy || (LB.list && !force && Date.now() - LB.at < 20000)) return; LB.busy = true; try { const d = await api('/api/lobbies', {}); if (d.ok) { LB.list = d.lobbies || []; LB.at = Date.now(); } else if (!LB.list) LB.list = []; } finally { LB.busy = false; if (S.screen === 'home') keepFocus(render); } }
+function lobbiesHTML() {
+  const u = U(); if (!TG.app || !apiBase()) return '';
+  if ((!LB.list || Date.now() - LB.at > 20000) && !LB.busy) setTimeout(() => loadLobbies(false), 0);
+  const myId = S.cloud && S.cloud.user ? S.cloud.user.id : 0;
+  const list = (LB.list || []).filter(l => l.host.tgId !== myId);
+  const rows = list.map(l => `<div class="fr-row" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.host.name)} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })} · ${l.online ? u.tbOnlineTag : u.onOffline.toLowerCase()} · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${(u.lbVia || {})[l.via] || ''}</span></div></div><button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button></div>`).join('');
+  return `<div class="panel" style="margin-bottom:14px"><div class="row"><div class="eyebrow grow">${u.lbTitle}${LB.list ? ` · ${list.length}` : ''}</div><button class="btn xs ghost" data-a="lb-refresh">${LB.busy ? '…' : u.tgRefresh}</button></div><div class="hint" style="margin:4px 0 8px">${u.lbHint}</div>
+    ${rows ? `<div class="stack-s">${rows}</div>` : `<div class="hint">${LB.list ? u.lbEmpty : u.frLoading}</div>`}
+    <div class="row" style="margin-top:10px"><input class="input grow" id="lb-code" data-a="lb-code" placeholder="${u.lbCodePh}" value="${esc(LB.code)}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8"><button class="btn sm" data-a="lb-join" data-code="" style="flex:0 0 auto">${u.lbJoinCode}</button></div></div>`;
+}
+Object.assign(ACT, {
+  'lb-refresh'() { loadLobbies(true); render(); },
+  'lb-code'(el) { LB.code = (el.value || '').toUpperCase(); },
+  async 'lb-join'(el) {
+    const code = String(el.dataset.code || LB.code || '').toUpperCase().trim(); if (!code) return; const u = U();
+    const d = await api('/api/table/join', { code });
+    if (!d.ok) { toast(d.error === 'not_found' || d.error === 'bad_code' ? u.lbNotFound : d.error === 'lobby_closed' ? u.lbClosed : d.error === 'host' ? u.lbHostSelf : u.tgOffline); return; }
+    LB.code = ''; LB.at = 0; if (d.joined) { toast(tt(u.tbJoined, { code })); tgHaptic('success'); } S.cloud.table = { code, status: 'open' }; tableOpen(code);
+  }
+});
 /* home banner: the table I sit at */
 function tableBannerHTML() {
   const u = U(); const t = S.cloud && S.cloud.table; if (!TG.app || !apiBase() || !t || (S.cloud.user && t.hostId === S.cloud.user.id)) return '';
@@ -447,7 +474,7 @@ function podiumHTML(rows, keyPrefix = 'pod') {
   const origGame = gameScreen; gameScreen = function () { const html = origGame(); const s = onlineStripHTML(S.game); if (!s) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + s + html.slice(i + 19); };
   const origDealScr = dealScreen; dealScreen = function () { const html = origDealScr(); const s = onlineStripHTML(S.game); if (!s) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + s + html.slice(i + 19); };
   const origEnd2 = endScreen; endScreen = function () { const html = origEnd2(); const g = S.game; if (!g || !g.winner) return html; let pod = ''; try { pod = podiumHTML(resultRows(g), 'pod'); } catch (e) { pod = ''; } if (!pod) return html; const i = html.indexOf('<div class="panel"><div class="eyebrow gold">'); return i < 0 ? html : html.slice(0, i) + pod + html.slice(i); };
-  const origHome = homeScreen; homeScreen = function () { const html = origHome(); const b = tableBannerHTML(); if (!b) return html; const i = html.indexOf('<div class="menu">'); return i < 0 ? html : html.slice(0, i) + b + html.slice(i); };
+  const origHome = homeScreen; homeScreen = function () { const html = origHome(); let b = ''; try { b = tableBannerHTML() + lobbiesHTML(); } catch (e) { b = ''; } if (!b) return html; const i = html.indexOf('<div class="menu">'); return i < 0 ? html : html.slice(0, i) + b + html.slice(i); };
   const origSheet2 = sheetHTML;
   sheetHTML = function (enter) { const sh = S.ui.sheet; if (sh && sh.type === 'tableInvite') { const u = U(); return `<div class="sheet-bg ${enter !== false ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${tableInviteHTML(sh.code)}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`; } return origSheet2(enter); };
   // the game is created: online flag + per-game online state; the table state is published at once (cards appear in the app)
@@ -464,8 +491,8 @@ function podiumHTML(rows, keyPrefix = 'pod') {
     return origReset.call(this, el); };
   // heartbeat every 15 s: presence + invitations + the table I sit at
   const origHeartbeat = startHeartbeat;
-  startHeartbeat = function () { if (heartbeatTimer || !TG.app || !apiBase()) return; heartbeatTimer = setInterval(async () => { try { if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return; const d = await api('/api/ping', {}); if (d && d.ok) { S.cloud = S.cloud || {}; S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); if (S.screen === 'home') render(); } } catch (e) {} }, 6000); };
+  startHeartbeat = function () { if (heartbeatTimer || !TG.app || !apiBase()) return; heartbeatTimer = setInterval(async () => { try { if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return; const d = await api('/api/ping', {}); if (d && d.ok) { S.cloud = S.cloud || {}; S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); if (S.screen === 'home') { LB.at = 0; keepFocus(render); } } } catch (e) {} }, 6000); };
   const origSync = cloudSync;
   cloudSync = async function () { await origSync(); const d = CLOUD.me; if (!d || !d.ok) return; S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; const me = S.meId ? profById(S.meId) : null; if (me && me.city && !ONL.citySent) { ONL.citySent = true; api('/api/me', { city: me.city }); } if (!ONL.autoOpened) { ONL.autoOpened = true; const t = d.table; if (t && t.hostId !== d.user.id && !S.game && !S.ui.tgStart && S.screen === 'home') { tableOpen(t.code); return; } } showInvites(); if (S.screen === 'home') render(); };
-  try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'tb-msg') { e.preventDefault(); ACT['tb-send'](); } }); document.addEventListener('input', e => { const el = e.target.closest && e.target.closest('[data-a="tb-msg"]'); if (el) ACT['tb-msg'](el); }); } catch (e) {}
+  try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'tb-msg') { e.preventDefault(); ACT['tb-send'](); } if (e.key === 'Enter' && e.target && e.target.id === 'lb-code') { e.preventDefault(); ACT['lb-join']({ dataset: { code: '' } }); } }); document.addEventListener('input', e => { const el = e.target.closest && e.target.closest('[data-a="tb-msg"],[data-a="lb-code"]'); if (el) ACT[el.dataset.a](el); }); } catch (e) {}
 })();

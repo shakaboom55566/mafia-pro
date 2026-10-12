@@ -236,7 +236,7 @@ Object.assign(ACT, {
   async 'tg-lobby-refresh'() { if ((await refreshTable()) === false) toast(U().tgOffline); },
   'tg-seat-one'(el) { const l = S.lobby; if (!l) return; const id = Number(el.dataset.tg); const st = S.setup; const taken = new Set(Object.values(l.seats || {})); let i = -1; for (let k = 0; k < st.n; k++) if (!taken.has(k) && !String(st.names[k] || '').trim() && !(st.seatProfiles || [])[k]) { i = k; break; } if (i < 0) for (let k = 0; k < st.n; k++) if (!taken.has(k)) { i = k; break; } if (i < 0) return; l.seats = l.seats || {}; l.seats[id] = i; const pl = l.players.find(p => p.tgId === id); if (pl && !String(st.names[i] || '').trim()) st.names[i] = pl.name; save(); render(); },
   'tg-seat-all'() { setupAutoSeat(); save(); render(); },
-  'tg-close-table'() { S.lobby = null; save(); render(); },
+  'tg-close-table'() { const l = S.lobby; S.lobby = null; save(); render(); if (l && l.code && TG.app && apiBase()) api('/api/lobby/close', { code: l.code }).catch(() => {}); },
   'tg-share'() {
     const l = currentLobby(); if (!l || !l.link) return; const url = 'https://t.me/share/url?url=' + encodeURIComponent(l.link) + '&text=' + encodeURIComponent(U().tgShareText);
     try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {}
@@ -324,13 +324,15 @@ Object.assign(ACT, {
       let r0 = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel });
       if (!r0.ok && r0.error === 'no_lobby') { if (!(await openTable(true))) return; r0 = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel }); }
       if (!r0.ok) { toast(U().tgOffline); return; }
-      toast(tt(U().frInvited, { n: (r0.sent || []).length }) + ((r0.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r0.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = []; render(); return;
+      toast(tt(U().frInvited, { n: (r0.sent || []).length }) + ((r0.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r0.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = [];
+      if (!S.setup.scenario && !S.setup.comp) S.setup.comp = presetFor(S.setup.n); go('setup'); return; // on to the table: seats fill in as the players accept
     }
     const g = S.game;
     if (!g.tg || !g.tg.code || g.dealIdx >= g.players.length) { if (!(await openTable(!!(g.tg && g.tg.code)))) return; }
     const r = await api('/api/friends/invite', { code: g.tg.code, friendIds: sel });
     if (!r.ok) { toast(U().tgOffline); return; }
-    toast(tt(U().frInvited, { n: (r.sent || []).length }) + ((r.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = []; render();
+    toast(tt(U().frInvited, { n: (r.sent || []).length }) + ((r.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = [];
+    if (S.screen !== 'deal' && S.screen !== 'game') go(g.dealt ? 'game' : 'deal'); else render(); // back to the table, not the menu
   }
 });
 /* ---------- friend profile sheet (server-side stats: rating, cards, recent games) ---------- */

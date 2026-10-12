@@ -168,6 +168,26 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   const w301 = await (await post('/api/table/state', { initData: await initData(user(301, 'en')), code: lob.code })).json();
   ok(w301.ok && w301.pub.phase === 'lobby' && w301.pub.seats[0].tgId === 301 && w301.profiles[301].name === 'User301' && w301.host.tgId === 100 && w301.status === 'open', 'player sees the waiting room with the host and profiles');
   eq((await post('/api/friends/invite', { initData: b, code: lob.code, friendIds: [100] })).status, 404, 'only the host can invite to a table');
+  // open tables: friend 302 sees the host's table (friend), joins it from the app; a stranger sees nothing and cannot join a closed one
+  const ll = await (await post('/api/lobbies', { initData: b })).json();
+  ok(ll.ok && ll.lobbies.length === 1 && ll.lobbies[0].code === lob.code && ll.lobbies[0].via === 'friend' && ll.lobbies[0].host.name === 'User100' && ll.lobbies[0].players === 1 && ll.lobbies[0].seats === 10, 'friend sees the open table with host and player count: ' + JSON.stringify(ll.lobbies[0]));
+  eq((await (await post('/api/lobbies', { initData: await initData(user(999)) })).json()).lobbies, [], 'strangers see no tables');
+  const jn = await (await post('/api/table/join', { initData: b, code: lob.code.toLowerCase() })).json(); ok(jn.ok && jn.joined && lastTo(100).params.text.includes('User302'), 'joined from the app, host notified');
+  eq((await (await post('/api/lobbies', { initData: b })).json()).lobbies[0].via, 'seated', 'now listed as my seat');
+  eq((await post('/api/table/join', { initData: a, code: lob.code })).status, 409, 'the host cannot join his own table');
+  eq((await post('/api/table/join', { initData: b, code: 'ZZZZZZ' })).status, 404, 'unknown code');
+  await env.DB.prepare('DELETE FROM lobby_players WHERE code = ?1 AND tg_id = 302').bind(lob.code).run();
+  // the host closes his table: players at it see "closed", it leaves the lists, nobody can join any more
+  const lobB = await (await post('/api/lobby', { initData: b, fresh: true })).json(); ok(lobB.ok, '302 opens a table');
+  ok((await (await post('/api/table/join', { initData: a, code: lobB.code })).json()).joined, '100 sits down');
+  await post('/api/friends/invite', { initData: b, code: lobB.code, friendIds: [301] });
+  eq((await post('/api/lobby/close', { initData: a, code: lobB.code })).status, 404, 'only the host can close a table');
+  const cl = await (await post('/api/lobby/close', { initData: b, code: lobB.code })).json(); ok(cl.ok && cl.status === 'closed', 'host closed the table');
+  eq((await (await post('/api/table/state', { initData: a, code: lobB.code })).json()).status, 'closed', 'the seated player sees the table closed');
+  eq((await (await post('/api/lobbies', { initData: a })).json()).lobbies.filter(l => l.code === lobB.code), [], 'closed table is not listed');
+  eq((await post('/api/table/join', { initData: await initData(user(301, 'en')), code: lobB.code })).status, 409, 'cannot join a closed table');
+  eq((await (await post('/api/ping', { initData: await initData(user(301, 'en')) })).json()).invites.filter(i => i.code === lobB.code), [], 'pending invitations to the closed table are withdrawn');
+  ok(!(await (await post('/api/ping', { initData: a })).json()).table, 'the seated player’s table banner is gone');
   // remove
   ok((await (await post('/api/friends/remove', { initData: a, friendId: 301 })).json()).ok, 'removed');
   eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId), [302], 'list after removal');

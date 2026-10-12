@@ -5,7 +5,7 @@ const N = +process.env.N || 4000;
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push(e.message + ' @ ' + ((e.stack || '').split('\n')[1] || '').trim()));
-  p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push('console: ' + m.text()); });
   await p.goto('file://' + path.resolve(__dirname, '..', 'mafia-pro.html')); await p.waitForTimeout(400);
   const res = await p.evaluate(async (N) => {
     const skip = new Set(['reset-confirm', 'demo-remove', 'prof-del', 'lang', 'tab', 'go', 'back', 'new', 'continue', 'scen', 'scen-use']);

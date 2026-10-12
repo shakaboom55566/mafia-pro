@@ -30,6 +30,8 @@
    - POST /api/table/actions   host: players' answers since an id
    - POST /api/table/chat/send player: table chat (open from the free discussion until the vote)
    - POST /api/table/invite/respond  accept / decline an in-app table invitation
+   - POST /api/lobbies         open tables I can see (friends, club mates, invitations, my seats)
+   - POST /api/table/join      sit down at an open table by code
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
    ============================================================ */
@@ -801,7 +803,7 @@ async function apiLobbyCreate(env, bot, body) {
   // one open lobby per host: reuse it
   let lobby = await env.DB.prepare('SELECT code FROM lobbies WHERE host_id = ?1 AND status = ?2 ORDER BY created_at DESC LIMIT 1').bind(v.user.id, 'open').first();
   if (!lobby || body.fresh) {
-    if (lobby) await env.DB.prepare('UPDATE lobbies SET status = ?1 WHERE code = ?2').bind('closed', lobby.code).run();
+    await env.DB.prepare("UPDATE lobbies SET status = ?1 WHERE host_id = ?2 AND status IN ('open', 'dealt')").bind('closed', v.user.id).run(); // one table per host: older ones close
     let code = randomCode(); for (let i = 0; i < 5; i++) { const ex = await env.DB.prepare('SELECT 1 FROM lobbies WHERE code = ?1').bind(code).first(); if (!ex) break; code = randomCode(); }
     await env.DB.prepare('INSERT INTO lobbies (code, host_id, status, created_at) VALUES (?1, ?2, ?3, ?4)').bind(code, v.user.id, 'open', now()).run();
     lobby = { code };
@@ -906,6 +908,45 @@ async function seatPlayer(env, bot, code, u, lang) { // returns true when newly 
     try { await bot.send(lobby.host_id, t(pickLang(host && host.lang), 'hostJoined', { code, name: esc(name), n })); } catch (e) {}
   }
   return inserted;
+}
+/* open tables I can see: hosted by friends or club mates, or where I am invited / seated */
+async function apiLobbies(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const me = v.user.id; const ts = now();
+  const friends = (await friendsOf(env, me)).map(f => f.tgId);
+  const club = await membershipOf(env, me);
+  const mates = club ? ((await env.DB.prepare('SELECT tg_id FROM club_members WHERE club_id = ?1').bind(club.club_id).all()).results || []).map(r => r.tg_id) : [];
+  const invited = ((await env.DB.prepare('SELECT code FROM table_invites WHERE tg_id = ?1 AND status = ?2').bind(me, 'pending').all()).results || []).map(r => r.code);
+  const seated = ((await env.DB.prepare('SELECT code FROM lobby_players WHERE tg_id = ?1').bind(me).all()).results || []).map(r => r.code);
+  const rows = (await env.DB.prepare(`SELECT l.code, l.host_id, l.status, l.created_at, u.first_name, u.last_name, u.username, u.photo_url, u.seen_at, (SELECT COUNT(*) FROM lobby_players p WHERE p.code = l.code) AS n, ts.pub FROM lobbies l JOIN users u ON u.tg_id = l.host_id LEFT JOIN table_state ts ON ts.code = l.code WHERE l.status IN ('open', 'dealt') AND l.created_at > ?1 ORDER BY l.created_at DESC LIMIT 200`).bind(ts - 8 * 3600).all()).results || [];
+  const out = []; const hosts = new Set();
+  for (const r of rows) {
+    if (hosts.has(r.host_id)) continue; hosts.add(r.host_id); // the newest table of each host
+    const via = seated.includes(r.code) ? 'seated' : invited.includes(r.code) ? 'invite' : friends.includes(r.host_id) ? 'friend' : mates.includes(r.host_id) ? 'club' : r.host_id === me ? 'own' : null;
+    if (!via) continue;
+    const pub = parseJSON(r.pub, {}) || {};
+    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: r.host_id, name: rowName(r) || String(r.host_id), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online: !!pub.online, mode: pub.mode || null, phase: pub.phase || 'lobby' });
+    if (out.length >= 30) break;
+  }
+  return json({ ok: true, lobbies: out });
+}
+/* sit down at an open table from the app (the list of open tables or a typed code) */
+/* the host closes an open table: players at it see "table closed" and it leaves everyone's open-tables list */
+async function apiLobbyClose(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
+  if (lobby.status === 'open' || lobby.status === 'dealt') await env.DB.prepare('UPDATE lobbies SET status = ?1 WHERE code = ?2').bind('closed', lobby.code).run();
+  await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND status = ?3').bind('declined', lobby.code, 'pending').run();
+  return json({ ok: true, code: lobby.code, status: lobby.status === 'open' || lobby.status === 'dealt' ? 'closed' : lobby.status });
+}
+async function apiTableJoin(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase().trim(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  const lobby = await lobbyAny(env, code); if (!lobby) return json({ ok: false, error: 'not_found' }, 404);
+  if (lobby.status !== 'open' && lobby.status !== 'dealt') return json({ ok: false, error: 'lobby_closed' }, 409);
+  const r = await seatPlayer(env, bot, code, v.user, pickLang(v.user.language_code)); if (r === 'host') return json({ ok: false, error: 'host' }, 409);
+  await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3 AND status = ?4').bind('accepted', code, v.user.id, 'pending').run();
+  return json({ ok: true, joined: r === true, code });
 }
 async function apiTablePublish(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -1080,6 +1121,9 @@ export default {
           case '/api/lobby': return wrap(apiLobbyCreate(env, bot, body));
           case '/api/lobby/status': return wrap(apiLobbyStatus(env, bot, body));
           case '/api/lobby/deal': return wrap(apiLobbyDeal(env, bot, body));
+          case '/api/lobby/close': return wrap(apiLobbyClose(env, body));
+          case '/api/lobbies': return wrap(apiLobbies(env, body));
+          case '/api/table/join': return wrap(apiTableJoin(env, bot, body));
           case '/api/table/publish': return wrap(apiTablePublish(env, bot, body));
           case '/api/table/state': return wrap(apiTableState(env, bot, body));
           case '/api/table/act': return wrap(apiTableAct(env, body));
