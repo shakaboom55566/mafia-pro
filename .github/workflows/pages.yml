@@ -66,6 +66,7 @@ jobs:
 
       - name: Note the build on the commit (which backend address went into the page)
         if: always()
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
