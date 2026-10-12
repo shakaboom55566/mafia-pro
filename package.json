@@ -1,0 +1,15 @@
+{
+  "name": "mafia-pro",
+  "version": "1.16.0",
+  "private": true,
+  "description": "Mafia Pro — Telegram Mini App для ведущего живой мафии (ru/uk/en/pl/hy)",
+  "scripts": {
+    "build": "bash build.sh",
+    "test": "node test/sim.js && node test/ui-smoke.js",
+    "test:langs": "for l in ru uk en pl hy; do LANG_CODE=$l node test/ui-smoke.js || exit 1; done",
+    "test:browser": "node test/browser-qa.js",
+    "balance": "node test/montecarlo.js"
+  },
+  "homepage": "https://shakaboom55566.github.io/mafia-pro/",
+  "repository": { "type": "git", "url": "https://github.com/shakaboom55566/mafia-pro.git" }
+}
