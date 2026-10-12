@@ -169,9 +169,12 @@ async function refreshTable() {
   l.players = (d.players || []).filter(pl => !(S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id)); // the host never sits as a player
   if (S.game && S.game.tg === l) lobbyAutoSeat(S.game); else setupAutoSeat();
   const fresh = l.players.filter(pl => !beforeIds.includes(pl.tgId));
+  const gone = JSON.parse(beforeJson).filter(pl => !l.players.some(x => x.tgId === pl.tgId));
+  if (gone.length && !(S.game && S.game.tg === l)) gone.forEach(pl => { const i = l.seats ? l.seats[pl.tgId] : undefined; if (i !== undefined) { if (String(S.setup.names[i] || '').trim() === String(pl.name || '').trim()) S.setup.names[i] = ''; delete l.seats[pl.tgId]; } }); // a player who stood up frees his seat before the deal
   const changed = JSON.stringify(l.players) !== beforeJson;
   if (changed) { save(); if (!selectOpen()) keepFocus(render); } // an open seat picker is not torn down under the host's finger
   if (fresh.length) { toast(tt(U().tgNewPlayer || '{name}', { name: fresh.map(x => x.name).join(', ') })); tgHaptic('light'); }
+  if (gone.length) toast(tt(U().tgPlayerLeft || '{name}', { name: gone.map(x => x.name).join(', ') }));
   return fresh.length > 0;
 }
 /* setup screen: joined players take seats — by matching name, else the first empty seat; seats[tgId] = seat index */

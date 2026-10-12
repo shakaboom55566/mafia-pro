@@ -188,6 +188,24 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   eq((await post('/api/table/join', { initData: await initData(user(301, 'en')), code: lobB.code })).status, 409, 'cannot join a closed table');
   eq((await (await post('/api/ping', { initData: await initData(user(301, 'en')) })).json()).invites.filter(i => i.code === lobB.code), [], 'pending invitations to the closed table are withdrawn');
   ok(!(await (await post('/api/ping', { initData: a })).json()).table, 'the seated player’s table banner is gone');
+  // a host runs one table at a time: his newer table supersedes the old one, which closes on sight; a player can stand up
+  const lobC = await (await post('/api/lobby', { initData: b, fresh: true })).json();
+  ok((await (await post('/api/table/join', { initData: a, code: lobC.code })).json()).joined, '100 sits at 302’s next table');
+  await env.DB.prepare('UPDATE lobbies SET status = ?1 WHERE code = ?2').bind('live', lobC.code).run(); // the game started, then the host abandoned it
+  const lobD = await (await post('/api/lobby', { initData: b, fresh: true })).json(); ok(lobD.ok && lobD.code !== lobC.code, '302 opens yet another table');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(lobC.code).first()).status, 'closed', 'the abandoned live table closed when the host opened a new one');
+  ok(!(await (await post('/api/ping', { initData: a })).json()).table, 'no stale banner for the player of the abandoned table');
+  await env.DB.prepare('UPDATE lobbies SET status = ?1 WHERE code = ?2').bind('open', lobC.code).run(); // even if an old table somehow stays open…
+  ok(!(await (await post('/api/ping', { initData: a })).json()).table, '…a table older than the host’s newest one is not shown');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(lobC.code).first()).status, 'closed', '…and is closed on sight');
+  ok((await (await post('/api/table/join', { initData: a, code: lobD.code })).json()).joined, '100 sits at the new table');
+  ok((await (await post('/api/ping', { initData: a })).json()).table.code === lobD.code, 'banner shows the new table');
+  const lv = await (await post('/api/table/leave', { initData: a, code: lobD.code })).json(); ok(lv.ok && lv.left, '100 stands up');
+  ok(lastTo(302).params.text.includes('User100') && lastTo(302).params.text.includes(lobD.code), 'host told that the player left');
+  eq((await (await post('/api/lobby/status', { initData: b, code: lobD.code })).json()).players, [], 'seat freed');
+  ok(!(await (await post('/api/ping', { initData: a })).json()).table, 'banner gone after leaving');
+  eq((await (await post('/api/table/leave', { initData: a, code: lobD.code })).json()).left, false, 'leaving twice is harmless');
+  eq((await post('/api/table/leave', { initData: a, code: 'ZZZZZZ' })).status, 404, 'leaving an unknown table');
   // remove
   ok((await (await post('/api/friends/remove', { initData: a, friendId: 301 })).json()).ok, 'removed');
   eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId), [302], 'list after removal');

@@ -333,7 +333,7 @@ function tableScreen() {
       <div class="hint" style="text-align:center">${mySeat ? tt(u.tgSeated, { seat: mySeat }) : u.tbNoSeat}</div>
       ${card}${mates}
       ${me && me.contract ? `<div class="quiet">${tt(u.tbContract, { seat: me.contract })}</div>` : ''}
-      <button class="btn ghost sm" data-a="go" data-to="home" style="align-self:center">${u.tbLeaveBtn}</button></div>`;
+      <div class="btn-row" style="justify-content:center">${d.isHost ? '' : `<button class="btn ghost sm" data-a="tb-leave" data-code="${esc(TB.code)}">${u.tbLeaveTable}</button>`}<button class="btn ghost sm" data-a="go" data-to="home">${u.tbLeaveBtn}</button></div></div>`;
   }
   // ----- the game, as seen by a living player
   const ask = me && me.ask; const isMine = !!ask && !ask.done && !ask.blocked;
@@ -406,11 +406,18 @@ Object.assign(ACT, {
 /* home banner: the table I sit at */
 function tableBannerHTML() {
   const u = U(); const t = S.cloud && S.cloud.table; if (!TG.app || !apiBase() || !t || (S.cloud.user && t.hostId === S.cloud.user.id)) return '';
-  return `<div class="panel" role="button" data-a="table-open" data-id="${esc(t.code)}" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.game}</div><div class="grow"><div style="font-weight:800">${tt(u.tbBanner, { code: esc(t.code), host: esc(t.host || '') })}</div><div class="hint" style="margin:0">${t.status === 'live' ? u.tbOnlineTag : u.tbLobby}</div></div><span class="btn xs primary">${u.tbOpen}</span></div></div>`;
+  return `<div class="panel" role="button" data-a="table-open" data-id="${esc(t.code)}" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.game}</div><div class="grow"><div style="font-weight:800">${tt(u.tbBanner, { code: esc(t.code), host: esc(t.host || '') })}</div><div class="hint" style="margin:0">${t.status === 'live' ? u.tbOnlineTag : u.tbLobby}</div></div><span class="btn xs primary">${u.tbOpen}</span><button class="btn xs ghost" data-a="tb-leave" data-code="${esc(t.code)}" title="${u.tbLeaveTable}" aria-label="${u.tbLeaveTable}" style="flex:0 0 auto;padding:6px 9px">✕</button></div></div>`;
 }
 Object.assign(ACT, {
   'on-mode'(el) { S.setup.online = el.dataset.id === 'online'; save(); render(); if (S.setup.online && !lobbyIsOpen()) openTable(false); },
   'table-open'(el) { tableOpen(el.dataset.id); },
+  async 'tb-leave'(el) {
+    const code = String(el.dataset.code || TB.code || '').toUpperCase(); if (!code) return; const u = U();
+    const d = await api('/api/table/leave', { code }); if (!d.ok) { toast(u.tgOffline); return; }
+    if (S.cloud && S.cloud.table && S.cloud.table.code === code) S.cloud.table = null;
+    if (TB.code === code) { TB.code = null; TB.data = null; TB.chat = []; TB.lastChat = 0; TB.sent = {}; }
+    TB.dismissed.add(code); LB.at = 0; toast(u.tbLeftToast); tgHaptic('light'); go('home'); loadLobbies(true);
+  },
   'tb-pick'(el) { const ask = TB.data && TB.data.me && TB.data.me.ask; if (!ask || ask.done || TB.sent[ask.key]) return; const seat = Number(el.dataset.seat); const tg = (ask.targets || []).find(t => t.seat === seat); if (!tg || !tg.ok) return; const mode = TB.mode || (ask.modes ? ask.modes[0] : null); const need = ask.kind === 'bestmove' ? 3 : (ask.targetsByMode && mode ? ask.targetsByMode[mode] : ask.need); const i = TB.pick.indexOf(seat); if (i >= 0) TB.pick.splice(i, 1); else { if (TB.pick.length >= need) TB.pick.shift(); TB.pick.push(seat); } tgHaptic('light'); render(); },
   'tb-mode'(el) { TB.mode = el.dataset.id; TB.pick = []; render(); },
   async 'tb-confirm'() { const ask = TB.data && TB.data.me && TB.data.me.ask; if (!ask) return; const payload = { pick: TB.pick.slice(), mode: TB.mode || (ask.modes ? ask.modes[0] : undefined) }; TB.sent[ask.key] = payload; render(); const d = await api('/api/table/act', { code: TB.code, key: ask.key, payload }); if (!d.ok) { delete TB.sent[ask.key]; toast(U().tgOffline); render(); return; } tgHaptic('success'); TB.pick = []; setTimeout(tableFetch, 600); },

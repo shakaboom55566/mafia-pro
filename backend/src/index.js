@@ -803,7 +803,7 @@ async function apiLobbyCreate(env, bot, body) {
   // one open lobby per host: reuse it
   let lobby = await env.DB.prepare('SELECT code FROM lobbies WHERE host_id = ?1 AND status = ?2 ORDER BY created_at DESC LIMIT 1').bind(v.user.id, 'open').first();
   if (!lobby || body.fresh) {
-    await env.DB.prepare("UPDATE lobbies SET status = ?1 WHERE host_id = ?2 AND status IN ('open', 'dealt')").bind('closed', v.user.id).run(); // one table per host: older ones close
+    await env.DB.prepare("UPDATE lobbies SET status = ?1 WHERE host_id = ?2 AND status IN ('open', 'dealt', 'live')").bind('closed', v.user.id).run(); // one table per host: older ones close
     let code = randomCode(); for (let i = 0; i < 5; i++) { const ex = await env.DB.prepare('SELECT 1 FROM lobbies WHERE code = ?1').bind(code).first(); if (!ex) break; code = randomCode(); }
     await env.DB.prepare('INSERT INTO lobbies (code, host_id, status, created_at) VALUES (?1, ?2, ?3, ?4)').bind(code, v.user.id, 'open', now()).run();
     lobby = { code };
@@ -876,8 +876,34 @@ async function pendingInvites(env, tgId) {
 }
 /* the table a player currently sits at (latest open / dealt / live lobby, last 8 hours) */
 async function tableOf(env, tgId) {
-  const r = await env.DB.prepare(`SELECT l.code, l.status, l.host_id, l.created_at, u.first_name, u.last_name, u.username FROM lobby_players p JOIN lobbies l ON l.code = p.code LEFT JOIN users u ON u.tg_id = l.host_id WHERE p.tg_id = ?1 AND l.status IN ('open', 'dealt', 'live') AND l.created_at > ?2 ORDER BY l.created_at DESC LIMIT 1`).bind(tgId, now() - 8 * 3600).first();
-  return r ? { code: r.code, status: r.status, hostId: r.host_id, host: rowName(r) || String(r.host_id) } : null;
+  const rows = (await env.DB.prepare(`SELECT l.code, l.status, l.host_id, l.created_at, u.first_name, u.last_name, u.username FROM lobby_players p JOIN lobbies l ON l.code = p.code LEFT JOIN users u ON u.tg_id = l.host_id WHERE p.tg_id = ?1 AND l.status IN ('open', 'dealt', 'live') AND l.created_at > ?2 ORDER BY l.created_at DESC, l.rowid DESC LIMIT 5`).bind(tgId, now() - 8 * 3600).all()).results || [];
+  for (const r of rows) {
+    if (await supersededTable(env, r.code, r.host_id)) continue; // the host has moved on to a newer table: this one is history
+    return { code: r.code, status: r.status, hostId: r.host_id, host: rowName(r) || String(r.host_id) };
+  }
+  return null;
+}
+/* a host runs one table at a time: any table older than his newest one is closed on sight */
+async function supersededTable(env, code, hostId) {
+  const newest = await env.DB.prepare('SELECT code FROM lobbies WHERE host_id = ?1 ORDER BY created_at DESC, rowid DESC LIMIT 1').bind(hostId).first('code');
+  if (!newest || newest === code) return false;
+  await env.DB.prepare("UPDATE lobbies SET status = ?1 WHERE code = ?2 AND status IN ('open', 'dealt', 'live')").bind('closed', code).run();
+  return true;
+}
+/* a player stands up from a table: the seat is freed, the host is told */
+async function apiTableLeave(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase().trim(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  const lobby = await lobbyAny(env, code); if (!lobby) return json({ ok: false, error: 'not_found' }, 404);
+  const r = await env.DB.prepare('DELETE FROM lobby_players WHERE code = ?1 AND tg_id = ?2').bind(code, v.user.id).run();
+  await env.DB.prepare('DELETE FROM table_seen WHERE code = ?1 AND tg_id = ?2').bind(code, v.user.id).run();
+  await env.DB.prepare('UPDATE table_invites SET status = ?1 WHERE code = ?2 AND tg_id = ?3 AND status = ?4').bind('declined', code, v.user.id, 'pending').run();
+  const left = !!(r.meta && r.meta.changes > 0);
+  if (left && (lobby.status === 'open' || lobby.status === 'dealt' || lobby.status === 'live')) {
+    const host = await userRow(env, lobby.host_id); const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM lobby_players WHERE code = ?1').bind(code).first('n');
+    try { await bot.send(lobby.host_id, t(pickLang(host && host.lang), 'hostLeft', { code, name: esc(displayName(v.user)), n })); } catch (e) {}
+  }
+  return json({ ok: true, left, code });
 }
 /* invite a player to a table: in the app when they are online, otherwise a DM with a join button; unanswered in-app invites get the DM later */
 async function inviteToTable(env, bot, from, target, code, kind) {
@@ -918,10 +944,10 @@ async function apiLobbies(env, body) {
   const mates = club ? ((await env.DB.prepare('SELECT tg_id FROM club_members WHERE club_id = ?1').bind(club.club_id).all()).results || []).map(r => r.tg_id) : [];
   const invited = ((await env.DB.prepare('SELECT code FROM table_invites WHERE tg_id = ?1 AND status = ?2').bind(me, 'pending').all()).results || []).map(r => r.code);
   const seated = ((await env.DB.prepare('SELECT code FROM lobby_players WHERE tg_id = ?1').bind(me).all()).results || []).map(r => r.code);
-  const rows = (await env.DB.prepare(`SELECT l.code, l.host_id, l.status, l.created_at, u.first_name, u.last_name, u.username, u.photo_url, u.seen_at, (SELECT COUNT(*) FROM lobby_players p WHERE p.code = l.code) AS n, ts.pub FROM lobbies l JOIN users u ON u.tg_id = l.host_id LEFT JOIN table_state ts ON ts.code = l.code WHERE l.status IN ('open', 'dealt') AND l.created_at > ?1 ORDER BY l.created_at DESC LIMIT 200`).bind(ts - 8 * 3600).all()).results || [];
+  const rows = (await env.DB.prepare(`SELECT l.code, l.host_id, l.status, l.created_at, u.first_name, u.last_name, u.username, u.photo_url, u.seen_at, (SELECT COUNT(*) FROM lobby_players p WHERE p.code = l.code) AS n, ts.pub FROM lobbies l JOIN users u ON u.tg_id = l.host_id LEFT JOIN table_state ts ON ts.code = l.code WHERE l.status IN ('open', 'dealt') AND l.created_at > ?1 ORDER BY l.created_at DESC, l.rowid DESC LIMIT 200`).bind(ts - 8 * 3600).all()).results || [];
   const out = []; const hosts = new Set();
   for (const r of rows) {
-    if (hosts.has(r.host_id)) continue; hosts.add(r.host_id); // the newest table of each host
+    if (hosts.has(r.host_id)) { await supersededTable(env, r.code, r.host_id); continue; } hosts.add(r.host_id); // the newest table of each host; older ones are closed
     const via = seated.includes(r.code) ? 'seated' : invited.includes(r.code) ? 'invite' : friends.includes(r.host_id) ? 'friend' : mates.includes(r.host_id) ? 'club' : r.host_id === me ? 'own' : null;
     if (!via) continue;
     const pub = parseJSON(r.pub, {}) || {};
@@ -1124,6 +1150,7 @@ export default {
           case '/api/lobby/close': return wrap(apiLobbyClose(env, body));
           case '/api/lobbies': return wrap(apiLobbies(env, body));
           case '/api/table/join': return wrap(apiTableJoin(env, bot, body));
+          case '/api/table/leave': return wrap(apiTableLeave(env, bot, body));
           case '/api/table/publish': return wrap(apiTablePublish(env, bot, body));
           case '/api/table/state': return wrap(apiTableState(env, bot, body));
           case '/api/table/act': return wrap(apiTableAct(env, body));
