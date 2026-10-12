@@ -120,9 +120,10 @@ function sendResult(g, w) {
     const pr = p.profileId ? profById(p.profileId) : null;
     const tgId = (pr && pr.tgId) || (g.tg && g.tg.map && Object.keys(g.tg.map).find(k => g.tg.map[k] === p.seat)) || null;
     const { won, solo } = resultFor(g, p, w); const useful = g.useful && g.useful[p.id] ? g.useful[p.id] : 0;
-    return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful };
+    const role = ROLE[p.roleId]; const side = role ? (role.side === 'mafia' ? 'mafia' : role.side === 'city' ? 'city' : 'neutral') : 'city';
+    return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
-  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; save(); } });
+  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
 }
 /* ---------- lobby: players join from Telegram and receive their card privately ---------- */
 function cardTextFor(p, lang) {
@@ -356,7 +357,9 @@ function cloudStatsHTML(d, opts = {}) { // tiles + roles + by side + recent game
   d.roles.forEach(x => { const role = ROLE[x.roleId]; const k = role && role.side === 'mafia' ? 'mafia' : role && role.side === 'city' ? 'city' : 'self'; side[k].g += x.games; side[k].w += x.wins; });
   const sideRow = (k, lbl) => { const b = side[k]; return `<div class="fav">${sealHTML(k === 'city' ? ROLE.sheriff : k === 'mafia' ? ROLE.don : ROLE.maniac)}<div><div class="n">${lbl}</div><div class="s">${tt(u.rtGW, { g: b.g, w: b.w })}</div></div><span class="w">${b.g ? Math.round(100 * b.w / b.g) : 0}%</span></div>`; };
   const recent = d.recent.slice(0, opts.recent || 12).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmt(h.at) })}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
-  return `<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>
+  const st = d.streaks || {}; const streakKeys = ['city', 'mafia', 'neutral'].filter(k => st[k] >= 2);
+  const streaks = streakKeys.length && u.streakLine ? `<div class="panel" style="text-align:center;border-color:rgba(240,205,122,.5)"><div class="eyebrow gold">${u.streakTitle}</div>${streakKeys.map(k => `<div class="pod-streak" style="font-size:14px;margin-top:4px">${tt(u.streakLine, { n: st[k], wins: plural(st[k], 'wins'), side: (u.streakFor || {})[k] || '' })}</div>`).join('')}</div>` : '';
+  return `<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>${streaks}
     ${roles ? `<div class="eyebrow">${opts.allRoles ? u.psAllRoles : u.frBestRoles}</div><div class="stack-s">${roles}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
     ${opts.sides && d.roles.length ? `<div class="eyebrow">${u.bySide}</div><div class="stack-s">${sideRow('city', u.sideCity)}${sideRow('mafia', u.sideMafia)}${sideRow('self', u.sideSolo)}</div>` : ''}
     <div class="eyebrow">${u.frRecent}</div>${recent ? `<div class="hist">${recent}</div>` : `<p class="hint">${u.frNoGames}</p>`}`;

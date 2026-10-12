@@ -210,7 +210,7 @@ function card3dApply(wrap) {
 function card3dLoop() {
   const wraps = document.querySelectorAll('.card3d-wrap');
   if (!wraps.length) { C3.raf = null; return; }
-  wraps.forEach(w => { const st = c3state(w.dataset.key); if (C3.dragging !== w.dataset.key && !C3.reduce && !C3.lite && Date.now() - st.idle > 1800) { st.ry += 0.35; st.rx += (6 - st.rx) * 0.02; card3dApply(w); } });
+  wraps.forEach(w => { if (w.dataset.still) return; const st = c3state(w.dataset.key); if (C3.dragging !== w.dataset.key && !C3.reduce && !C3.lite && Date.now() - st.idle > 1800) { st.ry += 0.35; st.rx += (6 - st.rx) * 0.02; card3dApply(w); } });
   C3.raf = requestAnimationFrame(card3dLoop);
 }
 function card3dInit() { document.querySelectorAll('.card3d-wrap').forEach(card3dApply); if (!C3.raf) C3.raf = requestAnimationFrame(card3dLoop); }

@@ -245,8 +245,14 @@ console.log('admin: full access grants (bot commands + API)');
 
 console.log('game result → ratings');
 { const host = await initData(user(100));
-  const game = { id: 'g-1', mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'A', tgId: 201, roleId: 'don', won: false, points: -10 }, { seat: 2, name: 'B', tgId: 202, roleId: 'sheriff', won: true, points: 31 }, { seat: 3, name: 'C', roleId: 'citizen', won: true, points: 24 }] };
+  const game = { id: 'g-1', mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'A', tgId: 201, roleId: 'don', won: false, points: -10, side: 'mafia' }, { seat: 2, name: 'B', tgId: 202, roleId: 'sheriff', won: true, points: 31, side: 'city' }, { seat: 3, name: 'C', roleId: 'citizen', won: true, points: 24, side: 'city' }] };
   const r = await (await post('/api/game/result', { initData: host, game })).json(); ok(r.ok && r.recorded, 'recorded');
+  eq(r.streaks, { 201: { side: 'mafia', n: 0 }, 202: { side: 'city', n: 1 } }, 'win streaks for the side played');
+  // two more city wins for 202 and a mafia game in between: the city streak keeps counting, a loss resets it
+  for (const [id, won, side] of [['g-2', true, 'city'], ['g-3', false, 'mafia'], ['g-4', true, 'city']]) await post('/api/game/result', { initData: host, game: { id, mode: 'classic', winner: won ? side : 'city', players: [{ seat: 2, name: 'B', tgId: 202, roleId: side === 'city' ? 'doctor' : 'mafia', won, points: won ? 24 : -10, side }] } });
+  eq((await (await post('/api/game/result', { initData: host, game: { id: 'g-5', mode: 'classic', winner: 'city', players: [{ seat: 2, name: 'B', tgId: 202, roleId: 'sheriff', won: true, points: 24, side: 'city' }] } })).json()).streaks['202'], { side: 'city', n: 4 }, 'four city wins in a row (the mafia loss does not break the city streak)');
+  eq((await (await post('/api/game/result', { initData: host, game: { id: 'g-6', mode: 'classic', winner: 'mafia', players: [{ seat: 2, name: 'B', tgId: 202, roleId: 'sheriff', won: false, points: -10, side: 'city' }] } })).json()).streaks['202'], { side: 'city', n: 0 }, 'a city loss resets the city streak');
+  await env.DB.prepare("DELETE FROM games WHERE game_id IN ('g-2', 'g-3', 'g-4', 'g-5', 'g-6')").run(); await env.DB.prepare('UPDATE ratings SET points = 31, games = 1, wins = 1 WHERE tg_id = 202').run(); await env.DB.prepare('UPDATE ratings SET hosted = 1 WHERE tg_id = 100').run();
   eq(r.ratings['202'], { points: 31, games: 1, wins: 1, hosted: 0 }, 'sheriff rating'); eq(r.ratings['201'], { points: -10, games: 1, wins: 0, hosted: 0 }, 'don rating');
   const again = await (await post('/api/game/result', { initData: host, game })).json(); ok(again.ok && !again.recorded && again.ratings['202'].points === 31, 'resend is idempotent');
   const me = await (await post('/api/me', { initData: host })).json(); eq(me.rating.hosted, 1, 'host credited');
@@ -257,6 +263,7 @@ console.log('player profile');
   ok(pr.ok && pr.user.tgId === 202 && pr.user.name === 'User202' && pr.rating.points === 1031 && pr.rating.games === 1 && pr.rating.wins === 1, 'profile with rating: ' + JSON.stringify(pr.rating));
   eq(pr.roles, [{ roleId: 'sheriff', games: 1, wins: 1, points: 31 }], 'per-role stats'); ok(pr.recent.length === 1 && pr.recent[0].roleId === 'sheriff' && pr.recent[0].won === true && pr.recent[0].n === 3 && pr.recent[0].winner === 'city', 'recent games');
   ok(typeof pr.user.online === 'boolean' && typeof pr.user.seenAgo === 'number' && pr.isFriend === false && pr.grant === false, 'presence, friendship, grant flags');
+  eq(pr.streaks, { city: 1, mafia: 0, neutral: 0 }, 'profile carries the current streaks per side');
   const self = await (await post('/api/profile', { initData: a, tgId: 100 })).json(); ok(self.ok && self.rating.hosted === 1, 'own profile');
   eq((await post('/api/profile', { initData: a, tgId: 4242 })).status, 404, 'unknown player'); eq((await post('/api/profile', { initData: a, tgId: 'x' })).status, 400, 'bad id'); }
 

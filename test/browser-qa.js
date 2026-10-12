@@ -155,7 +155,11 @@ let checks = 0; const SHOT = {};
       if (await state("S.game.dayStage !== 'result'")) problems.push(label + ' vote not resolved round ' + rounds);
       await check(label + ' vote result ' + rounds);
       guard = 0; while (await state('S.game.pendingTriggers.length') && guard++ < 5) { const t = await state('alive(S.game)[0].id'); await act('pick', { id: t }); await act('trig-confirm'); await check(label + ' trigger'); }
-      if (await state('!!checkWin(S.game)')) { await act('finish'); await check(label + ' end screen', label === 'g9' ? 'end' : null); break; }
+      if (await state('!!checkWin(S.game)')) { await act('finish'); await check(label + ' end screen', label === 'g9' ? 'end' : null);
+        const pod = await page.evaluate(() => { const cards = [...document.querySelectorAll('.pod-card')]; const wrap = document.querySelector('.podium'); const w = document.querySelector('.pod-panel'); return { cards: cards.length, players: S.game.players.length, medals: document.querySelectorAll('.pod-medal').length, overflow: w ? w.scrollWidth > w.clientWidth + 1 : null, p1: !!(wrap && wrap.querySelector('.pod-card.p1')), clickable: cards.filter(c => c.querySelector('[data-a]')).length }; });
+        if (pod.cards !== pod.players || pod.medals !== 3 || pod.overflow || !pod.p1 || pod.clickable !== pod.players) problems.push(`[${label} podium] ` + JSON.stringify(pod));
+        if (label === 'g9') await page.screenshot({ path: path.join(OUT, 'end-podium.png'), fullPage: true });
+        break; }
     }
     await check(label + ' final');
     if (await state('!!S.game.winner')) { const top = await state('reviewGame(S.game).players.slice().sort((a, b) => b.items.length - a.items.length)[0].id'); await act('rv-toggle', { id: top }); await check(label + ' review open', label === 'g9' ? 'review' : null); await page.evaluate(() => window.scrollTo(0, 600)); if (label === 'g9') await page.screenshot({ path: path.join(OUT, 'review-items.png') }); await page.evaluate(() => window.scrollTo(0, 0)); }

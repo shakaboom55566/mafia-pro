@@ -92,7 +92,7 @@ function tablePub(g) {
   const reveal = !!S.settings.revealDead;
   const seats = g.players.map(p => { const s = { seat: p.seat, name: p.name, tgId: seatTg(g, p.seat), alive: p.alive, votedOut: !!p.votedOut, fouls: p.fouls || 0 }; if (g.winner || (!p.alive && reveal)) { s.roleId = p.roleId; s.family = p.family || null; } return s; });
   const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', online: !!g.online, host: hostName(), day: g.day, night: g.night, seats, chat: false };
-  if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; pub.roles = g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive })); return pub; }
+  if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; } pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, streak: r.streak, tgId: r.tgId })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive })); return pub; }
   if (!g.dealt) return pub;
   const asks = g.online ? buildAsks(g) : {};
   pub.waiting = Object.entries(asks).filter(([id, a]) => !a.done && !a.blocked).map(([id]) => Number(g.tg.map[id]) || 0).filter(Boolean).sort((a, b) => a - b);
@@ -129,14 +129,14 @@ async function publishTable(force, lobby, game) {
   const g = game !== undefined ? game : (S.game && S.game.tg === l ? S.game : null); let pub, priv; try { pub = tablePub(g); priv = tablePriv(g); } catch (e) { return false; } // the game's own table carries the game; any other open table is a waiting room
   const sig = JSON.stringify(Object.assign({}, pub, { timer: pub.timer ? { key: pub.timer.key, total: pub.timer.total, running: pub.timer.running, q: Math.round(pub.timer.left / 5) } : null })) + '|' + JSON.stringify(priv);
   if (!force && sig === ONL.sig) return true;
-  if (ONL.busy) { ONL.pending = true; return true; }
+  if (ONL.busy) { ONL.pending = true; if (lobby) ONL.pendingArgs = [lobby, game]; return true; }
   ONL.busy = true;
   try {
     const d = await api('/api/table/publish', { code: l.code, pub, priv }); if (!d.ok) return false;
     ONL.sig = sig;
     if (g && g.tg && Array.isArray(d.delivered)) { const sent = d.delivered.filter(id => g.tg.map[id]).sort(); if (JSON.stringify(sent) !== JSON.stringify((g.tg.sent || []).slice().sort())) { g.tg.sent = sent; skipDeliveredSeats(g); save(); render(); } }
     return true;
-  } finally { ONL.busy = false; if (ONL.pending) { ONL.pending = false; schedulePublish(); } }
+  } finally { ONL.busy = false; if (ONL.pending) { ONL.pending = false; const pa = ONL.pendingArgs; ONL.pendingArgs = null; if (pa) setTimeout(() => publishTable(true, pa[0], pa[1]), 0); else schedulePublish(); } }
 }
 /* host: poll the players' answers while an online game runs */
 function actionsPoll() {
@@ -275,9 +275,12 @@ function tableScreen() {
   // ----- end of the game: results for everyone (also the eliminated)
   if (pub.phase === 'end' && pub.result) {
     const w = pub.result; const mine = (pub.roles || []).find(r => r.seat === mySeat);
-    const rows = (pub.roles || []).map(r => { const role = ROLE[r.roleId]; return `<div class="fr-row"><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${r.seat}</span>${role ? sealHTML(role) : ''}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.seat === mySeat ? ` <small>· ${u.tbYou}</small>` : ''}</div><div class="hint" style="margin:0">${role ? role.name : esc(r.roleId)}${r.family ? ' · ' + esc(FAMILY_NAMES[r.family] || r.family) : ''}</div></div><span class="num" style="color:${r.won ? '#9fe0ab' : 'var(--crimson-2)'};font-weight:700">${r.won ? u.won : u.lost}</span></div>`; }).join('');
+    const rows = (pub.roles || []).map(r => { const role = ROLE[r.roleId]; return `<div class="fr-row" ${r.tgId ? `role="button" data-a="fr-open" data-id="${r.tgId}"` : ''}><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${r.seat}</span>${role ? sealHTML(role) : ''}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.seat === mySeat ? ` <small>· ${u.tbYou}</small>` : ''}</div><div class="hint" style="margin:0">${role ? role.name : esc(r.roleId)}${r.family ? ' · ' + esc(FAMILY_NAMES[r.family] || r.family) : ''}${typeof r.total === 'number' ? ` · ${r.total > 0 ? '+' : ''}${r.total}` : ''}</div>${r.streak >= 2 ? `<div class="pod-streak" style="margin-top:2px">${tt(u.streakLine, { n: r.streak, wins: plural(r.streak, 'wins'), side: (u.streakFor || {})[r.side] || '' })}</div>` : ''}</div><span class="num" style="color:${r.won ? '#9fe0ab' : 'var(--crimson-2)'};font-weight:700">${r.won ? u.won : u.lost}</span></div>`; }).join('');
+    const podRows = (pub.roles || []).filter(r => typeof r.place === 'number').slice().sort((a, b) => a.place - b.place).map(r => { const pr = r.tgId && profiles[r.tgId]; return Object.assign({}, r, { photo: pr ? pr.photo : '', club: pr ? pr.club : '', clubLogo: pr ? pr.clubLogo : '', profileId: null }); });
+    const myStreak = mine && mine.streak >= 2 ? `<div class="pod-streak" style="margin-top:6px;font-size:14px">${tt(u.streakLine, { n: mine.streak, wins: plural(mine.streak, 'wins'), side: (u.streakFor || {})[mine.side] || '' })}</div>` : '';
     return `${topbar(u.tbEnd, tt(u.tbTitle, { code: TB.code }))}<div class="stack">
-      <div class="winner ${w.side}"><div class="e">${u.tbWinner}</div><h1>${esc(w.title)}</h1><p class="hint" style="margin-top:8px">${esc(w.text || '')}</p>${mine ? `<div style="margin-top:10px;font-weight:800;color:${mine.won ? '#9fe0ab' : 'var(--crimson-2)'}">${mine.won ? u.tbYouWon : u.tbYouLost}</div>` : ''}</div>
+      <div class="winner ${w.side}"><div class="e">${u.tbWinner}</div><h1>${esc(w.title)}</h1><p class="hint" style="margin-top:8px">${esc(w.text || '')}</p>${mine ? `<div style="margin-top:10px;font-weight:800;color:${mine.won ? '#9fe0ab' : 'var(--crimson-2)'}">${mine.won ? u.tbYouWon : u.tbYouLost}${typeof mine.total === 'number' ? ` · ${mine.total > 0 ? '+' : ''}${mine.total}` : ''}</div>` : ''}${myStreak}</div>
+      ${podRows.length ? podiumHTML(podRows, 'tbpod') : ''}
       ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}
       <div class="eyebrow">${u.tbRoles}</div><div class="stack-s">${rows}</div>
       <button class="btn primary" data-a="go" data-to="home">${u.tbBackHome}</button></div>`;
@@ -368,6 +371,39 @@ Object.assign(ACT, {
     if (accept && d.joined) { toast(tt(U().tbJoined, { code })); tgHaptic('success'); S.cloud.table = { code, status: 'open' }; tableOpen(code); } else if (accept && d.gone) toast(U().tbInviteGone);
   }
 });
+/* ============================================================ RESULTS PODIUM: every player's 3D card, avatar / club, win streak in gold */
+const sideOf = roleId => { const r = ROLE[roleId]; return r ? (r.side === 'mafia' ? 'mafia' : r.side === 'city' ? 'city' : 'neutral') : 'city'; };
+function localStreak(pr, side) { let n = 0; for (let i = pr.history.length - 1; i >= 0; i--) { const h = pr.history[i]; if (sideOf(h.roleId) !== side) continue; if (h.won) n++; else break; } return n; }
+function streakFor(g, p, tgId, pr) { const side = sideOf(p.roleId); const srv = g.streaks && tgId && g.streaks[tgId]; if (srv && srv.side === side) return srv.n; if (pr) return localStreak(pr, side); return null; }
+/* rows of the finished game, best first: points, useful, avatar, club, streak */
+function resultRows(g) {
+  const w = g.winner; if (!w) return []; const rv = reviewGame(g);
+  const tgl = g.tg && g.tg.players ? g.tg.players : [];
+  return g.players.map(p => {
+    const r = rv.byId[p.id] || { useful: 0, good: 0, bad: 0 }; const res = resultFor(g, p, w); const pts = pointsFor(p.roleId, res.won, p.alive, res.solo);
+    const tgId = seatTg(g, p.seat); const pl = tgId ? tgl.find(x => x.tgId === tgId) : null; const pr = p.profileId ? profById(p.profileId) : null;
+    return { seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: sideOf(p.roleId), streak: streakFor(g, p, tgId, pr) };
+  }).sort((a, b) => b.total - a.total || b.useful - a.useful || a.seat - b.seat).map((x, i) => Object.assign(x, { place: i + 1 }));
+}
+function streakHTML(row) { const u = U(); const n = row.streak; if (!n || n < 2) return ''; return `<div class="pod-streak">${tt(u.streakLine, { n, wins: plural(n, 'wins'), side: (u.streakFor || {})[row.side] || '' })}</div>`; }
+function podiumCardHTML(row, keyPrefix, big) {
+  const u = U(); const role = ROLE[row.roleId]; if (!role) return '';
+  const act = row.tgId ? `data-a="fr-open" data-id="${row.tgId}"` : row.profileId ? `data-a="prof-open" data-id="${esc(row.profileId)}"` : `data-a="role" data-id="${role.id}"`; // no profile → the card itself
+  const av = row.photo ? `<img src="${esc(row.photo)}" alt="">` : `<span>${esc((row.name || '?').slice(0, 1).toUpperCase())}</span>`;
+  return `<div class="pod-card ${big ? 'big' : ''} ${row.won ? 'win' : 'loss'} p${row.place}">
+    <div class="pod-3d">${card3dHTML(role, keyPrefix + row.seat).replace('<div class="card3d-wrap"', `<div class="card3d-wrap" ${big ? '' : 'data-still="1"'}`)}
+      <div class="pod-av" role="button" tabindex="0" ${act}>${av}<i class="pod-seat">${row.seat}</i></div>${row.clubLogo ? `<div class="pod-club" title="${esc(row.club)}"><img src="${esc(row.clubLogo)}" alt=""></div>` : ''}${row.place <= 3 ? `<i class="pod-medal m${row.place}">${row.place}</i>` : ''}</div>
+    <div class="pod-plaque" role="button" tabindex="0" ${act}><div class="pod-nm">${esc(row.name)}</div><div class="pod-role">${role.name}${row.family ? ' · ' + esc(FAMILY_NAMES[row.family] || row.family) : ''}</div><div class="pod-pts ${row.won ? 'win' : 'loss'}">${row.total > 0 ? '+' : ''}${row.total} <small>${u.pts}</small></div>${row.club && !row.clubLogo ? `<div class="pod-clubname">${esc(row.club)}</div>` : ''}${streakHTML(row)}</div>
+  </div>`;
+}
+function podiumHTML(rows, keyPrefix = 'pod') {
+  const u = U(); if (!rows || !rows.length) return '';
+  const top = rows.slice(0, 3); const rest = rows.slice(3);
+  const order = [top[1], top[0], top[2]].filter(Boolean);
+  return `<div class="panel pod-panel"><div class="eyebrow gold" style="text-align:center">${u.podium}</div><div class="hint" style="text-align:center;margin:4px 0 10px">${u.podiumHint}</div>
+    <div class="podium n${order.length}">${order.map(r => podiumCardHTML(r, keyPrefix, true)).join('')}</div>
+    ${rest.length ? `<div class="eyebrow" style="margin-top:14px">${u.podiumRest}</div><div class="pod-grid">${rest.map(r => podiumCardHTML(r, keyPrefix, false)).join('')}</div>` : ''}</div>`;
+}
 /* ---------- hooks ---------- */
 (function () {
   const origStart = applyStartParam;
@@ -378,6 +414,7 @@ Object.assign(ACT, {
   setupLobbyHTML = function (st) { return modeSegmentHTML() + origSetupLobby(st); };
   const origGame = gameScreen; gameScreen = function () { const html = origGame(); const s = onlineStripHTML(S.game); if (!s) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + s + html.slice(i + 19); };
   const origDealScr = dealScreen; dealScreen = function () { const html = origDealScr(); const s = onlineStripHTML(S.game); if (!s) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + s + html.slice(i + 19); };
+  const origEnd2 = endScreen; endScreen = function () { const html = origEnd2(); const g = S.game; if (!g || !g.winner) return html; let pod = ''; try { pod = podiumHTML(resultRows(g), 'pod'); } catch (e) { pod = ''; } if (!pod) return html; const i = html.indexOf('<div class="panel"><div class="eyebrow gold">'); return i < 0 ? html : html.slice(0, i) + pod + html.slice(i); };
   const origHome = homeScreen; homeScreen = function () { const html = origHome(); const b = tableBannerHTML(); if (!b) return html; const i = html.indexOf('<div class="menu">'); return i < 0 ? html : html.slice(0, i) + b + html.slice(i); };
   const origSheet2 = sheetHTML;
   sheetHTML = function (enter) { const sh = S.ui.sheet; if (sh && sh.type === 'tableInvite') { const u = U(); return `<div class="sheet-bg ${enter !== false ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${tableInviteHTML(sh.code)}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`; } return origSheet2(enter); };

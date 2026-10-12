@@ -154,7 +154,14 @@ while (!S.game.winner && rounds++ < 12) {
   A.cand(el('cand', { id: a2[0].id })); A.cand(el('cand', { id: a2[1].id })); a2.slice(2).forEach((v, i) => A.vote(el('vote', { c: a2[i % 2].id, v: v.id })));
   resolveVote(`round ${rounds}`, rounds === 1); check(`round ${rounds} vote`);
   guard = 0; while (S.game.pendingTriggers.length && guard++ < 5) { const t = X.alive(S.game)[0]; A.pick(el('pick', { id: t.id })); A['trig-confirm'](); }
-  if (vm.runInContext('checkWin', ctx)(S.game)) { A.finish(); check('end screen'); break; }
+  if (vm.runInContext('checkWin', ctx)(S.game)) { A.finish(); check('end screen');
+    { const h = app.innerHTML; const n = S.game.players.length; const pods = (h.match(/class="pod-card /g) || []).length; const wraps = (h.match(/card3d-wrap/g) || []).length;
+      if (pods !== n || wraps < n) { fails++; console.log('FAIL podium must show a 3D card per player: cards=' + pods + ' wraps=' + wraps + ' players=' + n); }
+      if (!h.includes('pod-medal m1') || !h.includes('pod-medal m3')) { fails++; console.log('FAIL podium medals missing'); }
+      if (!h.includes('data-a="prof-open"')) { fails++; console.log('FAIL podium cards must open the player profile'); }
+      const streakRe = /pod-streak/; const anyProfileStreak = S.profiles.some(p => { let k = 0; for (let i = p.history.length - 1; i >= 0; i--) { const x = p.history[i]; if (!x.won) break; k++; } return k >= 2; });
+      if (anyProfileStreak && !streakRe.test(h)) { fails++; console.log('FAIL a player with a win streak must get the gold streak line'); } }
+    break; }
 }
 check('final');
 console.log('winner:', S.game.winner && S.game.winner.title, '| alive', X.alive(S.game).length);

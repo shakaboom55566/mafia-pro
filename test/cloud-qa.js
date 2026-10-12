@@ -508,11 +508,21 @@ const path = require('path'); const http = require('http');
   const deadTxt = await q.$eval('#app', el => el.textContent);
   ok(deadTxt.includes(await Q(() => U().tbDead)) && !deadTxt.includes(await Q(() => U().tbVoteStage)) && !(await q.$('#tb-msg')) && (await q.$$('.rt-seat')).length === (await S(() => S.game.players.filter(x => x.alive).length)), 'eliminated player sees only the seats still at the table, no stage, no chat');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-dead.png') }).catch(() => {});
-  // the end: results for everyone
-  await S(() => { finishGame(S.game, { side: 'mafia', title: 'Победа мафии', text: 'Мафия взяла город' }); render(); }); await p.waitForTimeout(400);
-  ok(await waitQ(() => TB.data.pub.phase === 'end' && TB.data.pub.result && TB.data.pub.roles && TB.data.pub.roles.length === 10), 'results page reached the eliminated player');
+  // the end: results for everyone; Нина already won a mafia game before → her mafia streak becomes 2 (gold line)
+  await fetch('http://127.0.0.1:8791/api/game/result', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData, game: { id: 'pre-' + oc, mode: 'classic', winner: 'mafia', players: [{ seat: 1, name: 'Нина', tgId: 601, roleId: 'mafia', won: true, points: 24, side: 'mafia' }] } }) });
+  await S(() => { finishGame(S.game, { side: 'mafia', title: 'Победа мафии', text: 'Мафия взяла город' }); render(); }); await p.waitForTimeout(1500);
+  ok(await S(() => S.game.streaks && S.game.streaks[601] && S.game.streaks[601].side === 'mafia' && S.game.streaks[601].n === 2), 'host received the streaks from the server: ' + await S(() => JSON.stringify(S.game.streaks)));
+  const hostEnd = await p.$eval('#app', el => el.textContent);
+  const hostPod = { cards: (await p.$$('.pod-card')).length, p1: !!(await p.$('.podium .pod-card.p1')), streak: hostEnd.includes(await S(() => tt(U().streakLine, { n: 2, wins: plural(2, 'wins'), side: U().streakFor.mafia }))), seat3: await S(() => { const r = resultRows(S.game).find(x => x.seat === 3); return r && { tgId: r.tgId, streak: r.streak, side: r.side }; }) };
+  ok(hostPod.cards === 10 && hostPod.p1 && hostPod.streak, 'host’s results: podium of 3D cards for all 10 players, gold streak "2 wins in a row for the mafia": ' + JSON.stringify(hostPod));
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-host-end.png'), fullPage: true }).catch(() => {});
+  ok(await waitQ(() => TB.data.pub.phase === 'end' && TB.data.pub.result && TB.data.pub.roles && TB.data.pub.roles.length === 10 && TB.data.pub.roles.some(r => r.seat === 3 && r.streak === 2)), 'results page (with streaks) reached the eliminated player: ' + await Q(() => JSON.stringify({ phase: TB.data.pub.phase, roles: (TB.data.pub.roles || []).map(r => [r.seat, r.place, r.streak, r.side]) })) + ' sig=' + await S(() => ONL.sig.length) + ' hostroles=' + await S(() => JSON.stringify(tablePub(S.game).roles.map(r => [r.seat, r.streak]))));
   const endTxt = await q.$eval('#app', el => el.textContent);
   ok(endTxt.includes('Победа мафии') && endTxt.includes(await Q(() => U().tbYouWon)) && endTxt.includes('Шериф') && (await q.$$('.fr-row')).length >= 10, 'results: winner, "you won" for the Don, every player’s card');
+  ok((await q.$$('.pod-card')).length === 10 && !!(await q.$('.podium .pod-card.p1')) && endTxt.includes(await Q(() => tt(U().streakLine, { n: 2, wins: plural(2, 'wins'), side: U().streakFor.mafia }))), 'player’s results: podium with every card and the gold streak line');
+  await q.click('.pod-card .pod-plaque[data-a="fr-open"][data-id="602"]'); await q.waitForTimeout(700);
+  ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'friend' && S.ui.sheet.id === 602) && (await q.$eval('.sheet', el => el.textContent)).includes('Гена'), 'tapping a player on the podium opens his profile');
+  await Q(() => { S.ui.sheet = null; render(); });
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-end.png') }).catch(() => {});
   ok(errs2.length === 0, 'no page errors on the player’s phone: ' + errs2.join(' | ').slice(0, 300));
   await ctx2.close();

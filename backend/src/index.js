@@ -634,8 +634,9 @@ async function apiProfile(env, body) {
   const roles = Object.values(byRole).sort((a, b) => b.wins - a.wins || b.games - a.games || b.points - a.points);
   const isFriend = !!(await env.DB.prepare('SELECT 1 FROM friends WHERE tg_id = ?1 AND friend_id = ?2').bind(v.user.id, id).first());
   const ts = now();
-  return json({ ok: true, user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000 },
-    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, isFriend, grant: !!(await grantFor(env, id)) });
+  const club = await membershipOf(env, id);
+  return json({ ok: true, user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '' },
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, isFriend, grant: !!(await grantFor(env, id)), streaks: await streaksOf(env, id) });
 }
 async function apiPlayers(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -765,8 +766,20 @@ async function apiResult(env, bot, body) {
       try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); }
     }
   }
-  for (const p of players) { const tgId = Number(p.tgId); if (tgId && !ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); }
-  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings });
+  const streaks = {};
+  for (const p of players) { const tgId = Number(p.tgId); if (!tgId) continue; if (!ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); const side = String(p.side || ''); if (side) streaks[tgId] = { side, n: (await streaksOf(env, tgId))[side] || 0 }; }
+  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks });
+}
+/* current win streaks per side (city / mafia / neutral): consecutive wins while playing for that side, latest game first */
+async function streaksOf(env, tgId) {
+  const rows = (await env.DB.prepare("SELECT summary FROM games WHERE summary LIKE ?1 ORDER BY created_at DESC, id DESC LIMIT 80").bind('%"tgId":' + tgId + ',%').all()).results || [];
+  const out = { city: 0, mafia: 0, neutral: 0 }; const open = { city: true, mafia: true, neutral: true };
+  for (const g of rows) {
+    let players = []; try { players = JSON.parse(g.summary || '[]'); } catch (e) { continue; }
+    const p = players.find(x => Number(x.tgId) === tgId); if (!p || !p.side || !(p.side in out) || !open[p.side]) continue;
+    if (p.won) out[p.side]++; else open[p.side] = false;
+  }
+  return out;
 }
 async function apiLobbyCreate(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -837,7 +850,7 @@ async function seatProfiles(env, ids) {
   const q = ids.map((_, i) => '?' + (i + 1)).join(',');
   const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, uc.city, c.name AS club, c.logo AS clubLogo FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities uc ON uc.tg_id = u.tg_id LEFT JOIN club_members m ON m.tg_id = u.tg_id LEFT JOIN clubs c ON c.id = m.club_id AND c.status = 'active' WHERE u.tg_id IN (${q})`).bind(...ids).all()).results || [];
   const ts = now(); const out = {};
-  for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, city: r.city || '', club: r.club || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
+  for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, city: r.city || '', club: r.club || '', clubLogo: r.clubLogo || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
   return out;
 }
 async function pendingInvites(env, tgId) {
