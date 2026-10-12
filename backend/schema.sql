@@ -96,3 +96,47 @@ CREATE TABLE IF NOT EXISTS grants (
   note       TEXT,
   created_at INTEGER NOT NULL
 );
+
+-- referrals: who brought whom (attributed on the invitee's first contact with the bot)
+CREATE TABLE IF NOT EXISTS referrals (
+  tg_id        INTEGER PRIMARY KEY,   -- the invitee
+  ref_by       INTEGER NOT NULL,      -- the inviter
+  code         TEXT,
+  created_at   INTEGER NOT NULL,
+  qualified_at INTEGER                -- set when the invitee received a card at a table or finished a game
+);
+CREATE INDEX IF NOT EXISTS referrals_by ON referrals (ref_by, qualified_at);
+
+-- reward credits: a free premium card / scenario of the player's choice (spent in the shop)
+CREATE TABLE IF NOT EXISTS credits (
+  tg_id      INTEGER NOT NULL,
+  kind       TEXT NOT NULL,           -- role | scenario
+  count      INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (tg_id, kind)
+);
+-- which referral milestones were already paid out
+CREATE TABLE IF NOT EXISTS milestones (
+  tg_id      INTEGER NOT NULL,
+  level      INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (tg_id, level)
+);
+
+-- partner programme (hosts, clubs, bloggers): revenue share on purchases of the people they bring
+CREATE TABLE IF NOT EXISTS partners (
+  tg_id       INTEGER PRIMARY KEY,
+  status      TEXT NOT NULL,          -- pending | active | rejected
+  name        TEXT,
+  channel     TEXT,
+  audience    TEXT,
+  share       INTEGER NOT NULL DEFAULT 20,   -- percent of Stars from referred purchases
+  created_at  INTEGER NOT NULL,
+  approved_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS payouts (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  tg_id      INTEGER NOT NULL,
+  stars      INTEGER NOT NULL,
+  note       TEXT,
+  created_at INTEGER NOT NULL
+);

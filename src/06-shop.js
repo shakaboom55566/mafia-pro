@@ -31,13 +31,13 @@ function scenarioCardHTML(sc, compact = false) {
     <div class="m">${scenarioPlayers(sc)}${mods.length ? ' · ' + mods.join(' · ') : ''}</div>
     <div class="roles">${roles}</div>
     <div class="m">${tt(u.scenRoles, { list: [...new Set(sc.roles)].map(id => ROLE[id].name).join(', ') })}</div>
-    <div class="btn-row" style="margin-top:10px">${own ? `<button class="btn primary sm" data-a="scen-use" data-id="${sc.id}">${u.useScen}</button>` : sc.pack ? `<button class="btn primary sm" data-a="buy" data-kind="pack" data-id="${sc.pack}">${tt(u.buyPack, { price: u.pricePack })}</button>` : `<button class="btn primary sm" data-a="buy" data-kind="scen" data-id="${sc.id}">${tt(u.buy, { price: u.priceScen })}</button>`}</div>
+    <div class="btn-row" style="margin-top:10px">${own ? `<button class="btn primary sm" data-a="scen-use" data-id="${sc.id}">${u.useScen}</button>` : sc.pack ? `<button class="btn primary sm" data-a="buy" data-kind="pack" data-id="${sc.pack}">${tt(u.buyPack, { price: u.pricePack })}</button>` : (S.cloud && S.cloud.credits && S.cloud.credits.scenario > 0 ? `<button class="btn primary sm" data-a="claim-free" data-kind="scen" data-id="${sc.id}">🎁 ${u.claimFree}</button>` : `<button class="btn primary sm" data-a="buy" data-kind="scen" data-id="${sc.id}">${tt(u.buy, { price: u.priceScen })}</button>`)}</div>
   </div>`;
 }
 function premiumCardTile(r) {
   const u = U(); const own = ownsRole(r.id);
   return `<div class="gcard card ${r.team} mini premium" style="position:relative">${priceBadge('role', r.id)}<i class="gem"></i><div role="button" tabindex="0" data-a="role" data-id="${r.id}" style="display:contents">${lazyArt(r.id, false)}<div class="k">${TEAM_LABEL[r.team]}</div><div class="n">${r.name}</div><div class="s">${r.short}</div></div>
-    ${own ? '' : r.pack ? `<button class="btn primary xs buy" data-a="buy" data-kind="pack" data-id="${r.pack}">${u.inPack}</button>` : `<button class="btn primary xs buy" data-a="buy" data-kind="role" data-id="${r.id}">${tt(u.buy, { price: u.priceCard })}</button>`}</div>`;
+    ${own ? '' : r.pack ? `<button class="btn primary xs buy" data-a="buy" data-kind="pack" data-id="${r.pack}">${u.inPack}</button>` : (S.cloud && S.cloud.credits && S.cloud.credits.role > 0 ? `<button class="btn primary xs buy" data-a="claim-free" data-kind="role" data-id="${r.id}">🎁 ${u.claimFree}</button>` : `<button class="btn primary xs buy" data-a="buy" data-kind="role" data-id="${r.id}">${tt(u.buy, { price: u.priceCard })}</button>`)}</div>`;
 }
 function packCardHTML(pk) {
   const u = U(); const own = ownsPack(pk.id);
@@ -57,6 +57,7 @@ function shopScreen() {
   return `${topbar(u.shop, u.shopD)}
   <div class="stack">
     ${fullAccess() ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill">★</span><div class="grow" style="font-weight:700">${S.cloud && S.cloud.admin ? u.adminAccess : tt(u.fullAccessUntil, { date: new Date(S.owned.allUntil).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU') })}</div></div></div>` : ''}
+    ${S.cloud && S.cloud.credits && (S.cloud.credits.role > 0 || S.cloud.credits.scenario > 0) ? `<div class="panel" style="border-color:var(--gold)"><div style="font-weight:700">🎁 ${S.cloud.credits.role > 0 ? tt(u.freeLeft, { n: S.cloud.credits.role }) : ''}${S.cloud.credits.role > 0 && S.cloud.credits.scenario > 0 ? '<br>' : ''}${S.cloud.credits.scenario > 0 ? tt(u.freeLeftScen, { n: S.cloud.credits.scenario }) : ''}</div></div>` : ''}
     <div class="panel"><div class="row"><span class="premium-pill">${u.premium}</span><div class="hint grow">${u.buyNote}</div></div></div>
     <h2>${u.shopCards}</h2>
     ${groups.map(([team, title]) => `<div class="eyebrow">${title}</div><div class="shop-grid">${prem.filter(r => r.team === team).map(premiumCardTile).join('')}</div>`).join('')}

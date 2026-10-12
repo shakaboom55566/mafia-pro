@@ -12,6 +12,7 @@ function applyStartParam(sp) {
   else if (sp.startsWith('card_') && ROLE[sp.slice(5)]) { S.screen = 'cards'; S.ui.sheet = { type: 'role', id: sp.slice(5) }; }
   else if (sp.startsWith('scen_') && SCENARIO[sp.slice(5)]) { S.ui.tgStart = { a: 'scen-use', id: sp.slice(5) }; }
   else if (/^friend_[A-Za-z0-9]{6,10}$/.test(sp)) { S.ui.tgStart = { a: 'fr-accept', id: sp.slice(7).toUpperCase() }; }
+  else if (/^ref_[A-Za-z0-9]{6,10}$/.test(sp)) { S.ui.tgStart = { a: 'ref-attach', id: sp.slice(4).toUpperCase() }; }
 }
 function tgInit() {
   try {
@@ -81,7 +82,7 @@ async function cloudSync() {
     const o = d.owned || {}; let added = 0;
     S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
     [['roles', o.roles], ['scenarios', o.scenarios], ['packs', o.packs]].forEach(([k, arr]) => (arr || []).forEach(id => { if (!S.owned[k].includes(id)) { S.owned[k].push(id); added++; } }));
-    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin;
+    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref;
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -259,8 +260,10 @@ function friendsScreen() {
     ${FR.results ? (FR.results.length ? `<div class="stack-s" style="margin-top:10px">${FR.results.map(resRow).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.frSearchEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${u.frSearchHint}</div>`}</div>`;
   const reqRow = (r, incoming) => `<div class="fr-row"><span style="width:0"></span>${friendAvatar(r)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(r.username)}</span>` : ''}</div></div>${incoming ? `<button class="btn xs primary" data-a="fr-respond" data-id="${r.tgId}" data-ok="1">${u.frAcceptBtn}</button><button class="btn xs ghost" data-a="fr-respond" data-id="${r.tgId}" data-ok="0">${u.frDeclineBtn}</button>` : `<span class="hint" style="margin:0">${u.frRequested}</span>`}</div>`;
   const requests = (FR.incoming.length || FR.outgoing.length) ? `<div class="eyebrow">${u.frRequests}${FR.incoming.length ? ` · ${FR.incoming.length}` : ''}</div><div class="stack-s">${FR.incoming.map(r => reqRow(r, true)).join('')}${FR.outgoing.map(r => reqRow(r, false)).join('')}</div>` : '';
+  const programmes = `<div class="btn-row"><button class="btn" data-a="ref-open">🎁 ${u.refBtn}</button><button class="btn" data-a="pt-open">🤝 ${u.ptBtn}</button></div>`;
   return `${topbar(u.frTitle, u.frSub, false)}
   <div class="stack">
+    ${programmes}
     ${searchPanel}
     ${requests}
     ${linkPanel}
@@ -364,18 +367,83 @@ Object.assign(ACT, {
   'pl-refresh'() { loadPlayers(true); },
   'pl-more'() { loadPlayers(false); }
 });
+/* ---------- referral & partner programmes (sheets opened from the Friends tab) ---------- */
+const REFS = { data: null, busy: false }; const PART = { data: null, busy: false, form: { name: '', channel: '', audience: '' } };
+const locale = () => (L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU');
+async function loadReferrals(force) { if (REFS.busy || (REFS.data && !force)) return; REFS.busy = true; const d = await api('/api/referrals', {}); REFS.busy = false; if (d.ok) REFS.data = d; render(); }
+async function loadPartner(force) { if (PART.busy || (PART.data && !force)) return; PART.busy = true; const d = await api('/api/partner', {}); PART.busy = false; if (d.ok) PART.data = d; render(); }
+function linkBox(link, shareText) { const u = U(); return `<div class="fr-link">${esc(link)}</div><div class="btn-row" style="margin-top:8px"><button class="btn primary" data-a="link-share" data-link="${esc(link)}" data-text="${esc(shareText)}">${u.frShare}</button><button class="btn ghost" data-a="link-copy" data-link="${esc(link)}" style="flex:0 0 auto;width:auto">${u.frCopy}</button></div>`; }
+function referralSheetHTML() {
+  const u = U(); if (!REFS.data && !REFS.busy) setTimeout(() => loadReferrals(false), 0);
+  const d = REFS.data; const link = d ? d.link : (S.cloud && S.cloud.ref) || '';
+  const ms = [[1, u.refM1], [3, u.refM3], [5, u.refM5], [10, u.refM10], [25, u.refM25], [50, u.refM50]];
+  const q = d ? d.qualified : 0;
+  const list = d ? ms.map(([n, txt]) => `<div class="row" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--line)"><span class="chk" style="width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:13px;font-weight:800;${q >= n ? 'background:var(--gold);color:#0b0a0e' : 'border:1.5px solid var(--line-2);color:var(--muted)'}">${q >= n ? '✓' : n}</span><div class="grow" style="${q >= n ? '' : ''}">${txt}</div></div>`).join('') : '';
+  const credits = d ? d.credits : (S.cloud && S.cloud.credits) || { role: 0, scenario: 0 };
+  const invitees = d && d.list.length ? `<div class="eyebrow" style="margin-top:12px">${u.refInvitees} · ${d.invited}</div><div class="stack-s">${d.list.slice(0, 20).map(x => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}${x.username ? ` <span style="color:var(--muted)">@${esc(x.username)}</span>` : ''}</div><span class="${x.qualified ? 'fr-on' : 'fr-off'}" style="font-size:12px">${x.qualified ? '✓ ' + u.refQual : u.refNotYet}</span></div>`).join('')}</div>` : (d ? `<div class="hint" style="margin-top:10px">${u.refEmpty}</div>` : '');
+  return `<h2>${u.refTitle}</h2><p class="hint" style="margin:4px 0 10px">${u.refSub}</p>
+    <div class="panel" style="border-color:rgba(240,205,122,.5)"><div>${u.refOffer}</div></div>
+    <div class="eyebrow" style="margin-top:12px">${u.refMyLink}</div>${link ? linkBox(link, u.refShareText) : `<div class="hint">${u.frLoading}</div>`}
+    ${d ? `<div class="status" style="margin-top:12px;grid-template-columns:repeat(2,1fr)"><div class="st"><div class="v num" style="color:var(--gold-2)">${d.invited}</div><div class="k">${u.refInvitees}</div></div><div class="st"><div class="v num" style="color:#9fe0ab">${d.qualified}</div><div class="k">${u.refQual}</div></div></div>
+    <div class="hint" style="text-align:center;margin-top:6px">${d.next ? tt(u.refNext, { n: d.next.n - d.qualified }) : u.refDone}</div>` : ''}
+    ${(credits.role || credits.scenario) ? `<div class="panel" style="margin-top:10px;border-color:var(--gold)"><div style="font-weight:700">${tt(u.refCredits, { r: credits.role || 0, s: credits.scenario || 0 })}</div><button class="btn sm primary" style="margin-top:8px" data-a="go" data-to="shop">${u.shop}</button></div>` : ''}
+    <div class="eyebrow" style="margin-top:12px">${u.refMilestones}</div><div>${list || `<div class="hint">${u.frLoading}</div>`}</div>
+    ${invitees}
+    <div class="eyebrow" style="margin-top:12px">${u.refHow}</div><div class="hint">${u.refHowText}</div>`;
+}
+function partnerSheetHTML() {
+  const u = U(); if (!PART.data && !PART.busy) setTimeout(() => loadPartner(false), 0);
+  const d = PART.data; const adminName = (d && d.support) || 'mafiapro_support';
+  let body = '';
+  if (!d) body = `<div class="hint">${u.frLoading}</div>`;
+  else if (d.status === 'active') {
+    const st = d.stats || {}; const usd = (n) => (n * 0.013).toFixed(2);
+    const tile = (v, k, col = '') => `<div class="st"><div class="v num" style="${col}">${v}</div><div class="k">${k}</div></div>`;
+    body = `<div class="panel" style="border-color:var(--gold)"><div style="font-weight:800;color:var(--gold-2)">${tt(u.ptActive, { share: d.share })}</div></div>
+      <div class="eyebrow" style="margin-top:12px">${u.ptLink}</div>${linkBox(d.link, u.refShareText)}
+      <div class="hint" style="margin-top:6px">${u.ptLinkApp}: <span class="num" style="word-break:break-all">${esc(d.appLink)}</span></div>
+      <div class="status" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">${tile(st.invited || 0, u.ptInvited)}${tile(st.qualified || 0, u.ptQualified, 'color:#9fe0ab')}${tile(st.purchases || 0, u.ptPurchases)}</div>
+      <div class="status" style="grid-template-columns:repeat(3,1fr)">${tile((st.earnedStars || 0) + '⭐', u.ptEarned, 'color:var(--gold-2)')}${tile((st.balanceStars || 0) + '⭐', u.ptBalance, 'color:var(--gold-2)')}${tile((st.paidStars || 0) + '⭐', u.ptPaid)}</div>
+      <div class="hint" style="text-align:center">${tt(u.ptApprox, { usd: usd(st.balanceStars || 0) })} · ${tt(u.ptPayoutNote, { admin: adminName })}</div>
+      <div class="eyebrow" style="margin-top:12px">${u.ptMaterials}</div><div class="hint">${u.ptMaterialsText}</div>`;
+  } else if (d.status === 'pending') body = `<div class="panel"><div>${u.ptPending}</div></div>`;
+  else {
+    const f = PART.form;
+    body = `${d.status === 'rejected' ? `<div class="hint" style="margin-bottom:8px">${u.ptRejected}</div>` : ''}<div class="eyebrow">${u.ptApply}</div>
+      <div class="stack-s" style="margin-top:8px"><input class="input" data-a="pt-f" data-k="name" placeholder="${u.ptName}" value="${esc(f.name)}"><input class="input" data-a="pt-f" data-k="channel" placeholder="${u.ptChannel}" value="${esc(f.channel)}"><input class="input" data-a="pt-f" data-k="audience" placeholder="${u.ptAudience}" value="${esc(f.audience)}"></div>
+      <button class="btn primary" style="margin-top:10px" data-a="pt-apply" ${f.name.trim() ? '' : 'disabled'}>${u.ptSend}</button>`;
+  }
+  return `<h2>${u.ptTitle}</h2><p class="hint" style="margin:4px 0 10px">${u.ptSub}</p>
+    <div class="panel" style="border-color:rgba(240,205,122,.5)"><div>${u.ptOffer}</div></div>
+    <div class="eyebrow" style="margin-top:12px">${u.ptWho}</div><div class="hint">${u.ptWhoText}</div>
+    <div style="margin-top:12px">${body}</div>`;
+}
+Object.assign(ACT, {
+  'ref-open'() { S.ui.sheet = { type: 'referral' }; render(); },
+  'pt-open'() { S.ui.sheet = { type: 'partner' }; render(); },
+  'link-share'(el) { const url = 'https://t.me/share/url?url=' + encodeURIComponent(el.dataset.link) + '&text=' + encodeURIComponent(el.dataset.text || ''); try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} },
+  async 'link-copy'(el) { const link = el.dataset.link; try { await navigator.clipboard.writeText(link); toast(U().frCopied); } catch (e) { try { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast(U().frCopied); } catch (e2) {} } },
+  'pt-f'(el) { PART.form[el.dataset.k] = el.value || ''; const b = document.querySelector('[data-a="pt-apply"]'); if (b) b.disabled = !PART.form.name.trim(); },
+  async 'pt-apply'() { if (!PART.form.name.trim()) return; const d = await api('/api/partner/apply', PART.form); if (!d.ok) { toast(U().tgOffline); return; } PART.data = d; tgHaptic('success'); render(); },
+  async 'ref-attach'(el) { const d = await api('/api/ref/attach', { code: el.dataset.id }); if (d.ok && d.attached) { toast(U().refAttached); setTimeout(cloudSync, 800); } },
+  async 'claim-free'(el) { const kind = el.dataset.kind, id = el.dataset.id; const d = await api('/api/invoice', { kind: kind === 'scen' ? 'scenario' : kind, id, useCredit: true }); if (!d.ok) { toast(d.error === 'no_credit' ? U().tgNA : U().tgOffline); return; } S.cloud.credits = d.credits || S.cloud.credits; if (kind === 'role') { if (!S.owned.roles.includes(id)) S.owned.roles.push(id); } else { if (!S.owned.scenarios.includes(id)) S.owned.scenarios.push(id); } REFS.data = null; S.ui.sheet = null; toast(U().claimed); tgHaptic('success'); save(); render(); }
+});
 /* ---------- admin: grant full access (all cards / scenarios / packs) for a period ---------- */
 const ADM = { q: '', days: 30, grants: null, busy: false };
 function adminPanelHTML() {
   if (!TG.app || !apiBase() || !S.cloud || !S.cloud.admin) return '';
   const u = U(); if (!ADM.grants && !ADM.busy) { ADM.busy = true; setTimeout(async () => { const d = await api('/api/admin/grants', {}); ADM.grants = d.ok ? d.grants : []; ADM.busy = false; render(); }, 0); }
   const fmt = ms => new Date(ms).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU');
+  if (!ADM.partners && !ADM.pbusy) { ADM.pbusy = true; setTimeout(async () => { const d = await api('/api/admin/partners', {}); ADM.partners = d.ok ? d.partners : []; ADM.pbusy = false; render(); }, 0); }
+  const prow = p => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(p.name)}</b>${p.username ? ` <span style="color:var(--muted)">@${esc(p.username)}</span>` : ''} · <span style="color:${p.status === 'active' ? '#9fe0ab' : p.status === 'pending' ? 'var(--gold-2)' : 'var(--muted)'}">${p.status === 'active' ? u.admActive : p.status === 'pending' ? u.admPending : u.admRejected}</span></div><div class="hint" style="margin:0">${esc(p.channel || '')}${p.audience ? ' · ' + esc(p.audience) : ''}${p.stats ? ` · ${p.stats.invited}/${p.stats.qualified} · ${p.stats.earnedStars}⭐` : ''}</div></div>${p.status !== 'active' ? `<button class="btn xs primary" data-a="adm-partner" data-id="${p.tgId}" data-ok="1">${u.admApprove}</button>` : ''}${p.status !== 'rejected' ? `<button class="btn xs ghost" data-a="adm-partner" data-id="${p.tgId}" data-ok="0">${u.admReject}</button>` : ''}</div>`;
+  const partners = `<div class="eyebrow" style="margin-top:12px">${u.admPartners}${ADM.partners ? ` · ${ADM.partners.length}` : ''}</div>${ADM.partners ? (ADM.partners.length ? `<div class="stack-s" style="margin-top:8px">${ADM.partners.map(prow).join('')}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}`;
   const rows = (ADM.grants || []).map(g => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(g.name)}</b>${g.username ? ` <span style="color:var(--muted)">@${esc(g.username)}</span>` : ''} · ${fmt(g.until)}</div><button class="btn xs ghost" data-a="adm-revoke" data-id="${g.tgId}">${u.adminRevoke}</button></div>`).join('');
   return `<div class="panel" style="margin-top:12px;border-color:rgba(240,205,122,.5)"><div class="eyebrow gold">${u.adminTitle}</div><div class="hint" style="margin:6px 0 8px">${u.adminHint}</div>
     <div class="row"><input class="input grow" id="adm-q" data-a="adm-q" placeholder="${u.adminPh}" value="${esc(ADM.q)}" autocomplete="off" autocapitalize="off"><input class="input" data-a="adm-days" type="number" min="1" max="3650" value="${ADM.days}" style="width:72px;flex:none" aria-label="${u.adminDays}"><span class="hint" style="margin:0">${u.adminDays}</span></div>
     <button class="btn primary" style="margin-top:8px" data-a="adm-grant">${u.adminGrant}</button>
     <div class="eyebrow" style="margin-top:12px">${u.adminGrants}${ADM.grants ? ` · ${ADM.grants.length}` : ''}</div>
-    ${ADM.grants ? (rows ? `<div class="stack-s" style="margin-top:8px">${rows}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}</div>`;
+    ${ADM.grants ? (rows ? `<div class="stack-s" style="margin-top:8px">${rows}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}
+    ${partners}</div>`;
 }
 Object.assign(ACT, {
   'adm-q'(el) { ADM.q = el.value || ''; },
@@ -385,6 +453,7 @@ Object.assign(ACT, {
     if (!d.ok) { toast(d.error === 'not_found' ? U().adminNotFound : U().tgOffline); return; }
     ADM.grants = d.grants || ADM.grants; ADM.q = ''; toast(tt(U().adminGranted, { name: d.granted.name, date: new Date(d.granted.until).toLocaleDateString() })); tgHaptic('success'); render();
   },
+  async 'adm-partner'(el) { const d = await api('/api/admin/partner', { q: String(el.dataset.id), approve: el.dataset.ok === '1' }); if (!d.ok) { toast(U().tgOffline); return; } ADM.partners = d.partners || []; tgHaptic('success'); render(); },
   async 'adm-revoke'(el) { const d = await api('/api/admin/revoke', { q: String(el.dataset.id) }); if (!d.ok) { toast(U().tgOffline); return; } ADM.grants = d.grants || []; toast(U().adminRevoked); render(); }
 });
 /* global rating panel on the ratings screen; Telegram rating line on my profile */
@@ -410,6 +479,8 @@ function cloudTopHTML() {
   const origProfiles = profilesScreen;
   profilesScreen = function () { const html = origProfiles(); const dir = playersDirectoryHTML(); if (!dir) return html; const u = U(); const marker = `<div class="eyebrow grow">${u.allPlayers} · ${S.profiles.length}</div>`; const i = html.indexOf('<div class="row">' + marker); if (i < 0) return html; return html.slice(0, i) + dir + `<div class="hint" style="margin-top:6px">${u.plLocalHint}</div>` + html.slice(i).replace(marker, `<div class="eyebrow grow">${u.plLocal} · ${S.profiles.length}</div>`); };
   try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'pl-q') { e.preventDefault(); ACT['pl-search'](); } }); } catch (e) {}
+  const origSheet = sheetHTML;
+  sheetHTML = function (enter) { const sh = S.ui.sheet; if (sh && (sh.type === 'referral' || sh.type === 'partner')) { const body = sh.type === 'referral' ? referralSheetHTML() : partnerSheetHTML(); const u = U(); return `<div class="sheet-bg ${enter !== false ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`; } return origSheet(enter); };
   const origSettings = settingsScreen;
   settingsScreen = function () { const html = origSettings(); const extra = adminPanelHTML(); if (!extra) return html; const i = html.indexOf('<div class="panel" style="margin-top:12px">'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
   const origProfile = profileScreen;

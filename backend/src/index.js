@@ -19,6 +19,9 @@
    - POST /api/profile         a player's public game profile (rating, per-role stats, recent games)
    - POST /api/players         everyone who opened the bot: name, @username, presence, rating (paged, optional prefix filter)
    - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
+   - POST /api/referrals       my referral link, invited / qualified counts, milestones, credits
+   - POST /api/partner         partner programme: status, link, stats, earnings; /apply to join
+   - POST /api/admin/partners|partner  list / approve / reject partner applications
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
    ============================================================ */
@@ -58,7 +61,7 @@ const ONLINE_SEC = 180; // seen within 3 minutes = online (the app pings every m
 const isAdmin = (env, tgId) => String(env.ADMIN_IDS || '').split(',').map(x => x.trim()).filter(Boolean).includes(String(tgId));
 async function grantFor(env, tgId) { const g = await env.DB.prepare('SELECT until, granted_by FROM grants WHERE tg_id = ?1 AND until > ?2').bind(tgId, now()).first(); return g ? { until: g.until } : null; }
 async function ownedFor(env, tgId) {
-  const rows = (await env.DB.prepare('SELECT kind, item FROM purchases WHERE tg_id = ?1 AND status = ?2').bind(tgId, 'paid').all()).results || [];
+  const rows = (await env.DB.prepare("SELECT kind, item FROM purchases WHERE tg_id = ?1 AND status IN ('paid', 'reward')").bind(tgId).all()).results || [];
   const owned = { roles: [], scenarios: [], packs: [], allUntil: 0 };
   for (const r of rows) { const k = r.kind === 'role' ? 'roles' : r.kind === 'scenario' ? 'scenarios' : 'packs'; if (!owned[k].includes(r.item)) owned[k].push(r.item); }
   const g = await grantFor(env, tgId); if (g) owned.allUntil = g.until * 1000;
@@ -120,6 +123,67 @@ async function friendsOf(env, tgId) {
   return rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', lang: r.lang || 'ru', since: r.created_at, points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)) }));
 }
 let botUsernameCache = null;
+/* ---------- referrals & rewards ---------- */
+const REF_WELCOME_DAYS = 7;
+// milestones by number of qualified invitees (played at least one game through the bot)
+const MILESTONES = [
+  { n: 1, kind: 'days', days: 7 }, { n: 3, kind: 'days', days: 30 }, { n: 5, kind: 'role' }, { n: 10, kind: 'scenario' }, { n: 25, kind: 'pack', item: 'diplomacy' }, { n: 50, kind: 'days', days: 365 }
+];
+async function extendGrant(env, tgId, days, by) {
+  const cur = await env.DB.prepare('SELECT until FROM grants WHERE tg_id = ?1').bind(tgId).first();
+  const base = Math.max(now(), cur ? cur.until : 0); const until = base + days * 86400;
+  await env.DB.prepare('INSERT INTO grants (tg_id, until, granted_by, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(tg_id) DO UPDATE SET until = ?2, granted_by = ?3, created_at = ?4').bind(tgId, until, by, now()).run();
+  return until;
+}
+async function addCredit(env, tgId, kind, n = 1) { await env.DB.prepare('INSERT INTO credits (tg_id, kind, count) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id, kind) DO UPDATE SET count = count + ?3').bind(tgId, kind, n).run(); }
+async function creditsFor(env, tgId) { const rows = (await env.DB.prepare('SELECT kind, count FROM credits WHERE tg_id = ?1').bind(tgId).all()).results || []; const c = { role: 0, scenario: 0 }; rows.forEach(r => { c[r.kind] = r.count; }); return c; }
+/* attribute a brand-new user to an inviter (by invite code); gives the invitee a welcome trial */
+async function attachReferral(env, bot, u, code, lang) {
+  const inv = await env.DB.prepare('SELECT tg_id FROM invites WHERE code = ?1').bind(code).first();
+  if (!inv || inv.tg_id === u.id) return false;
+  const ins = await env.DB.prepare('INSERT OR IGNORE INTO referrals (tg_id, ref_by, code, created_at) VALUES (?1, ?2, ?3, ?4)').bind(u.id, inv.tg_id, code, now()).run();
+  if (!(ins.meta && ins.meta.changes > 0)) return false;
+  await extendGrant(env, u.id, REF_WELCOME_DAYS, inv.tg_id);
+  const by = await userRow(env, inv.tg_id);
+  await bot.send(u.id, t(lang, 'refWelcome', { name: esc(rowName(by) || 'Mafia Pro') }), bot.playButton(t(lang, 'play'), env.APP_URL));
+  return true;
+}
+/* the invitee played: count it once, then pay the inviter every milestone reached */
+async function qualifyReferral(env, bot, tgId) {
+  const r = await env.DB.prepare('SELECT ref_by, qualified_at FROM referrals WHERE tg_id = ?1').bind(tgId).first();
+  if (!r || r.qualified_at) return;
+  await env.DB.prepare('UPDATE referrals SET qualified_at = ?1 WHERE tg_id = ?2').bind(now(), tgId).run();
+  const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM referrals WHERE ref_by = ?1 AND qualified_at IS NOT NULL').bind(r.ref_by).first('n');
+  const inviter = await userRow(env, r.ref_by); const il = pickLang(inviter && inviter.lang); const who = await userRow(env, tgId);
+  await bot.send(r.ref_by, t(il, 'refQualified', { name: esc(rowName(who)), n }));
+  for (const m of MILESTONES) {
+    if (n < m.n) continue;
+    const done = await env.DB.prepare('INSERT OR IGNORE INTO milestones (tg_id, level, created_at) VALUES (?1, ?2, ?3)').bind(r.ref_by, m.n, now()).run();
+    if (!(done.meta && done.meta.changes > 0)) continue;
+    let reward = '';
+    if (m.kind === 'days') { await extendGrant(env, r.ref_by, m.days, 0); reward = t(il, 'rwDays', { d: m.days }); }
+    else if (m.kind === 'role') { await addCredit(env, r.ref_by, 'role'); reward = t(il, 'rwCard'); }
+    else if (m.kind === 'scenario') { await addCredit(env, r.ref_by, 'scenario'); reward = t(il, 'rwScen'); }
+    else if (m.kind === 'pack') { await env.DB.prepare('INSERT OR IGNORE INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (?1, ?2, ?3, 0, ?4, ?5, ?6, ?6)').bind(r.ref_by, 'pack', m.item, 'rw_' + r.ref_by + '_' + m.n, 'reward', now()).run(); reward = t(il, 'rwPack'); }
+    await bot.send(r.ref_by, t(il, 'refReward', { n: m.n, reward }), bot.playButton(t(il, 'play'), env.APP_URL));
+  }
+}
+async function referralStats(env, tgId) {
+  const rows = (await env.DB.prepare('SELECT r.tg_id, r.created_at, r.qualified_at, u.first_name, u.last_name, u.username FROM referrals r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.ref_by = ?1 ORDER BY r.created_at DESC LIMIT 200').bind(tgId).all()).results || [];
+  const qualified = rows.filter(r => r.qualified_at).length;
+  const next = MILESTONES.find(m => m.n > qualified) || null;
+  return { invited: rows.length, qualified, next, milestones: MILESTONES, credits: await creditsFor(env, tgId), list: rows.slice(0, 50).map(r => ({ tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', at: r.created_at * 1000, qualified: !!r.qualified_at })) };
+}
+/* ---------- partners ---------- */
+async function partnerRow(env, tgId) { return env.DB.prepare('SELECT * FROM partners WHERE tg_id = ?1').bind(tgId).first(); }
+async function partnerStats(env, tgId, share) {
+  const since = now() - 365 * 86400;
+  const ref = await env.DB.prepare('SELECT COUNT(*) AS n, SUM(CASE WHEN qualified_at IS NOT NULL THEN 1 ELSE 0 END) AS q FROM referrals WHERE ref_by = ?1').bind(tgId).first();
+  const buy = await env.DB.prepare(`SELECT COUNT(*) AS n, COALESCE(SUM(p.stars), 0) AS stars FROM purchases p JOIN referrals r ON r.tg_id = p.tg_id WHERE r.ref_by = ?1 AND p.status = 'paid' AND p.paid_at >= ?2 AND p.paid_at >= r.created_at AND p.paid_at <= r.created_at + 365 * 86400`).bind(tgId, since).first();
+  const paid = await env.DB.prepare('SELECT COALESCE(SUM(stars), 0) AS s FROM payouts WHERE tg_id = ?1').bind(tgId).first('s');
+  const earned = Math.floor((buy.stars || 0) * share / 100);
+  return { invited: ref.n || 0, qualified: ref.q || 0, purchases: buy.n || 0, purchasedStars: buy.stars || 0, earnedStars: earned, paidStars: paid || 0, balanceStars: earned - (paid || 0) };
+}
 async function botUsername(env, bot) {
   if (env.BOT_USERNAME) return env.BOT_USERNAME;
   if (botUsernameCache) return botUsernameCache;
@@ -169,6 +233,7 @@ async function sendRequest(env, bot, me, target) { // me: Telegram user object; 
 async function onText(env, bot, msg) {
   const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id;
   const text = msg.text.trim();
+  const isNew = !(await userRow(env, u.id));
   await touchUser(env, u);
   const play = bot.playButton(t(lang, 'play'), env.APP_URL);
   const m = /^\/start(?:@\w+)?(?:\s+(\S+))?/.exec(text);
@@ -176,11 +241,15 @@ async function onText(env, bot, msg) {
     const param = m[1] || '';
     const j = /^join_([A-Z0-9]{4,8})$/i.exec(param);
     if (j) return joinLobby(env, bot, chat, u, lang, j[1].toUpperCase());
-    const f = /^friend_([A-Z0-9]{6,10})$/i.exec(param);
-    if (f) return acceptFriend(env, bot, chat, u, lang, f[1].toUpperCase(), play);
+    const f = /^(friend|ref)_([A-Z0-9]{6,10})$/i.exec(param);
+    if (f) {
+      if (isNew) await attachReferral(env, bot, u, f[2].toUpperCase(), lang);
+      if (f[1].toLowerCase() === 'friend') return acceptFriend(env, bot, chat, u, lang, f[2].toUpperCase(), play);
+      return isNew ? undefined : bot.send(chat, t(lang, 'welcome'), play);
+    }
     return bot.send(chat, t(lang, 'welcome'), play);
   }
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') : t(lang, 'help'), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') : t(lang, 'help'), play);
   if (isAdmin(env, u.id)) {
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
@@ -189,7 +258,16 @@ async function onText(env, bot, msg) {
       const until = await setGrant(env, bot, u.id, target, Number(g[3]) || 30, false);
       return bot.send(chat, t(lang, 'adminGranted', { name: esc(rowName(target)), until: fmtDate(until, lang) }));
     }
+    const pc = /^\/(partner|partner_no)(?:@\w+)?\s+(\S+)/.exec(text);
+    if (pc) { const target = await findUser(env, pc[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(pc[2]) })); await setPartner(env, bot, target, pc[1] === 'partner'); return bot.send(chat, t(lang, pc[1] === 'partner' ? 'adminPartnerOk' : 'adminPartnerNo', { name: esc(rowName(target)) })); }
+    if (/^\/partners/.test(text)) { const list = await listPartners(env); return bot.send(chat, list.length ? t(lang, 'adminPartners', { list: list.map(x => `• ${esc(x.name)}${x.username ? ' @' + esc(x.username) : ''} — ${x.status}${x.stats ? ` · ${x.stats.invited} / ${x.stats.qualified} · ${x.stats.earnedStars}⭐` : ''}`).join('\n') }) : t(lang, 'adminPartnersNone')); }
     if (/^\/grants/.test(text)) { const list = await listGrants(env); return bot.send(chat, list.length ? t(lang, 'adminGrants', { list: list.map(x => `• ${esc(x.name)}${x.username ? ' @' + esc(x.username) : ''} — ${fmtDate(x.until / 1000, lang)}`).join('\n') }) : t(lang, 'adminNone')); }
+  }
+  // partners can write to the team straight through the bot: the text is forwarded to the admins
+  const pr = await partnerRow(env, u.id);
+  if (pr && pr.status === 'active' && !text.startsWith('/')) {
+    for (const adm of String(env.ADMIN_IDS || '').split(',').map(x => Number(x.trim())).filter(Boolean)) { const a = await userRow(env, adm); await bot.send(adm, t(pickLang(a && a.lang), 'adminFwd', { name: esc(displayName(u)), username: u.username ? ' @' + esc(u.username) : '', id: u.id, text: esc(text).slice(0, 3000) })); }
+    return bot.send(chat, t(lang, 'fwd'));
   }
   return bot.send(chat, t(lang, 'unknown'), play);
 }
@@ -245,7 +323,66 @@ async function apiMe(env, bot, body) {
   const [owned, rating, code, username] = await Promise.all([ownedFor(env, v.user.id), ratingFor(env, v.user.id), inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
   const u = v.user;
   if (isAdmin(env, u.id)) owned.allUntil = Math.max(owned.allUntil || 0, Date.now() + 3650 * 86400000); // admins own everything
-  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}` }, admin: isAdmin(env, u.id) });
+  const credits = await creditsFor(env, u.id);
+  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), credits });
+}
+/* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
+async function apiRefAttach(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const code = String(body.code || '').toUpperCase(); if (!/^[A-Z0-9]{6,10}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
+  const u = await env.DB.prepare('SELECT created_at FROM users WHERE tg_id = ?1').bind(v.user.id).first();
+  const fresh = u && now() - u.created_at < 600;
+  const existing = await env.DB.prepare('SELECT ref_by FROM referrals WHERE tg_id = ?1').bind(v.user.id).first();
+  if (!fresh || existing) return json({ ok: true, attached: false });
+  const done = await attachReferral(env, bot, v.user, code, pickLang(v.user.language_code));
+  return json({ ok: true, attached: done, welcomeDays: REF_WELCOME_DAYS });
+}
+async function apiReferrals(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const [code, username, st] = await Promise.all([inviteCodeFor(env, v.user.id), botUsername(env, bot), referralStats(env, v.user.id)]);
+  return json(Object.assign({ ok: true, code, link: `https://t.me/${username}?start=ref_${code}`, welcomeDays: REF_WELCOME_DAYS }, st));
+}
+async function apiPartner(env, bot, body, action) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  let p = await partnerRow(env, v.user.id);
+  if (action === 'apply') {
+    if (p && p.status === 'active') return json({ ok: true, status: 'active' });
+    const name = String(body.name || displayName(v.user)).slice(0, 80), channel = String(body.channel || '').slice(0, 160), audience = String(body.audience || '').slice(0, 160);
+    await env.DB.prepare('INSERT INTO partners (tg_id, status, name, channel, audience, share, created_at) VALUES (?1, ?2, ?3, ?4, ?5, 20, ?6) ON CONFLICT(tg_id) DO UPDATE SET status = ?2, name = ?3, channel = ?4, audience = ?5, created_at = ?6').bind(v.user.id, 'pending', name, channel, audience, now()).run();
+    const lang = pickLang(v.user.language_code);
+    await bot.send(v.user.id, t(lang, 'partnerApplied'));
+    for (const adm of String(env.ADMIN_IDS || '').split(',').map(x => Number(x.trim())).filter(Boolean)) { const a = await userRow(env, adm); await bot.send(adm, t(pickLang(a && a.lang), 'adminPartnerNew', { name: esc(name), username: v.user.username ? ' @' + esc(v.user.username) : '', channel: esc(channel || '—'), audience: esc(audience || '—'), id: v.user.id })); }
+    p = await partnerRow(env, v.user.id);
+  }
+  const [code, username] = await Promise.all([inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
+  const share = p ? p.share : 20;
+  const stats = p && p.status === 'active' ? await partnerStats(env, v.user.id, share) : null;
+  return json({ ok: true, status: p ? p.status : 'none', share, name: p ? p.name : '', channel: p ? p.channel : '', link: `https://t.me/${username}?start=ref_${code}`, appLink: `${env.APP_URL}?startapp=ref_${code}`, stats, minPayout: 1000, support: env.SUPPORT_USERNAME || username });
+}
+async function setPartner(env, bot, target, approve) {
+  const lang = pickLang(target.lang);
+  if (approve) {
+    await env.DB.prepare('INSERT INTO partners (tg_id, status, name, share, created_at, approved_at) VALUES (?1, ?2, ?3, 20, ?4, ?4) ON CONFLICT(tg_id) DO UPDATE SET status = ?2, approved_at = ?4').bind(target.tg_id, 'active', rowName(target), now()).run();
+    const p = await partnerRow(env, target.tg_id);
+    await bot.send(target.tg_id, t(lang, 'partnerApproved', { share: p.share }), bot.playButton(t(lang, 'play'), env.APP_URL));
+  } else {
+    await env.DB.prepare('UPDATE partners SET status = ?1 WHERE tg_id = ?2').bind('rejected', target.tg_id).run();
+    await bot.send(target.tg_id, t(lang, 'partnerRejected'));
+  }
+}
+async function listPartners(env) {
+  const rows = (await env.DB.prepare('SELECT p.*, u.username, u.first_name, u.last_name FROM partners p LEFT JOIN users u ON u.tg_id = p.tg_id ORDER BY p.created_at DESC LIMIT 100').all()).results || [];
+  const out = [];
+  for (const r of rows) out.push({ tgId: r.tg_id, name: rowName(r) || r.name || String(r.tg_id), username: r.username || '', status: r.status, share: r.share, channel: r.channel || '', audience: r.audience || '', at: r.created_at * 1000, stats: r.status === 'active' ? await partnerStats(env, r.tg_id, r.share) : null });
+  return out;
+}
+async function apiAdminPartners(env, bot, body, action) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
+  if (action === 'list') return json({ ok: true, partners: await listPartners(env) });
+  const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
+  await setPartner(env, bot, target, !!body.approve);
+  return json({ ok: true, partners: await listPartners(env) });
 }
 async function apiProfile(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -364,6 +501,12 @@ async function apiInvoice(env, bot, body) {
   if (!KINDS.includes(kind) || !ID_RE.test(item)) return json({ ok: false, error: 'bad_item' }, 400);
   const owned = await ownedFor(env, v.user.id);
   if ((kind === 'role' && owned.roles.includes(item)) || (kind === 'scenario' && owned.scenarios.includes(item)) || (kind === 'pack' && owned.packs.includes(item))) return json({ ok: true, owned: true });
+  if (body.useCredit && (kind === 'role' || kind === 'scenario')) { // a free card / scenario earned through referrals
+    const c = await creditsFor(env, v.user.id); if (!c[kind]) return json({ ok: false, error: 'no_credit' }, 400);
+    await env.DB.prepare('UPDATE credits SET count = count - 1 WHERE tg_id = ?1 AND kind = ?2 AND count > 0').bind(v.user.id, kind).run();
+    await env.DB.prepare('INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (?1, ?2, ?3, 0, ?4, ?5, ?6, ?6)').bind(v.user.id, kind, item, 'cr_' + randomId(8), 'reward', now()).run();
+    return json({ ok: true, owned: true, credit: true, credits: await creditsFor(env, v.user.id) });
+  }
   const amount = stars(env, kind);
   const title = String(body.title || item).slice(0, 32) || item, description = String(body.description || 'Mafia Pro').slice(0, 255) || 'Mafia Pro';
   const payload = 'p_' + randomId(12);
@@ -372,7 +515,7 @@ async function apiInvoice(env, bot, body) {
   if (!r || !r.ok) return json({ ok: false, error: 'telegram', detail: r && r.description }, 502);
   return json({ ok: true, link: r.result, stars: amount, payload });
 }
-async function apiResult(env, body) {
+async function apiResult(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const g = body.game || {};
   const gameId = String(g.id || '').slice(0, 64); if (!gameId) return json({ ok: false, error: 'bad_game' }, 400);
@@ -386,6 +529,7 @@ async function apiResult(env, body) {
       const tgId = Number(p.tgId); if (!tgId) continue;
       const pts = Math.max(-60, Math.min(90, Number(p.points) || 0));
       await bumpRating(env, tgId, pts, 1, p.won ? 1 : 0, 0);
+      try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); }
     }
   }
   for (const p of players) { const tgId = Number(p.tgId); if (tgId && !ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); }
@@ -432,6 +576,7 @@ async function apiLobbyDeal(env, bot, body) {
     if (r && r.ok) sent.push(tgId); else failed.push({ tgId, error: (r && r.description) || 'send_failed' });
   }
   if (sent.length) await env.DB.prepare('UPDATE lobbies SET status = ?1 WHERE code = ?2').bind('dealt', lobby.code).run();
+  for (const id of sent) { try { await qualifyReferral(env, bot, id); } catch (e) { console.error('qualify', e); } }
   return json({ ok: true, sent, failed });
 }
 async function apiLeaderboard(env, url) {
@@ -475,8 +620,14 @@ export default {
           case '/api/admin/grant': return wrap(apiAdmin(env, bot, body, 'grant'));
           case '/api/admin/revoke': return wrap(apiAdmin(env, bot, body, 'revoke'));
           case '/api/admin/grants': return wrap(apiAdmin(env, bot, body, 'grants'));
+          case '/api/referrals': return wrap(apiReferrals(env, bot, body));
+          case '/api/ref/attach': return wrap(apiRefAttach(env, bot, body));
+          case '/api/partner': return wrap(apiPartner(env, bot, body, 'get'));
+          case '/api/partner/apply': return wrap(apiPartner(env, bot, body, 'apply'));
+          case '/api/admin/partners': return wrap(apiAdminPartners(env, bot, body, 'list'));
+          case '/api/admin/partner': return wrap(apiAdminPartners(env, bot, body, 'set'));
           case '/api/invoice': return wrap(apiInvoice(env, bot, body));
-          case '/api/game/result': return wrap(apiResult(env, body));
+          case '/api/game/result': return wrap(apiResult(env, bot, body));
           case '/api/lobby': return wrap(apiLobbyCreate(env, bot, body));
           case '/api/lobby/status': return wrap(apiLobbyStatus(env, body));
           case '/api/lobby/deal': return wrap(apiLobbyDeal(env, bot, body));

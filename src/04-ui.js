@@ -933,7 +933,7 @@ document.addEventListener('click', e => {
   const fn = ACT[el.dataset.a]; if (fn) fn(el);
 });
 document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); } });
-document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); });
+document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); if (el.dataset.a === 'pt-f') ACT['pt-f'](el); });
 document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
 
 /* ---------- boot ---------- */

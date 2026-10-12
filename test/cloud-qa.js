@@ -168,12 +168,12 @@ const path = require('path'); const http = require('http');
   await S(() => go('settings')); await p.waitForTimeout(500);
   ok(await S(() => S.cloud.admin === true && !!document.querySelector('[data-a="adm-grant"]')), 'admin panel visible');
   await p.fill('#adm-q', '@nika_m'); await p.click('[data-a="adm-grant"]'); await p.waitForTimeout(600);
-  ok(await S(() => ADM.grants.length === 1 && ADM.grants[0].username === 'nika_m'), 'grant listed');
+  ok(await S(() => ADM.grants.some(g => g.username === 'nika_m')), 'grant listed');
   ok(lastTo(701).params.text.includes('full access'), 'player notified');
   const meGrant = await env.DB.prepare('SELECT until FROM grants WHERE tg_id = 701').first(); ok(meGrant && meGrant.until > Date.now() / 1000 + 29 * 86400, '30 days');
   await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-admin.png') }).catch(() => {});
   await p.click('[data-a="adm-revoke"][data-id="701"]'); await p.waitForTimeout(500);
-  ok(await S(() => ADM.grants.length === 0), 'revoked');
+  ok(await S(() => !ADM.grants.some(g => g.username === 'nika_m')), 'revoked');
   // full access as seen by the player: everything owned, shop banner
   await env.DB.prepare("INSERT INTO grants (tg_id, until, granted_by, created_at) VALUES (100, ?1, 100, ?2)").bind(Math.floor(Date.now() / 1000) + 30 * 86400, Math.floor(Date.now() / 1000)).run();
   await S(() => cloudSync()); await p.waitForTimeout(600);
@@ -185,6 +185,50 @@ const path = require('path'); const http = require('http');
   // a regular player: access ends with the grant
   const regular = await (await fetch('http://127.0.0.1:8791/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: 701, first_name: 'Nika', username: 'nika_m', language_code: 'en' } }, 'test-token') }) })).json();
   ok(regular.ok && regular.owned.allUntil === 0 && regular.admin === false, 'regular player has no access after revoke');
+
+  console.log('referral programme sheet → invitees → milestone → free card in the shop');
+  await S(() => go('friends')); await p.waitForTimeout(300);
+  ok(!!(await p.$('[data-a="ref-open"]')) && !!(await p.$('[data-a="pt-open"]')), 'two programme buttons on the Friends tab');
+  await p.click('[data-a="ref-open"]'); await p.waitForTimeout(600);
+  const refTxt = await p.$eval('.sheet', el => el.textContent);
+  ok(await S(() => REFS.data && REFS.data.ok) && refTxt.includes(await S(() => U().refM5)) && refTxt.includes('start=ref_'), 'referral sheet with offer, milestones and link');
+  const refCode = await S(() => REFS.data.code);
+  for (const id of [801, 802, 803, 804, 805]) await hook({ update_id: 40 + id, message: { message_id: 1, from: { id, first_name: 'R' + id, language_code: 'uk' }, chat: { id, type: 'private' }, text: `/start ref_${refCode}` } });
+  ok(lastTo(801).params.text.includes('7'), 'invitee got the trial message');
+  // they all sit at the host's table and get cards → qualified
+  const lb = await (await fetch('http://127.0.0.1:8791/api/lobby', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData, fresh: true }) })).json();
+  for (const id of [801, 802, 803, 804, 805]) await hook({ update_id: 50 + id, message: { message_id: 1, from: { id, first_name: 'R' + id, language_code: 'uk' }, chat: { id, type: 'private' }, text: `/start join_${lb.code}` } });
+  await fetch('http://127.0.0.1:8791/api/lobby/deal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData, code: lb.code, cards: [801, 802, 803, 804, 805].map((id, i) => ({ tgId: id, seat: i + 1, text: 'x' })) }) });
+  await S(() => { REFS.data = null; S.ui.sheet = null; render(); }); await p.click('[data-a="ref-open"]'); await p.waitForTimeout(700);
+  ok(await S(() => REFS.data.invited === 6 && REFS.data.qualified === 5 && REFS.data.credits.role === 1 && REFS.data.next.n === 10), 'five qualified (plus Олег from the friend link earlier) → milestones 1/3/5 paid, one free card');
+  ok((await p.$eval('.sheet', el => el.textContent)).includes(await S(() => tt(U().refCredits, { r: 1, s: 0 }))), 'sheet shows the free card credit');
+  ok(lastTo(100).params.text.includes('премиум-карта'), 'host notified about the card reward');
+  await S(() => { S.ui.sheet = null; cloudSync(); }); await p.waitForTimeout(600);
+  await S(() => { S.owned.allUntil = 0; S.screen = 'shop'; render(); }); await p.waitForTimeout(200); // view the shop as a regular player (the test user is an admin)
+  ok(await S(() => S.cloud.credits.role === 1) && (await p.innerText('#app')).includes(await S(() => U().claimFree)), 'shop offers "claim for free"');
+  const freeId = await S(() => document.querySelector('[data-a="claim-free"][data-kind="role"]').dataset.id);
+  await p.click('[data-a="claim-free"][data-kind="role"]'); await p.waitForTimeout(600);
+  ok(await p.evaluate(id => S.owned.roles.includes(id) && S.cloud.credits.role === 0, freeId), 'free card owned, credit spent: ' + freeId);
+  ok(!(await p.innerText('#app')).includes(await S(() => U().claimFree)), 'no more free buttons');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-referral.png') }).catch(() => {});
+
+  console.log('partner programme: apply in the app → admin approves in the app → stats');
+  await S(() => go('friends')); await p.click('[data-a="pt-open"]'); await p.waitForTimeout(600);
+  ok(await S(() => PART.data && PART.data.status === 'none') && (await p.$eval('.sheet', el => el.textContent)).includes('20'), 'partner sheet with the offer and an application form');
+  await p.fill('input[data-a="pt-f"][data-k="name"]', 'Клуб Кастельмар'); await p.fill('input[data-a="pt-f"][data-k="channel"]', 't.me/castelmar'); await p.fill('input[data-a="pt-f"][data-k="audience"]', '300 игроков, Киев');
+  await p.click('[data-a="pt-apply"]'); await p.waitForTimeout(600);
+  ok(await S(() => PART.data.status === 'pending') && (await p.$eval('.sheet', el => el.textContent)).includes(await S(() => U().ptPending)), 'application pending');
+  ok(lastTo(100).params.text.includes('Клуб Кастельмар') && lastTo(100).params.text.includes('/partner 100'), 'admin (user 100) got the application');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-partner-pending.png') }).catch(() => {});
+  await S(() => { S.ui.sheet = null; ADM.partners = null; go('settings'); }); await p.waitForTimeout(600);
+  ok(await S(() => ADM.partners && ADM.partners.length === 1 && ADM.partners[0].status === 'pending'), 'admin panel lists the application');
+  await p.click('[data-a="adm-partner"][data-ok="1"]'); await p.waitForTimeout(600);
+  ok(await S(() => ADM.partners[0].status === 'active'), 'approved in the admin panel');
+  await S(() => { PART.data = null; go('friends'); }); await p.click('[data-a="pt-open"]'); await p.waitForTimeout(700);
+  const ptTxt = await p.$eval('.sheet', el => el.textContent);
+  ok(await S(() => PART.data.status === 'active' && PART.data.stats.invited === 6) && ptTxt.includes(await S(() => tt(U().ptActive, { share: 20 }))) && ptTxt.includes('start=ref_'), 'partner dashboard: active, 5 invited, link');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-partner.png') }).catch(() => {});
+  await S(() => { S.ui.sheet = null; render(); });
 
   console.log('players tab: everyone registered in the bot');
   await S(() => go('profiles')); await p.waitForTimeout(600);

@@ -195,7 +195,7 @@ console.log('admin: full access grants (bot commands + API)');
   ok(meAdm.owned.allUntil > Date.now() + 3000 * 86400000, 'admin owns everything without buying');
   eq((await post('/api/admin/grant', { initData: usr, q: '@maria_k' })).status, 403, 'non-admin forbidden');
   const g = await (await post('/api/admin/grant', { initData: adm, q: '@maria_k', days: 30 })).json();
-  ok(g.ok && g.granted.tgId === 601 && g.granted.until > Date.now() + 29 * 86400000 && g.grants.length === 1, 'granted 30 days via API');
+  ok(g.ok && g.granted.tgId === 601 && g.granted.until > Date.now() + 29 * 86400000 && g.grants.some(x => x.tgId === 601), 'granted 30 days via API');
   ok(lastTo(601).params.text.includes('full access') && lastTo(601).params.text.includes('until'), 'player notified (en)');
   const me601 = await (await post('/api/me', { initData: usr })).json(); ok(me601.owned.allUntil > Date.now() + 29 * 86400000, 'me.owned.allUntil set');
   ok((await (await post('/api/invoice', { initData: usr, kind: 'role', id: 'sniper' })).json()).link, 'buying is still possible while granted (grant is temporary)');
@@ -204,15 +204,15 @@ console.log('admin: full access grants (bot commands + API)');
   ok(lastTo(602).params.text.includes('pełny dostęp'), 'player notified (pl)');
   await hook(msg(user(777, 'ru'), '/grant 603')); ok(lastTo(777).params.text.includes('603') || lastTo(777).params.text.includes('Марія') || lastTo(777).params.text.includes('User603'), '/grant by numeric id');
   await hook(msg(user(777, 'ru'), '/grant @nobody_here')); ok(lastTo(777).params.text.includes('не найден'), 'unknown user');
-  await hook(msg(user(777, 'ru'), '/grants')); ok(lastTo(777).params.text.includes('Maria') && lastTo(777).params.text.includes('Marek') && (lastTo(777).params.text.match(/•/g) || []).length === 3, '/grants lists three');
+  await hook(msg(user(777, 'ru'), '/grants')); ok(lastTo(777).params.text.includes('Maria') && lastTo(777).params.text.includes('Marek') && (lastTo(777).params.text.match(/•/g) || []).length >= 3, '/grants lists the three (plus referral trials)');
   await hook(msg(U601, '/grant @marek_w')); ok(!lastTo(601).params.text.includes('granted') && lastTo(601).params.text.includes('Open the app'), 'non-admin /grant is ignored');
   await hook(msg(user(777, 'ru'), '/revoke @marek_w')); ok(lastTo(777).params.text.includes('отозван') && lastTo(602).params.text.includes('zakończył'), '/revoke via bot');
-  const rv = await (await post('/api/admin/revoke', { initData: adm, q: '601' })).json(); ok(rv.ok && rv.grants.map(x => x.tgId).join() === '603', 'revoke via API by id');
+  const rv = await (await post('/api/admin/revoke', { initData: adm, q: '601' })).json(); ok(rv.ok && !rv.grants.some(x => x.tgId === 601) && rv.grants.some(x => x.tgId === 603), 'revoke via API by id');
   eq((await (await post('/api/me', { initData: usr })).json()).owned.allUntil, 0, 'allUntil cleared');
   await hook(msg(user(777, 'ru'), '/help')); ok(lastTo(777).params.text.includes('/grant'), 'admin help');
   // expired grants do not count
   await env.DB.prepare('UPDATE grants SET until = ?1 WHERE tg_id = 603').bind(now() - 10).run();
-  eq((await (await post('/api/admin/grants', { initData: adm })).json()).grants, [], 'expired grant not listed');
+  ok(!(await (await post('/api/admin/grants', { initData: adm })).json()).grants.some(x => x.tgId === 603), 'expired grant not listed');
   eq((await (await post('/api/me', { initData: await initData(user(603, 'uk')) })).json()).owned.allUntil, 0, 'expired → no access'); }
 
 console.log('game result → ratings');
@@ -231,6 +231,74 @@ console.log('player profile');
   ok(typeof pr.user.online === 'boolean' && typeof pr.user.seenAgo === 'number' && pr.isFriend === false && pr.grant === false, 'presence, friendship, grant flags');
   const self = await (await post('/api/profile', { initData: a, tgId: 100 })).json(); ok(self.ok && self.rating.hosted === 1, 'own profile');
   eq((await post('/api/profile', { initData: a, tgId: 4242 })).status, 404, 'unknown player'); eq((await post('/api/profile', { initData: a, tgId: 'x' })).status, 400, 'bad id'); }
+
+console.log('referrals: attribution → welcome trial → qualification → milestones → credits');
+{ const host = user(900, 'ru', { first_name: 'Хост', username: 'host900' }); const hi = await initData(host);
+  const me = await (await post('/api/me', { initData: hi })).json(); const code = me.invite.code; ok(me.invite.ref === `https://t.me/mafiapro_test_bot?start=ref_${code}` && me.credits.role === 0, 'ref link in /api/me');
+  const r0 = await (await post('/api/referrals', { initData: hi })).json(); ok(r0.ok && r0.invited === 0 && r0.qualified === 0 && r0.next.n === 1 && r0.welcomeDays === 7 && r0.milestones.length === 6, 'empty referral stats');
+  // 6 brand-new users arrive through ref_ / friend_ links; an existing user is not attributed
+  const newbies = [901, 902, 903, 904, 905, 906];
+  for (const id of newbies) { await hook(msg(user(id, id % 2 ? 'uk' : 'en', { first_name: 'N' + id }), `/start ${id === 902 ? 'friend' : 'ref'}_${code}`)); }
+  ok(lastTo(901).params.text.includes('запрошенням') && lastTo(901).params.text.includes('Хост') && lastTo(901).params.text.includes('7'), 'invitee welcomed with the 7-day trial (uk)');
+  ok((await (await post('/api/me', { initData: await initData(user(901, 'uk', { first_name: 'N901' })) })).json()).owned.allUntil > Date.now() + 6 * 86400000, 'trial active for the invitee');
+  ok(lastTo(902).params.text.includes('друзі') || lastTo(902).params.text.includes('friends'), 'friend_ link also attributes and befriends');
+  await hook(msg(user(100, 'ru'), `/start ref_${code}`)); // user 100 existed before → no attribution
+  const r1 = await (await post('/api/referrals', { initData: hi })).json(); eq(r1.invited, 6, 'six attributed, the old user is not'); eq(r1.qualified, 0, 'none qualified yet');
+  ok(r1.list.length === 6 && r1.list.every(x => x.qualified === false), 'list of invitees');
+  await hook(msg(user(900, 'ru'), `/start ref_${code}`)); eq((await (await post('/api/referrals', { initData: hi })).json()).invited, 6, 'own link does nothing');
+  // qualification through a dealt card (lobby) and through a game result
+  const lob = await (await post('/api/lobby', { initData: hi, fresh: true })).json();
+  for (const id of [901, 902, 903]) await hook(msg(user(id, 'uk', { first_name: 'N' + id }), `/start join_${lob.code}`));
+  tg.calls.length = 0;
+  await post('/api/lobby/deal', { initData: hi, code: lob.code, cards: [901, 902, 903].map(id => ({ tgId: id, seat: id - 900, text: 'x' })) });
+  let r2 = await (await post('/api/referrals', { initData: hi })).json(); eq(r2.qualified, 3, 'three qualified after receiving cards');
+  const hostMsgs = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 900).map(c => c.params.text);
+  ok(hostMsgs.filter(x => x.includes('первую партию')).length === 3, 'host told about each qualified invitee');
+  ok(hostMsgs.some(x => x.includes('Награда') && x.includes('7 дн')) && hostMsgs.some(x => x.includes('30 дн')), 'milestones 1 (7 days) and 3 (30 days) paid');
+  const g = await env.DB.prepare('SELECT until FROM grants WHERE tg_id = 900').first(); ok(g && g.until > now() + 36 * 86400, 'host has 37 days of full access');
+  await post('/api/lobby/deal', { initData: hi, code: lob.code, cards: [{ tgId: 901, seat: 1, text: 'x' }] });
+  eq((await (await post('/api/referrals', { initData: hi })).json()).qualified, 3, 'qualifying twice does not double count');
+  await post('/api/game/result', { initData: hi, game: { id: 'ref-g1', mode: 'classic', winner: 'city', players: [{ seat: 1, tgId: 904, roleId: 'don', won: false, points: -10 }, { seat: 2, tgId: 905, roleId: 'sheriff', won: true, points: 31 }] } });
+  r2 = await (await post('/api/referrals', { initData: hi })).json(); eq(r2.qualified, 5, 'game result qualifies two more');
+  ok(r2.credits.role === 1 && r2.next.n === 10, 'milestone 5 → one free premium card; next is 10');
+  ok(tg.calls.some(c => c.method === 'sendMessage' && c.params.chat_id === 900 && c.params.text.includes('премиум-карта')), 'card reward announced');
+  // spend the credit in the shop
+  const free = await (await post('/api/invoice', { initData: hi, kind: 'role', id: 'sniper', useCredit: true })).json(); ok(free.ok && free.owned && free.credit && free.credits.role === 0, 'free card claimed');
+  ok((await (await post('/api/me', { initData: hi })).json()).owned.roles.includes('sniper'), 'reward card owned');
+  eq((await post('/api/invoice', { initData: hi, kind: 'role', id: 'tracker', useCredit: true })).status, 400, 'no second credit');
+  eq((await post('/api/invoice', { initData: hi, kind: 'pack', id: 'diplomacy', useCredit: true })).status, 200, 'pack ignores useCredit and makes a normal invoice'); }
+
+console.log('direct Mini App link ?startapp=ref_<code>');
+{ const host = user(900, 'ru'); const code = (await (await post('/api/me', { initData: await initData(host) })).json()).invite.code;
+  const fresh = await (await post('/api/ref/attach', { initData: await initData(user(920, 'pl', { first_name: 'Direct' })), code })).json(); ok(fresh.ok && fresh.attached === true, 'fresh account attached via the app');
+  ok(lastTo(920).params.text.includes('zaproszenia'), 'welcomed in Polish');
+  eq((await (await post('/api/ref/attach', { initData: await initData(user(920, 'pl')), code })).json()).attached, false, 'second attach ignored');
+  await env.DB.prepare('UPDATE users SET created_at = ?1 WHERE tg_id = 921').bind(now() - 7200).run();
+  await post('/api/me', { initData: await initData(user(921, 'en')) }); await env.DB.prepare('UPDATE users SET created_at = ?1 WHERE tg_id = 921').bind(now() - 7200).run();
+  eq((await (await post('/api/ref/attach', { initData: await initData(user(921, 'en')), code })).json()).attached, false, 'old account is not attributed');
+  eq((await (await post('/api/referrals', { initData: await initData(host) })).json()).invited, 7, 'seven invitees now'); }
+
+console.log('partner programme: apply → admin approves → stats & earnings');
+{ const P = user(910, 'ru', { first_name: 'Клуб', username: 'club910' }); const pi = await initData(P); await hook(msg(P, '/start'));
+  const none = await (await post('/api/partner', { initData: pi })).json(); ok(none.ok && none.status === 'none' && none.link.includes('start=ref_') && none.share === 20 && none.minPayout === 1000, 'no partner yet, link ready');
+  const ap = await (await post('/api/partner/apply', { initData: pi, name: 'Клуб Мафии Днепр', channel: 't.me/mafia_dnepr', audience: '1200 игроков' })).json(); eq(ap.status, 'pending', 'application pending');
+  ok(lastTo(910).params.text.includes('Заявка') && lastTo(777).params.text.includes('Клуб Мафии Днепр') && lastTo(777).params.text.includes('/partner 910'), 'applicant and admin notified');
+  eq((await post('/api/admin/partner', { initData: pi, q: '910', approve: true })).status, 403, 'only admins approve');
+  await hook(msg(user(777, 'ru'), '/partner @club910')); ok(lastTo(777).params.text.includes('подтверждён') && lastTo(910).params.text.includes('20%'), 'approved via bot');
+  // the partner brings two new players; one buys a scenario (500 stars) and a card (100)
+  const pcode = (await (await post('/api/me', { initData: pi })).json()).invite.code;
+  await hook(msg(user(911, 'en', { first_name: 'Buyer' }), `/start ref_${pcode}`)); await hook(msg(user(912, 'en', { first_name: 'Free' }), `/start ref_${pcode}`));
+  const bi = await initData(user(911, 'en', { first_name: 'Buyer' }));
+  for (const [kind, id] of [['scenario', 'chaos'], ['role', 'avenger']]) { const inv = await (await post('/api/invoice', { initData: bi, kind, id })).json(); await hook({ update_id: 90, message: { message_id: 1, from: user(911, 'en'), chat: { id: 911, type: 'private' }, successful_payment: { currency: 'XTR', total_amount: inv.stars, invoice_payload: inv.payload, telegram_payment_charge_id: 'c' + id } } }); }
+  const ps = await (await post('/api/partner', { initData: pi })).json();
+  ok(ps.status === 'active' && ps.stats.invited === 2 && ps.stats.purchases === 2 && ps.stats.purchasedStars === 600 && ps.stats.earnedStars === 120 && ps.stats.balanceStars === 120, 'partner stats: 2 invited, 600⭐ bought, 20% = 120⭐');
+  await env.DB.prepare('INSERT INTO payouts (tg_id, stars, note, created_at) VALUES (910, 100, ?1, ?2)').bind('test', now()).run();
+  eq((await (await post('/api/partner', { initData: pi })).json()).stats.balanceStars, 20, 'balance minus payouts');
+  const adm = await initData(user(777, 'ru'));
+  const lst = await (await post('/api/admin/partners', { initData: adm })).json(); ok(lst.partners.length === 1 && lst.partners[0].status === 'active' && lst.partners[0].stats.earnedStars === 120, 'admin partner list');
+  await hook(msg(user(777, 'ru'), '/partners')); ok(lastTo(777).params.text.includes('club910') && lastTo(777).params.text.includes('120⭐'), '/partners');
+  await hook(msg(P, 'Хочу выплату 120 звёзд на карту')); ok(lastTo(910).params.text.includes('Передано') && lastTo(777).params.text.includes('Хочу выплату') && lastTo(777).params.text.includes('club910'), 'partner message forwarded to the admin');
+  const rej = await (await post('/api/admin/partner', { initData: adm, q: '@club910', approve: false })).json(); ok(rej.ok && rej.partners[0].status === 'rejected' && lastTo(910).params.text.includes('отклонена'), 'rejected via API'); }
 
 console.log('all players directory');
 { const a = await initData(user(100)); const d = await (await post('/api/players', { initData: a })).json();

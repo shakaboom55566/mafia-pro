@@ -14,6 +14,8 @@ STARS_SCENARIO = "500"
 STARS_PACK = "1750"
 # Telegram ids that may grant full access (/grant in the bot or the admin panel in the app); comma-separated
 ADMIN_IDS = "6462266188"
+# Telegram @username shown to partners for payout requests (empty = the bot itself; partners' messages to the bot are forwarded to admins)
+SUPPORT_USERNAME = ""
 
 [[d1_databases]]
 binding = "DB"
