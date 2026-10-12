@@ -8,7 +8,7 @@ const path = require('path'); const http = require('http');
   const { signInitData } = await import('../backend/src/tg.js');
   const worker = (await import('../backend/src/index.js')).default;
   const tg = await startMockTelegram(8790);
-  const env = { DB: makeD1(path.join(__dirname, '..', 'backend', 'schema.sql')), BOT_TOKEN: 'test-token', WEBHOOK_SECRET: 'hook', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/', ALLOWED_ORIGIN: '*', TELEGRAM_API: tg.base };
+  const env = { DB: makeD1(path.join(__dirname, '..', 'backend', 'schema.sql')), BOT_TOKEN: 'test-token', WEBHOOK_SECRET: 'hook', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/', ALLOWED_ORIGIN: '*', TELEGRAM_API: tg.base, ADMIN_IDS: '100' };
   // expose the worker over HTTP for the browser
   const api = http.createServer((req, res) => { let b = ''; req.on('data', c => { b += c; }); req.on('end', async () => {
     const r = await worker.fetch(new Request('http://127.0.0.1:8791' + req.url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? undefined : b }), env, { waitUntil() {} });
@@ -129,6 +129,49 @@ const path = require('path'); const http = require('http');
   ok(await p2.evaluate(() => document.documentElement.lang === 'pl' && document.querySelector('.tab.active span').textContent === 'Znajomi'), 'polish tab label');
   await p2.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-friends-pl.png') }).catch(() => {});
   await p2.close();
+
+  console.log('friend search → request → accepted in the bot · presence · admin grants');
+  await S(() => go('friends')); await p.waitForTimeout(400);
+  await hook({ update_id: 31, message: { message_id: 1, from: { id: 701, first_name: 'Nika', username: 'nika_m', language_code: 'en' }, chat: { id: 701, type: 'private' }, text: '/start' } });
+  await p.fill('#fr-q', '@nik'); await p.press('#fr-q', 'Enter'); await p.waitForTimeout(500);
+  ok(await S(() => FR.results && FR.results.length === 1 && FR.results[0].username === 'nika_m' && FR.results[0].online === true), 'search found @nika_m online');
+  ok((await p.innerText('#app')).includes(await S(() => U().frOnline)), 'online label shown');
+  await p.click('[data-a="fr-request"][data-id="701"]'); await p.waitForTimeout(500);
+  ok(lastTo(701) && lastTo(701).params.text.includes('wants to add you') && lastTo(701).params.reply_markup.inline_keyboard[0][0].callback_data === 'fr_acc_100', 'request DM with buttons');
+  ok(await S(() => FR.outgoing.some(r => r.tgId === 701)) && (await p.innerText('#app')).includes(await S(() => U().frRequested)), 'outgoing request shown');
+  await hook({ update_id: 32, callback_query: { id: 'cbq', from: { id: 701, first_name: 'Nika', language_code: 'en' }, data: 'fr_acc_100', message: { message_id: 5, chat: { id: 701 } } } });
+  await p.click('[data-a="fr-refresh"]'); await p.waitForTimeout(500);
+  ok(await S(() => FR.list.some(f => f.tgId === 701) && FR.outgoing.length === 0), 'friend appears after acceptance in the bot');
+  // incoming request accepted in the app
+  await env.DB.prepare("INSERT INTO users (tg_id, username, first_name, lang, created_at, seen_at) VALUES (702, 'olga_s', 'Olga', 'pl', 1, 1)").run();
+  await (await fetch('http://127.0.0.1:8791/api/friends/request', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: 702, first_name: 'Olga', username: 'olga_s', language_code: 'pl' } }, 'test-token'), tgId: 100 }) })).json();
+  await env.DB.prepare('UPDATE users SET seen_at = 1 WHERE tg_id = 702').run(); // she sent the request long ago
+  await p.click('[data-a="fr-refresh"]'); await p.waitForTimeout(500);
+  ok(await S(() => FR.incoming.length === 1 && FR.incoming[0].name === 'Olga'), 'incoming request listed');
+  await p.click('[data-a="fr-respond"][data-id="702"][data-ok="1"]'); await p.waitForTimeout(600);
+  ok(await S(() => FR.list.some(f => f.tgId === 702) && FR.incoming.length === 0), 'accepted in the app → friend');
+  ok(lastTo(702).params.text.includes('przyjął'), 'requester notified in Polish');
+  const offline = await S(() => { const f = FR.list.find(x => x.tgId === 702); return f && f.online === false && typeof f.seenAgo === 'number'; }); ok(offline, 'Olga is offline (seen long ago)');
+  ok((await p.innerText('#app')).includes(await S(() => tt(U().frSeen, { t: '' }).trim().split(' ')[0])), 'offline label shown');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-friends-search.png') }).catch(() => {});
+  // admin panel in settings (user 100 is admin in this test)
+  await S(() => go('settings')); await p.waitForTimeout(500);
+  ok(await S(() => S.cloud.admin === true && !!document.querySelector('[data-a="adm-grant"]')), 'admin panel visible');
+  await p.fill('#adm-q', '@nika_m'); await p.click('[data-a="adm-grant"]'); await p.waitForTimeout(600);
+  ok(await S(() => ADM.grants.length === 1 && ADM.grants[0].username === 'nika_m'), 'grant listed');
+  ok(lastTo(701).params.text.includes('full access'), 'player notified');
+  const meGrant = await env.DB.prepare('SELECT until FROM grants WHERE tg_id = 701').first(); ok(meGrant && meGrant.until > Date.now() / 1000 + 29 * 86400, '30 days');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'cloud-admin.png') }).catch(() => {});
+  await p.click('[data-a="adm-revoke"][data-id="701"]'); await p.waitForTimeout(500);
+  ok(await S(() => ADM.grants.length === 0), 'revoked');
+  // full access as seen by the player: everything owned, shop banner
+  await env.DB.prepare("INSERT INTO grants (tg_id, until, granted_by, created_at) VALUES (100, ?1, 100, ?2)").bind(Math.floor(Date.now() / 1000) + 30 * 86400, Math.floor(Date.now() / 1000)).run();
+  await S(() => cloudSync()); await p.waitForTimeout(600);
+  ok(await S(() => fullAccess() && ownsRole('sniper') && ownsScen('summit') && ownsPack('diplomacy') && ownsRole('blackmailer')), 'full access unlocks every premium card, scenario and pack');
+  await S(() => { S.screen = 'shop'; render(); });
+  ok((await p.innerText('#app')).includes(await S(() => tt(U().fullAccessUntil, { date: '' }).split('{')[0].slice(0, 20))), 'shop banner shows full access');
+  await env.DB.prepare('DELETE FROM grants WHERE tg_id = 100').run(); await S(() => cloudSync()); await p.waitForTimeout(600);
+  ok(await S(() => !fullAccess() && !ownsRole('sniper')), 'access ends after revoke');
 
   console.log('global rating panel');
   await S(() => { go('ratings'); }); await p.waitForTimeout(100);

@@ -3,9 +3,10 @@
    scenario setup, live-art parallax
    ============================================================ */
 S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
-const ownsPack = id => (S.owned.packs || []).includes(id);
-const ownsRole = id => !ROLE[id] || !ROLE[id].premium || (ROLE[id].pack ? ownsPack(ROLE[id].pack) : S.owned.roles.includes(id));
-const ownsScen = id => !!(SCENARIO[id] && SCENARIO[id].free) || (SCENARIO[id] && SCENARIO[id].pack ? ownsPack(SCENARIO[id].pack) : S.owned.scenarios.includes(id));
+const fullAccess = () => !!(S.owned && S.owned.allUntil && S.owned.allUntil > Date.now()); // temporary full access granted by an admin
+const ownsPack = id => fullAccess() || (S.owned.packs || []).includes(id);
+const ownsRole = id => !ROLE[id] || !ROLE[id].premium || fullAccess() || (ROLE[id].pack ? ownsPack(ROLE[id].pack) : S.owned.roles.includes(id));
+const ownsScen = id => !!(SCENARIO[id] && SCENARIO[id].free) || fullAccess() || (SCENARIO[id] && SCENARIO[id].pack ? ownsPack(SCENARIO[id].pack) : S.owned.scenarios.includes(id));
 const fmtPrice = v => (Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', L.code === 'en' ? '.' : ',')) + ' $';
 const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 function priceBadge(kind, id) {
@@ -55,6 +56,7 @@ function shopScreen() {
   const groups = [['black', u.groupFamily], ['red', u.groupCity], ['neutral', u.groupNeutral]];
   return `${topbar(u.shop, u.shopD)}
   <div class="stack">
+    ${fullAccess() ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill">★</span><div class="grow" style="font-weight:700">${tt(u.fullAccessUntil, { date: new Date(S.owned.allUntil).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU') })}</div></div></div>` : ''}
     <div class="panel"><div class="row"><span class="premium-pill">${u.premium}</span><div class="hint grow">${u.buyNote}</div></div></div>
     <h2>${u.shopCards}</h2>
     ${groups.map(([team, title]) => `<div class="eyebrow">${title}</div><div class="shop-grid">${prem.filter(r => r.team === team).map(premiumCardTile).join('')}</div>`).join('')}

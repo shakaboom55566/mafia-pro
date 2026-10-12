@@ -81,11 +81,24 @@ async function cloudSync() {
     const o = d.owned || {}; let added = 0;
     S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
     [['roles', o.roles], ['scenarios', o.scenarios], ['packs', o.packs]].forEach(([k, arr]) => (arr || []).forEach(id => { if (!S.owned[k].includes(id)) { S.owned[k].push(id); added++; } }));
+    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin;
+    startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
     save(); render();
   } finally { CLOUD.busy = false; }
 }
+/* presence: a ping every minute while the app is open keeps "online" accurate for friends */
+let heartbeatTimer = null;
+function startHeartbeat() {
+  if (heartbeatTimer || !TG.app || !apiBase()) return;
+  heartbeatTimer = setInterval(() => { try { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') api('/api/ping', {}); } catch (e) {} }, 60000);
+}
+function agoText(sec) {
+  const u = U(); if (sec < 60) return u.frJustNow;
+  if (sec < 3600) return tt(u.agoMin, { n: Math.floor(sec / 60) }); if (sec < 86400) return tt(u.agoHour, { n: Math.floor(sec / 3600) }); return tt(u.agoDay, { n: Math.floor(sec / 86400) });
+}
+const presenceHTML = f => f.online ? `<span class="fr-on">● ${esc(U().frOnline)}</span>` : (typeof f.seenAgo === 'number' ? `<span class="fr-off">${esc(tt(U().frSeen, { t: agoText(f.seenAgo) }))}</span>` : '');
 /* purchases: in Telegram the demo button becomes a Stars invoice created by the backend */
 function tgBuy(kind, id, onDone) {
   const tg = TG.app; if (!tg || !tg.openInvoice || !apiBase()) return false;
@@ -217,11 +230,11 @@ Object.assign(ACT, {
   async 'tg-top'() { const d = await api('/api/leaderboard?limit=30', null, { method: 'GET' }); CLOUD.top = d.ok ? d.top : []; if (!d.ok) toast(U().tgOffline); render(); }
 });
 /* ---------- friends: invite link, list, invite to my table ---------- */
-const FR = { list: null, link: '', code: '', bot: '', busy: false, at: 0 };
+const FR = { list: null, link: '', code: '', bot: '', busy: false, at: 0, q: '', results: null, searching: false, incoming: [], outgoing: [] };
 async function loadFriends(force) {
   if (!TG.app || !apiBase() || FR.busy) return; if (FR.list && !force && Date.now() - FR.at < 60000) return;
   FR.busy = true; render();
-  try { const d = await api('/api/friends', {}); if (d.ok) { FR.list = d.friends || []; FR.link = d.invite.link; FR.code = d.invite.code; FR.bot = d.bot; FR.at = Date.now(); S.ui.frSel = (S.ui.frSel || []).filter(id => FR.list.some(f => f.tgId === id)); } else if (!FR.list) FR.list = []; }
+  try { const [d, r] = await Promise.all([api('/api/friends', {}), api('/api/friends/requests', {})]); if (d.ok) { FR.list = d.friends || []; FR.link = d.invite.link; FR.code = d.invite.code; FR.bot = d.bot; FR.at = Date.now(); S.ui.frSel = (S.ui.frSel || []).filter(id => FR.list.some(f => f.tgId === id)); } else if (!FR.list) FR.list = []; if (r.ok) { FR.incoming = r.incoming || []; FR.outgoing = r.outgoing || []; } }
   finally { FR.busy = false; render(); }
 }
 function friendAvatar(f) {
@@ -237,12 +250,19 @@ function friendsScreen() {
     <div class="fr-link">${FR.link ? esc(FR.link) : u.frLoading}</div>
     <div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="fr-share" ${FR.link ? '' : 'disabled'}>${u.frShare}</button><button class="btn ghost" data-a="fr-copy" ${FR.link ? '' : 'disabled'} style="flex:0 0 auto;width:auto">${u.frCopy}</button></div></div>`;
   const list = FR.list || [];
-  const rows = list.map(f => `<div class="fr-row ${sel.includes(f.tgId) ? 'sel' : ''}" role="button" tabindex="0" data-a="fr-toggle" data-id="${f.tgId}"><span class="chk">${sel.includes(f.tgId) ? '✓' : ''}</span>${friendAvatar(f)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}${f.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(f.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${tt(u.frStats, { g: f.games, w: f.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${f.points}</span><button class="btn xs ghost" data-a="fr-remove-ask" data-id="${f.tgId}" aria-label="${u.frRemove}" style="color:var(--muted);border-color:transparent">✕</button></div>`).join('');
+  const rows = list.map(f => `<div class="fr-row ${sel.includes(f.tgId) ? 'sel' : ''}" role="button" tabindex="0" data-a="fr-toggle" data-id="${f.tgId}"><span class="chk">${sel.includes(f.tgId) ? '✓' : ''}</span>${friendAvatar(f)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}${f.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(f.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(f)} · ${tt(u.frStats, { g: f.games, w: f.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${f.points}</span><button class="btn xs ghost" data-a="fr-remove-ask" data-id="${f.tgId}" aria-label="${u.frRemove}" style="color:var(--muted);border-color:transparent">✕</button></div>`).join('');
   const ask = S.ui.frAsk ? (() => { const f = list.find(x => x.tgId === S.ui.frAsk); return f ? `<div class="panel" style="border-color:var(--crimson-2)"><div>${tt(u.frRemoveAsk, { name: esc(f.name) })}</div><div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="fr-remove" data-id="${f.tgId}" style="color:var(--crimson-2)">${u.frRemove}</button><button class="btn sm ghost" data-a="fr-ask-cancel">${u.cancel}</button></div></div>` : ''; })() : '';
   const cl = currentLobby();
   const inviteBar = list.length ? `<button class="btn primary" data-a="fr-invite" ${sel.length ? '' : 'disabled'}>${tt(u.frInviteTable, { n: sel.length })}</button>${lobbyOpen && cl ? `<div class="hint" style="text-align:center">${tt(u.frTable, { code: cl.code, n: sel.length })}</div>` : (!g ? `<div class="hint" style="text-align:center">${u.frNoGame}</div>` : '')}` : '';
+  const resRow = r => `<div class="fr-row"><span style="width:0"></span>${friendAvatar(r)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(r.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(r)}</div></div>${r.isFriend ? `<span class="hint" style="margin:0">${u.frIsFriend}</span>` : r.requested ? `<span class="hint" style="margin:0">${u.frRequested}</span>` : r.incoming ? `<button class="btn xs primary" data-a="fr-respond" data-id="${r.tgId}" data-ok="1">${u.frAcceptBtn}</button>` : `<button class="btn xs" data-a="fr-request" data-id="${r.tgId}">${u.frAdd}</button>`}</div>`;
+  const searchPanel = `<div class="panel"><div class="eyebrow">${u.frSearch}</div><div class="row" style="margin-top:8px"><input class="input grow" id="fr-q" data-a="fr-q" placeholder="${u.frSearchPh}" value="${esc(FR.q)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" data-a="fr-search" style="flex:0 0 auto">${FR.searching ? '…' : '🔍'}</button></div>
+    ${FR.results ? (FR.results.length ? `<div class="stack-s" style="margin-top:10px">${FR.results.map(resRow).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.frSearchEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${u.frSearchHint}</div>`}</div>`;
+  const reqRow = (r, incoming) => `<div class="fr-row"><span style="width:0"></span>${friendAvatar(r)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(r.username)}</span>` : ''}</div></div>${incoming ? `<button class="btn xs primary" data-a="fr-respond" data-id="${r.tgId}" data-ok="1">${u.frAcceptBtn}</button><button class="btn xs ghost" data-a="fr-respond" data-id="${r.tgId}" data-ok="0">${u.frDeclineBtn}</button>` : `<span class="hint" style="margin:0">${u.frRequested}</span>`}</div>`;
+  const requests = (FR.incoming.length || FR.outgoing.length) ? `<div class="eyebrow">${u.frRequests}${FR.incoming.length ? ` · ${FR.incoming.length}` : ''}</div><div class="stack-s">${FR.incoming.map(r => reqRow(r, true)).join('')}${FR.outgoing.map(r => reqRow(r, false)).join('')}</div>` : '';
   return `${topbar(u.frTitle, u.frSub, false)}
   <div class="stack">
+    ${searchPanel}
+    ${requests}
     ${linkPanel}
     <div class="row"><div class="eyebrow grow">${u.frList}${list.length ? ` · ${list.length}` : ''}</div>${list.length ? `<button class="btn xs ghost" data-a="fr-sel-all">${sel.length === list.length ? u.frInviteNone : u.frInviteAll}</button>` : ''}<button class="btn xs ghost" data-a="fr-refresh">${FR.busy ? '…' : u.frRefresh}</button></div>
     ${ask}
@@ -252,6 +272,22 @@ function friendsScreen() {
 }
 Object.assign(ACT, {
   'fr-go'() { go('friends'); },
+  'fr-q'(el) { FR.q = el.value || ''; },
+  async 'fr-search'() {
+    const q = FR.q.trim(); if (q.length < 2) { FR.results = null; render(); return; }
+    FR.searching = true; render(); const d = await api('/api/friends/search', { q }); FR.searching = false;
+    FR.results = d.ok ? d.results : []; if (!d.ok) toast(U().tgOffline); render();
+  },
+  async 'fr-request'(el) {
+    const id = Number(el.dataset.id); const d = await api('/api/friends/request', { tgId: id }); if (!d.ok) { toast(U().tgOffline); return; }
+    if (d.status === 'friends') { toast(U().frNowFriends); FR.at = 0; loadFriends(true); } else { toast(U().frAdded); (FR.results || []).forEach(r => { if (r.tgId === id) r.requested = true; }); FR.outgoing = FR.outgoing.concat((FR.results || []).filter(r => r.tgId === id)); }
+    tgHaptic('light'); render();
+  },
+  async 'fr-respond'(el) {
+    const id = Number(el.dataset.id); const accept = el.dataset.ok === '1'; const d = await api('/api/friends/respond', { tgId: id, accept }); if (!d.ok) { toast(U().tgOffline); return; }
+    FR.incoming = FR.incoming.filter(r => r.tgId !== id); (FR.results || []).forEach(r => { if (r.tgId === id) { r.incoming = false; r.isFriend = accept; } });
+    if (accept) { toast(U().frNowFriends); tgHaptic('success'); loadFriends(true); } else render();
+  },
   'fr-refresh'() { loadFriends(true); },
   'fr-toggle'(el) { const id = Number(el.dataset.id); const sel = S.ui.frSel = S.ui.frSel || []; const i = sel.indexOf(id); if (i >= 0) sel.splice(i, 1); else sel.push(id); render(); },
   'fr-sel-all'() { const list = FR.list || []; S.ui.frSel = (S.ui.frSel || []).length === list.length ? [] : list.map(f => f.tgId); render(); },
@@ -275,6 +311,29 @@ Object.assign(ACT, {
     toast(tt(U().frInvited, { n: (r.sent || []).length }) + ((r.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = []; render();
   }
 });
+/* ---------- admin: grant full access (all cards / scenarios / packs) for a period ---------- */
+const ADM = { q: '', days: 30, grants: null, busy: false };
+function adminPanelHTML() {
+  if (!TG.app || !apiBase() || !S.cloud || !S.cloud.admin) return '';
+  const u = U(); if (!ADM.grants && !ADM.busy) { ADM.busy = true; setTimeout(async () => { const d = await api('/api/admin/grants', {}); ADM.grants = d.ok ? d.grants : []; ADM.busy = false; render(); }, 0); }
+  const fmt = ms => new Date(ms).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU');
+  const rows = (ADM.grants || []).map(g => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(g.name)}</b>${g.username ? ` <span style="color:var(--muted)">@${esc(g.username)}</span>` : ''} · ${fmt(g.until)}</div><button class="btn xs ghost" data-a="adm-revoke" data-id="${g.tgId}">${u.adminRevoke}</button></div>`).join('');
+  return `<div class="panel" style="margin-top:12px;border-color:rgba(240,205,122,.5)"><div class="eyebrow gold">${u.adminTitle}</div><div class="hint" style="margin:6px 0 8px">${u.adminHint}</div>
+    <div class="row"><input class="input grow" id="adm-q" data-a="adm-q" placeholder="${u.adminPh}" value="${esc(ADM.q)}" autocomplete="off" autocapitalize="off"><input class="input" data-a="adm-days" type="number" min="1" max="3650" value="${ADM.days}" style="width:72px;flex:none" aria-label="${u.adminDays}"><span class="hint" style="margin:0">${u.adminDays}</span></div>
+    <button class="btn primary" style="margin-top:8px" data-a="adm-grant">${u.adminGrant}</button>
+    <div class="eyebrow" style="margin-top:12px">${u.adminGrants}${ADM.grants ? ` · ${ADM.grants.length}` : ''}</div>
+    ${ADM.grants ? (rows ? `<div class="stack-s" style="margin-top:8px">${rows}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}</div>`;
+}
+Object.assign(ACT, {
+  'adm-q'(el) { ADM.q = el.value || ''; },
+  'adm-days'(el) { ADM.days = Math.max(1, Math.min(3650, Number(el.value) || 30)); },
+  async 'adm-grant'() {
+    const q = ADM.q.trim(); if (!q) return; const d = await api('/api/admin/grant', { q, days: ADM.days });
+    if (!d.ok) { toast(d.error === 'not_found' ? U().adminNotFound : U().tgOffline); return; }
+    ADM.grants = d.grants || ADM.grants; ADM.q = ''; toast(tt(U().adminGranted, { name: d.granted.name, date: new Date(d.granted.until).toLocaleDateString() })); tgHaptic('success'); render();
+  },
+  async 'adm-revoke'(el) { const d = await api('/api/admin/revoke', { q: String(el.dataset.id) }); if (!d.ok) { toast(U().tgOffline); return; } ADM.grants = d.grants || []; toast(U().adminRevoked); render(); }
+});
 /* global rating panel on the ratings screen; Telegram rating line on my profile */
 function cloudTopHTML() {
   const u = U(); if (!TG.app || !apiBase()) return '';
@@ -286,6 +345,7 @@ function cloudTopHTML() {
 (function () {
   const wrap = (name, kind) => { const f = ACT[name]; if (!f) return; ACT[name] = function (el) { tgHaptic(kind); return f.call(this, el); }; };
   wrap('flip', 'impact'); wrap('confirm', 'light'); wrap('vote-finish', 'success'); wrap('vote-close', 'success'); wrap('kam-confirm', 'warning'); wrap('roulette-guess', 'light'); wrap('lift-finish', 'success'); wrap('finish', 'success');
+  try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'fr-q') { e.preventDefault(); ACT['fr-search'](); } }); } catch (e) {}
   const origRender = render;
   render = function () { origRender(); if (TG.app) { tgSync(); try { lobbyPoll(); } catch (e) {} } if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
   // dealing screen: the "cards via Telegram" panel sits above the first card until dealing starts
@@ -293,6 +353,8 @@ function cloudTopHTML() {
   dealScreen = function () { const html = origDeal(); const g = S.game; if (!TG.app || !apiBase() || !g || S.ui.showAll || (g.dealIdx > 0 && !g.tg) || g.dealIdx >= g.players.length) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + lobbyPanelHTML(g) + html.slice(i + 19); };
   const origRatings = ratingsScreen;
   ratingsScreen = function () { const html = origRatings(); const extra = cloudTopHTML(); if (!extra) return html; const i = html.lastIndexOf('</div>'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
+  const origSettings = settingsScreen;
+  settingsScreen = function () { const html = origSettings(); const extra = adminPanelHTML(); if (!extra) return html; const i = html.indexOf('<div class="panel" style="margin-top:12px">'); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
   const origProfile = profileScreen;
   profileScreen = function () { const html = origProfile(); const pr = profById(S.ui.profileId); if (!pr || !S.cloud || !S.cloud.user || pr.tgId !== S.cloud.user.id) return html; const r = S.cloud.rating || {}; const line = `<div class="quiet" style="text-align:center">☁︎ ${esc(U().tgRating)}: <b class="num" style="color:var(--gold-2)">${1000 + (r.points || 0)}</b> · ${esc(U().games)}: ${r.games || 0} · ${esc(U().wins)}: ${r.wins || 0}</div>`; const i = html.indexOf('<div class="eyebrow">' + U().stats + '</div>'); return i < 0 ? html : html.slice(0, i) + line + html.slice(i); };
   // creating the game: the pre-game table becomes the game's table, seats map to players, cards go out at once

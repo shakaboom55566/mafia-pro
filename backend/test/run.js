@@ -13,10 +13,11 @@ const env = {
   DB: makeD1(path.join(here, '..', 'schema.sql')),
   BOT_TOKEN: 'test-token', WEBHOOK_SECRET: 'hook-secret',
   APP_URL: 'https://shakaboom55566.github.io/mafia-pro/', ALLOWED_ORIGIN: 'https://shakaboom55566.github.io',
-  TELEGRAM_API: tg.base, STARS_ROLE: '100', STARS_SCENARIO: '500', STARS_PACK: '1750'
+  TELEGRAM_API: tg.base, STARS_ROLE: '100', STARS_SCENARIO: '500', STARS_PACK: '1750', ADMIN_IDS: '777'
 };
 const ctx = { waitUntil() {}, passThroughOnException() {} };
 let fails = 0, n = 0;
+const now = () => Math.floor(Date.now() / 1000);
 const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log('  FAIL', msg); } };
 const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
 
@@ -50,7 +51,7 @@ for (const lang of ['ru', 'uk', 'en', 'pl', 'hy', 'de']) {
 console.log('initData verification');
 { const good = await initData(user(42)); const r = await post('/api/me', { initData: good }); const d = await r.json();
   ok(r.status === 200 && d.ok && d.user.id === 42 && d.user.name === 'User42', 'valid initData → me');
-  eq(d.owned, { roles: [], scenarios: [], packs: [] }, 'nothing owned'); eq(d.rating, { points: 0, games: 0, wins: 0, hosted: 0 }, 'zero rating');
+  eq(d.owned, { roles: [], scenarios: [], packs: [], allUntil: 0 }, 'nothing owned'); eq(d.rating, { points: 0, games: 0, wins: 0, hosted: 0 }, 'zero rating');
   ok(r.headers.get('Access-Control-Allow-Origin') === 'https://shakaboom55566.github.io', 'CORS header');
   const bad = good.replace(/hash=\w{4}/, 'hash=0000'); eq((await post('/api/me', { initData: bad })).status, 401, 'tampered hash → 401');
   const other = await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: user(42) }, 'other-token'); eq((await post('/api/me', { initData: other })).status, 401, 'other bot token → 401');
@@ -137,6 +138,80 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   ok((await (await post('/api/friends/remove', { initData: a, friendId: 301 })).json()).ok, 'removed');
   eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId), [302], 'list after removal');
   eq((await (await post('/api/friends', { initData: await initData(user(301, 'en')) })).json()).friends, [], 'removed on both sides'); }
+
+console.log('friend search → request → accept (bot button / app) · presence');
+{ const a = await initData(user(100, 'ru'));
+  await hook(msg(user(601, 'en', { first_name: 'Maria', username: 'maria_k' }), '/start'));
+  await hook(msg(user(602, 'pl', { first_name: 'Marek', username: 'marek_w' }), '/start'));
+  await hook(msg(user(603, 'uk', { first_name: 'Марія', username: 'mari_ua' }), '/start'));
+  const sr = await (await post('/api/friends/search', { initData: a, q: '@MAR' })).json();
+  eq(sr.results.map(r => r.username).sort(), ['marek_w', 'mari_ua', 'maria_k'], 'search by username prefix (case-insensitive, @ stripped)');
+  ok(sr.results.every(r => r.online === true && r.isFriend === false && r.requested === false), 'fresh users are online (just talked to the bot) and not friends');
+  eq((await (await post('/api/friends/search', { initData: a, q: 'Мар' })).json()).results.map(r => r.tgId), [603], 'search by first name');
+  eq((await (await post('/api/friends/search', { initData: a, q: 'x' })).json()).results, [], 'too short → empty');
+  eq((await (await post('/api/friends/search', { initData: a, q: '%' })).json()).results, [], 'wildcards stripped');
+  // request → the target gets buttons
+  const rq = await (await post('/api/friends/request', { initData: a, tgId: 601 })).json(); eq(rq.status, 'sent', 'request sent');
+  const dm = lastTo(601); ok(dm.params.text.includes('User100') && dm.params.text.includes('wants to add you') && dm.params.reply_markup.inline_keyboard[0][0].callback_data === 'fr_acc_100', 'request DM with accept/decline buttons (en)');
+  eq((await (await post('/api/friends/request', { initData: a, tgId: 601 })).json()).status, 'pending', 'second request is not re-sent');
+  eq((await post('/api/friends/request', { initData: a, tgId: 999999 })).status, 404, 'unknown user');
+  eq((await (await post('/api/friends/request', { initData: a, tgId: 100 })).json()).status, 'self', 'self');
+  ok((await (await post('/api/friends/search', { initData: a, q: 'maria' })).json()).results[0].requested === true, 'search shows requested');
+  const rqs = await (await post('/api/friends/requests', { initData: a })).json(); eq(rqs.outgoing.map(r => r.tgId), [601], 'outgoing listed'); eq(rqs.incoming, [], 'no incoming');
+  const r601 = await (await post('/api/friends/requests', { initData: await initData(user(601, 'en')) })).json(); eq(r601.incoming.map(r => r.name), ['User100'], 'incoming on the other side');
+  // accept via the bot button
+  await hook({ update_id: 50, callback_query: { id: 'cb1', from: user(601, 'en', { first_name: 'Maria' }), data: 'fr_acc_100', message: { message_id: dm.params.chat_id ? 77 : 77, chat: { id: 601 } } } });
+  const acq = lastCall('answerCallbackQuery'); ok(acq.params.callback_query_id === 'cb1' && acq.params.text.includes('now friends'), 'callback answered');
+  ok(lastCall('editMessageText').params.text.includes('User100'), 'request message edited');
+  ok(lastTo(100).params.text.includes('Maria') && lastTo(100).params.text.includes('принял'), 'requester notified (ru)');
+  eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId).includes(601), true, 'now friends');
+  await hook({ update_id: 51, callback_query: { id: 'cb2', from: user(601, 'en'), data: 'fr_acc_100', message: { message_id: 77, chat: { id: 601 } } } });
+  ok(lastCall('answerCallbackQuery').params.text.includes('already'), 'pressing again → already handled');
+  // decline via the bot button
+  await post('/api/friends/request', { initData: a, tgId: 602 });
+  await hook({ update_id: 52, callback_query: { id: 'cb3', from: user(602, 'pl'), data: 'fr_dec_100', message: { message_id: 78, chat: { id: 602 } } } });
+  ok(lastCall('answerCallbackQuery').params.text.includes('odrzucone'), 'declined (pl)');
+  ok(!(await (await post('/api/friends', { initData: a })).json()).friends.some(f => f.tgId === 602), 'not friends after decline');
+  // accept inside the app; a reverse request auto-accepts
+  await post('/api/friends/request', { initData: a, tgId: 603 });
+  const b603 = await initData(user(603, 'uk'));
+  const resp = await (await post('/api/friends/respond', { initData: b603, tgId: 100, accept: true })).json(); ok(resp.ok && !resp.gone && resp.friend.name === 'User100', 'accepted in the app');
+  const rev = await (await post('/api/friends/request', { initData: await initData(user(602, 'pl')), tgId: 100 })).json(); eq(rev.status, 'sent', 'declined earlier → new request from the other side is sent');
+  await post('/api/friends/request', { initData: a, tgId: 602 });
+  ok((await (await post('/api/friends', { initData: a })).json()).friends.some(f => f.tgId === 602), 'crossing requests → friends');
+  // presence: ping updates seen_at; stale users are offline
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 601').bind(now() - 3600).run();
+  let fr = (await (await post('/api/friends', { initData: a })).json()).friends.find(f => f.tgId === 601); ok(fr.online === false && fr.seenAgo >= 3600, 'offline after an hour');
+  ok((await (await post('/api/ping', { initData: await initData(user(601, 'en')) })).json()).ok, 'ping');
+  fr = (await (await post('/api/friends', { initData: a })).json()).friends.find(f => f.tgId === 601); ok(fr.online === true && fr.seenAgo < 5, 'online after ping');
+  ok((await (await post('/api/friends', { initData: a })).json()).friends[0].online === true, 'online friends sorted first'); }
+
+console.log('admin: full access grants (bot commands + API)');
+{ const U601 = user(601, 'en', { first_name: 'Maria', username: 'maria_k' }), U602 = user(602, 'pl', { first_name: 'Marek', username: 'marek_w' });
+  await hook(msg(U601, '/start')); await hook(msg(U602, '/start')); // refresh usernames in the users table
+  const adm = await initData(user(777, 'ru', { first_name: 'Admin' })); const usr = await initData(U601);
+  ok((await (await post('/api/me', { initData: adm })).json()).admin === true && (await (await post('/api/me', { initData: usr })).json()).admin === false, 'admin flag in /api/me');
+  eq((await post('/api/admin/grant', { initData: usr, q: '@maria_k' })).status, 403, 'non-admin forbidden');
+  const g = await (await post('/api/admin/grant', { initData: adm, q: '@maria_k', days: 30 })).json();
+  ok(g.ok && g.granted.tgId === 601 && g.granted.until > Date.now() + 29 * 86400000 && g.grants.length === 1, 'granted 30 days via API');
+  ok(lastTo(601).params.text.includes('full access') && lastTo(601).params.text.includes('until'), 'player notified (en)');
+  const me601 = await (await post('/api/me', { initData: usr })).json(); ok(me601.owned.allUntil > Date.now() + 29 * 86400000, 'me.owned.allUntil set');
+  ok((await (await post('/api/invoice', { initData: usr, kind: 'role', id: 'sniper' })).json()).link, 'buying is still possible while granted (grant is temporary)');
+  // bot commands
+  await hook(msg(user(777, 'ru'), '/grant @marek_w 7')); ok(lastTo(777).params.text.includes('Marek') && lastTo(777).params.text.includes('до'), '/grant via bot');
+  ok(lastTo(602).params.text.includes('pełny dostęp'), 'player notified (pl)');
+  await hook(msg(user(777, 'ru'), '/grant 603')); ok(lastTo(777).params.text.includes('603') || lastTo(777).params.text.includes('Марія') || lastTo(777).params.text.includes('User603'), '/grant by numeric id');
+  await hook(msg(user(777, 'ru'), '/grant @nobody_here')); ok(lastTo(777).params.text.includes('не найден'), 'unknown user');
+  await hook(msg(user(777, 'ru'), '/grants')); ok(lastTo(777).params.text.includes('Maria') && lastTo(777).params.text.includes('Marek') && (lastTo(777).params.text.match(/•/g) || []).length === 3, '/grants lists three');
+  await hook(msg(U601, '/grant @marek_w')); ok(!lastTo(601).params.text.includes('granted') && lastTo(601).params.text.includes('Open the app'), 'non-admin /grant is ignored');
+  await hook(msg(user(777, 'ru'), '/revoke @marek_w')); ok(lastTo(777).params.text.includes('отозван') && lastTo(602).params.text.includes('zakończył'), '/revoke via bot');
+  const rv = await (await post('/api/admin/revoke', { initData: adm, q: '601' })).json(); ok(rv.ok && rv.grants.map(x => x.tgId).join() === '603', 'revoke via API by id');
+  eq((await (await post('/api/me', { initData: usr })).json()).owned.allUntil, 0, 'allUntil cleared');
+  await hook(msg(user(777, 'ru'), '/help')); ok(lastTo(777).params.text.includes('/grant'), 'admin help');
+  // expired grants do not count
+  await env.DB.prepare('UPDATE grants SET until = ?1 WHERE tg_id = 603').bind(now() - 10).run();
+  eq((await (await post('/api/admin/grants', { initData: adm })).json()).grants, [], 'expired grant not listed');
+  eq((await (await post('/api/me', { initData: await initData(user(603, 'uk')) })).json()).owned.allUntil, 0, 'expired → no access'); }
 
 console.log('game result → ratings');
 { const host = await initData(user(100));

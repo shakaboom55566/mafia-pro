@@ -1,6 +1,14 @@
 /* Bot messages in the five app languages. Russian is the default; a user's Telegram language picks the rest. */
 export const TEXTS = {
   ru: {
+    friendRequest: '👋 <b>{name}</b> хочет добавить вас в друзья в Mafia Pro.',
+    btnAccept: 'Принять', btnDecline: 'Отклонить',
+    requestAccepted: '✅ Теперь вы и <b>{name}</b> друзья.', requestDeclined: 'Запрос отклонён.', requestGone: 'Запрос уже обработан.',
+    requestAcceptedBy: '✅ <b>{name}</b> принял(а) ваш запрос — теперь вы друзья.',
+    grantGiven: '🎁 Вам открыт полный доступ в Mafia Pro: все карты, сценарии и паки — до <b>{until}</b>. Откройте приложение, всё уже доступно.',
+    grantRevoked: 'Полный доступ в Mafia Pro завершён. Купленные карты остаются вашими.',
+    adminGranted: 'Выдан полный доступ: {name} до {until}.', adminRevoked: 'Доступ отозван: {name}.', adminNoUser: 'Пользователь {q} не найден — он должен хотя бы раз открыть бота.',
+    adminGrants: 'Активные доступы:\n{list}', adminNone: 'Активных доступов нет.', adminHelp: 'Команды администратора:\n/grant @username [дней] — полный доступ (по умолчанию 30 дней)\n/revoke @username — отозвать\n/grants — список',
     friendAccepted: '✅ Вы и <b>{name}</b> теперь друзья в Mafia Pro. Друзей можно звать за стол одной кнопкой.',
     friendJoined: '<b>{name}</b> принял(а) ваше приглашение — теперь вы друзья.',
     friendSelf: 'Это ваша собственная ссылка 🙂 Отправьте её другу.',
@@ -21,6 +29,14 @@ export const TEXTS = {
     unknown: 'Откройте приложение кнопкой «Играть» или через кнопку меню внизу.'
   },
   uk: {
+    friendRequest: '👋 <b>{name}</b> хоче додати вас у друзі в Mafia Pro.',
+    btnAccept: 'Прийняти', btnDecline: 'Відхилити',
+    requestAccepted: '✅ Тепер ви і <b>{name}</b> друзі.', requestDeclined: 'Запит відхилено.', requestGone: 'Запит уже оброблено.',
+    requestAcceptedBy: '✅ <b>{name}</b> прийняв(ла) ваш запит — тепер ви друзі.',
+    grantGiven: '🎁 Вам відкрито повний доступ у Mafia Pro: усі карти, сценарії та паки — до <b>{until}</b>. Відкрийте застосунок, усе вже доступно.',
+    grantRevoked: 'Повний доступ у Mafia Pro завершено. Куплені карти залишаються вашими.',
+    adminGranted: 'Видано повний доступ: {name} до {until}.', adminRevoked: 'Доступ відкликано: {name}.', adminNoUser: 'Користувача {q} не знайдено — він має хоча б раз відкрити бота.',
+    adminGrants: 'Активні доступи:\n{list}', adminNone: 'Активних доступів немає.', adminHelp: 'Команди адміністратора:\n/grant @username [днів] — повний доступ (типово 30 днів)\n/revoke @username — відкликати\n/grants — список',
     friendAccepted: '✅ Ви і <b>{name}</b> тепер друзі в Mafia Pro. Друзів можна кликати за стіл однією кнопкою.',
     friendJoined: '<b>{name}</b> прийняв(ла) ваше запрошення — тепер ви друзі.',
     friendSelf: 'Це ваше власне посилання 🙂 Надішліть його другові.',
@@ -41,6 +57,14 @@ export const TEXTS = {
     unknown: 'Відкрийте застосунок кнопкою «Грати» або через кнопку меню внизу.'
   },
   en: {
+    friendRequest: '👋 <b>{name}</b> wants to add you as a friend in Mafia Pro.',
+    btnAccept: 'Accept', btnDecline: 'Decline',
+    requestAccepted: '✅ You and <b>{name}</b> are now friends.', requestDeclined: 'Request declined.', requestGone: 'This request has already been handled.',
+    requestAcceptedBy: '✅ <b>{name}</b> accepted your request — you are now friends.',
+    grantGiven: '🎁 You have full access in Mafia Pro: every card, scenario and pack — until <b>{until}</b>. Open the app, it is all unlocked.',
+    grantRevoked: 'Your full access in Mafia Pro has ended. Purchased cards stay yours.',
+    adminGranted: 'Full access granted: {name} until {until}.', adminRevoked: 'Access revoked: {name}.', adminNoUser: 'User {q} not found — they need to open the bot at least once.',
+    adminGrants: 'Active grants:\n{list}', adminNone: 'No active grants.', adminHelp: 'Admin commands:\n/grant @username [days] — full access (30 days by default)\n/revoke @username — revoke\n/grants — list',
     friendAccepted: '✅ You and <b>{name}</b> are now friends in Mafia Pro. Friends can be invited to a table with one tap.',
     friendJoined: '<b>{name}</b> accepted your invitation — you are now friends.',
     friendSelf: 'That is your own link 🙂 Send it to a friend.',
@@ -61,6 +85,14 @@ export const TEXTS = {
     unknown: 'Open the app with the “Play” button or the menu button below.'
   },
   pl: {
+    friendRequest: '👋 <b>{name}</b> chce dodać Cię do znajomych w Mafia Pro.',
+    btnAccept: 'Przyjmij', btnDecline: 'Odrzuć',
+    requestAccepted: '✅ Ty i <b>{name}</b> jesteście teraz znajomymi.', requestDeclined: 'Zaproszenie odrzucone.', requestGone: 'To zaproszenie zostało już obsłużone.',
+    requestAcceptedBy: '✅ <b>{name}</b> przyjął(ęła) Twoje zaproszenie — jesteście teraz znajomymi.',
+    grantGiven: '🎁 Masz pełny dostęp w Mafia Pro: wszystkie karty, scenariusze i pakiety — do <b>{until}</b>. Otwórz aplikację, wszystko jest odblokowane.',
+    grantRevoked: 'Pełny dostęp w Mafia Pro zakończył się. Kupione karty pozostają Twoje.',
+    adminGranted: 'Przyznano pełny dostęp: {name} do {until}.', adminRevoked: 'Dostęp cofnięty: {name}.', adminNoUser: 'Nie znaleziono użytkownika {q} — musi choć raz otworzyć bota.',
+    adminGrants: 'Aktywne dostępy:\n{list}', adminNone: 'Brak aktywnych dostępów.', adminHelp: 'Polecenia administratora:\n/grant @username [dni] — pełny dostęp (domyślnie 30 dni)\n/revoke @username — cofnij\n/grants — lista',
     friendAccepted: '✅ Ty i <b>{name}</b> jesteście teraz znajomymi w Mafia Pro. Znajomych można zaprosić do stołu jednym dotknięciem.',
     friendJoined: '<b>{name}</b> przyjął(ęła) Twoje zaproszenie — jesteście teraz znajomymi.',
     friendSelf: 'To Twój własny link 🙂 Wyślij go znajomemu.',
@@ -81,6 +113,14 @@ export const TEXTS = {
     unknown: 'Otwórz aplikację przyciskiem „Graj” lub przyciskiem menu poniżej.'
   },
   hy: {
+    friendRequest: '👋 <b>{name}</b>-ը ցանկանում է ձեզ ավելացնել ընկերների մեջ Mafia Pro-ում։',
+    btnAccept: 'Ընդունել', btnDecline: 'Մերժել',
+    requestAccepted: '✅ Այժմ դուք և <b>{name}</b> ընկերներ եք։', requestDeclined: 'Հարցումը մերժված է։', requestGone: 'Այս հարցումն արդեն մշակված է։',
+    requestAcceptedBy: '✅ <b>{name}</b>-ն ընդունել է ձեր հարցումը — այժմ ընկերներ եք։',
+    grantGiven: '🎁 Ձեզ տրված է լիարժեք հասանելիություն Mafia Pro-ում՝ բոլոր քարտերը, սցենարները և փաթեթները մինչև <b>{until}</b>։ Բացեք հավելվածը, ամեն ինչ արդեն բաց է։',
+    grantRevoked: 'Mafia Pro-ում լիարժեք հասանելիությունն ավարտվել է։ Գնված քարտերը մնում են ձերը։',
+    adminGranted: 'Տրված է լիարժեք հասանելիություն՝ {name} մինչև {until}։', adminRevoked: 'Հասանելիությունը չեղարկված է՝ {name}։', adminNoUser: '{q} օգտատերը չի գտնվել — նա պետք է գոնե մեկ անգամ բացի բոտը։',
+    adminGrants: 'Ակտիվ հասանելիություններ․\n{list}', adminNone: 'Ակտիվ հասանելիություններ չկան։', adminHelp: 'Ադմինի հրամաններ․\n/grant @username [օր] — լիարժեք հասանելիություն (լռելյայն 30 օր)\n/revoke @username — չեղարկել\n/grants — ցանկ',
     friendAccepted: '✅ Դուք և <b>{name}</b> այժմ ընկերներ եք Mafia Pro-ում։ Ընկերներին կարելի է սեղանի մոտ կանչել մեկ սեղմումով։',
     friendJoined: '<b>{name}</b> ընդունել է ձեր հրավերը — այժմ ընկերներ եք։',
     friendSelf: 'Սա ձեր սեփական հղումն է 🙂 Ուղարկեք այն ընկերոջը։',

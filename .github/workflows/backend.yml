@@ -116,7 +116,7 @@ jobs:
           R=$(curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
             --data-urlencode "url=${{ steps.deploy.outputs.url }}/webhook" \
             --data-urlencode "secret_token=${WEBHOOK_SECRET}" \
-            --data-urlencode 'allowed_updates=["message","pre_checkout_query"]' \
+            --data-urlencode 'allowed_updates=["message","pre_checkout_query","callback_query"]' \
             --data-urlencode "drop_pending_updates=true")
           { echo "## webhook"; echo "$R"; } | tee -a "$LOG"
           echo "$R" | grep -q '"ok":true' || { echo "::error::setWebhook failed"; exit 1; }

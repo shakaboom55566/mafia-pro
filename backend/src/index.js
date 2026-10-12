@@ -11,6 +11,12 @@
    - POST /api/friends/accept accept an invite code opened inside the Mini App (?startapp=friend_<code>)
    - POST /api/friends/remove drop a friend (both directions)
    - POST /api/friends/invite DM selected friends a "join table" button for my open lobby
+   - POST /api/friends/search find players by @username / name (who opened the bot)
+   - POST /api/friends/request send a friend request (accepted in the bot or in the app)
+   - POST /api/friends/requests incoming / outgoing requests
+   - POST /api/friends/respond accept or decline a request in the app
+   - POST /api/ping            presence heartbeat (online = seen in the last few minutes)
+   - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
    ============================================================ */
@@ -46,11 +52,33 @@ async function touchUser(env, u) {
     ON CONFLICT(tg_id) DO UPDATE SET username = ?2, first_name = ?3, last_name = ?4, lang = ?5, photo_url = COALESCE(?6, photo_url), seen_at = ?7`)
     .bind(u.id, u.username || null, u.first_name || null, u.last_name || null, u.language_code || null, u.photo_url || null, ts).run();
 }
+const ONLINE_SEC = 180; // seen within 3 minutes = online (the app pings every minute while open)
+const isAdmin = (env, tgId) => String(env.ADMIN_IDS || '').split(',').map(x => x.trim()).filter(Boolean).includes(String(tgId));
+async function grantFor(env, tgId) { const g = await env.DB.prepare('SELECT until, granted_by FROM grants WHERE tg_id = ?1 AND until > ?2').bind(tgId, now()).first(); return g ? { until: g.until } : null; }
 async function ownedFor(env, tgId) {
   const rows = (await env.DB.prepare('SELECT kind, item FROM purchases WHERE tg_id = ?1 AND status = ?2').bind(tgId, 'paid').all()).results || [];
-  const owned = { roles: [], scenarios: [], packs: [] };
+  const owned = { roles: [], scenarios: [], packs: [], allUntil: 0 };
   for (const r of rows) { const k = r.kind === 'role' ? 'roles' : r.kind === 'scenario' ? 'scenarios' : 'packs'; if (!owned[k].includes(r.item)) owned[k].push(r.item); }
+  const g = await grantFor(env, tgId); if (g) owned.allUntil = g.until * 1000;
   return owned;
+}
+const fmtDate = (sec, lang) => { try { return new Date(sec * 1000).toLocaleDateString({ ru: 'ru-RU', uk: 'uk-UA', en: 'en-GB', pl: 'pl-PL', hy: 'hy-AM' }[lang] || 'ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return new Date(sec * 1000).toISOString().slice(0, 10); } };
+async function findUser(env, q) { // "@name", "name" or a numeric id
+  q = String(q || '').trim().replace(/^@/, ''); if (!q) return null;
+  if (/^\d+$/.test(q)) return userRow(env, Number(q));
+  return env.DB.prepare('SELECT tg_id, username, first_name, last_name, lang, photo_url FROM users WHERE lower(username) = ?1').bind(q.toLowerCase()).first();
+}
+async function setGrant(env, bot, adminId, target, days, revoke) {
+  const lang = pickLang(target.lang);
+  if (revoke) { await env.DB.prepare('DELETE FROM grants WHERE tg_id = ?1').bind(target.tg_id).run(); await bot.send(target.tg_id, t(lang, 'grantRevoked')); return null; }
+  const until = now() + Math.max(1, Math.min(3650, days | 0)) * 86400;
+  await env.DB.prepare('INSERT INTO grants (tg_id, until, granted_by, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(tg_id) DO UPDATE SET until = ?2, granted_by = ?3, created_at = ?4').bind(target.tg_id, until, adminId, now()).run();
+  await bot.send(target.tg_id, t(lang, 'grantGiven', { until: fmtDate(until, lang) }), bot.playButton(t(lang, 'play'), env.APP_URL));
+  return until;
+}
+async function listGrants(env) {
+  return ((await env.DB.prepare('SELECT g.tg_id, g.until, g.created_at, u.username, u.first_name, u.last_name FROM grants g LEFT JOIN users u ON u.tg_id = g.tg_id WHERE g.until > ?1 ORDER BY g.until').bind(now()).all()).results || [])
+    .map(r => ({ tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', until: r.until * 1000 }));
 }
 async function ratingFor(env, tgId) {
   const r = await env.DB.prepare('SELECT points, games, wins, hosted FROM ratings WHERE tg_id = ?1').bind(tgId).first();
@@ -84,9 +112,10 @@ async function befriend(env, a, b) { // symmetric; returns true when the pair is
 async function userRow(env, tgId) { return env.DB.prepare('SELECT tg_id, username, first_name, last_name, lang, photo_url FROM users WHERE tg_id = ?1').bind(tgId).first(); }
 const rowName = r => (r ? ([r.first_name, r.last_name].filter(Boolean).join(' ') || r.username || String(r.tg_id)) : '');
 async function friendsOf(env, tgId) {
-  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.lang, u.photo_url, f.created_at, r.points, r.games, r.wins
-    FROM friends f JOIN users u ON u.tg_id = f.friend_id LEFT JOIN ratings r ON r.tg_id = f.friend_id WHERE f.tg_id = ?1 ORDER BY f.created_at DESC`).bind(tgId).all()).results || [];
-  return rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', lang: r.lang || 'ru', since: r.created_at, points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0 }));
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.lang, u.photo_url, u.seen_at, f.created_at, r.points, r.games, r.wins
+    FROM friends f JOIN users u ON u.tg_id = f.friend_id LEFT JOIN ratings r ON r.tg_id = f.friend_id WHERE f.tg_id = ?1 ORDER BY (u.seen_at > ?2) DESC, u.seen_at DESC`).bind(tgId, now() - ONLINE_SEC).all()).results || [];
+  const ts = now();
+  return rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', lang: r.lang || 'ru', since: r.created_at, points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)) }));
 }
 let botUsernameCache = null;
 async function botUsername(env, bot) {
@@ -102,6 +131,38 @@ async function handleUpdate(env, bot, upd) {
   if (upd.pre_checkout_query) return onPreCheckout(env, bot, upd.pre_checkout_query);
   if (msg && msg.successful_payment) return onPaid(env, bot, msg);
   if (msg && msg.text && msg.chat && msg.chat.type === 'private') return onText(env, bot, msg);
+  if (upd.callback_query) return onCallback(env, bot, upd.callback_query);
+}
+async function onCallback(env, bot, q) {
+  const u = q.from || {}; const lang = pickLang(u.language_code);
+  const m = /^fr_(acc|dec)_(\d+)$/.exec(q.data || '');
+  if (!m) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
+  const fromId = Number(m[2]); const accept = m[1] === 'acc';
+  const r = await respondRequest(env, bot, u, fromId, accept);
+  const text = r === 'gone' ? t(lang, 'requestGone') : accept ? t(lang, 'requestAccepted', { name: esc(r.name) }) : t(lang, 'requestDeclined');
+  await bot.call('answerCallbackQuery', { callback_query_id: q.id, text: text.replace(/<[^>]+>/g, '') });
+  if (q.message) await bot.call('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text, parse_mode: 'HTML' });
+}
+/* accept / decline a pending request addressed to `u` from `fromId`; returns 'gone' or { name } of the requester */
+async function respondRequest(env, bot, u, fromId, accept) {
+  const req = await env.DB.prepare('SELECT status FROM friend_requests WHERE from_id = ?1 AND to_id = ?2').bind(fromId, u.id).first();
+  if (!req || req.status !== 'pending') return 'gone';
+  await env.DB.prepare('UPDATE friend_requests SET status = ?1 WHERE from_id = ?2 AND to_id = ?3').bind(accept ? 'accepted' : 'declined', fromId, u.id).run();
+  const from = await userRow(env, fromId);
+  if (accept) { await befriend(env, u.id, fromId); if (from) { const fl = pickLang(from.lang); await bot.send(fromId, t(fl, 'requestAcceptedBy', { name: esc(displayName(u)) }), bot.playButton(t(fl, 'play'), env.APP_URL)); } }
+  return { name: rowName(from) };
+}
+async function sendRequest(env, bot, me, target) { // me: Telegram user object; target: users row
+  if (me.id === target.tg_id) return 'self';
+  const already = await env.DB.prepare('SELECT 1 FROM friends WHERE tg_id = ?1 AND friend_id = ?2').bind(me.id, target.tg_id).first();
+  if (already) return 'friends';
+  const incoming = await env.DB.prepare('SELECT status FROM friend_requests WHERE from_id = ?1 AND to_id = ?2').bind(target.tg_id, me.id).first();
+  if (incoming && incoming.status === 'pending') { await respondRequest(env, bot, me, target.tg_id, true); return 'friends'; }
+  const ins = await env.DB.prepare('INSERT INTO friend_requests (from_id, to_id, status, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(from_id, to_id) DO UPDATE SET status = ?3, created_at = ?4 WHERE status != ?3').bind(me.id, target.tg_id, 'pending', now()).run();
+  if (!(ins.meta && ins.meta.changes > 0)) return 'pending';
+  const tl = pickLang(target.lang);
+  await bot.send(target.tg_id, t(tl, 'friendRequest', { name: esc(displayName(me)) }), { reply_markup: { inline_keyboard: [[{ text: t(tl, 'btnAccept'), callback_data: `fr_acc_${me.id}` }, { text: t(tl, 'btnDecline'), callback_data: `fr_dec_${me.id}` }]] } });
+  return 'sent';
 }
 async function onText(env, bot, msg) {
   const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id;
@@ -117,7 +178,17 @@ async function onText(env, bot, msg) {
     if (f) return acceptFriend(env, bot, chat, u, lang, f[1].toUpperCase(), play);
     return bot.send(chat, t(lang, 'welcome'), play);
   }
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, t(lang, 'help'), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') : t(lang, 'help'), play);
+  if (isAdmin(env, u.id)) {
+    const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
+    if (g) {
+      const target = await findUser(env, g[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(g[2]) }));
+      if (g[1] === 'revoke') { await setGrant(env, bot, u.id, target, 0, true); return bot.send(chat, t(lang, 'adminRevoked', { name: esc(rowName(target)) })); }
+      const until = await setGrant(env, bot, u.id, target, Number(g[3]) || 30, false);
+      return bot.send(chat, t(lang, 'adminGranted', { name: esc(rowName(target)), until: fmtDate(until, lang) }));
+    }
+    if (/^\/grants/.test(text)) { const list = await listGrants(env); return bot.send(chat, list.length ? t(lang, 'adminGrants', { list: list.map(x => `• ${esc(x.name)}${x.username ? ' @' + esc(x.username) : ''} — ${fmtDate(x.until / 1000, lang)}`).join('\n') }) : t(lang, 'adminNone')); }
+  }
   return bot.send(chat, t(lang, 'unknown'), play);
 }
 async function acceptFriend(env, bot, chat, u, lang, code, play) {
@@ -171,7 +242,46 @@ async function apiMe(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const [owned, rating, code, username] = await Promise.all([ownedFor(env, v.user.id), ratingFor(env, v.user.id), inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
   const u = v.user;
-  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}` } });
+  return json({ ok: true, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}` }, admin: isAdmin(env, u.id) });
+}
+async function apiPing(env, body) { const v = await auth(env, body); return v ? json({ ok: true }) : json({ ok: false, error: 'unauthorized' }, 401); }
+async function apiFriendSearch(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const q = String(body.q || '').trim().replace(/^@/, '').toLowerCase().replace(/[%_]/g, ''); if (q.length < 2) return json({ ok: true, results: [] });
+  // SQLite lower()/LIKE are case-insensitive for ASCII only, so non-Latin names are matched by their capitalised form too
+  const cap = q.charAt(0).toUpperCase() + q.slice(1);
+  const rows = (await env.DB.prepare(`SELECT tg_id, username, first_name, last_name, photo_url, seen_at FROM users WHERE tg_id != ?2 AND (lower(username) LIKE ?1 OR lower(first_name) LIKE ?1 OR first_name LIKE ?4 OR first_name LIKE ?5) ORDER BY (lower(username) = ?3) DESC, seen_at DESC LIMIT 10`).bind(q + '%', v.user.id, q, cap + '%', q.toUpperCase() + '%').all()).results || [];
+  const mine = new Set((await friendsOf(env, v.user.id)).map(f => f.tgId));
+  const reqs = (await env.DB.prepare('SELECT from_id, to_id, status FROM friend_requests WHERE (from_id = ?1 OR to_id = ?1) AND status = ?2').bind(v.user.id, 'pending').all()).results || [];
+  const out = new Set(reqs.filter(r => r.from_id === v.user.id).map(r => r.to_id)), inc = new Set(reqs.filter(r => r.to_id === v.user.id).map(r => r.from_id));
+  const ts = now();
+  return json({ ok: true, results: rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), isFriend: mine.has(r.tg_id), requested: out.has(r.tg_id), incoming: inc.has(r.tg_id) })) });
+}
+async function apiFriendRequest(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const target = await userRow(env, Number(body.tgId)); if (!target) return json({ ok: false, error: 'not_found' }, 404);
+  const status = await sendRequest(env, bot, v.user, target);
+  return json({ ok: true, status });
+}
+async function apiFriendRequests(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const rows = (await env.DB.prepare(`SELECT r.from_id, r.to_id, r.created_at, u.tg_id, u.username, u.first_name, u.last_name, u.photo_url FROM friend_requests r JOIN users u ON u.tg_id = CASE WHEN r.from_id = ?1 THEN r.to_id ELSE r.from_id END WHERE (r.from_id = ?1 OR r.to_id = ?1) AND r.status = ?2 ORDER BY r.created_at DESC`).bind(v.user.id, 'pending').all()).results || [];
+  const item = r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', at: r.created_at });
+  return json({ ok: true, incoming: rows.filter(r => r.to_id === v.user.id).map(item), outgoing: rows.filter(r => r.from_id === v.user.id).map(item) });
+}
+async function apiFriendRespond(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const r = await respondRequest(env, bot, v.user, Number(body.tgId), !!body.accept);
+  return json({ ok: true, gone: r === 'gone', friend: r === 'gone' ? null : r });
+}
+async function apiAdmin(env, bot, body, action) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
+  if (action === 'grants') return json({ ok: true, grants: await listGrants(env) });
+  const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
+  if (action === 'revoke') { await setGrant(env, bot, v.user.id, target, 0, true); return json({ ok: true, revoked: { tgId: target.tg_id, name: rowName(target) }, grants: await listGrants(env) }); }
+  const until = await setGrant(env, bot, v.user.id, target, Number(body.days) || 30, false);
+  return json({ ok: true, granted: { tgId: target.tg_id, name: rowName(target), username: target.username || '', until: until * 1000 }, grants: await listGrants(env) });
 }
 /* ---------- friends ---------- */
 async function apiFriends(env, bot, body) {
@@ -318,6 +428,14 @@ export default {
           case '/api/friends/accept': return wrap(apiFriendAccept(env, bot, body));
           case '/api/friends/remove': return wrap(apiFriendRemove(env, body));
           case '/api/friends/invite': return wrap(apiFriendInvite(env, bot, body));
+          case '/api/friends/search': return wrap(apiFriendSearch(env, body));
+          case '/api/friends/request': return wrap(apiFriendRequest(env, bot, body));
+          case '/api/friends/requests': return wrap(apiFriendRequests(env, body));
+          case '/api/friends/respond': return wrap(apiFriendRespond(env, bot, body));
+          case '/api/ping': return wrap(apiPing(env, body));
+          case '/api/admin/grant': return wrap(apiAdmin(env, bot, body, 'grant'));
+          case '/api/admin/revoke': return wrap(apiAdmin(env, bot, body, 'revoke'));
+          case '/api/admin/grants': return wrap(apiAdmin(env, bot, body, 'grants'));
           case '/api/invoice': return wrap(apiInvoice(env, bot, body));
           case '/api/game/result': return wrap(apiResult(env, body));
           case '/api/lobby': return wrap(apiLobbyCreate(env, bot, body));

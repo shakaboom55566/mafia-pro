@@ -76,3 +76,23 @@ CREATE TABLE IF NOT EXISTS friends (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (tg_id, friend_id)
 );
+
+-- friend requests (search by @username → request → accept in the bot or in the app)
+CREATE TABLE IF NOT EXISTS friend_requests (
+  from_id    INTEGER NOT NULL,
+  to_id      INTEGER NOT NULL,
+  status     TEXT NOT NULL,          -- pending | accepted | declined
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (from_id, to_id)
+);
+CREATE INDEX IF NOT EXISTS friend_requests_to ON friend_requests (to_id, status);
+CREATE INDEX IF NOT EXISTS users_username ON users (username);
+
+-- full access granted by an admin (all cards, scenarios and packs until `until`)
+CREATE TABLE IF NOT EXISTS grants (
+  tg_id      INTEGER PRIMARY KEY,
+  until      INTEGER NOT NULL,       -- unix seconds
+  granted_by INTEGER NOT NULL,
+  note       TEXT,
+  created_at INTEGER NOT NULL
+);

@@ -12,6 +12,8 @@ ALLOWED_ORIGIN = "https://shakaboom55566.github.io"
 STARS_ROLE = "100"
 STARS_SCENARIO = "500"
 STARS_PACK = "1750"
+# Telegram ids that may grant full access (/grant in the bot or the admin panel in the app); comma-separated
+ADMIN_IDS = "6462266188"
 
 [[d1_databases]]
 binding = "DB"
