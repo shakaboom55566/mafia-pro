@@ -579,7 +579,7 @@ html.lite .club-brand { background: var(--bg-2); }
 .rt-seat .rt-meta, .rt-seat .rt-club { font-size: 9.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
 .rt-seat .rt-club { color: var(--gold-2); }
 .rt-seat.mine .rt-av { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(240,205,122,.25); }
-.rt-seat.speaker .rt-av { border-color: #9fe0ab; box-shadow: 0 0 0 3px rgba(159,224,171,.3); }
+.rt-seat.spk .rt-av { border-color: #9fe0ab; box-shadow: 0 0 0 3px rgba(159,224,171,.3); }
 .rt-seat.cand .rt-av { border-color: var(--crimson-2); }
 .rt-seat.pickable .rt-av { border-style: dashed; border-color: var(--gold-2); }
 .rt-seat.picked .rt-av { border-style: solid; border-color: var(--gold); background: rgba(240,205,122,.25); }
@@ -3478,11 +3478,11 @@ Object.assign(I18N.en.ui, { tgNewPlayer: 'Sat down: {name}', tbHostChip: 'Table 
 Object.assign(I18N.pl.ui, { tgNewPlayer: 'Usiadł: {name}', tbHostChip: 'Prowadzący stołu', tbInApp: 'w aplikacji', tbJoinedList: 'Przy stole', tbSeatFree: 'wolne', tbChatSpeaker: 'Pisze mówca — w czasie swojej przemowy', tbChatYourSpeech: 'Twoja przemowa — czat otwarty, póki trwa minutnik', tbChatMorning: 'Czat otwarty do głosowania', tbReview: 'Analiza Twojej partii', tbPointsLine: 'Wynik {r} · użyteczność {u} · razem {t}', tbRatingNow: 'Ranking: {rating} ({delta})', tbAborted: 'Prowadzący przerwał grę', tbNoReview: 'Nie ma czego analizować — nie wykonałeś ruchów.' });
 Object.assign(I18N.hy.ui, { tgNewPlayer: 'Սեղանի մոտ նստեց՝ {name}', tbHostChip: 'Սեղանի վարող', tbInApp: 'հավելվածում', tbJoinedList: 'Սեղանի մոտ', tbSeatFree: 'ազատ է', tbChatSpeaker: 'Գրում է խոսողը՝ իր ելույթի ընթացքում', tbChatYourSpeech: 'Ձեր ելույթն է․ չատը բաց է, քանի դեռ ժամաչափն աշխատում է', tbChatMorning: 'Չատը բաց է մինչև քվեարկություն', tbReview: 'Ձեր խաղի վերլուծությունը', tbPointsLine: 'Արդյունք {r} · օգուտ {u} · ընդամենը {t}', tbRatingNow: 'Վարկանիշ՝ {rating} ({delta})', tbAborted: 'Վարողն ընդհատեց խաղը', tbNoReview: 'Վերլուծելու բան չկա՝ դուք քայլեր չեք արել։' });
 /* v30: open tables list, join by code, host goes on to the table after inviting */
-Object.assign(I18N.ru.ui, { lbTitle: 'Открытые столы', lbHint: 'Столы друзей, вашего клуба и те, куда вас позвали', lbEmpty: 'Сейчас открытых столов нет', lbSit: 'Сесть', lbOpenMine: 'Открыть', lbCodePh: 'Код стола', lbJoinCode: 'Сесть по коду', lbVia: { friend: 'друг', club: 'клуб', invite: 'вас зовут', seated: 'вы за столом', own: 'ваш стол' }, lbSeats: '{n} / {seats}', lbClosed: 'Стол уже закрыт', lbNotFound: 'Стол с таким кодом не найден', lbHostSelf: 'Это ваш стол', tbClosedByHost: 'Ведущий закрыл стол', tbLeaveTable: 'Покинуть стол', tbLeftToast: 'Вы встали из-за стола', tgPlayerLeft: 'Встал из-за стола: {name}', frInvitedGo: 'Приглашения отправлены — ждём игроков за столом' });
-Object.assign(I18N.uk.ui, { lbTitle: 'Відкриті столи', lbHint: 'Столи друзів, вашого клубу і ті, куди вас кличуть', lbEmpty: 'Зараз відкритих столів немає', lbSit: 'Сісти', lbOpenMine: 'Відкрити', lbCodePh: 'Код столу', lbJoinCode: 'Сісти за кодом', lbVia: { friend: 'друг', club: 'клуб', invite: 'вас кличуть', seated: 'ви за столом', own: 'ваш стіл' }, lbSeats: '{n} / {seats}', lbClosed: 'Стіл уже закритий', lbNotFound: 'Стіл із таким кодом не знайдено', lbHostSelf: 'Це ваш стіл', tbClosedByHost: 'Ведучий закрив стіл', tbLeaveTable: 'Залишити стіл', tbLeftToast: 'Ви вийшли з-за столу', tgPlayerLeft: 'Вийшов з-за столу: {name}', frInvitedGo: 'Запрошення надіслано — чекаємо гравців за столом' });
-Object.assign(I18N.en.ui, { lbTitle: 'Open tables', lbHint: 'Tables of your friends, your club, and the ones you are invited to', lbEmpty: 'No open tables right now', lbSit: 'Sit down', lbOpenMine: 'Open', lbCodePh: 'Table code', lbJoinCode: 'Join by code', lbVia: { friend: 'friend', club: 'club', invite: 'invited', seated: 'your seat', own: 'your table' }, lbSeats: '{n} / {seats}', lbClosed: 'The table is closed', lbNotFound: 'No table with that code', lbHostSelf: 'That is your own table', tbClosedByHost: 'The host closed the table', tbLeaveTable: 'Leave the table', tbLeftToast: 'You left the table', tgPlayerLeft: 'Left the table: {name}', frInvitedGo: 'Invitations sent — waiting for players at the table' });
-Object.assign(I18N.pl.ui, { lbTitle: 'Otwarte stoły', lbHint: 'Stoły znajomych, Twojego klubu i te, do których Cię zaproszono', lbEmpty: 'Teraz nie ma otwartych stołów', lbSit: 'Usiądź', lbOpenMine: 'Otwórz', lbCodePh: 'Kod stołu', lbJoinCode: 'Usiądź po kodzie', lbVia: { friend: 'znajomy', club: 'klub', invite: 'zaproszenie', seated: 'Twoje miejsce', own: 'Twój stół' }, lbSeats: '{n} / {seats}', lbClosed: 'Stół jest już zamknięty', lbNotFound: 'Nie ma stołu o takim kodzie', lbHostSelf: 'To Twój własny stół', tbClosedByHost: 'Prowadzący zamknął stół', tbLeaveTable: 'Opuść stół', tbLeftToast: 'Wstałeś od stołu', tgPlayerLeft: 'Opuścił stół: {name}', frInvitedGo: 'Zaproszenia wysłane — czekamy na graczy przy stole' });
-Object.assign(I18N.hy.ui, { lbTitle: 'Բաց սեղաններ', lbHint: 'Ընկերների, ձեր ակումբի սեղանները և նրանք, ուր ձեզ կանչել են', lbEmpty: 'Այժմ բաց սեղաններ չկան', lbSit: 'Նստել', lbOpenMine: 'Բացել', lbCodePh: 'Սեղանի կոդ', lbJoinCode: 'Նստել կոդով', lbVia: { friend: 'ընկեր', club: 'ակումբ', invite: 'ձեզ կանչում են', seated: 'ձեր տեղը', own: 'ձեր սեղանը' }, lbSeats: '{n} / {seats}', lbClosed: 'Սեղանն արդեն փակ է', lbNotFound: 'Այդ կոդով սեղան չկա', lbHostSelf: 'Սա ձեր սեղանն է', tbClosedByHost: 'Վարողը փակեց սեղանը', tbLeaveTable: 'Թողնել սեղանը', tbLeftToast: 'Դուք դուրս եկաք սեղանից', tgPlayerLeft: 'Դուրս եկավ սեղանից՝ {name}', frInvitedGo: 'Հրավերներն ուղարկված են․ սպասում ենք խաղացողներին սեղանի մոտ' });
+Object.assign(I18N.ru.ui, { lbTitle: 'Открытые столы', lbHint: 'Столы друзей, вашего клуба и те, куда вас позвали', lbEmpty: 'Сейчас открытых столов нет', lbSit: 'Сесть', lbOpenMine: 'Открыть', lbCodePh: 'Код стола', lbJoinCode: 'Сесть по коду', lbVia: { friend: 'друг', club: 'клуб', invite: 'вас зовут', seated: 'вы за столом', own: 'ваш стол' }, lbSeats: '{n} / {seats}', lbClosed: 'Стол уже закрыт', lbNotFound: 'Стол с таким кодом не найден', lbHostSelf: 'Это ваш стол', tbClosedByHost: 'Ведущий закрыл стол', tbLeaveTable: 'Покинуть стол', frGameRunning: 'Партия уже идёт — позвать друзей можно в следующую', tbLeftToast: 'Вы встали из-за стола', tgPlayerLeft: 'Встал из-за стола: {name}', frInvitedGo: 'Приглашения отправлены — ждём игроков за столом' });
+Object.assign(I18N.uk.ui, { lbTitle: 'Відкриті столи', lbHint: 'Столи друзів, вашого клубу і ті, куди вас кличуть', lbEmpty: 'Зараз відкритих столів немає', lbSit: 'Сісти', lbOpenMine: 'Відкрити', lbCodePh: 'Код столу', lbJoinCode: 'Сісти за кодом', lbVia: { friend: 'друг', club: 'клуб', invite: 'вас кличуть', seated: 'ви за столом', own: 'ваш стіл' }, lbSeats: '{n} / {seats}', lbClosed: 'Стіл уже закритий', lbNotFound: 'Стіл із таким кодом не знайдено', lbHostSelf: 'Це ваш стіл', tbClosedByHost: 'Ведучий закрив стіл', tbLeaveTable: 'Залишити стіл', frGameRunning: 'Партія вже йде — покликати друзів можна в наступну', tbLeftToast: 'Ви вийшли з-за столу', tgPlayerLeft: 'Вийшов з-за столу: {name}', frInvitedGo: 'Запрошення надіслано — чекаємо гравців за столом' });
+Object.assign(I18N.en.ui, { lbTitle: 'Open tables', lbHint: 'Tables of your friends, your club, and the ones you are invited to', lbEmpty: 'No open tables right now', lbSit: 'Sit down', lbOpenMine: 'Open', lbCodePh: 'Table code', lbJoinCode: 'Join by code', lbVia: { friend: 'friend', club: 'club', invite: 'invited', seated: 'your seat', own: 'your table' }, lbSeats: '{n} / {seats}', lbClosed: 'The table is closed', lbNotFound: 'No table with that code', lbHostSelf: 'That is your own table', tbClosedByHost: 'The host closed the table', tbLeaveTable: 'Leave the table', frGameRunning: 'The game is already running — invite friends to the next one', tbLeftToast: 'You left the table', tgPlayerLeft: 'Left the table: {name}', frInvitedGo: 'Invitations sent — waiting for players at the table' });
+Object.assign(I18N.pl.ui, { lbTitle: 'Otwarte stoły', lbHint: 'Stoły znajomych, Twojego klubu i te, do których Cię zaproszono', lbEmpty: 'Teraz nie ma otwartych stołów', lbSit: 'Usiądź', lbOpenMine: 'Otwórz', lbCodePh: 'Kod stołu', lbJoinCode: 'Usiądź po kodzie', lbVia: { friend: 'znajomy', club: 'klub', invite: 'zaproszenie', seated: 'Twoje miejsce', own: 'Twój stół' }, lbSeats: '{n} / {seats}', lbClosed: 'Stół jest już zamknięty', lbNotFound: 'Nie ma stołu o takim kodzie', lbHostSelf: 'To Twój własny stół', tbClosedByHost: 'Prowadzący zamknął stół', tbLeaveTable: 'Opuść stół', frGameRunning: 'Gra już trwa — znajomych zaprosisz do następnej', tbLeftToast: 'Wstałeś od stołu', tgPlayerLeft: 'Opuścił stół: {name}', frInvitedGo: 'Zaproszenia wysłane — czekamy na graczy przy stole' });
+Object.assign(I18N.hy.ui, { lbTitle: 'Բաց սեղաններ', lbHint: 'Ընկերների, ձեր ակումբի սեղանները և նրանք, ուր ձեզ կանչել են', lbEmpty: 'Այժմ բաց սեղաններ չկան', lbSit: 'Նստել', lbOpenMine: 'Բացել', lbCodePh: 'Սեղանի կոդ', lbJoinCode: 'Նստել կոդով', lbVia: { friend: 'ընկեր', club: 'ակումբ', invite: 'ձեզ կանչում են', seated: 'ձեր տեղը', own: 'ձեր սեղանը' }, lbSeats: '{n} / {seats}', lbClosed: 'Սեղանն արդեն փակ է', lbNotFound: 'Այդ կոդով սեղան չկա', lbHostSelf: 'Սա ձեր սեղանն է', tbClosedByHost: 'Վարողը փակեց սեղանը', tbLeaveTable: 'Թողնել սեղանը', frGameRunning: 'Խաղն արդեն ընթանում է․ ընկերներին կարող եք կանչել հաջորդին', tbLeftToast: 'Դուք դուրս եկաք սեղանից', tgPlayerLeft: 'Դուրս եկավ սեղանից՝ {name}', frInvitedGo: 'Հրավերներն ուղարկված են․ սպասում ենք խաղացողներին սեղանի մոտ' });
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
@@ -4682,8 +4682,8 @@ const $ = sel => document.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const U = () => L.ui;
 const SAVE_KEY = 'mafiapro.v1';
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; } } catch (e) {} }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
+function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; if (d.tgUser) S.tgUser = d.tgUser; } } catch (e) {} }
 
 let toastT = null;
 function toast(msg) { const old = $('.toast'); if (old) old.remove(); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2800); }
@@ -4944,7 +4944,7 @@ function setupScreen() {
   }
   const ok = !unowned.length && stats.total === st.n && (two2 ? dons === 2 : dons === 1);
   const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div><button class="btn xs ghost" data-a="scen-clear">×</button></div></div>` : '';
-  const sp = st.seatProfiles || [];
+  const sp = hostOffSeats();
   const names = Array.from({ length: st.n }, (_, i) => {
     const pr = sp[i] ? profById(sp[i]) : null;
     const inner = pr ? `<div class="seat-prof">${avatarHTML(pr, 'xs')}<span class="n" data-a="prof-open" data-id="${pr.id}" role="button">${esc(pr.name)}</span><button class="x" data-a="seat-clear" data-i="${i}" aria-label="${u.remove}">×</button></div>`
@@ -5515,7 +5515,7 @@ const ACT = {
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
-    const sp = S.setup.seatProfiles || [];
+    const sp = hostOffSeats();
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));
     S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.ui.showAll = false; go('deal');
   },
@@ -5632,6 +5632,14 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
 document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); if (el.dataset.a === 'pt-f') ACT['pt-f'](el); if (el.dataset.a === 'cl-f') ACT['cl-f'](el); if (el.dataset.a === 'cl-msg') ACT['cl-msg'](el); if (el.dataset.a === 'cl-inv-q') ACT['cl-inv-q'](el); });
 document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'cl-logo-file') ACT['cl-logo-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
 
+/* the host runs the game and never takes a seat: his own profile is removed from the seat list wherever it got in (older saves, another account on this phone) */
+function hostOffSeats() {
+  const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; if (!S.meId) return sp;
+  for (let i = 0; i < sp.length; i++) if (sp[i] === S.meId) sp[i] = null;
+  const me = profById(S.meId); const mine = me && me.tgId ? String(me.name || '').trim().toLowerCase() : ''; // in Telegram the host's own name on a seat is a leftover, not a player
+  if (mine) { const names = S.setup.names || []; const l = S.lobby; for (let i = 0; i < names.length; i++) { const seatedTg = l && l.seats && Object.values(l.seats).includes(i); if (!seatedTg && String(names[i] || '').trim().toLowerCase() === mine) names[i] = ''; } }
+  return sp;
+}
 /* ---------- boot ---------- */
 function start(hot) {
   setLang('ru');
@@ -5639,7 +5647,7 @@ function start(hot) {
   if (hot && hot.S) S = hot.S;
   if (!S.settings.lang) S.settings.lang = detectLang();
   setLang(S.settings.lang);
-  ensureMe(); seedDemoProfiles();
+  ensureMe(); seedDemoProfiles(); hostOffSeats();
   try { applyLite(); } catch (e) {}
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S }));
   if (S.screen === 'deal' && !S.game) S.screen = 'home';
@@ -5665,6 +5673,9 @@ function ensureMe() {
   try {
     const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
     if (!u) return;
+    // another Telegram account used this phone before: its table, game and seats are not ours (the Mini App's storage is shared per device)
+    if (S.tgUser && S.tgUser !== u.id) { S.lobby = null; if (S.game && S.game.tg) S.game = null; S.setup.seatProfiles = []; S.cloud = null; S.owned = { roles: [], scenarios: [] }; }
+    S.tgUser = u.id;
     let me = S.profiles.find(p => p.tgId === u.id);
     if (!me) { me = newProfile({ name: [u.first_name, u.last_name].filter(Boolean).join(' '), username: u.username || '', avatar: u.photo_url || null, tgId: u.id }); S.profiles.unshift(me); }
     S.meId = me.id;
@@ -6227,6 +6238,8 @@ function lobbyAutoSeat(g) {
 function currentLobby() { return S.game && S.game.tg && !S.game.winner ? S.game.tg : (S.lobby || null); } // a finished game's table is history: new invitations open a fresh table
 function lobbyIsOpen() { const l = currentLobby(); const g = S.game && !S.game.winner ? S.game : null; return !!(l && l.code && !(g && l === g.tg && g.dealIdx >= g.players.length)); }
 async function openTable(fresh) {
+  const live = S.game && !S.game.winner && S.game.tg && S.game.tg.code ? S.game : null;
+  if (live && live.dealIdx >= live.players.length) { toast(U().frGameRunning); return null; } // a running game keeps its table: no second table, nobody kicked out
   const d = await api('/api/lobby', { fresh: !!fresh }); if (!d.ok) { toast(U().tgOffline); return null; }
   const l = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [], seats: {} };
   if (S.game && !S.game.winner) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
@@ -6242,7 +6255,9 @@ function keepFocus(fn) {
 const selectOpen = () => { try { const a = document.activeElement; return !!(a && a.tagName === 'SELECT'); } catch (e) { return false; } };
 async function refreshTable() {
   const l = currentLobby(); if (!l || !l.code) return;
-  const d = await api('/api/lobby/status', { code: l.code }); if (!d.ok) return false;
+  const d = await api('/api/lobby/status', { code: l.code });
+  if (!d.ok) { if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
+  if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; }
   const beforeIds = l.players.map(p => p.tgId); const beforeJson = JSON.stringify(l.players);
   l.players = (d.players || []).filter(pl => !(S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id)); // the host never sits as a player
   if (S.game && S.game.tg === l) lobbyAutoSeat(S.game); else setupAutoSeat();
@@ -6409,7 +6424,8 @@ Object.assign(ACT, {
       if (!S.setup.scenario && !S.setup.comp) S.setup.comp = presetFor(S.setup.n); go('setup'); return; // on to the table: seats fill in as the players accept
     }
     const g = S.game;
-    if (!g.tg || !g.tg.code || g.dealIdx >= g.players.length) { if (!(await openTable(!!(g.tg && g.tg.code)))) return; }
+    if (g.tg && g.tg.code && g.dealIdx >= g.players.length) { toast(U().frGameRunning); return; } // the cards are out: this game's table is full
+    if (!g.tg || !g.tg.code) { if (!(await openTable(false))) return; }
     const r = await api('/api/friends/invite', { code: g.tg.code, friendIds: sel });
     if (!r.ok) { toast(U().tgOffline); return; }
     toast(tt(U().frInvited, { n: (r.sent || []).length }) + ((r.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = [];
@@ -6896,7 +6912,7 @@ function tablePub(g) {
     if (st === 'lift' && b.lift) pub.dayInfo.lift = { ids: b.lift.ids.map(seatOf), yes: b.lift.yes.length, need: liftNeed(g) };
     if (st === 'result' && g.voteResult) { const vr = g.voteResult; pub.dayInfo.result = { eliminated: vr.eliminatedId ? seatOf(vr.eliminatedId) : null, removed: (vr.removed || []).map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: reveal ? P(g, d.id).roleId : undefined })), vetoed: !!vr.vetoed, tally: ((vr.tally && vr.tally.rows) || []).map(r => ({ seat: seatOf(r.cid), total: r.total })), roulette: vr.roulette && vr.roulette.hitId ? { number: vr.roulette.number, seat: seatOf(vr.roulette.hitId) } : null, lift: vr.lift ? { yes: vr.lift.yes, need: vr.lift.need, passed: vr.lift.passed } : null, immune: vr.immune ? seatOf(vr.immune.id) : null, trig: g.pendingTriggers && g.pendingTriggers[0] ? { type: g.pendingTriggers[0].type, seat: seatOf(g.pendingTriggers[0].actorId) } : null }; }
   }
-  pub.timer = T.key && S.screen === 'game' ? { key: T.key, total: T.total, left: T.left, running: T.running, at: Date.now() } : null;
+  pub.timer = T.key && S.screen === 'game' && document.querySelector('#timer') ? { key: T.key, total: T.total, left: T.left, running: T.running, at: Date.now() } : null; // only while the host's screen shows the timer — not a stale speech clock at night
   return pub;
 }
 function tablePriv(g) {
@@ -6957,7 +6973,7 @@ function modeSegmentHTML() {
 
 /* host: the same round table the players see, plus who is in the list already */
 function hostTableHTML(st) {
-  if (!TG.app || !apiBase()) return ''; const l = S.lobby; if (!l || !l.code || S.game) return '';
+  if (!TG.app || !apiBase()) return ''; const l = S.lobby; if (!l || !l.code || (S.game && !S.game.winner)) return ''; // a finished game is history: the new table's waiting room shows
   const u = U(); const seats = []; const profiles = {}; const marks = {};
   l.players.forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
   for (let i = 0; i < st.n; i++) { const e = Object.entries(l.seats || {}).find(([k, v]) => Number(v) === i); const pl = e && l.players.find(p => p.tgId === Number(e[0])); const prof = (st.seatProfiles || [])[i] ? profById(st.seatProfiles[i]) : null; const name = (st.names[i] || '').trim() || (pl ? pl.name : '') || (prof ? prof.name : ''); seats.push({ seat: i + 1, name: name || u.tbSeatFree, tgId: e ? Number(e[0]) : null, alive: true }); if (!name) marks[i + 1] = { dim: true }; if (pl) marks[i + 1] = { joined: true }; }
@@ -7006,10 +7022,10 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
   const u = U(); const n = Math.max(1, seats.length); const size = n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm';
   const items = seats.map((s, i) => {
     const ang = -Math.PI / 2 + 2 * Math.PI * i / n; const x = 50 + 43 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
-    const pr = s.tgId && profiles ? profiles[s.tgId] : null; const name = s.name || (pr ? pr.name : '') || '…';
-    const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
-    const m = marks[s.seat] || {};
-    const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'speaker' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : ''].filter(Boolean).join(' ');
+    const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
+    const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${free ? '·' : esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
+    const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
+    const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : ''].filter(Boolean).join(' ');
     const act = m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
     return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `<div class="rt-meta">${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });

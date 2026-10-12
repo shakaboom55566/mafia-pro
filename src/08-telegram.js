@@ -149,6 +149,8 @@ function lobbyAutoSeat(g) {
 function currentLobby() { return S.game && S.game.tg && !S.game.winner ? S.game.tg : (S.lobby || null); } // a finished game's table is history: new invitations open a fresh table
 function lobbyIsOpen() { const l = currentLobby(); const g = S.game && !S.game.winner ? S.game : null; return !!(l && l.code && !(g && l === g.tg && g.dealIdx >= g.players.length)); }
 async function openTable(fresh) {
+  const live = S.game && !S.game.winner && S.game.tg && S.game.tg.code ? S.game : null;
+  if (live && live.dealIdx >= live.players.length) { toast(U().frGameRunning); return null; } // a running game keeps its table: no second table, nobody kicked out
   const d = await api('/api/lobby', { fresh: !!fresh }); if (!d.ok) { toast(U().tgOffline); return null; }
   const l = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [], seats: {} };
   if (S.game && !S.game.winner) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
@@ -164,7 +166,9 @@ function keepFocus(fn) {
 const selectOpen = () => { try { const a = document.activeElement; return !!(a && a.tagName === 'SELECT'); } catch (e) { return false; } };
 async function refreshTable() {
   const l = currentLobby(); if (!l || !l.code) return;
-  const d = await api('/api/lobby/status', { code: l.code }); if (!d.ok) return false;
+  const d = await api('/api/lobby/status', { code: l.code });
+  if (!d.ok) { if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
+  if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; }
   const beforeIds = l.players.map(p => p.tgId); const beforeJson = JSON.stringify(l.players);
   l.players = (d.players || []).filter(pl => !(S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id)); // the host never sits as a player
   if (S.game && S.game.tg === l) lobbyAutoSeat(S.game); else setupAutoSeat();
@@ -331,7 +335,8 @@ Object.assign(ACT, {
       if (!S.setup.scenario && !S.setup.comp) S.setup.comp = presetFor(S.setup.n); go('setup'); return; // on to the table: seats fill in as the players accept
     }
     const g = S.game;
-    if (!g.tg || !g.tg.code || g.dealIdx >= g.players.length) { if (!(await openTable(!!(g.tg && g.tg.code)))) return; }
+    if (g.tg && g.tg.code && g.dealIdx >= g.players.length) { toast(U().frGameRunning); return; } // the cards are out: this game's table is full
+    if (!g.tg || !g.tg.code) { if (!(await openTable(false))) return; }
     const r = await api('/api/friends/invite', { code: g.tg.code, friendIds: sel });
     if (!r.ok) { toast(U().tgOffline); return; }
     toast(tt(U().frInvited, { n: (r.sent || []).length }) + ((r.failed || []).length ? ' · ' + tt(U().frInviteFail, { n: r.failed.length }) : '')); tgHaptic('success'); S.ui.frSel = [];

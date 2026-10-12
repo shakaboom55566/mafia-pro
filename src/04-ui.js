@@ -12,8 +12,8 @@ const $ = sel => document.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const U = () => L.ui;
 const SAVE_KEY = 'mafiapro.v1';
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; } } catch (e) {} }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
+function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; if (d.tgUser) S.tgUser = d.tgUser; } } catch (e) {} }
 
 let toastT = null;
 function toast(msg) { const old = $('.toast'); if (old) old.remove(); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2800); }
@@ -274,7 +274,7 @@ function setupScreen() {
   }
   const ok = !unowned.length && stats.total === st.n && (two2 ? dons === 2 : dons === 1);
   const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div><button class="btn xs ghost" data-a="scen-clear">×</button></div></div>` : '';
-  const sp = st.seatProfiles || [];
+  const sp = hostOffSeats();
   const names = Array.from({ length: st.n }, (_, i) => {
     const pr = sp[i] ? profById(sp[i]) : null;
     const inner = pr ? `<div class="seat-prof">${avatarHTML(pr, 'xs')}<span class="n" data-a="prof-open" data-id="${pr.id}" role="button">${esc(pr.name)}</span><button class="x" data-a="seat-clear" data-i="${i}" aria-label="${u.remove}">×</button></div>`
@@ -845,7 +845,7 @@ const ACT = {
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
-    const sp = S.setup.seatProfiles || [];
+    const sp = hostOffSeats();
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));
     S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.ui.showAll = false; go('deal');
   },
@@ -962,6 +962,14 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
 document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); if (el.dataset.a === 'pt-f') ACT['pt-f'](el); if (el.dataset.a === 'cl-f') ACT['cl-f'](el); if (el.dataset.a === 'cl-msg') ACT['cl-msg'](el); if (el.dataset.a === 'cl-inv-q') ACT['cl-inv-q'](el); });
 document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'cl-logo-file') ACT['cl-logo-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
 
+/* the host runs the game and never takes a seat: his own profile is removed from the seat list wherever it got in (older saves, another account on this phone) */
+function hostOffSeats() {
+  const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; if (!S.meId) return sp;
+  for (let i = 0; i < sp.length; i++) if (sp[i] === S.meId) sp[i] = null;
+  const me = profById(S.meId); const mine = me && me.tgId ? String(me.name || '').trim().toLowerCase() : ''; // in Telegram the host's own name on a seat is a leftover, not a player
+  if (mine) { const names = S.setup.names || []; const l = S.lobby; for (let i = 0; i < names.length; i++) { const seatedTg = l && l.seats && Object.values(l.seats).includes(i); if (!seatedTg && String(names[i] || '').trim().toLowerCase() === mine) names[i] = ''; } }
+  return sp;
+}
 /* ---------- boot ---------- */
 function start(hot) {
   setLang('ru');
@@ -969,7 +977,7 @@ function start(hot) {
   if (hot && hot.S) S = hot.S;
   if (!S.settings.lang) S.settings.lang = detectLang();
   setLang(S.settings.lang);
-  ensureMe(); seedDemoProfiles();
+  ensureMe(); seedDemoProfiles(); hostOffSeats();
   try { applyLite(); } catch (e) {}
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S }));
   if (S.screen === 'deal' && !S.game) S.screen = 'home';

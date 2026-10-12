@@ -469,7 +469,9 @@ const path = require('path'); const http = require('http');
   ok(await waitQ(() => TB.data.pub.phase === 'night0' && TB.data.pub.step && TB.data.pub.step.roleId === 'don'), 'player sees night 0 with the family meeting');
   await S(() => { while (S.game.phase === 'night0' && S.game.stepIdx < S.game.steps.length) ACT.next({ dataset: {} }); ACT.day0({ dataset: {} }); }); await p.waitForTimeout(300);
   ok(await S(() => S.game.phase === 'day' && S.game.day === 1 && S.game.dayStage === 'speeches'), 'classic: day 1 speeches');
+  ok(await waitQ(() => TB.data.pub.phase === 'day' && !!TB.data.pub.timer && !!document.querySelector('#tb-timer')), 'speech timer shown to the player during day 1 speeches');
   await S(() => { ACT.stage({ dataset: { id: 'vote' } }); ACT['vote-none']({ dataset: {} }); ACT.night({ dataset: {} }); }); await p.waitForTimeout(300);
+  ok(await waitQ(() => TB.data.pub.phase === 'night' && !TB.data.pub.timer && !document.querySelector('#tb-timer')), 'no stale speech clock on the player’s screen at night');
   ok(await S(() => S.game.phase === 'night' && S.game.night === 1 && S.game.steps[0].ability === 'shoot'), 'night 1: the family shot is the first step');
   ok(await waitQ(() => TB.data.pub.phase === 'night' && TB.data.me.ask && TB.data.me.ask.kind === 'shoot' && TB.data.me.ask.key.startsWith('night1:s0:')), 'the Don is asked to shoot');
   // the mafioso (602, via API) proposes seat 5; the Don sees the proposal and shoots seat 5
@@ -498,6 +500,8 @@ const path = require('path'); const http = require('http');
   await S(() => { const g = S.game; const order = speakOrder(g); g.speechIdx = order.findIndex(x => x.seat === 3); render(); }); await p.waitForTimeout(300);
   ok(await waitQ(() => TB.data.pub.dayInfo.stage === 'speeches' && TB.data.pub.dayInfo.speaker === 3 && TB.data.pub.chat === 'speaker' && TB.data.pub.chatSeat === 3 && TB.data.me.ask && TB.data.me.ask.kind === 'nominate'), 'Нина speaks: chat open for the speaker, nomination offered');
   ok(!!(await q.$('#tb-timer')) && !!(await q.$('#tb-msg:not([disabled])')), 'timer and chat input on the player’s screen');
+  const spk = await Q(() => { const el = document.querySelector('.rt-seat.spk'); if (!el) return null; const av = el.querySelector('.rt-av').getBoundingClientRect(); const nm = el.querySelector('.rt-nm'); return { display: getComputedStyle(el).display, w: Math.round(av.width), h: Math.round(av.height), nameBelow: nm ? nm.getBoundingClientRect().top >= av.bottom - 1 : true, name: nm && nm.textContent }; });
+  ok(spk && spk.display !== 'flex' && spk.w === spk.h && spk.nameBelow && spk.name && spk.name.includes('Нина'), 'speaking player’s seat keeps its layout (round avatar, name under it): ' + JSON.stringify(spk));
   await q.fill('#tb-msg', 'Я мирная, верьте мне'); await q.press('#tb-msg', 'Enter'); await q.waitForTimeout(900);
   ok(await Q(() => TB.chat.some(m => m.text === 'Я мирная, верьте мне' && m.me)), 'chat message sent and shown');
   const hostChat = await (await fetch('http://127.0.0.1:8791/api/table/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData, code: oc, since: 0 }) })).json();
@@ -547,9 +551,17 @@ const path = require('path'); const http = require('http');
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'friend' && S.ui.sheet.id === 602) && (await q.$eval('.sheet', el => el.textContent)).includes('Гена'), 'tapping a player on the podium opens his profile');
   await Q(() => { S.ui.sheet = null; render(); });
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-end.png') }).catch(() => {});
-  // a new table: Нина joins by code from the home screen, the host closes the table → she sees "the host closed the table"
-  await S(() => { S.game = null; S.lobby = null; save(); go('setup'); S.setup.online = true; return openTable(true); }); await p.waitForTimeout(600);
+  // the host's own profile never takes a seat, even if an old save (or another account on this phone) put it there
+  await S(() => { S.setup.seatProfiles = [S.meId, null]; S.lobby = null; go('setup'); }); await p.waitForTimeout(300);
+  ok(await S(() => S.setup.seatProfiles[0] === null && !!document.querySelector('#name-0') && !document.querySelector('.seat-prof')), 'host’s profile dropped from seat 1 on the setup screen');
+  // after a finished game the new table's waiting room shows on the setup screen (the old game is history)
+  await S(() => { S.setup.online = true; return openTable(true); }); await p.waitForTimeout(600);
   const nc = await S(() => S.lobby && S.lobby.code); ok(!!nc && nc !== oc, 'host opened a fresh table ' + nc);
+  ok(await S(() => !!S.game && !!S.game.winner && S.screen === 'setup' && !!document.querySelector('.rtable') && document.querySelector('#app').textContent.includes(U().tbLobby)), 'waiting room visible on the setup screen while the finished game is still in memory');
+  // another Telegram account opening the app on this phone must not inherit this table
+  ok(await S(() => { const keep = { lobby: S.lobby, game: S.game, user: S.tgUser, cloud: S.cloud, owned: S.owned }; S.tgUser = 424242; ensureMe(); const dropped = !S.lobby && !S.cloud && !S.game; S.lobby = keep.lobby; S.game = keep.game; S.tgUser = keep.user; S.cloud = keep.cloud; S.owned = keep.owned; ensureMe(); return dropped && S.tgUser === keep.user && !!S.lobby; }), 'a different account on the same phone starts without the other account’s table');
+  await S(() => { S.game = null; save(); go('setup'); }); await p.waitForTimeout(300);
+  // a new table: Нина joins by code from the home screen, the host closes the table → she sees "the host closed the table"
   await Q(() => { S.ui.sheet = null; go('home'); }); await q.waitForTimeout(300);
   await q.fill('#lb-code', nc.toLowerCase()); await q.click('[data-a="lb-join"][data-code=""]'); await q.waitForTimeout(1200);
   ok(await q.evaluate(c => S.screen === 'table' && TB.code === c && TB.data && TB.data.status === 'open', nc), 'joined by code typed in lowercase → waiting room');
@@ -569,6 +581,8 @@ const path = require('path'); const http = require('http');
   await Q(() => tableOpen(TB.code || S.cloud.table.code)); await q.waitForTimeout(600);
   await S(() => go('setup')); await p.waitForTimeout(300); await p.click('[data-a="tg-close-table"]'); await p.waitForTimeout(900);
   ok(await S(() => !S.lobby), 'host closed the table');
+  // a table the server no longer counts as ours is dropped quietly on refresh (no "server unavailable")
+  await p.evaluate(c => { S.lobby = { code: c, link: '', players: [], map: {}, sent: [], seats: {} }; }, nc); ok((await S(() => refreshTable())) !== false && await S(() => !S.lobby), 'closed table dropped from the host’s setup without an error toast');
   await Q(() => tableFetch()); await q.waitForTimeout(700);
   const closedTxt = await q.$eval('#app', el => el.textContent);
   ok(await Q(() => TB.data && TB.data.status === 'closed') && closedTxt.includes(await Q(() => U().tbClosedByHost)) && !(await q.$('.rtable')), 'player sees "the host closed the table" instead of the waiting room: ' + await Q(() => JSON.stringify({ st: TB.data && TB.data.status, err: TB.err, scr: S.screen })) + ' host=' + await S(() => JSON.stringify({ lobby: S.lobby, calls: window.__closeCalls })));

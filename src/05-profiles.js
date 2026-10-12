@@ -16,6 +16,9 @@ function ensureMe() {
   try {
     const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
     if (!u) return;
+    // another Telegram account used this phone before: its table, game and seats are not ours (the Mini App's storage is shared per device)
+    if (S.tgUser && S.tgUser !== u.id) { S.lobby = null; if (S.game && S.game.tg) S.game = null; S.setup.seatProfiles = []; S.cloud = null; S.owned = { roles: [], scenarios: [] }; }
+    S.tgUser = u.id;
     let me = S.profiles.find(p => p.tgId === u.id);
     if (!me) { me = newProfile({ name: [u.first_name, u.last_name].filter(Boolean).join(' '), username: u.username || '', avatar: u.photo_url || null, tgId: u.id }); S.profiles.unshift(me); }
     S.meId = me.id;
