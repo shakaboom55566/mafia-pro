@@ -90,7 +90,7 @@ p { margin: 0; }
 .brand em { font-style: normal; color: var(--gold); }
 
 /* ---------- Tab bar ---------- */
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center; background: rgba(11,10,14,.92); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center; background: rgba(11,10,14,.92); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .tabbar .inner { width: 100%; max-width: 480px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); height: var(--tab-h); }
 .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .02em; transition: color .2s; }
 .tab svg { width: 22px; height: 22px; }
@@ -200,6 +200,7 @@ p { margin: 0; }
 .seal { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 900; font-size: 18px; letter-spacing: -.02em; position: relative; flex: none; color: var(--fg); background: radial-gradient(circle at 35% 30%, var(--seal-hi, #4a4455), var(--seal-lo, #221d2b) 70%); box-shadow: inset 0 0 0 2px var(--seal-ring, var(--gold-dim)), inset 0 0 0 4px rgba(0,0,0,.35), 0 4px 14px -6px rgba(0,0,0,.8); }
 .seal::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--seal-ring, var(--gold-dim)); box-shadow: inset 0 0 0 3px rgba(0,0,0,.35), inset 0 0 12px rgba(0,0,0,.5); pointer-events: none; }
 .seal { overflow: hidden; }
+.seal.hidden-role { background: var(--bg-3); color: var(--muted); border: 2px dashed var(--line-2); font-size: 22px; }
 .seal .art-svg { width: 100%; height: 100%; display: block; }
 .ri { display: inline-block; border-radius: 50%; overflow: hidden; vertical-align: middle; flex: none; border: 1px solid var(--line-2); }
 .ri .art-svg { width: 100%; height: 100%; display: block; }
@@ -269,7 +270,7 @@ p { margin: 0; }
 .chip.active { background: var(--gold); color: #1a1206; border-color: transparent; }
 
 /* ---------- Modal / sheet ---------- */
-.sheet-bg { position: fixed; inset: 0; z-index: 50; background: rgba(5,4,8,.72); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; }
+.sheet-bg { position: fixed; inset: 0; z-index: 50; background: rgba(5,4,8,.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; }
 .sheet-bg.enter { animation: fadeIn .2s ease; }
 .sheet { width: 100%; max-width: 480px; max-height: 92%; overflow: auto; background: var(--bg-2); border-radius: 22px 22px 0 0; border: 1px solid var(--line); border-bottom: 0; padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
 .sheet-bg.enter .sheet { animation: sheetUp .32s cubic-bezier(.2,.8,.2,1); }
@@ -485,15 +486,17 @@ p { margin: 0; }
 
 /* Settings */
 .setting { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.setting > div:first-child { flex: 1 1 auto; min-width: 0; }
 .setting .t { font-weight: 700; font-size: 14px; }
 .setting .d { font-size: 12px; color: var(--muted); }
-.setting .ctl { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.setting .ctl { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .setting .ctl button { width: 30px; height: 30px; border-radius: 9px; background: var(--bg-3); border: 1px solid var(--line-2); font-weight: 800; }
 .setting .ctl .v { min-width: 44px; text-align: center; font-family: var(--font-mono); font-weight: 700; }
-.switch { width: 46px; height: 28px; border-radius: 999px; background: var(--bg-3); border: 1px solid var(--line-2); position: relative; transition: background .2s; }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; }
-.switch.on { background: var(--gold); border-color: transparent; }
-.switch.on::after { transform: translateX(18px); background: #1a1206; }
+/* the switch: a clear track and knob that fit inside the row on every phone (the generic .ctl button size must not shrink it) */
+.switch, .setting .ctl button.switch { width: 52px; height: 32px; min-width: 52px; padding: 0; border-radius: 999px; background: var(--bg-3); border: 1.5px solid var(--line-2); position: relative; transition: background .2s, border-color .2s; flex: 0 0 auto; overflow: visible; -webkit-tap-highlight-color: transparent; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 23px; height: 23px; border-radius: 50%; background: var(--fg-2); box-shadow: 0 1px 3px rgba(0,0,0,.5); transition: transform .2s, background .2s; }
+.switch.on, .setting .ctl button.switch.on { background: var(--gold); border-color: var(--gold); }
+.switch.on::after { transform: translateX(20px); background: #1a1206; }
 
 /* Scenario list */
 .scen { display: flex; flex-direction: column; gap: 8px; }
@@ -725,6 +728,12 @@ select.input { appearance: none; -webkit-appearance: none; }
 html.lite .art-svg .fx-rise, html.lite .art-svg .fx-swing, html.lite .art-svg .fx-pulse, html.lite .art-svg .fx-rain, html.lite .art-svg .fx-drift, html.lite .cardback .back-shine, html.lite .cardback .back-ring, html.lite .gem, html.lite .phase-head .star, html.lite .back-art .fx-pulse { animation: none !important; }
 html.lite .card .shine, html.lite .cardback .back-shine { display: none !important; }
 html.lite .tabbar, html.lite .topbar, html.lite .sheet-bg { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* older WebKit (iOS 14 and below) has no aspect-ratio: the same boxes through padding-top */
+@supports not (aspect-ratio: 1 / 1) {
+  .flip::before, .card3d::before { content: ""; display: block; padding-top: 150%; }
+  .card .art::before { content: ""; display: block; padding-top: 62.5%; }
+  .card .art .art-svg, .card .art > svg, .card .art > img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+}
 html.lite .tabbar { background: rgba(11,10,14,.98); }
 html.lite .card .art { box-shadow: none; }
 html.lite .card.mini.premium { box-shadow: 0 0 0 1.5px #8a6a2b, 0 0 0 3px #f0cd7a; }

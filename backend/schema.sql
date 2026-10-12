@@ -234,3 +234,11 @@ CREATE TABLE IF NOT EXISTS user_cities (
   city       TEXT,
   updated_at INTEGER NOT NULL
 );
+
+-- per-table options (v31): the creator may sit as a player and invite someone else to host; the format chosen for the table
+CREATE TABLE IF NOT EXISTS lobby_opts (
+  code       TEXT PRIMARY KEY,
+  host_plays INTEGER NOT NULL DEFAULT 0,
+  online     INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);

@@ -89,9 +89,9 @@ function tablePub(g) {
     for (let i = 0; i < st.n; i++) { const e = Object.entries(lb.seats || {}).find(([k, v]) => Number(v) === i); const pl = e && lb.players.find(p => p.tgId === Number(e[0])); const prof = (st.seatProfiles || [])[i] ? profById(st.seatProfiles[i]) : null; seats.push({ seat: i + 1, name: (st.names[i] || '').trim() || (pl ? pl.name : '') || (prof ? prof.name : ''), tgId: e ? Number(e[0]) : null, alive: true }); }
     return { v: 2, phase: 'lobby', code, n: st.n, mode: st.scenario === 'classic' ? 'classic' : 'extended', online: !!st.online, host: hostName(), seats };
   }
-  const reveal = !!S.settings.revealDead;
-  const seats = g.players.map(p => { const s = { seat: p.seat, name: p.name, tgId: seatTg(g, p.seat), alive: p.alive, votedOut: !!p.votedOut, fouls: p.fouls || 0 }; if (g.winner || (!p.alive && reveal)) { s.roleId = p.roleId; s.family = p.family || null; } return s; });
-  const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', online: !!g.online, host: hostName(), day: g.day, night: g.night, seats, chat: false };
+  const reveal = revealDeadIn(g); const shown = p => roleShown(g, p);
+  const seats = g.players.map(p => { const s = { seat: p.seat, name: p.name, tgId: seatTg(g, p.seat), alive: p.alive, votedOut: !!p.votedOut, fouls: p.fouls || 0 }; if (g.winner || (!p.alive && shown(p))) { s.roleId = p.roleId; s.family = p.family || null; } return s; });
+  const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', online: !!g.online, openRoles: reveal, host: hostName(), day: g.day, night: g.night, seats, chat: false };
   if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; }
     let rv = null; try { rv = reviewGame(g); } catch (e) { rv = null; }
     const itemsOf = seat => { const p = g.players.find(x => x.seat === seat); const r = rv && p ? rv.byId[p.id] : null; return r && r.items ? r.items.slice(0, 20).map(it => ({ when: it.when, action: it.action, target: it.target, verdict: it.verdict, reason: it.reason || '', better: it.better || '', pts: it.pts || 0 })) : []; };
@@ -107,14 +107,14 @@ function tablePub(g) {
     // chat: everyone in the morning and the free discussion; during speeches only the speaker while their timer runs; closed from the vote on
     pub.chat = (st === 'morning' || st === 'balagan') ? 'all' : (st === 'speeches' || st === 'tie') ? 'speaker' : false;
     pub.dayInfo = { stage: st, round: b.round || 1 };
-    if (st === 'morning') { const r = g.nightResult || { removed: [] }; pub.dayInfo.removed = r.removed.map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: reveal ? P(g, d.id).roleId : undefined })); if (isClassic(g) && g.bestMove) pub.dayInfo.bestMove = { seat: seatOf(g.bestMove.by), picks: g.bestMove.picks.map(seatOf) }; }
+    if (st === 'morning') { const r = g.nightResult || { removed: [] }; pub.dayInfo.removed = r.removed.map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined })); if (isClassic(g) && g.bestMove) pub.dayInfo.bestMove = { seat: seatOf(g.bestMove.by), picks: g.bestMove.picks.map(seatOf) }; }
     if (st === 'speeches') { const order = speakOrder(g); const p = order[g.speechIdx]; pub.dayInfo.speaker = p ? p.seat : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = order.length; pub.chatSeat = p ? p.seat : null; if (!p) pub.chat = false; }
     if (['speeches', 'vote', 'tie', 'roulette', 'lift', 'result'].includes(st)) pub.dayInfo.candidates = (b.candidates || []).map(seatOf);
     if (st === 'vote') { const t = tally(g); pub.dayInfo.votes = Object.fromEntries(Object.entries(b.votes || {}).map(([v, c]) => [seatOf(v), seatOf(c)])); pub.dayInfo.tally = t.rows.map(r => ({ seat: seatOf(r.cid), total: r.total })); pub.dayInfo.voters = alive(g).filter(v => canVoteNow(g, v.id)).map(v => v.seat); }
     if (st === 'tie') { const tied = b.tiedIds || []; pub.dayInfo.tied = tied.map(seatOf); pub.dayInfo.speaker = tied[g.speechIdx] ? seatOf(tied[g.speechIdx]) : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = tied.length; pub.chatSeat = pub.dayInfo.speaker; if (!pub.chatSeat) pub.chat = false; }
     if (st === 'roulette' && b.roulette) { const cur = rouletteCurrent(g); pub.dayInfo.roulette = { order: b.roulette.order.map(seatOf), turn: cur ? cur.seat : null, guesses: b.roulette.guesses.map(x => ({ seat: seatOf(x.pid), n: x.n })) }; }
     if (st === 'lift' && b.lift) pub.dayInfo.lift = { ids: b.lift.ids.map(seatOf), yes: b.lift.yes.length, need: liftNeed(g) };
-    if (st === 'result' && g.voteResult) { const vr = g.voteResult; pub.dayInfo.result = { eliminated: vr.eliminatedId ? seatOf(vr.eliminatedId) : null, removed: (vr.removed || []).map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: reveal ? P(g, d.id).roleId : undefined })), vetoed: !!vr.vetoed, tally: ((vr.tally && vr.tally.rows) || []).map(r => ({ seat: seatOf(r.cid), total: r.total })), roulette: vr.roulette && vr.roulette.hitId ? { number: vr.roulette.number, seat: seatOf(vr.roulette.hitId) } : null, lift: vr.lift ? { yes: vr.lift.yes, need: vr.lift.need, passed: vr.lift.passed } : null, immune: vr.immune ? seatOf(vr.immune.id) : null, trig: g.pendingTriggers && g.pendingTriggers[0] ? { type: g.pendingTriggers[0].type, seat: seatOf(g.pendingTriggers[0].actorId) } : null }; }
+    if (st === 'result' && g.voteResult) { const vr = g.voteResult; pub.dayInfo.result = { eliminated: vr.eliminatedId ? seatOf(vr.eliminatedId) : null, removed: (vr.removed || []).map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined })), vetoed: !!vr.vetoed, tally: ((vr.tally && vr.tally.rows) || []).map(r => ({ seat: seatOf(r.cid), total: r.total })), roulette: vr.roulette && vr.roulette.hitId ? { number: vr.roulette.number, seat: seatOf(vr.roulette.hitId) } : null, lift: vr.lift ? { yes: vr.lift.yes, need: vr.lift.need, passed: vr.lift.passed } : null, immune: vr.immune ? seatOf(vr.immune.id) : null, trig: g.pendingTriggers && g.pendingTriggers[0] ? { type: g.pendingTriggers[0].type, seat: seatOf(g.pendingTriggers[0].actorId) } : null }; }
   }
   pub.timer = T.key && S.screen === 'game' && document.querySelector('#timer') ? { key: T.key, total: T.total, left: T.left, running: T.running, at: Date.now() } : null; // only while the host's screen shows the timer — not a stale speech clock at night
   return pub;
@@ -170,7 +170,7 @@ function onlineStripHTML(g) {
 }
 /* host: the game format chooser above the table panel on the setup screen */
 function modeSegmentHTML() {
-  if (!TG.app || !apiBase()) return '';
+  if (!TG.app || !apiBase()) return ''; if (S.setup.scenario === 'classic') return ''; // classic is offered at a live table only (chosen via scen-use)
   const u = U(); const on = !!S.setup.online;
   return `<div class="panel"><div class="eyebrow">${u.onMode}</div><div class="segment n2" style="margin-top:8px"><button class="${on ? '' : 'active'}" data-a="on-mode" data-id="offline">${u.onOffline}</button><button class="${on ? 'active' : ''}" data-a="on-mode" data-id="online">${u.onOnline}</button></div><div class="hint" style="margin-top:8px">${on ? u.onOnlineD : u.onOfflineD}</div>${on ? `<div class="hint" style="margin-top:4px">${u.onNeedSeats}</div>` : ''}</div>`;
 }
@@ -194,7 +194,7 @@ async function tableFetch() {
   try {
     const d = await api('/api/table/state', { code: TB.code, since: TB.lastChat }); if (!d.ok) { TB.err = d.error || 'network'; if (S.screen === 'table') render(); return; }
     const prevKey = TB.data && TB.data.me && TB.data.me.ask ? TB.data.me.ask.key : null; const prevPhase = TB.data && TB.data.pub ? TB.data.pub.phase + (TB.data.pub.day || '') : '';
-    const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
+    const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + TB.data.hostPlays + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
     const first = !TB.data; TB.data = d; TB.err = null; TB.at = Date.now();
     const newChat = !!(d.chat && d.chat.length);
     if (newChat) { TB.chat = TB.chat.concat(d.chat).slice(-300); TB.lastChat = TB.chat[TB.chat.length - 1].id; }
@@ -204,7 +204,7 @@ async function tableFetch() {
     if (d.pub && d.pub.phase + (d.pub.day || '') !== prevPhase) TB.pick = [];
     if (Array.isArray(d.invites)) { S.cloud = S.cloud || {}; S.cloud.invites = d.invites; }
     if (d.pub && d.pub.phase === 'end' && !TB.endSynced) { TB.endSynced = true; setTimeout(() => { try { cloudSync(); } catch (e) {} }, 500); } // my rating is updated after the game
-    const sig = d.version + '|' + d.status + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
+    const sig = d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
     if (S.screen === 'table' && (first || newChat || sig !== prevSig)) { keepFocus(render); if (newChat) scrollTbChat(); }
   } finally { TB.busy = false; }
 }
@@ -217,7 +217,7 @@ function tablePoll() {
   if (!want && TB.tick) { clearInterval(TB.tick); TB.tick = null; }
 }
 function tbTimerLeft(tm) { if (!tm) return null; const el = tm.running ? Math.round((Date.now() - tm.at) / 1000) : 0; return tm.left - el; }
-function tbTimerPaint() { const el = document.querySelector('#tb-timer'); const tm = TB.data && TB.data.pub && TB.data.pub.timer; if (!el || !tm) return; const left = tbTimerLeft(tm); const m = Math.floor(Math.abs(left) / 60), s = Math.abs(left) % 60; el.textContent = (left < 0 ? '-' : '') + m + ':' + String(s).padStart(2, '0'); el.classList.toggle('over', left <= 0); if (left === 0 && TB.data.pub.chat === 'speaker') keepFocus(render); }
+function tbTimerPaint() { const el = document.querySelector('#tb-timer'); const tm = TB.data && TB.data.pub && TB.data.pub.timer; if (!el || !tm) return; const left = Math.max(0, tbTimerLeft(tm)); const m = Math.floor(left / 60), s = left % 60; el.textContent = m + ':' + String(s).padStart(2, '0'); el.classList.toggle('over', left <= 0); if (left === 0) { if (!TB.tOver) { TB.tOver = true; if (TB.data.pub.chat === 'speaker') keepFocus(render); } } else TB.tOver = false; }
 /* may I write right now? mirrors the server rule */
 function tbCanChat(pub, me) { if (!pub || !me || me.alive === false) return false; if (pub.chat === true || pub.chat === 'all') return true; if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && tbTimerLeft(pub.timer) > 0); return false; }
 const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${seat} · ${esc(s.name)}` : String(seat); };
@@ -282,7 +282,7 @@ function tbChatHTML(pub, me) {
     <div class="row" style="margin-top:8px"><input class="input grow" id="tb-msg" data-a="tb-msg" placeholder="${open ? u.tbChatPh : why}" value="${esc(TB.msg)}" autocomplete="off" maxlength="300" ${open ? '' : 'disabled'}><button class="btn sm primary" data-a="tb-send" style="flex:0 0 auto" ${open ? '' : 'disabled'}>${u.tbSend}</button></div></div>`;
 }
 /* the host, shown apart from the seats */
-function hostChipHTML(d) { const u = U(); const h = d.host || {}; const av = h.photo ? `<img class="avatar sm" src="${esc(h.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((h.name || '?').slice(0, 1).toUpperCase())}</div>`; return `<div class="fr-row host-chip" role="button" data-a="fr-open" data-id="${h.tgId || ''}"><span style="width:0"></span>${av}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbHostChip}</div><div style="font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.name || '')}${h.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(h.username)}</span>` : ''}</div></div>${h.online ? `<span class="fr-on" style="font-size:12px">● ${esc(u.frOnline)}</span>` : ''}</div>`; }
+function hostChipHTML(d) { const u = U(); const h = d.host || {}; const av = h.photo ? `<img class="avatar sm" src="${esc(h.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((h.name || '?').slice(0, 1).toUpperCase())}</div>`; return `<div class="fr-row host-chip" role="button" data-a="fr-open" data-id="${h.tgId || ''}"><span style="width:0"></span>${av}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${d.hostPlays ? u.tbHostWanted : u.tbHostChip}</div><div style="font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.name || '')}${h.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(h.username)}</span>` : ''}${d.hostPlays ? ` <span style="color:var(--muted);font-weight:500">· ${u.tbHostPlaysNote}</span>` : ''}</div></div>${h.online ? `<span class="fr-on" style="font-size:12px">● ${esc(u.frOnline)}</span>` : ''}</div>`; }
 function tableScreen() {
   const u = U(); const d = TB.data;
   if (!TG.app || !apiBase()) return `${topbar(u.tbLobby, '')}<div class="stack"><div class="panel"><div class="hint">${u.frOnlyTg}</div></div></div>`;
@@ -369,8 +369,9 @@ function tableScreen() {
 /* the in-app invitation sheet */
 function tableInviteHTML(code) {
   const u = U(); const inv = ((S.cloud && S.cloud.invites) || []).find(i => i.code === code) || { code, from: '…', kind: 'friend' };
-  return `<h2>${tt(inv.kind === 'club' ? u.tbInviteClub : u.tbInvite, { name: esc(inv.from), code: esc(inv.code) })}</h2><div class="row" style="gap:12px;margin-top:10px">${inv.photo ? `<img class="avatar lg" src="${esc(inv.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((inv.from || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow"><div style="font-weight:800">${esc(inv.from)}${inv.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(inv.username)}</span>` : ''}</div><div class="hint" style="margin:0">${tt(u.tbTitle, { code: esc(inv.code) })}</div></div></div>
-    <div class="btn-row" style="margin-top:14px"><button class="btn ghost" data-a="inv-respond" data-code="${esc(inv.code)}" data-ok="0">${u.tbDecline}</button><button class="btn primary" data-a="inv-respond" data-code="${esc(inv.code)}" data-ok="1">${u.tbAccept}</button></div>`;
+  const host = inv.kind === 'host';
+  return `<h2>${tt(host ? u.tbInviteHost : inv.kind === 'club' ? u.tbInviteClub : u.tbInvite, { name: esc(inv.from), code: esc(inv.code) })}</h2>${host ? `<div class="hint" style="margin:4px 0 0">${u.tbInviteHostHint}</div>` : ''}<div class="row" style="gap:12px;margin-top:10px">${inv.photo ? `<img class="avatar lg" src="${esc(inv.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((inv.from || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow"><div style="font-weight:800">${esc(inv.from)}${inv.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(inv.username)}</span>` : ''}</div><div class="hint" style="margin:0">${tt(u.tbTitle, { code: esc(inv.code) })}</div></div></div>
+    <div class="btn-row" style="margin-top:14px"><button class="btn ghost" data-a="inv-respond" data-code="${esc(inv.code)}" data-ok="0">${u.tbDecline}</button><button class="btn primary" data-a="inv-respond" data-code="${esc(inv.code)}" data-ok="1">${host ? u.tbAcceptHost : u.tbAccept}</button></div>`;
 }
 /* an invitation closed with × is not asked again this session — it stays in the open-tables list on the home screen */
 TB.dismissed = new Set();
@@ -430,7 +431,13 @@ Object.assign(ACT, {
   async 'inv-respond'(el) {
     const code = el.dataset.code; const accept = el.dataset.ok === '1'; S.ui.sheet = null;
     S.cloud.invites = (S.cloud.invites || []).filter(i => i.code !== code); render();
+    const inv = ((S.cloud && S.cloud.invites) || []).find(i => i.code === code);
+    if (accept && inv && inv.kind === 'host' && S.game && !S.game.winner) { S.cloud.invites.push(inv); toast(U().frGameRunning); return; } // finish the running game first
     const d = await api('/api/table/invite/respond', { code, accept }); if (!d.ok) { toast(d.error === 'lobby_closed' ? U().tbInviteGone : U().tgOffline); return; }
+    if (accept && d.hosting) { // the table is mine now: into the setup screen with the players already seated
+      S.setup.hostRole = 'host'; S.setup.online = !!d.online; S.lobby = null; if (S.game && S.game.winner) S.game = null; clearTableSeats(); if (!S.setup.scenario && !S.setup.comp) S.setup.comp = presetFor(S.setup.n);
+      const l = await openTable(false); if (!l) return; await refreshTable(); toast(tt(U().hostingNow, { code })); tgHaptic('success'); go('setup'); return;
+    }
     if (accept && d.joined) { toast(tt(U().tbJoined, { code })); tgHaptic('success'); S.cloud.table = { code, status: 'open' }; tableOpen(code); } else if (accept && d.gone) toast(U().tbInviteGone);
   }
 });
@@ -495,6 +502,7 @@ function podiumHTML(rows, keyPrefix = 'pod') {
     const g = S.game;
     if (g && !g.winner) { const w = (g.dealt && typeof checkWin === 'function') ? checkWin(g) : null; if (w) { try { finishGame(g, w); } catch (e) {} } } // a decided game still awards its points
     if (g && g.tg && g.tg.code && !g.winner) { try { g.aborted = true; api('/api/table/publish', { code: g.tg.code, pub: { v: 2, phase: 'end', code: g.tg.code, n: g.n, host: hostName(), seats: tablePub(g).seats, aborted: true, result: { side: 'none', title: U().tbAborted, text: '' }, roles: g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, won: false, alive: p.alive })) }, priv: tablePriv(g) }); } catch (e) {} }
+    if (g && g.tg && g.tg.code) { try { clearTableSeats(); } catch (e) {} }
     return origReset.call(this, el); };
   // heartbeat every 15 s: presence + invitations + the table I sit at
   const origHeartbeat = startHeartbeat;

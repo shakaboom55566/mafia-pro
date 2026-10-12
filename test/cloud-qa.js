@@ -407,11 +407,15 @@ const path = require('path'); const http = require('http');
   ok(await Q(() => S.cloud && S.cloud.user && S.cloud.user.id === 601 && S.screen === 'home'), 'player app started (uk, no table yet)');
   // Нина becomes the host's friend; the host starts a classic game in the online format
   await fetch('http://127.0.0.1:8791/api/friends/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: pInit, code: frCode }) });
-  await S(() => { S.game = null; S.lobby = null; S.ui.sheet = null; FR.at = 0; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300);
-  ok(!!(await p.$('[data-a="on-mode"][data-id="online"]')) && !!(await p.$('[data-a="on-mode"][data-id="offline"]')), 'format chooser "offline / online" on the setup screen');
+  await S(() => { S.game = null; S.lobby = null; S.ui.sheet = null; FR.at = 0; S.setup.online = true; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300);
+  ok(!(await p.$('[data-a="on-mode"]')) && await S(() => S.setup.online === false), 'classic has no format chooser: it is played at a live table only');
+  await S(() => ACT.new({ dataset: {} })); await p.waitForTimeout(300);
+  ok(!!(await p.$('[data-a="on-mode"][data-id="online"]')) && !!(await p.$('[data-a="on-mode"][data-id="offline"]')), 'format chooser "offline / online" on the role-game setup screen');
   ok(await S(() => { const seg = document.querySelector('[data-a="on-mode"]'); const comp = document.querySelector('.stepper'); return !!(seg && comp && (seg.compareDocumentPosition(comp) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'the chooser sits at the top, above the player count');
   await p.click('[data-a="on-mode"][data-id="online"]'); await p.waitForTimeout(700);
   ok(await S(() => S.setup.online === true && !!(S.lobby && S.lobby.code)), 'online chosen → the table opens by itself');
+  // the rest of this flow exercises the classic rules online (nominations in speeches, best move, lift): the engine keeps that ability even though the UI offers classic offline only
+  await S(() => { applyScenario('classic', 10); S.setup.online = true; render(); }); await p.waitForTimeout(300);
   const oc = await S(() => S.lobby.code);
   await S(() => { S.setup.names = ['Анна', 'Богдан', 'Нина', 'Гена', 'Дима', 'Ева', 'Женя', 'Зоя', 'Иван', 'Кира']; render(); });
   // in-app invitation: Нина is online (her app just synced) → no DM, the invitation pops up in her app
@@ -586,6 +590,41 @@ const path = require('path'); const http = require('http');
   await Q(() => tableFetch()); await q.waitForTimeout(700);
   const closedTxt = await q.$eval('#app', el => el.textContent);
   ok(await Q(() => TB.data && TB.data.status === 'closed') && closedTxt.includes(await Q(() => U().tbClosedByHost)) && !(await q.$('.rtable')), 'player sees "the host closed the table" instead of the waiting room: ' + await Q(() => JSON.stringify({ st: TB.data && TB.data.status, err: TB.err, scr: S.screen })) + ' host=' + await S(() => JSON.stringify({ lobby: S.lobby, calls: window.__closeCalls })));
+  // ----- the creator plays and asks Нина to host: the table moves to her phone, he stays seated as a player
+  await S(() => { S.game = null; S.lobby = null; save(); go('setup'); S.setup.online = true; return openTable(true); }); await p.waitForTimeout(700);
+  const hc = await S(() => S.lobby && S.lobby.code); ok(!!hc, 'creator opened a table ' + hc);
+  await p.click('[data-a="host-role"][data-id="player"]'); await p.waitForTimeout(1200);
+  ok(await S(() => S.setup.hostRole === 'player' && S.lobby.players.some(x => x.tgId === 100) && S.lobby.seats[100] !== undefined && !!document.querySelector('[data-a="deal"][disabled]')), 'creator chose "I play": seated at his own table, dealing disabled until a host comes: ' + await S(() => JSON.stringify({ players: S.lobby.players.map(x => x.tgId), seats: S.lobby.seats })));
+  await p.click('[data-a="fr-go-host"]'); await p.waitForTimeout(1200);
+  ok(await S(() => S.screen === 'friends' && S.ui.frMode === 'host') && !!(await p.$('[data-a="fr-invite-host"][disabled]')), 'friends screen in "pick a host" mode');
+  await p.click('[data-a="fr-toggle"][data-id="601"]'); await p.waitForTimeout(200); await p.click('[data-a="fr-invite-host"]'); await p.waitForTimeout(1200);
+  ok(await S(() => S.screen === 'setup' && S.lobby && S.lobby.hostInvite && S.lobby.hostInvite.tgId === 601 && S.lobby.hostInvite.status === 'pending'), 'hosting invitation sent to Нина, creator back on the setup screen with "waiting for the answer"');
+  await Q(() => { S.ui.sheet = null; go('home'); }); await q.waitForTimeout(200);
+  await Q(async () => { const d = await api('/api/ping', {}); S.cloud.invites = d.invites || []; TB.dismissed.clear(); showInvites(); }); await q.waitForTimeout(300);
+  const hostSheet = await q.$eval('.sheet', el => el.textContent).catch(() => '');
+  ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'tableInvite') && hostSheet.includes(await Q(() => U().tbAcceptHost)) && hostSheet.includes(hc), 'Нина sees "asks you to host" with the "I will host" button');
+  await q.click('.sheet [data-a="inv-respond"][data-ok="1"]'); await q.waitForTimeout(1800);
+  ok(await q.evaluate(c => S.screen === 'setup' && S.lobby && S.lobby.code === c && S.lobby.players.some(x => x.tgId === 100) && S.setup.online === true && S.setup.hostRole === 'host' && !document.querySelector('[data-a="deal"][disabled]') && !!document.querySelector('.rt-seat.joined'), hc), 'Нина hosts now: setup screen with the creator seated, online format kept, dealing allowed: ' + await Q(() => JSON.stringify({ scr: S.screen, lobby: S.lobby && S.lobby.code, players: S.lobby && S.lobby.players.map(x => x.tgId), online: S.setup.online })));
+  await S(() => refreshTable()); await p.waitForTimeout(1200);
+  ok(await p.evaluate(c => S.screen === 'table' && TB.code === c && !S.lobby && S.setup.hostRole === 'host', hc), 'creator’s phone switched to the player’s table view: ' + await S(() => JSON.stringify({ scr: S.screen, tb: TB.code, lobby: !!S.lobby })));
+  ok(await S(() => TB.data && TB.data.host && TB.data.host.tgId === 601) && (await p.$eval('#app', el => el.textContent)).includes('Нина'), 'creator sees Нина as the host of the table');
+  // ----- open / closed game: roles of the eliminated stay hidden in a closed game, except roles acting after death
+  const closedPub = await S(() => { const g = newGame(10, presetFor(10), [], S.settings, [], {}); g.dealt = true; g.phase = 'day'; g.day = 1; g.dayStage = 'morning'; g.players[0].alive = false; g.players[0].roleId = 'sheriff'; g.players[1].alive = false; g.players[1].roleId = 'azazel'; g.players[1].votedOut = true; g.openRoles = false; const pub = tablePub(g); const open = (() => { g.openRoles = true; return tablePub(g); })(); return { closed: pub.seats.slice(0, 2).map(x => x.roleId || null), open: open.seats.slice(0, 2).map(x => x.roleId || null), flag: pub.openRoles }; });
+  ok(closedPub.closed[0] === null && closedPub.closed[1] === 'azazel' && closedPub.open[0] === 'sheriff' && closedPub.flag === false, 'closed game hides the Sheriff’s card but shows Azazel (acts after leaving); open game shows both: ' + JSON.stringify(closedPub));
+  await S(() => { S.game = null; S.lobby = null; S.setup.online = false; go('setup'); }); await p.waitForTimeout(300);
+  ok(!!(await p.$('[data-a="open-roles"][data-id="closed"]')) && !!(await p.$('[data-a="open-roles"][data-id="open"].active')), 'open / closed chooser on the setup screen, open by default');
+  await p.click('[data-a="open-roles"][data-id="closed"]'); await p.waitForTimeout(200);
+  ok(await S(() => S.setup.openRoles === false && revealDeadIn(null) === false) && !!(await p.$('[data-a="open-roles"][data-id="closed"].active')), 'closed game selected');
+  await S(() => { S.setup.openRoles = true; });
+  // ----- classic: fixed table of 10, no online format
+  await S(() => { S.setup.online = true; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300);
+  ok(await S(() => S.setup.n === 10 && S.setup.online === false && !document.querySelector('[data-a="n"]') && !document.querySelector('#nrange') && !document.querySelector('[data-a="on-mode"]') && document.querySelector('#app').textContent.includes(U().classicTitle)), 'classic setup: 10 players fixed, no count chooser, no online switch');
+  await S(() => { ACT.new({ dataset: {} }); }); await p.waitForTimeout(300);
+  ok(await S(() => S.setup.scenario === null && !!document.querySelector('[data-a="n"]') && document.querySelector('.topbar, .tb, h1') && document.querySelector('#app').textContent.includes(U().roleGame)), 'role game setup is titled "Ролевая мафия" with the player-count chooser back');
+  // ----- settings switches: full size, inside the row
+  await S(() => go('settings')); await p.waitForTimeout(300);
+  const swBox = await p.evaluate(() => { const sw = document.querySelector('.switch'); const row = sw.closest('.setting'); const a = sw.getBoundingClientRect(), b = row.getBoundingClientRect(); return { w: Math.round(a.width), h: Math.round(a.height), inside: a.right <= b.right + 0.5 && a.left >= b.left, vw: window.innerWidth, right: Math.round(a.right) }; });
+  ok(swBox.w >= 50 && swBox.h >= 30 && swBox.inside && swBox.right <= swBox.vw, 'settings switch is full-size and stays inside its row: ' + JSON.stringify(swBox));
   ok(errs2.length === 0, 'no page errors on the player’s phone: ' + errs2.join(' | ').slice(0, 300));
   await ctx2.close();
 

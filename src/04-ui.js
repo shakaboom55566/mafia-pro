@@ -227,7 +227,7 @@ function homeScreen() {
   </div>
   <div class="menu">
     ${cont}
-    <button class="menu-item ${cont ? '' : 'primary'}" data-a="new"><div class="ico">${I.plus}</div><div><div class="t">${u.newGame}</div><div class="d">${u.newGameD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item ${cont ? '' : 'primary'}" data-a="new"><div class="ico">${I.plus}</div><div><div class="t">${u.roleGame}</div><div class="d">${u.newGameD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="scen-use" data-id="classic"><div class="ico">${I.users}</div><div><div class="t">${u.classicTitle}</div><div class="d">${u.classicSub}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="cards"><div class="ico">${I.cards}</div><div><div class="t">${u.cardsTitle}</div><div class="d">${tt(u.cardsD, { n: ROLES.length, roles: plural(ROLES.length, 'roles') })}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="scenarios"><div class="ico">${I.scen}</div><div><div class="t">${u.scenTitle}</div><div class="d">${u.scenD}</div></div><span class="chev">${I.chev}</span></button>
@@ -283,12 +283,14 @@ function setupScreen() {
   }).join('');
   const seatable = S.profiles.filter(pr => pr.id !== S.meId); // the host runs the game and never takes a seat
   const chips = `${seatable.length ? `<div class="prof-chips">${seatable.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}<button class="prof-chip" data-a="prof-new" style="border-style:dashed">+ ${u.newProfile}</button></div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p><button class="btn sm ghost" data-a="prof-new" style="align-self:flex-start">+ ${u.newProfile}</button>`}`;
-  return `${topbar(u.newGame, u.setupSub)}
+  const classic = st.scenario === 'classic'; // classic is always a table of 10: no player-count chooser
+  return `${topbar(classic ? u.classicTitle : u.roleGame, classic ? u.classicSub : u.setupSub)}
   <div class="stack">
     ${scenBanner}
-    <div class="stepper"><div><div class="lbl">${u.players}</div><div class="val num">${st.n}</div><div class="hint">${two2 ? u.twoFamilies : u.oneFamily}</div></div>
+    ${openRolesHTML()}
+    ${classic ? '' : `<div class="stepper"><div><div class="lbl">${u.players}</div><div class="val num">${st.n}</div><div class="hint">${two2 ? u.twoFamilies : u.oneFamily}</div></div>
       <div class="ctl"><button data-a="n" data-d="-1" aria-label="${u.less}">−</button><button data-a="n" data-d="1" aria-label="${u.more}">+</button></div></div>
-    <input class="range" type="range" id="nrange" min="${sc ? sc.min : MIN_PLAYERS}" max="${sc ? sc.max : MAX_PLAYERS}" value="${st.n}" data-a="nrange" aria-label="${u.playerCount}">
+    <input class="range" type="range" id="nrange" min="${sc ? sc.min : MIN_PLAYERS}" max="${sc ? sc.max : MAX_PLAYERS}" value="${st.n}" data-a="nrange" aria-label="${u.playerCount}">`}
     <div class="meter">
       <div class="m"><div class="v num" style="color:var(--steel-2)">${stats.black}</div><div class="k">${tt(u.mBlack, { pct: stats.blackShare })}</div></div>
       <div class="m"><div class="v num" style="color:var(--crimson-2)">${stats.red + stats.ww}</div><div class="k">${u.mCity}</div></div>
@@ -303,7 +305,8 @@ function setupScreen() {
     ${typeof setupLobbyHTML === 'function' ? setupLobbyHTML(st) : ''}
     ${chips}
     <div class="names">${names}</div>
-    <div class="sticky-bottom"><button class="btn primary" data-a="deal" ${ok ? '' : 'disabled'}>${u.dealCards}</button></div>
+    ${typeof creatorPlays === 'function' && creatorPlays() ? `<div class="hint" style="text-align:center">${u.dealNeedsHost}</div>` : ''}
+    <div class="sticky-bottom"><button class="btn primary" data-a="deal" ${ok && !(typeof creatorPlays === 'function' && creatorPlays()) ? '' : 'disabled'}>${u.dealCards}</button></div>
   </div>`;
 }
 
@@ -480,9 +483,13 @@ function kamikazeHTML(g) {
   return `<button class="btn ghost sm" data-a="kam" style="align-self:flex-start">${u.kamReveals}</button>`;
 }
 
+/* open game: everyone learns the role of an eliminated player; closed game: the card stays secret till the end — except roles that act after leaving (Azazel, Morpheus, the Bomb) */
+const AFTER_DEATH_ROLES = ['azazel', 'morpheus', 'bomb'];
+function revealDeadIn(g) { if (!g) return typeof S.setup.openRoles === 'boolean' ? S.setup.openRoles : !!S.settings.revealDead; if (typeof g.openRoles === 'boolean') return g.openRoles; if (g.mods && g.mods.revealDead === false) return false; return g.settings ? g.settings.revealDead !== false : !!S.settings.revealDead; }
+function roleShown(g, p) { return revealDeadIn(g) || (!p.alive && AFTER_DEATH_ROLES.includes(p.roleId)); }
 function deathRow(g, d) {
-  const p = P(g, d.id); const role = ROLE[p.roleId];
-  return `<div class="death">${sealHTML(role)}<div><div class="n">${esc(label(p))}</div><div class="c">${S.settings.revealDead ? role.name + ' · ' : ''}${esc(d.cause)}</div></div></div>`;
+  const p = P(g, d.id); const role = ROLE[p.roleId]; const shown = roleShown(g, p);
+  return `<div class="death">${shown ? sealHTML(role) : `<div class="seal hidden-role" title="?">?</div>`}<div><div class="n">${esc(label(p))}</div><div class="c">${shown ? role.name + ' · ' : ''}${esc(d.cause)}</div></div></div>`;
 }
 
 function dayBody(g) {
@@ -835,7 +842,7 @@ const ACT = {
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
   back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
-  new() { S.setup.scenario = null; S.setup.comp = presetFor(S.setup.n); S.ui.showAll = false; go('setup'); },
+  new() { S.setup.scenario = null; if (S.setup.n < MIN_PLAYERS || S.setup.n > MAX_PLAYERS) S.setup.n = 10; S.setup.comp = presetFor(S.setup.n); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   continue() { go('game'); },
   n(el) { const d = +el.dataset.d; setN(S.setup.n + d); },
   nrange(el) { setN(+el.value); },
@@ -845,11 +852,13 @@ const ACT = {
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
+    if (typeof creatorPlays === 'function' && creatorPlays()) { toast(U().dealNeedsHost); return; }
     const sp = hostOffSeats();
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));
-    S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.ui.showAll = false; go('deal');
+    S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.game.openRoles = revealDeadIn(null); S.ui.showAll = false; go('deal');
   },
   'seat-assign'(el) { const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; const id = el.dataset.id; const used = sp.indexOf(id); if (used >= 0) { sp[used] = null; render(); return; } let i = 0; while (i < S.setup.n && sp[i]) i++; if (i < S.setup.n) { sp[i] = id; render(); } },
+  'open-roles'(el) { S.setup.openRoles = el.dataset.id === 'open'; save(); render(); },
   'seat-clear'(el) { const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; sp[+el.dataset.i] = null; render(); },
   flip() { S.game.dealOpen = !S.game.dealOpen; S.ui.flipAnim = true; render(); },
   hide() { S.game.dealOpen = false; S.game.dealIdx += 1; window.scrollTo(0, 0); render(); },
@@ -962,6 +971,13 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
 document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); if (el.dataset.a === 'pt-f') ACT['pt-f'](el); if (el.dataset.a === 'cl-f') ACT['cl-f'](el); if (el.dataset.a === 'cl-msg') ACT['cl-msg'](el); if (el.dataset.a === 'cl-inv-q') ACT['cl-inv-q'](el); });
 document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'cl-logo-file') ACT['cl-logo-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); });
 
+/* open / closed game chooser on the setup screen */
+function openRolesHTML() {
+  const u = U(); const open = revealDeadIn(null);
+  return `<div class="panel"><div class="eyebrow">${u.openRolesTitle}</div><div class="segment n2" style="margin-top:8px"><button class="${open ? 'active' : ''}" data-a="open-roles" data-id="open">${u.openGame}</button><button class="${open ? '' : 'active'}" data-a="open-roles" data-id="closed">${u.closedGame}</button></div><div class="hint" style="margin:8px 0 0">${open ? u.openGameHint : u.closedGameHint}</div></div>`;
+}
+/* after a game played at a Telegram table its seats are history: the next table starts empty (players sit down again through the app) */
+function clearTableSeats() { S.setup.names = []; S.setup.seatProfiles = []; }
 /* the host runs the game and never takes a seat: his own profile is removed from the seat list wherever it got in (older saves, another account on this phone) */
 function hostOffSeats() {
   const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; if (!S.meId) return sp;

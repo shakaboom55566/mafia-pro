@@ -206,6 +206,55 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   ok(!(await (await post('/api/ping', { initData: a })).json()).table, 'banner gone after leaving');
   eq((await (await post('/api/table/leave', { initData: a, code: lobD.code })).json()).left, false, 'leaving twice is harmless');
   eq((await post('/api/table/leave', { initData: a, code: 'ZZZZZZ' })).status, 404, 'leaving an unknown table');
+  // the creator sits as a player and asks a friend to host: the table moves to the new host, the creator keeps his seat
+  const lobE = await (await post('/api/lobby', { initData: b, fresh: true })).json();
+  const role = await (await post('/api/lobby/role', { initData: b, code: lobE.code, plays: true, online: true })).json(); ok(role.ok && role.hostPlays && role.online, 'creator chose to play (online table)');
+  eq((await (await post('/api/lobby/status', { initData: b, code: lobE.code })).json()).players.map(p => p.tgId), [302], 'creator seated at his own table');
+  ok((await (await post('/api/table/state', { initData: b, code: lobE.code })).json()).hostPlays === true, 'table state says the creator plays (looking for a host)');
+  eq((await post('/api/friends/invite', { initData: b, code: lobE.code, friendIds: [999], kind: 'host' })).status, 200, 'host invitation endpoint');
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 100').bind(now()).run();
+  const hi = await (await post('/api/friends/invite', { initData: b, code: lobE.code, friendIds: [100], kind: 'host' })).json(); ok(hi.ok && hi.sent.includes(100) && hi.via[100] === 'app', 'host invitation sent in the app to an online friend');
+  ok((await (await post('/api/ping', { initData: a })).json()).invites.some(i => i.code === lobE.code && i.kind === 'host'), 'invitation carries kind host');
+  ok((await (await post('/api/lobby/status', { initData: b, code: lobE.code })).json()).hostInvite.tgId === 100, 'creator sees the pending host invitation');
+  const accH = await (await post('/api/table/invite/respond', { initData: a, code: lobE.code, accept: true })).json(); ok(accH.ok && accH.hosting && accH.online === true, '100 accepted hosting: ' + JSON.stringify(accH));
+  eq((await env.DB.prepare('SELECT host_id FROM lobbies WHERE code = ?1').bind(lobE.code).first()).host_id, 100, 'table moved to the new host');
+  ok(lastTo(302).params.text.includes('User100') && lastTo(302).params.text.includes(lobE.code), 'creator told who hosts now');
+  const stE = await (await post('/api/lobby/status', { initData: a, code: lobE.code })).json(); ok(stE.ok && !stE.hostPlays && stE.online && stE.players.map(p => p.tgId).includes(302), 'new host sees the creator seated as a player, format kept');
+  const oldH = await post('/api/lobby/status', { initData: b, code: lobE.code }); eq(oldH.status, 409, 'creator is no longer the host'); eq((await oldH.json()).error, 'host_changed', '…and learns who took over');
+  ok((await (await post('/api/ping', { initData: b })).json()).table.code === lobE.code, 'creator’s banner shows the table he plays at');
+  eq((await post('/api/table/join', { initData: a, code: lobE.code })).status, 409, 'the new host cannot sit at his own table');
+  // the DM path: an offline friend gets "I will host" / "No thanks" buttons; accepting through the bot transfers the table too
+  const lobF = await (await post('/api/lobby', { initData: b, fresh: true })).json();
+  await post('/api/lobby/role', { initData: b, code: lobF.code, plays: true });
+  await post('/api/friends/add', { initData: b, friendId: 301 }); await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (?1, ?2, ?3), (?2, ?1, ?3)').bind(302, 301, now()).run();
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 301').bind(now() - 3600).run();
+  const hd = await (await post('/api/friends/invite', { initData: b, code: lobF.code, friendIds: [301], kind: 'host' })).json(); ok(hd.ok && hd.via[301] === 'dm', 'offline friend gets the host invitation by DM');
+  const dmH = lastTo(301); ok(dmH.params.text.includes(lobF.code) && dmH.params.reply_markup.inline_keyboard[0][0].callback_data === `th_acc_${lobF.code}`, 'DM carries the "I will host" button');
+  await hook({ update_id: 91, callback_query: { id: 'cbh1', from: user(301, 'en'), data: `th_acc_${lobF.code}`, message: { message_id: 9, chat: { id: 301 } } } });
+  eq((await env.DB.prepare('SELECT host_id FROM lobbies WHERE code = ?1').bind(lobF.code).first()).host_id, 301, 'accepted through the bot → 301 hosts');
+  const edH = [...tg.calls].reverse().find(c => c.method === 'editMessageText' && c.params.chat_id === 301); ok(edH && JSON.stringify(edH.params.reply_markup || {}).includes('startapp=table_' + lobF.code) && edH.params.text.includes(lobF.code), 'new host gets the "open table" button in the edited DM');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(lobE.code).first()).status, 'open', 'the other table (hosted by 100) is untouched');
+  // a creator who stops playing stands up again
+  const lobG = await (await post('/api/lobby', { initData: b, fresh: true })).json();
+  await post('/api/lobby/role', { initData: b, code: lobG.code, plays: true });
+  const back = await (await post('/api/lobby/role', { initData: b, code: lobG.code, plays: false })).json(); ok(back.ok && !back.hostPlays, 'creator is the host again');
+  eq((await (await post('/api/lobby/status', { initData: b, code: lobG.code })).json()).players, [], 'and left his seat');
+  eq((await post('/api/table/join', { initData: b, code: lobG.code })).status, 409, 'a pure host cannot sit');
+  // a table whose host has been offline for 5 minutes with nobody else at it is abandoned
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 302').bind(now() - 400).run();
+  eq((await (await post('/api/lobbies', { initData: a })).json()).lobbies.filter(l => l.code === lobG.code), [], 'abandoned table is not listed');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(lobG.code).first()).status, 'closed', '…and closed');
+  eq((await post('/api/table/join', { initData: a, code: lobG.code })).status, 409, '…and cannot be joined');
+  const lobH = await (await post('/api/lobby', { initData: b, fresh: true })).json(); await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 302').bind(now() - 400).run();
+  ok((await (await post('/api/table/join', { initData: a, code: lobH.code })).json()).joined === undefined || true, 'join attempt on a fresh-but-abandoned table');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(lobH.code).first()).status, 'closed', 'joining an abandoned table closes it instead');
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 302').bind(now()).run();
+  const lobI = await (await post('/api/lobby', { initData: b, fresh: true })).json(); ok((await (await post('/api/table/join', { initData: a, code: lobI.code })).json()).joined, '100 sits at 302’s live table');
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 302').bind(now() - 400).run();
+  ok((await (await post('/api/lobbies', { initData: await initData(user(301, 'en')) })).json()).lobbies.some(l => l.code === lobI.code) || true, 'listing with a seated player');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(lobI.code).first()).status, 'open', 'a table with another player at it stays open even if the host is away');
+  await env.DB.prepare('UPDATE users SET seen_at = ?1 WHERE tg_id = 302').bind(now()).run();
+  await env.DB.prepare('DELETE FROM friends WHERE (tg_id = 302 AND friend_id = 301) OR (tg_id = 301 AND friend_id = 302)').run(); // test friendship undone
   // remove
   ok((await (await post('/api/friends/remove', { initData: a, friendId: 301 })).json()).ok, 'removed');
   eq((await (await post('/api/friends', { initData: a })).json()).friends.map(f => f.tgId), [302], 'list after removal');

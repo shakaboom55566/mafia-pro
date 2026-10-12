@@ -145,6 +145,9 @@ function lobbyAutoSeat(g) {
     tgl.map[pl.tgId] = seat; if (seat) taken.add(seat);
   });
 }
+/* the creator of a table may sit as a player and ask a friend to host (the host never sits) */
+const creatorPlays = () => S.setup.hostRole === 'player';
+const isMeTg = id => !!(S.cloud && S.cloud.user && id === S.cloud.user.id);
 /* the table lives in S.lobby before the game exists and moves into S.game.tg when the game is created */
 function currentLobby() { return S.game && S.game.tg && !S.game.winner ? S.game.tg : (S.lobby || null); } // a finished game's table is history: new invitations open a fresh table
 function lobbyIsOpen() { const l = currentLobby(); const g = S.game && !S.game.winner ? S.game : null; return !!(l && l.code && !(g && l === g.tg && g.dealIdx >= g.players.length)); }
@@ -154,7 +157,9 @@ async function openTable(fresh) {
   const d = await api('/api/lobby', { fresh: !!fresh }); if (!d.ok) { toast(U().tgOffline); return null; }
   const l = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [], seats: {} };
   if (S.game && !S.game.winner) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
-  save(); render(); return l;
+  save(); render();
+  if (!(S.game && !S.game.winner)) api('/api/lobby/role', { code: l.code, online: !!S.setup.online, plays: creatorPlays() }).then(r => { if (r.ok && creatorPlays()) refreshTable(); }).catch(() => {});
+  return l;
 }
 /* re-render without losing the keyboard: the focused input/select and its caret survive the redraw */
 function keepFocus(fn) {
@@ -167,15 +172,21 @@ const selectOpen = () => { try { const a = document.activeElement; return !!(a &
 async function refreshTable() {
   const l = currentLobby(); if (!l || !l.code) return;
   const d = await api('/api/lobby/status', { code: l.code });
-  if (!d.ok) { if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
+  if (!d.ok) {
+    if (d.error === 'host_changed') { // the friend I asked to host took the table: I play at it now
+      if (l === S.lobby) S.lobby = null; S.setup.hostRole = 'host'; save(); toast(tt(U().hostTook, { name: d.host ? d.host.name : '' })); tgHaptic('success');
+      S.cloud = S.cloud || {}; S.cloud.table = { code: d.code, status: d.status, hostId: d.host ? d.host.tgId : 0, host: d.host ? d.host.name : '' }; tableOpen(d.code); return;
+    }
+    if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
   if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; }
+  l.hostInvite = d.hostInvite || null; l.hostPlays = !!d.hostPlays;
   const beforeIds = l.players.map(p => p.tgId); const beforeJson = JSON.stringify(l.players);
-  l.players = (d.players || []).filter(pl => !(S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id)); // the host never sits as a player
+  l.players = (d.players || []).filter(pl => !isMeTg(pl.tgId) || (l.hostPlays && l === S.lobby)); // the host never sits as a player — unless the creator chose to play and is still looking for a host
   if (S.game && S.game.tg === l) lobbyAutoSeat(S.game); else setupAutoSeat();
   const fresh = l.players.filter(pl => !beforeIds.includes(pl.tgId));
   const gone = JSON.parse(beforeJson).filter(pl => !l.players.some(x => x.tgId === pl.tgId));
   if (gone.length && !(S.game && S.game.tg === l)) gone.forEach(pl => { const i = l.seats ? l.seats[pl.tgId] : undefined; if (i !== undefined) { if (String(S.setup.names[i] || '').trim() === String(pl.name || '').trim()) S.setup.names[i] = ''; delete l.seats[pl.tgId]; } }); // a player who stood up frees his seat before the deal
-  const changed = JSON.stringify(l.players) !== beforeJson;
+  const changed = JSON.stringify(l.players) !== beforeJson || JSON.stringify(l.hostInvite) !== JSON.stringify(d.hostInvite || null);
   if (changed) { save(); if (!selectOpen()) keepFocus(render); } // an open seat picker is not torn down under the host's finger
   if (fresh.length) { toast(tt(U().tgNewPlayer || '{name}', { name: fresh.map(x => x.name).join(', ') })); tgHaptic('light'); }
   if (gone.length) toast(tt(U().tgPlayerLeft || '{name}', { name: gone.map(x => x.name).join(', ') }));
@@ -186,7 +197,7 @@ function setupAutoSeat() {
   const l = S.lobby; if (!l) return; l.seats = l.seats || {}; const st = S.setup; st.names = st.names || [];
   const norm = s => String(s || '').toLowerCase().replace(/^@/, '').trim(); const taken = new Set(Object.values(l.seats));
   l.players.forEach(pl => {
-    if (S.cloud && S.cloud.user && pl.tgId === S.cloud.user.id) return;
+    if (isMeTg(pl.tgId) && !creatorPlays()) return;
     if (l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n) { taken.add(l.seats[pl.tgId]); return; }
     let i = -1;
     for (let k = 0; k < st.n; k++) { if (taken.has(k)) continue; const nm = norm(st.names[k]); if (nm && (nm === norm(pl.name) || (pl.username && nm === norm(pl.username)))) { i = k; break; } }
@@ -202,8 +213,13 @@ function setupLobbyHTML(st) {
   const seated = pl => l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n;
   const rows = l.players.map(pl => `<div class="row" style="gap:8px"><div class="grow" style="min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div>${seated(pl) ? `<span class="hint" style="margin:0">${tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 })}</span>` : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`).join('');
   const unseated = l.players.filter(pl => !seated(pl)).length;
+  const plays = creatorPlays(); const hi = l.hostInvite;
+  const rolePanel = `<div class="eyebrow" style="margin-top:10px">${u.hostRoleTitle}</div><div class="segment n2" style="margin-top:6px"><button class="${plays ? '' : 'active'}" data-a="host-role" data-id="host">${u.hostRoleHost}</button><button class="${plays ? 'active' : ''}" data-a="host-role" data-id="player">${u.hostRolePlayer}</button></div>
+    <div class="hint" style="margin:6px 0 0">${plays ? u.hostRolePlayerHint : u.hostRoleHostHint}</div>
+    ${plays ? `<div class="row" style="margin-top:8px"><button class="btn sm primary grow" data-a="fr-go-host">🎩 ${u.inviteHost}</button></div>${hi ? `<div class="hint" style="margin:6px 0 0">${hi.status === 'pending' ? tt(u.hostInvitePending, { name: esc(hi.name) }) : hi.status === 'declined' ? tt(u.hostInviteDeclined, { name: esc(hi.name) }) : ''}</div>` : ''}` : ''}`;
   return `<div class="panel"><div class="row"><div class="eyebrow grow">${tt(u.tgTable, { code: l.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: l.players.length })}</div></div>
     <div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="tg-share">${u.tgShare}</button><button class="btn sm grow" data-a="fr-go">${u.frInviteFriends}</button><button class="btn sm ghost" data-a="tg-lobby-refresh">${u.tgRefresh}</button></div>
+    ${rolePanel}
     ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
     <button class="btn xs ghost" style="margin-top:8px;align-self:flex-start" data-a="tg-close-table">${u.tgCloseTable}</button></div>`;
 }
@@ -278,6 +294,13 @@ function friendsScreen() {
   const rows = list.map(f => `<div class="fr-row ${sel.includes(f.tgId) ? 'sel' : ''}" role="button" tabindex="0" data-a="fr-open" data-id="${f.tgId}"><span class="chk" data-a="fr-toggle" data-id="${f.tgId}" role="checkbox" aria-checked="${sel.includes(f.tgId)}">${sel.includes(f.tgId) ? '✓' : ''}</span>${friendAvatar(f)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}${f.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(f.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(f)} · ${tt(u.frStats, { g: f.games, w: f.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${f.points}</span><button class="btn xs ghost" data-a="fr-remove-ask" data-id="${f.tgId}" aria-label="${u.frRemove}" style="color:var(--muted);border-color:transparent">✕</button></div>`).join('');
   const ask = S.ui.frAsk ? (() => { const f = list.find(x => x.tgId === S.ui.frAsk); return f ? `<div class="panel" style="border-color:var(--crimson-2)"><div>${tt(u.frRemoveAsk, { name: esc(f.name) })}</div><div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="fr-remove" data-id="${f.tgId}" style="color:var(--crimson-2)">${u.frRemove}</button><button class="btn sm ghost" data-a="fr-ask-cancel">${u.cancel}</button></div></div>` : ''; })() : '';
   const cl = currentLobby();
+  if (S.ui.frMode === 'host') { // choosing who runs the table: one friend, a different button
+    const one = sel.slice(0, 1); const chosen = one.length ? list.find(f => f.tgId === one[0]) : null;
+    return `${topbar(u.inviteHost, u.inviteHostSub)}<div class="stack">
+      <div class="hint">${u.inviteHostHint}</div>
+      ${list.length ? `<div class="stack-s">${rows}</div>` : `<div class="hint">${FR.list ? u.frEmpty : u.frLoading}</div>`}
+      <div class="sticky-bottom"><button class="btn primary" data-a="fr-invite-host" ${chosen ? '' : 'disabled'}>🎩 ${chosen ? tt(u.inviteHostBtn, { name: esc(chosen.name) }) : u.inviteHost}</button></div></div>`;
+  }
   const inviteBar = list.length ? `<button class="btn primary" data-a="fr-invite" ${sel.length ? '' : 'disabled'}>${tt(u.frInviteTable, { n: sel.length })}</button>${lobbyOpen && cl ? `<div class="hint" style="text-align:center">${tt(u.frTable, { code: cl.code, n: sel.length })}</div>` : (!g ? `<div class="hint" style="text-align:center">${u.frNoGame}</div>` : '')}` : '';
   const resRow = r => `<div class="fr-row" role="button" data-a="fr-open" data-id="${r.tgId}"><span style="width:0"></span>${friendAvatar(r)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(r.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(r)}</div></div>${r.isFriend ? `<span class="hint" style="margin:0">${u.frIsFriend}</span>` : r.requested ? `<span class="hint" style="margin:0">${u.frRequested}</span>` : r.incoming ? `<button class="btn xs primary" data-a="fr-respond" data-id="${r.tgId}" data-ok="1">${u.frAcceptBtn}</button>` : `<button class="btn xs" data-a="fr-request" data-id="${r.tgId}">${u.frAdd}</button>`}</div>`;
   const searchPanel = `<div class="panel"><div class="eyebrow">${u.frSearch}</div><div class="row" style="margin-top:8px"><input class="input grow" id="fr-q" data-a="fr-q" placeholder="${u.frSearchPh}" value="${esc(FR.q)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" data-a="fr-search" style="flex:0 0 auto">${FR.searching ? '…' : '🔍'}</button></div>
@@ -298,7 +321,27 @@ function friendsScreen() {
   </div>`;
 }
 Object.assign(ACT, {
-  'fr-go'() { go('friends'); },
+  'fr-go'() { S.ui.frMode = null; go('friends'); },
+  'fr-go-host'() { S.ui.frMode = 'host'; S.ui.frSel = []; FR.at = 0; go('friends'); setTimeout(() => loadFriends(true), 0); },
+  async 'host-role'(el) {
+    const plays = el.dataset.id === 'player'; if (plays === creatorPlays()) return;
+    if (plays && S.game && !S.game.winner) { toast(U().frGameRunning); return; }
+    S.setup.hostRole = plays ? 'player' : 'host'; save(); render();
+    const l = S.lobby; if (!l || !l.code) return;
+    const d = await api('/api/lobby/role', { code: l.code, plays }); if (!d.ok) { toast(U().tgOffline); return; }
+    if (!plays && l.seats && S.cloud && S.cloud.user) { const i = l.seats[S.cloud.user.id]; if (i !== undefined) { if (String(S.setup.names[i] || '').trim() === String(S.cloud.user.name || '').trim()) S.setup.names[i] = ''; delete l.seats[S.cloud.user.id]; } }
+    await refreshTable(); render();
+  },
+  async 'fr-invite-host'() {
+    const sel = (S.ui.frSel || []).slice(0, 1); if (!sel.length) return;
+    if (!lobbyIsOpen()) { if (!(await openTable(false))) return; }
+    if (!creatorPlays()) { S.setup.hostRole = 'player'; save(); await api('/api/lobby/role', { code: S.lobby.code, plays: true }); }
+    let r = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel, kind: 'host' });
+    if (!r.ok && r.error === 'no_lobby') { if (!(await openTable(true))) return; r = await api('/api/friends/invite', { code: S.lobby.code, friendIds: sel, kind: 'host' }); }
+    if (!r.ok || !(r.sent || []).length) { toast(U().tgOffline); return; }
+    const f = (FR.list || []).find(x => x.tgId === sel[0]); toast(tt(U().hostInvited, { name: f ? f.name : '' })); tgHaptic('success'); S.ui.frSel = []; S.ui.frMode = null;
+    await refreshTable(); go('setup');
+  },
   'fr-q'(el) { FR.q = el.value || ''; },
   async 'fr-search'() {
     const q = FR.q.trim(); if (q.length < 2) { FR.results = null; render(); return; }
@@ -316,7 +359,7 @@ Object.assign(ACT, {
     if (accept) { toast(U().frNowFriends); tgHaptic('success'); loadFriends(true); } else render();
   },
   'fr-refresh'() { loadFriends(true); },
-  'fr-toggle'(el) { const id = Number(el.dataset.id); const sel = S.ui.frSel = S.ui.frSel || []; const i = sel.indexOf(id); if (i >= 0) sel.splice(i, 1); else sel.push(id); render(); },
+  'fr-toggle'(el) { const id = Number(el.dataset.id); const sel = S.ui.frSel = S.ui.frSel || []; const i = sel.indexOf(id); if (i >= 0) sel.splice(i, 1); else { if (S.ui.frMode === 'host') sel.length = 0; sel.push(id); } render(); },
   'fr-sel-all'() { const list = FR.list || []; S.ui.frSel = (S.ui.frSel || []).length === list.length ? [] : list.map(f => f.tgId); render(); },
   'fr-share'() { if (!FR.link) return; const url = 'https://t.me/share/url?url=' + encodeURIComponent(FR.link) + '&text=' + encodeURIComponent(U().frShareText); try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} },
   async 'fr-copy'() { if (!FR.link) return; try { await navigator.clipboard.writeText(FR.link); toast(U().frCopied); } catch (e) { try { const ta = document.createElement('textarea'); ta.value = FR.link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast(U().frCopied); } catch (e2) {} } },
@@ -703,5 +746,5 @@ function withClubBrand(html) { const b = clubBrandHTML(); if (!b) return html; c
   const origHide = ACT.hide;
   ACT.hide = function (el) { const r = origHide.call(this, el); if (S.game) { skipDeliveredSeats(S.game); render(); } return r; };
   const origFinish = finishGame;
-  finishGame = function (g, w) { const was = g.recorded; origFinish(g, w); if (!was && g.recorded && w) { try { sendResult(g, w); } catch (e) {} } };
+  finishGame = function (g, w) { const was = g.recorded; origFinish(g, w); if (!was && g.recorded && w) { try { sendResult(g, w); } catch (e) {} } if (g.tg && g.tg.code) { try { clearTableSeats(); save(); } catch (e) {} } }; // the table's seats are history: the next table starts empty
 })();

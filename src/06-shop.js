@@ -128,7 +128,7 @@ Object.assign(ACT, {
     else { if (!S.owned.scenarios.includes(id)) S.owned.scenarios.push(id); toast(tt(U().bought, { name: SCENARIO[id].name })); }
     S.ui.sheet = null; render();
   },
-  'scen-use'(el) { applyScenario(el.dataset.id); S.ui.showAll = false; go('setup'); },
+  'scen-use'(el) { const classic = el.dataset.id === 'classic'; applyScenario(el.dataset.id, classic ? 10 : undefined); S.ui.showAll = false; if (classic) S.setup.online = false; go('setup'); },
   'scen-clear'() { S.setup.scenario = null; S.setup.comp = presetFor(S.setup.n); render(); }
 });
 
