@@ -8,7 +8,7 @@
      hidden until the window closes; whoever has not voted goes to the last candidate
    ============================================================ */
 const HS = { LEAD: 3000, STEP: 1000, N: 10, GRACE: 2000, SHOW: 2600, ANIM: 700 }; // the shot: lead-in, a second per number, ten numbers, late hands, how long the outcome stays
-const PLC = { DUR: 4000, GAP: 900, GRACE: 1800, LAST: 2500 }; // the vote: the window, the pause between candidates, late answers, the "rest to the last" pause
+const PLC = { DUR: 3000, GAP: 3600, CD: 3, GRACE: 1800, LAST: 2500 }; // the vote: the window after the count, the pause before a candidate (its last CD seconds are the "3, 2, 1"), late answers, the "rest to the last" pause
 const classicOnline = g => !!(g && typeof isClassic === 'function' && isClassic(g) && onlineActive(g));
 const srvNow = () => Date.now() + (ONL.skew || 0); // the host's estimate of server time
 const tbNow = () => Date.now() + (TB.skew || 0); // the player's estimate of server time
@@ -152,11 +152,15 @@ function hsHandsHTML(g, step, shot, mine) {
   const res = shot.result ? `<div class="hs-res ${shot.result.hit ? 'hit' : 'miss'}">${shot.result.hit ? tt(u.hsHit, { n: shot.result.seat }) : shot.result.none ? u.hsMissNone : shot.result.dead ? u.hsMissDead : u.hsMiss}</div>` : '';
   return `<div class="panel hs"><div class="eyebrow gold">${u.hsAuto}</div><div class="hs-num ${lead ? 'lead' : over ? 'over' : ''}" id="hs-num" data-at="${shot.at}">${lead ? u.hsWake : over ? u.hsOver : cur}</div><div class="hs-hands">${hands}</div>${res}${mine ? '' : `<div class="hint" style="margin-top:8px">${u.hsHostHint}</div>`}</div>`;
 }
+/* the "3, 2, 1" before a window: a digit while it runs, "Vote!" while the window is open, "window closed" after */
+function plCountText(at, dur, last, now) { const u = U(); if (last) return ''; if (now < at) { const c = Math.ceil((at - now) / 1000); return c <= PLC.CD ? String(c) : '·'; } return now < at + dur ? u.plVoteNow : u.plOver; }
+function plCountHTML(at, dur, last, now) { const t = plCountText(at, dur, last, now); return `<div class="pl-cd ${now < at ? 'cd' : now < at + dur ? 'go' : 'over'}" id="pl-cd" data-at="${at}" data-dur="${dur}" data-last="${last ? 1 : 0}">${t}</div>`; }
+function plCandsHTML(seatsList, cur, doneBefore) { return `<div class="pl-cands big">${seatsList.map((sx, i) => `<span class="${cur !== undefined && i === cur ? 'cur' : doneBefore !== undefined && i < doneBefore ? 'done' : ''}">${sx}</span>`).join('')}</div>`; }
 function plHostHTML(g) {
   const u = U(); const onl = onlState(g); const b = g.ballot; const pl = onl.poll; const active = pollActive(g); const o = voteOutcome(g);
   const cands = active ? pl.cands : (b.candidates || []);
   const row = cands.length ? `<div class="pl-cands">${cands.map((id, i) => `<span class="${active && i === pl.idx ? 'cur' : active && i < pl.idx ? 'done' : ''}">${P(g, id).seat}</span>`).join('')}</div>` : '';
-  if (active) { const cand = P(g, pl.cands[pl.idx]); const now = srvNow(); const left = pl.last ? 0 : Math.max(0, pl.at + pl.dur - now); return `<div class="panel raised"><div class="eyebrow gold">${u.plRunning}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: cand.seat }) : tt(u.plFor, { seat: cand.seat })}</div><div class="pl-bar ${left ? '' : 'over'}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${pl.last ? 100 : Math.round(100 * (1 - left / pl.dur))}%"></i></div><div class="hint" style="margin-top:6px">${tt(u.plOf, { k: pl.idx + 1, n: pl.cands.length })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button></div></div>`; }
+  if (active) { const cand = P(g, pl.cands[pl.idx]); const now = srvNow(); const left = pl.last ? 0 : Math.max(0, pl.at + pl.dur - now); return `<div class="panel raised"><div class="eyebrow gold">${u.plRunning}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: cand.seat }) : tt(u.plFor, { seat: cand.seat })}</div>${plCountHTML(pl.at, pl.dur, pl.last, now)}<div class="pl-bar ${left ? '' : 'over'}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${pl.last ? 100 : Math.round(100 * (1 - left / pl.dur))}%"></i></div><div class="hint" style="margin-top:6px">${tt(u.plOf, { k: pl.idx + 1, n: pl.cands.length })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button></div></div>`; }
   if (onl.pollManual) return `<div class="panel"><div class="hint">${u.plManualHint}</div><div class="btn-row" style="margin-top:8px"><button class="btn primary sm" data-a="poll-start" ${o.kind === 'skip1' || o.kind === 'empty' ? 'disabled' : ''}>${u.plStart}</button></div></div>`;
   return `<div class="panel raised"><div class="eyebrow gold">${u.plTitle}</div>${row}<div class="hint" style="margin-top:6px">${tt(u.plHostHint, { s: Math.round(PLC.DUR / 1000) })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button><button class="btn primary grow" data-a="poll-start" ${o.kind === 'skip1' || o.kind === 'empty' ? 'disabled' : ''}>${u.plStart}</button></div></div>`;
 }
@@ -164,8 +168,26 @@ function hostLiveTick() { // the host's own screen: the count and the vote bar m
   const g = S.game; if (!classicOnline(g) || S.screen !== 'game') return; const u = U(); const now = srvNow();
   const el = document.querySelector('#hs-num'); if (el && !el.dataset.done) { const at = Number(el.dataset.at); const lead = now < at, over = now >= at + HS.N * HS.STEP; const cur = Math.min(HS.N, Math.floor((now - at) / HS.STEP) + 1); const txt = lead ? u.hsWake : over ? u.hsOver : String(cur); if (el.textContent !== txt) { el.textContent = txt; el.className = `hs-num ${lead ? 'lead' : over ? 'over' : ''}`; if (!lead && !over && cur === 1) render(); } }
   const bar = document.querySelector('#pl-bar'); if (bar && bar.dataset.last !== '1') { const at = Number(bar.dataset.at), dur = Number(bar.dataset.dur); const w = Math.max(0, Math.min(100, Math.round(100 * (now - at) / dur))); bar.firstElementChild.style.width = w + '%'; bar.classList.toggle('over', now >= at + dur); }
+  plCountPaint(now);
 }
+function plCountPaint(now) { const cd = document.querySelector('#pl-cd'); if (!cd || cd.dataset.last === '1') return; const at = Number(cd.dataset.at), dur = Number(cd.dataset.dur); const t = plCountText(at, dur, false, now); if (cd.textContent !== t) cd.textContent = t; cd.className = `pl-cd ${now < at ? 'cd' : now < at + dur ? 'go' : 'over'}`; }
 
+/* ---------- the host's gear above the table, the Don's sign guide ---------- */
+function hostGearHTML(u) { return `<div class="panel" role="button" data-a="setup-jump" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.gear}</div><div class="grow"><div style="font-weight:800">${u.gearSetup}</div><div class="hint" style="margin:0">${u.gearSetupD}</div></div><span class="chev">${I.chev}</span></div></div>`; }
+function dlDocHTML() {
+  const u = U(); const help = u.dlHelp || {};
+  const guide = `<div class="section"><div class="eyebrow gold">${u.dlGuideTitle}</div>
+    <p style="margin-top:6px;font-size:14px">${u.dlGuide0}</p>${dlSeqHTML(['night1', 'n5', 'night2', 'next'], false)}
+    <p style="margin-top:10px;font-size:14px">${u.dlGuideN}</p><div class="hs-hands" style="margin-top:4px"><div class="hs-hand"><div class="lb">${u.dlHandFist}</div>${handSVG(HAND_FIST, 0, { size: 56 })}</div><div class="hs-hand"><div class="lb">${u.dlHandGun}</div>${handSVG(HAND_GUN, 0, { size: 56 })}</div><div class="hs-hand fired"><div class="lb">${u.dlHandShot}</div>${handSVG(HAND_GUN, 0, { size: 56 })}<div class="at">${tt(u.hsShotAt, { n: 5 })}</div></div></div>
+    <p style="margin-top:10px;font-size:14px">${u.dlGuideD}</p><div class="pl-cands big" style="margin-top:4px"><span class="cur">1</span><span>4</span></div><div class="pl-cd cd" style="margin-top:2px">3 · 2 · 1</div></div>`;
+  const rowHTML = (toks, title, key) => `<div class="dl-row">${toks.length > 1 ? `<div class="dl-toks">${toks.map(t => dlTokenHTML(t.id, 'mid')).join('')}</div>` : dlTokenHTML(toks[0].id, 'mid')}<div class="dl-help"><b>${esc(title)}</b><div class="hint" style="margin:2px 0 0">${esc(help[key] || '')}</div></div></div>`;
+  const cats = DL_CATS.map(c => { const toks = DL_TOKENS.filter(t => t.cat === c); let rows;
+    if (c === 'num') rows = rowHTML([toks[2], toks[6]], '1–10', 'num');
+    else if (c === 'mark') rows = rowHTML([toks[0]], u.dlTok.night.replace('{n}', '1–5'), 'night') + rowHTML([toks[5]], u.dlTok.day.replace('{n}', '1–4'), 'day');
+    else rows = toks.map(t => rowHTML([t], dlLabel(t.id), t.id)).join('');
+    return `<div class="eyebrow" style="margin-top:12px">${u.dlCat[c]}</div><div class="stack-s" style="margin-top:6px">${rows}</div>`; }).join('');
+  return `<div class="roledoc">${guide}<div class="section"><div class="eyebrow gold">${u.dlSignsTitle}</div>${cats}</div></div>`;
+}
 /* ---------- player: screens ---------- */
 function tbPeerRows(key) { const d = TB.data; if (!d || !Array.isArray(d.peers)) return []; const seats = (d.pub && d.pub.seats) || []; return d.peers.filter(r => r.key === key).map(r => { const s = seats.find(x => x.tgId === r.tgId); return { tgId: r.tgId, seat: s ? s.seat : null, payload: r.payload || {}, at: r.at }; }); }
 function tbDealHTML(ask, me) {
@@ -191,13 +213,13 @@ function tbHandsHTML(ask, me, pub) {
 }
 function tbCountHTML(shot) { const u = U(); const now = tbNow(); const lead = now < shot.at, over = now >= shot.at + shot.n * shot.step; const cur = Math.min(shot.n, Math.max(1, Math.floor((now - shot.at) / shot.step) + 1)); return `<div class="panel hs"><div class="eyebrow">${u.hsCount}</div><div class="hs-num ${lead ? 'lead' : over ? 'over' : ''}" id="hs-num" data-at="${shot.at}" data-n="${shot.n}" data-step="${shot.step}">${lead ? u.hsWake : over ? u.hsOver : cur}</div></div>`; }
 function tbPollHTML(ask, me, pub) {
-  const u = U(); const pl = pub.poll; const now = tbNow(); const mine = ask.kind === 'poll'; const over = pl.last || now >= pl.at + pl.dur; const w = pl.last ? 100 : Math.max(0, Math.min(100, Math.round(100 * (now - pl.at) / pl.dur)));
+  const u = U(); const pl = pub.poll; const now = tbNow(); const mine = ask.kind === 'poll'; const over = pl.last || now >= pl.at + pl.dur; const open = !pl.last && now >= pl.at && !over; const w = pl.last ? 100 : Math.max(0, Math.min(100, Math.round(100 * (now - pl.at) / pl.dur)));
   const sent = TB.sent[ask.key]; const yes = sent ? !!sent.yes : ask.yes; const answered = mine && (!!sent || ask.done);
   const row = `<div class="pl-cands">${(pl.cands || []).map((s, i) => `<span class="${i === pl.idx ? 'cur' : i < pl.idx ? 'done' : ''}">${s}</span>`).join('')}</div>`;
   const myVote = (pub.dayInfo && pub.dayInfo.votes && pub.dayInfo.votes[me.seat]) || null;
   const line = mine ? (over ? u.plOver : answered ? u.plSent : '') : myVote ? tt(u.plVoted, { seat: myVote }) : pl.cand === me.seat ? '' : u.plCant;
-  const btns = mine ? `<div class="pl-btns"><button class="btn ${answered && yes ? 'danger sel' : 'ghost'}" data-a="pl-ans" data-yes="1" ${over ? 'disabled' : ''}>${u.plYes}${answered && yes ? ' ✓' : ''}</button><button class="btn ${answered && !yes ? 'primary sel' : 'ghost'}" data-a="pl-ans" data-yes="0" ${over ? 'disabled' : ''}>${u.plNo}${answered && !yes ? ' ✓' : ''}</button></div>` : '';
-  return `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${u.plTitle} · ${tt(u.plOf, { k: pl.idx + 1, n: pl.n })}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: pl.cand }) : tt(u.plFor, { seat: pl.cand })}</div><div class="pl-bar ${over ? 'over' : ''}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${w}%"></i></div>${btns}${line ? `<div class="hint" style="margin-top:8px;text-align:center">${line}</div>` : ''}</div>`;
+  const btns = mine ? `<div class="pl-btns"><button class="btn ${answered && yes ? 'danger sel' : 'ghost'}" data-a="pl-ans" data-yes="1" ${open ? '' : 'disabled'}>${u.plYes}${answered && yes ? ' ✓' : ''}</button><button class="btn ${answered && !yes ? 'primary sel' : 'ghost'}" data-a="pl-ans" data-yes="0" ${open ? '' : 'disabled'}>${u.plNo}${answered && !yes ? ' ✓' : ''}</button></div>` : '';
+  return `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${u.plTitle} · ${tt(u.plOf, { k: pl.idx + 1, n: pl.n })}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: pl.cand }) : tt(u.plFor, { seat: pl.cand })}</div>${plCountHTML(pl.at, pl.dur, pl.last, now)}<div class="pl-bar ${over ? 'over' : ''}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${w}%"></i></div>${btns}${line ? `<div class="hint" style="margin-top:8px;text-align:center">${line}</div>` : ''}</div>`;
 }
 /* what my screen needs beyond the host's prompt: the family watching the Don, the count for everyone, the vote for those who only watch it */
 function tbSynthAsk(d) {
@@ -205,12 +227,15 @@ function tbSynthAsk(d) {
   if (pub.phase === 'night0' && me.deal !== undefined && !(me.ask && me.ask.kind === 'deal')) return { key: 'night0:deal:w', kind: 'dealWatch', done: true };
   if (pub.phase === 'night' && pub.shot && !(me.ask && me.ask.kind === 'hands')) return { key: pub.shot.key + ':w', kind: me.mates !== undefined && (me.hands || me.shotResult || (me.peerKeys || []).includes(pub.shot.key)) ? 'handsWatch' : 'count', at: pub.shot.at, n: pub.shot.n, step: pub.shot.step, done: true };
   if (pub.phase === 'day' && pub.poll && !pub.poll.done && !(me.ask && me.ask.kind === 'poll')) return { key: pub.poll.key + ':w', kind: 'pollWatch', done: true };
+  const di = pub.dayInfo; if (pub.phase === 'day' && di && (di.stage === 'vote' || di.stage === 'speeches') && di.candidates && di.candidates.length && !me.ask) return { key: `day${pub.day}:cands:${di.stage}`, kind: 'candsWatch', done: true };
   return null;
 }
+function tbCandsHTML(pub) { const u = U(); const di = pub.dayInfo; return `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${u.plCands}</div>${plCandsHTML(di.candidates)}${di.stage === 'vote' ? `<div class="hint" style="text-align:center;margin-top:8px">${u.plCandsWait}</div>` : ''}</div>`; }
 function tbLiveTick() { // every 100 ms on the table screen: the count and the vote bar move; a full render at the turning points
   const d = TB.data; if (S.screen !== 'table' || !d || !d.pub) return; const u = U(); const now = tbNow(); let stage = '';
   const el = document.querySelector('#hs-num'); if (el) { const at = Number(el.dataset.at), n = Number(el.dataset.n), step = Number(el.dataset.step); const lead = now < at, over = now >= at + n * step; const cur = Math.min(n, Math.max(1, Math.floor((now - at) / step) + 1)); stage = 'hs:' + (lead ? 'lead' : over ? 'over' : 'count'); const txt = lead ? u.hsWake : over ? u.hsOver : String(cur); if (el.textContent !== txt) { el.textContent = txt; el.className = `hs-num ${lead ? 'lead' : over ? 'over' : ''}`; } TB.hsCur = { key: el.dataset.key || '', n: cur, lead, over }; }
   const bar = document.querySelector('#pl-bar'); if (bar) { const at = Number(bar.dataset.at), dur = Number(bar.dataset.dur); const over = bar.dataset.last === '1' || now >= at + dur; stage += '|pl:' + (over ? 'over' : now < at ? 'wait' : 'open'); if (bar.dataset.last !== '1') { bar.firstElementChild.style.width = Math.max(0, Math.min(100, Math.round(100 * (now - at) / dur))) + '%'; bar.classList.toggle('over', over); } }
+  plCountPaint(now);
   if (stage !== (TB.liveStage || '')) { const prev = TB.liveStage || ''; TB.liveStage = stage; if (prev) keepFocus(render); }
 }
 
@@ -263,8 +288,21 @@ function tbLiveTick() { // every 100 ms on the table screen: the count and the v
     if (ask.kind === 'hands' || ask.kind === 'handsWatch') return tbHandsHTML(ask, me, pub);
     if (ask.kind === 'count') return tbCountHTML(pub.shot);
     if ((ask.kind === 'poll' || ask.kind === 'pollWatch') && pub.poll) return tbPollHTML(ask, me, pub);
+    if (ask.kind === 'candsWatch' && pub.dayInfo && pub.dayInfo.candidates) return tbCandsHTML(pub);
     return origAsk(ask, seats); };
-  const origTable = tableScreen; tableScreen = function () { const d = TB.data; if (d && d.me && d.pub && !d.me.ask) { const s = tbSynthAsk(d); if (s) { d.me.ask = s; d.me.synth = true; } } else if (d && d.me && d.me.synth && d.me.ask && !tbSynthAsk(d)) { d.me.ask = null; d.me.synth = false; } return origTable(); };
+  const origTable = tableScreen; tableScreen = function () { const d = TB.data; if (d && d.me && d.pub && !d.me.ask) { const s = tbSynthAsk(d); if (s) { d.me.ask = s; d.me.synth = true; } } else if (d && d.me && d.me.synth && d.me.ask && !tbSynthAsk(d)) { d.me.ask = null; d.me.synth = false; }
+    let html = origTable(); const pub = d && d.pub; if (d && d.isHost && pub && (pub.phase === 'lobby' || pub.phase === 'deal')) { const u = U(); const i = html.indexOf('<div class="stack">'); if (i >= 0) html = html.slice(0, i + 19) + hostGearHTML(u) + html.slice(i + 19); } return html; };
+  const origRoleDoc = roleDoc; roleDoc = function (r) { if (!r || r.id !== 'don') return origRoleDoc(r); const u = U(); const tab = S.ui.roleTab === 'signs' ? 'signs' : 'card'; const seg = `<div class="segment n2" style="margin-bottom:10px"><button class="${tab === 'card' ? 'active' : ''}" data-a="role-tab" data-id="card">${u.dlTabCard}</button><button class="${tab === 'signs' ? 'active' : ''}" data-a="role-tab" data-id="signs">${u.dlTab}</button></div>`; return seg + (tab === 'signs' ? dlDocHTML() : origRoleDoc(r)); };
+  Object.assign(ACT, {
+    'role-tab'(el) { S.ui.roleTab = el.dataset.id; render(); },
+    // the host: into the table settings; from the setup screen itself — down to the settings under the round table
+    'setup-jump'() { if (S.screen !== 'setup') { go('setup'); return; } try { const t = document.querySelector('#host-table'); const next = t && t.nextElementSibling; if (next && next.scrollIntoView) next.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} },
+    // the host moves a player: tap them, then tap a seat
+    'host-seat'(el) { const l = S.lobby; if (!l || !l.code) return; const seat = Number(el.dataset.seat); const sel = S.ui.seatSel || 0; const tgAt = sx => { const e = Object.entries(l.seats || {}).find(([k, v]) => Number(v) === sx - 1); return e ? Number(e[0]) : 0; };
+      if (!sel) { if (!tgAt(seat)) return; S.ui.seatSel = seat; tgHaptic('light'); render(); return; }
+      if (sel === seat) { S.ui.seatSel = 0; render(); return; }
+      const tg = tgAt(sel); S.ui.seatSel = 0; if (!tg) { render(); return; } ACT['tg-seat-set']({ dataset: { tg: String(tg) }, value: String(seat - 1) }); }
+  });
   const origTablePoll = tablePoll; tablePoll = function () { origTablePoll(); const want = S.screen === 'table' && TB.code && TG.app && apiBase(); if (want && !TB.live) TB.live = setInterval(() => { try { tbLiveTick(); } catch (e) {} }, 100); if (!want && TB.live) { clearInterval(TB.live); TB.live = null; TB.liveStage = ''; } };
   const origActionsPoll = actionsPoll; actionsPoll = function () { origActionsPoll(); const g = S.game; const want = TG.app && apiBase() && classicOnline(g) && g.dealt && !g.winner && S.screen === 'game'; if (want && !ONL.live) ONL.live = setInterval(() => { try { hostLiveTick(); } catch (e) {} }, 200); if (!want && ONL.live) { clearInterval(ONL.live); ONL.live = null; } };
 })();

@@ -182,8 +182,12 @@ function hostTableHTML(st) {
   l.players.forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
   for (let i = 0; i < st.n; i++) { const e = Object.entries(l.seats || {}).find(([k, v]) => Number(v) === i); const pl = e && l.players.find(p => p.tgId === Number(e[0])); const prof = (st.seatProfiles || [])[i] ? profById(st.seatProfiles[i]) : null; const name = (st.names[i] || '').trim() || (pl ? pl.name : '') || (prof ? prof.name : ''); seats.push({ seat: i + 1, name: name || u.tbSeatFree, tgId: e ? Number(e[0]) : null, alive: true }); if (!name) marks[i + 1] = { dim: true }; if (pl) marks[i + 1] = { joined: true }; }
   const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-host">${esc(hostName())}</div><div class="rt-n">${tt(u.tbPlayersN, { n: `${l.players.length} / ${st.n}` })}</div>`;
+  // the host moves players by tapping: a player, then a seat (whoever sat there takes the vacated one)
+  const sel = S.ui.seatSel || 0; seats.forEach(sx => { const m = marks[sx.seat] = marks[sx.seat] || {}; m.act = `data-a="host-seat" data-seat="${sx.seat}"`; if (sx.seat === sel) m.picked = true; if (sel && sx.seat !== sel) m.pick = true; });
+  const selPl = sel ? l.players.find(p => l.seats && l.seats[p.tgId] === sel - 1) : null;
   const rows = l.players.map(pl => { const seated = l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n; const watching = ONL.watching.includes(pl.tgId) || !!pl.online; return `<div class="fr-row" role="button" data-a="fr-open" data-id="${pl.tgId}" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(pl)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${seated ? tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 }) : u.tbNoSeat}${pl.points ? ` · ${pl.points}` : ''}${pl.club ? ` · ${esc(pl.club)}` : ''}${watching ? ` · <span class="fr-on">${u.tbInApp}</span>` : ''}</div></div>${seated ? '' : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`; }).join('');
-  return `<div class="panel"><div class="eyebrow" style="margin-bottom:8px">${u.tbLobby}</div>${roundTableHTML(seats, profiles, center, marks)}
+  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button></div>${roundTableHTML(seats, profiles, center, marks)}
+    <div class="hint" style="text-align:center;margin-top:6px">${selPl ? `${tt(u.seatMoveHint, { name: esc(selPl.name) })} <button class="btn xs ghost" data-a="host-seat" data-seat="${sel}">${u.seatMoveCancel}</button>` : l.players.length ? u.seatTapHint : ''}</div>
     <div class="eyebrow" style="margin-top:12px">${u.tbJoinedList} · ${l.players.length}</div>${rows ? `<div class="stack-s" style="margin-top:6px">${rows}</div>` : `<div class="hint" style="margin-top:6px">${u.tgWaiting}</div>`}</div>`;
 }
 /* ============================================================ PLAYER'S TABLE SCREEN */
@@ -232,7 +236,7 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
     const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${free ? '·' : esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
     const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
     const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : ''].filter(Boolean).join(' ');
-    const act = m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
+    const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
     return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `<div class="rt-meta">${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
@@ -417,7 +421,10 @@ Object.assign(ACT, {
 });
 /* home banner: the table I sit at */
 function tableBannerHTML() {
-  const u = U(); const t = S.cloud && S.cloud.table; if (!TG.app || !apiBase() || !t || (S.cloud.user && t.hostId === S.cloud.user.id)) return '';
+  const u = U(); const t = S.cloud && S.cloud.table; if (!TG.app || !apiBase()) return '';
+  // the host of an open table (whether they opened it or were invited to run it): a gear into the table settings and the deal
+  const l = S.lobby; if (l && l.code && !creatorPlays() && lobbyIsOpen() && !(S.game && !S.game.winner)) return `<div class="panel" role="button" data-a="setup-jump" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.gear}</div><div class="grow"><div style="font-weight:800">${tt(u.hostBanner, { code: esc(l.code) })}</div><div class="hint" style="margin:0">${tt(u.hostBannerD, { n: (l.players || []).length })}</div></div><span class="btn xs primary">${u.gearSetup}</span></div></div>`;
+  if (!t || (S.cloud.user && t.hostId === S.cloud.user.id)) return '';
   return `<div class="panel" role="button" data-a="table-open" data-id="${esc(t.code)}" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.game}</div><div class="grow"><div style="font-weight:800">${tt(u.tbBanner, { code: esc(t.code), host: esc(t.host || '') })}</div><div class="hint" style="margin:0">${t.status === 'live' ? u.tbOnlineTag : u.tbLobby}</div></div><span class="btn xs primary">${u.tbOpen}</span><button class="btn xs ghost" data-a="tb-leave" data-code="${esc(t.code)}" title="${u.tbLeaveTable}" aria-label="${u.tbLeaveTable}" style="flex:0 0 auto;padding:6px 9px">✕</button></div></div>`;
 }
 Object.assign(ACT, {

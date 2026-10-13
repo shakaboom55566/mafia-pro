@@ -873,6 +873,12 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .pl-cands { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
 .pl-cands span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-weight: 700; font-size: 13px; background: var(--bg-3); border: 1px solid var(--line-2); color: var(--fg-2); }
 .pl-cands span.cur { background: var(--gold); color: #1a1206; border-color: transparent; } .pl-cands span.done { opacity: .5; }
+
+.pl-cd { font-family: var(--font-display); font-weight: 900; font-size: 56px; line-height: 1; text-align: center; min-height: 58px; margin-top: 6px; color: var(--fg); letter-spacing: -.02em; }
+.pl-cd.go { font-size: 28px; color: var(--gold-2); display: flex; align-items: center; justify-content: center; }
+.pl-cd.over { font-size: 16px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+.pl-cands.big span { width: 44px; height: 44px; font-size: 18px; }
+.dl-row { display: flex; align-items: center; gap: 10px; } .dl-row .dl-tok { flex: none; width: 108px; min-height: 76px; padding: 6px 4px; } .dl-row .dl-tok .word { font-size: 14px; max-width: 100px; } .dl-row .dl-toks { display: flex; gap: 6px; flex: none; } .dl-help { min-width: 0; font-size: 14px; }
 </style>
 </head><body>
 <div id="app"></div>
@@ -3642,6 +3648,73 @@ Object.assign(I18N.hy.ui, {
   plTitle: 'Քվեարկություն', plFor: 'Քվեարկում ենք №{seat}-ի համար', plYes: 'Քվեարկում եմ', plNo: 'Չեմ քվեարկում', plStart: 'Սկսել քվեարկությունը', plStop: 'Ձեռքով', plLast: 'Մնացած ձայները՝ №{seat}-ին', plVoted: 'Դուք քվեարկեցիք №{seat}-ի համար', plSent: 'Ընդունված է', plOver: 'Պատուհանը փակ է', plCant: 'Այս փուլում դուք չեք քվեարկում', plWait: 'Սպասում ենք վարողին', plOf: '{k} / {n}',
   plHostHint: 'Թեկնածուները հերթով, յուրաքանչյուրին {s} վ. խաղացողները միաժամանակ սեղմում են «Քվեարկում եմ» կամ «Չեմ քվեարկում», պատասխանները թաքնված են մինչև պատուհանի փակվելը։ Ով չի քվեարկել՝ գնում է վերջինին։', plRunning: 'Քվեարկությունն ընթանում է', plManualHint: 'Ավտոքվեարկությունն անջատված է. խաղացողներն իրենք են ընտրում թեկնածուին, վարողը փակում է քվեարկությունը։' });
 Object.assign(I18N.hy.e, { logDeal: 'Դոնի պայմանավորվածությունը՝ {list}', logHandsHit: 'Մաֆիան կրակում է ձեռքերով՝ {list} → {target}', logHandsMiss: 'Վրիպում. ձեռքերը չհամընկան ({list})', logPollStart: 'Քվեարկություն թեկնածուների համար՝ {list}', logPollCand: '{seat}-ի համար՝ {list}' });
+
+/* ---------------- v38: the host's gear above the table, seat moves by tap, the 3-2-1 vote, the Don's sign guide ---------------- */
+Object.assign(I18N.ru.ui, {
+  gearSetup: 'Настройка стола', gearSetupD: 'Места, состав, карты — и раздать', hostBanner: 'Ваш стол {code}', hostBannerD: 'За столом: {n} · настроить и раздать карты',
+  seatTapHint: 'Нажмите игрока на столе, затем место — чтобы пересадить', seatMoveHint: 'Куда пересадить {name}? Нажмите место', seatMoveCancel: 'Отмена',
+  plNo: 'Воздержался', plVoteNow: 'Голосуйте!', plCands: 'Выставлены', plCandsWait: 'Ведущий начинает голосование…', plCountdown: 'Счёт',
+  dlTab: 'Жесты', dlTabCard: 'Карта', dlGuideTitle: 'Как это выглядит в игре', dlSignsTitle: 'Все жесты Дона',
+  dlGuide0: 'Нулевая ночь. Ведущий будит семью на минуту. На карточке Дона — палитра жестов; каждый жест сразу появляется большим на экранах мафии. Как только ведущий усыпляет мафию, жесты исчезают с экранов — как и за столом, их надо запомнить.',
+  dlGuideN: 'Ночь. Ведущий считает «раз… десять». На экране мафии — кулак; со счётом поднимаются указательный и средний палец; по кнопке «Выстрел» пальцы сгибаются и разгибаются, рука помечается номером. Напарники видят руки друг друга. Все на одном номере — убит, иначе промах.',
+  dlGuideD: 'День. После речей все видят выставленных. На каждого — счёт «3, 2, 1» и окно, где одновременно жмут «Голосую» или «Воздержался». Кто ни за кого не проголосовал — уходит в последнего выставленного.',
+  dlHandFist: 'Кулак — рука на столе', dlHandGun: 'Два пальца — готов', dlHandShot: 'Выстрел — на номер',
+  dlHelp: { num: 'Номер игрока за столом: 1–5 — пальцы одной руки, 6–10 — открытая ладонь плюс остаток на второй. «Ночь 1 → 5» — первой ночью стреляем в пятого.', night: 'Какой ночью стреляем: Дон показывает «Ночь 2», затем номер или цель.', day: 'К какому дню относится план: «День 2 → Я — шериф».',
+    prev: 'Сосед слева по номеру: на один меньше — от убитого, ушедшего или названного.', next: 'Сосед справа по номеру: на один больше.', nomBy: 'Тот, кто выставил нашего на голосование.', nomFirst: 'Первый выставленный в этот день.', nomLast: 'Последний выставленный в этот день.', voteFirst: 'Тот, кто первым проголосовал за нашего.', sheriff: 'Тот, кто вскрылся шерифом.', checked: 'Тот, кого шериф назвал по проверке.', leader: 'Самый активный за столом — лидер мирных.', victim: 'Отсчёт от нашей ночной жертвы: «От убитого → №+1».', gone: 'Отсчёт от того, кто ушёл голосованием днём.', us: 'Один из нас: «Если наш выставлен → кто выставил».',
+    repeat: 'Если промах — та же цель следующей ночью.', miss: 'Намеренный промах: этой ночью не стреляем.', free: 'Цели нет, стреляем по ситуации — смотрите на Дона.', follow: 'Повторяйте за мной: стреляйте на тот номер, что покажу я.', answer: 'Ответка: если нашего ушли днём — стреляем в того, кто его выставил.', fakeMe: 'Я вскроюсь шерифом (ложный шериф).', fakeYou: 'Ты вскрываешься шерифом.', nominate: 'Выставляем этого игрока на голосование.', vote: 'Голосуем за этого игрока.', spare: 'Этого не трогаем: не выставляем и не голосуем.', split: 'Голосуем врозь, не кучкуемся — чтобы не вскрыть семью.',
+    if: 'Условие: «Если шериф вскрылся → в шерифа».', else: 'Иначе — запасной вариант плана.', then: 'Потом — следующий шаг по порядку.', yes: 'Да, понял, согласен.', no: 'Нет, не так — отменяю предыдущий жест.' } });
+Object.assign(I18N.uk.ui, {
+  gearSetup: 'Налаштування столу', gearSetupD: 'Місця, склад, карти — і роздати', hostBanner: 'Ваш стіл {code}', hostBannerD: 'За столом: {n} · налаштувати і роздати карти',
+  seatTapHint: 'Натисніть гравця на столі, потім місце — щоб пересадити', seatMoveHint: 'Куди пересадити {name}? Натисніть місце', seatMoveCancel: 'Скасувати',
+  plNo: 'Утримався', plVoteNow: 'Голосуйте!', plCands: 'Виставлені', plCandsWait: 'Ведучий починає голосування…', plCountdown: 'Рахунок',
+  dlTab: 'Жести', dlTabCard: 'Карта', dlGuideTitle: 'Як це виглядає в грі', dlSignsTitle: 'Усі жести Дона',
+  dlGuide0: 'Нульова ніч. Ведучий будить сім’ю на хвилину. На картці Дона — палітра жестів; кожен жест одразу з’являється великим на екранах мафії. Щойно ведучий присипляє мафію, жести зникають з екранів — як і за столом, їх треба запам’ятати.',
+  dlGuideN: 'Ніч. Ведучий рахує «раз… десять». На екрані мафії — кулак; з рахунком піднімаються вказівний і середній палець; за кнопкою «Постріл» пальці згинаються і розгинаються, рука позначається номером. Напарники бачать руки одне одного. Усі на одному номері — вбитий, інакше промах.',
+  dlGuideD: 'День. Після промов усі бачать виставлених. На кожного — рахунок «3, 2, 1» і вікно, де одночасно тиснуть «Голосую» або «Утримався». Хто ні за кого не проголосував — іде в останнього виставленого.',
+  dlHandFist: 'Кулак — рука на столі', dlHandGun: 'Два пальці — готовий', dlHandShot: 'Постріл — на номер',
+  dlHelp: { num: 'Номер гравця за столом: 1–5 — пальці однієї руки, 6–10 — відкрита долоня плюс решта на другій. «Ніч 1 → 5» — першої ночі стріляємо в п’ятого.', night: 'Якої ночі стріляємо: Дон показує «Ніч 2», потім номер або ціль.', day: 'До якого дня належить план: «День 2 → Я — шериф».',
+    prev: 'Сусід ліворуч за номером: на один менше — від убитого, того, хто пішов, або названого.', next: 'Сусід праворуч за номером: на один більше.', nomBy: 'Той, хто виставив нашого на голосування.', nomFirst: 'Перший виставлений цього дня.', nomLast: 'Останній виставлений цього дня.', voteFirst: 'Той, хто першим проголосував за нашого.', sheriff: 'Той, хто відкрився шерифом.', checked: 'Той, кого шериф назвав за перевіркою.', leader: 'Найактивніший за столом — лідер мирних.', victim: 'Відлік від нашої нічної жертви: «Від убитого → №+1».', gone: 'Відлік від того, хто пішов голосуванням удень.', us: 'Один із нас: «Якщо наш виставлений → хто виставив».',
+    repeat: 'Якщо промах — та сама ціль наступної ночі.', miss: 'Навмисний промах: цієї ночі не стріляємо.', free: 'Цілі немає, стріляємо за ситуацією — дивіться на Дона.', follow: 'Повторюйте за мною: стріляйте на той номер, що покажу я.', answer: 'Відповідь: якщо нашого прибрали вдень — стріляємо в того, хто його виставив.', fakeMe: 'Я відкриюся шерифом (фальшивий шериф).', fakeYou: 'Ти відкриваєшся шерифом.', nominate: 'Виставляємо цього гравця на голосування.', vote: 'Голосуємо за цього гравця.', spare: 'Цього не чіпаємо: не виставляємо і не голосуємо.', split: 'Голосуємо нарізно, не купчимося — щоб не розкрити сім’ю.',
+    if: 'Умова: «Якщо шериф відкрився → у шерифа».', else: 'Інакше — запасний варіант плану.', then: 'Потім — наступний крок за порядком.', yes: 'Так, зрозумів, згоден.', no: 'Ні, не так — скасовую попередній жест.' } });
+Object.assign(I18N.en.ui, {
+  gearSetup: 'Table settings', gearSetupD: 'Seats, line-up, cards — and deal', hostBanner: 'Your table {code}', hostBannerD: 'At the table: {n} · set up and deal the cards',
+  seatTapHint: 'Tap a player on the table, then a seat — to move them', seatMoveHint: 'Where to move {name}? Tap a seat', seatMoveCancel: 'Cancel',
+  plNo: 'Abstain', plVoteNow: 'Vote!', plCands: 'Nominated', plCandsWait: 'The host is starting the vote…', plCountdown: 'Count',
+  dlTab: 'Signs', dlTabCard: 'Card', dlGuideTitle: 'How it looks in the game', dlSignsTitle: 'All of the Don’s signs',
+  dlGuide0: 'Night zero. The host wakes the family for a minute. The Don’s card carries a palette of signs; every sign appears at once, big, on the mafia’s screens. As soon as the host puts the mafia to sleep the signs vanish — just like at the table, they have to be remembered.',
+  dlGuideN: 'Night. The host counts “one… ten”. The mafia’s screen shows a fist; with the count the index and middle fingers go up; the “Shoot” button bends and straightens the fingers and marks the hand with the number. Teammates see each other’s hands. All on one number — a kill, otherwise a miss.',
+  dlGuideD: 'Day. After the speeches everyone sees who is nominated. For each candidate a “3, 2, 1” count and a window where everyone presses “I vote” or “Abstain” at the same time. Whoever voted for nobody goes to the last nominee.',
+  dlHandFist: 'Fist — hand on the table', dlHandGun: 'Two fingers — ready', dlHandShot: 'Shot — on a number',
+  dlHelp: { num: 'A seat number: 1–5 on one hand, 6–10 an open hand plus the rest on the other. “Night 1 → 5” — on the first night we shoot seat 5.', night: 'Which night we shoot: the Don shows “Night 2”, then a number or a target.', day: 'Which day the plan refers to: “Day 2 → I’m the Sheriff”.',
+    prev: 'The neighbour on the left by number: one less — from the victim, the one voted out or the one named.', next: 'The neighbour on the right by number: one more.', nomBy: 'Whoever nominated one of ours.', nomFirst: 'The first nominated that day.', nomLast: 'The last nominated that day.', voteFirst: 'Whoever voted first against one of ours.', sheriff: 'Whoever claimed to be the Sheriff.', checked: 'Whoever the Sheriff announced after a check.', leader: 'The most active at the table — the town’s leader.', victim: 'Counting from our night victim: “From the victim → No. +1”.', gone: 'Counting from the one voted out by day.', us: 'One of us: “If ours is nominated → who nominated”.',
+    repeat: 'On a miss — the same target next night.', miss: 'A deliberate miss: no shot tonight.', free: 'No target, play it by ear — watch the Don.', follow: 'Follow me: shoot the number I show.', answer: 'Payback: if ours is voted out by day — shoot whoever nominated him.', fakeMe: 'I will claim to be the Sheriff (a fake Sheriff).', fakeYou: 'You claim to be the Sheriff.', nominate: 'We nominate this player.', vote: 'We vote against this player.', spare: 'Leave this one alone: no nomination, no vote.', split: 'Vote separately, don’t bunch up — so the family stays hidden.',
+    if: 'A condition: “If the Sheriff claimed → shoot the Sheriff”.', else: 'Else — the fallback plan.', then: 'Then — the next step in order.', yes: 'Yes, understood, agreed.', no: 'No, not that — cancel the previous sign.' } });
+Object.assign(I18N.pl.ui, {
+  gearSetup: 'Ustawienia stołu', gearSetupD: 'Miejsca, skład, karty — i rozdanie', hostBanner: 'Twój stół {code}', hostBannerD: 'Przy stole: {n} · ustaw i rozdaj karty',
+  seatTapHint: 'Dotknij gracza na stole, potem miejsce — aby go przesadzić', seatMoveHint: 'Gdzie przesadzić {name}? Dotknij miejsce', seatMoveCancel: 'Anuluj',
+  plNo: 'Wstrzymuję się', plVoteNow: 'Głosujcie!', plCands: 'Wystawieni', plCandsWait: 'Prowadzący rozpoczyna głosowanie…', plCountdown: 'Odliczanie',
+  dlTab: 'Znaki', dlTabCard: 'Karta', dlGuideTitle: 'Jak to wygląda w grze', dlSignsTitle: 'Wszystkie znaki Dona',
+  dlGuide0: 'Zerowa noc. Prowadzący budzi rodzinę na minutę. Na karcie Dona jest paleta znaków; każdy znak od razu pojawia się duży na ekranach mafii. Gdy prowadzący usypia mafię, znaki znikają z ekranów — jak przy stole, trzeba je zapamiętać.',
+  dlGuideN: 'Noc. Prowadzący liczy „raz… dziesięć”. Na ekranie mafii pięść; z odliczaniem podnoszą się palec wskazujący i środkowy; przycisk „Strzał” zgina i prostuje palce, ręka dostaje numer. Wspólnicy widzą swoje ręce. Wszyscy na jednym numerze — zabity, inaczej pudło.',
+  dlGuideD: 'Dzień. Po mowach wszyscy widzą wystawionych. Na każdego odliczanie „3, 2, 1” i okno, w którym jednocześnie naciska się „Głosuję” albo „Wstrzymuję się”. Kto nie zagłosował na nikogo — idzie na ostatniego wystawionego.',
+  dlHandFist: 'Pięść — ręka na stole', dlHandGun: 'Dwa palce — gotowy', dlHandShot: 'Strzał — na numer',
+  dlHelp: { num: 'Numer gracza przy stole: 1–5 na jednej ręce, 6–10 otwarta dłoń plus reszta na drugiej. „Noc 1 → 5” — pierwszej nocy strzelamy w piątego.', night: 'Której nocy strzelamy: Don pokazuje „Noc 2”, potem numer albo cel.', day: 'Którego dnia dotyczy plan: „Dzień 2 → Ja — szeryf”.',
+    prev: 'Sąsiad z lewej według numeru: o jeden mniej — od ofiary, wygłosowanego albo wskazanego.', next: 'Sąsiad z prawej według numeru: o jeden więcej.', nomBy: 'Ten, kto wystawił naszego.', nomFirst: 'Pierwszy wystawiony tego dnia.', nomLast: 'Ostatni wystawiony tego dnia.', voteFirst: 'Ten, kto pierwszy zagłosował na naszego.', sheriff: 'Ten, kto ujawnił się jako szeryf.', checked: 'Ten, kogo szeryf wskazał po sprawdzeniu.', leader: 'Najaktywniejszy przy stole — lider miasta.', victim: 'Liczymy od naszej nocnej ofiary: „Od ofiary → nr +1”.', gone: 'Liczymy od wygłosowanego w dzień.', us: 'Jeden z nas: „Jeśli nasz wystawiony → kto wystawił”.',
+    repeat: 'Przy pudle — ten sam cel następnej nocy.', miss: 'Celowe pudło: tej nocy nie strzelamy.', free: 'Brak celu, według sytuacji — patrzcie na Dona.', follow: 'Powtarzajcie za mną: strzelajcie w numer, który pokażę.', answer: 'Odwet: jeśli naszego wygłosowano w dzień — strzelamy w tego, kto go wystawił.', fakeMe: 'Ujawnię się jako szeryf (fałszywy szeryf).', fakeYou: 'Ty ujawniasz się jako szeryf.', nominate: 'Wystawiamy tego gracza.', vote: 'Głosujemy na tego gracza.', spare: 'Tego nie ruszamy: nie wystawiamy i nie głosujemy.', split: 'Głosujemy osobno, nie w kupie — żeby nie zdradzić rodziny.',
+    if: 'Warunek: „Jeśli szeryf się ujawnił → w szeryfa”.', else: 'Inaczej — plan zapasowy.', then: 'Potem — następny krok po kolei.', yes: 'Tak, rozumiem, zgoda.', no: 'Nie, nie tak — cofam poprzedni znak.' } });
+Object.assign(I18N.hy.ui, {
+  gearSetup: 'Սեղանի կարգավորում', gearSetupD: 'Տեղեր, կազմ, քարտեր և բաժանում', hostBanner: 'Ձեր սեղանը {code}', hostBannerD: 'Սեղանի շուրջ՝ {n} · կարգավորել և բաժանել քարտերը',
+  seatTapHint: 'Սեղմեք խաղացողին սեղանի վրա, ապա տեղը՝ տեղափոխելու համար', seatMoveHint: 'Ո՞ւր տեղափոխել {name}-ին։ Սեղմեք տեղը', seatMoveCancel: 'Չեղարկել',
+  plNo: 'Ձեռնպահ', plVoteNow: 'Քվեարկե՛ք', plCands: 'Առաջադրված են', plCandsWait: 'Վարողը սկսում է քվեարկությունը…', plCountdown: 'Հաշիվ',
+  dlTab: 'Ժեստեր', dlTabCard: 'Քարտ', dlGuideTitle: 'Ինչպես է դա երևում խաղում', dlSignsTitle: 'Դոնի բոլոր ժեստերը',
+  dlGuide0: 'Զրոյական գիշեր։ Վարողը մեկ րոպեով արթնացնում է ընտանիքը։ Դոնի քարտի վրա ժեստերի ընտրանի է. ամեն ժեստ անմիջապես մեծ երևում է մաֆիայի էկրաններին։ Հենց վարողը քնեցնում է մաֆիային, ժեստերն անհետանում են էկրաններից՝ ինչպես սեղանի շուրջ, դրանք պետք է հիշել։',
+  dlGuideN: 'Գիշեր։ Վարողը հաշվում է «մեկ… տասը»։ Մաֆիայի էկրանին բռունցք է. հաշվի հետ բարձրանում են ցուցամատն ու միջնամատը, «Կրակոց» կոճակով մատները ծալվում ու ուղղվում են, ձեռքը նշվում է համարով։ Գործընկերները տեսնում են միմյանց ձեռքերը։ Բոլորը մեկ համարի վրա՝ սպանված, այլապես՝ վրիպում։',
+  dlGuideD: 'Օր։ Ելույթներից հետո բոլորը տեսնում են առաջադրվածներին։ Յուրաքանչյուրի համար՝ «3, 2, 1» հաշիվ և պատուհան, որտեղ միաժամանակ սեղմում են «Քվեարկում եմ» կամ «Ձեռնպահ»։ Ով ոչ մեկի համար չի քվեարկել՝ գնում է վերջին առաջադրվածին։',
+  dlHandFist: 'Բռունցք՝ ձեռքը սեղանին', dlHandGun: 'Երկու մատ՝ պատրաստ', dlHandShot: 'Կրակոց՝ համարի վրա',
+  dlHelp: { num: 'Խաղացողի համարը սեղանի շուրջ. 1–5՝ մեկ ձեռքի մատներով, 6–10՝ բաց ափ գումարած մնացածը մյուս ձեռքով։ «Գիշեր 1 → 5»՝ առաջին գիշերը կրակում ենք հինգերորդին։', night: 'Որ գիշերն ենք կրակում. Դոնը ցույց է տալիս «Գիշեր 2», ապա համար կամ թիրախ։', day: 'Որ օրվան է վերաբերում պլանը. «Օր 2 → Ես շերիֆն եմ»։',
+    prev: 'Ձախ հարևանը ըստ համարի՝ մեկով պակաս. սպանվածից, հեռացվածից կամ նշվածից։', next: 'Աջ հարևանը ըստ համարի՝ մեկով ավելի։', nomBy: 'Նա, ով առաջադրել է մերոնցից մեկին։', nomFirst: 'Այդ օրվա առաջին առաջադրվածը։', nomLast: 'Այդ օրվա վերջին առաջադրվածը։', voteFirst: 'Նա, ով առաջինը քվեարկել է մերոնց դեմ։', sheriff: 'Նա, ով բացվել է որպես շերիֆ։', checked: 'Նա, ում շերիֆը նշել է ստուգումից հետո։', leader: 'Սեղանի ամենաակտիվը՝ քաղաքացիների առաջնորդը։', victim: 'Հաշվում ենք մեր գիշերային զոհից. «Սպանվածից → №+1»։', gone: 'Հաշվում ենք ցերեկը քվեարկությամբ հեռացվածից։', us: 'Մերոնցից մեկը. «Եթե մերը առաջադրված է → ով առաջադրեց»։',
+    repeat: 'Վրիպման դեպքում՝ նույն թիրախը հաջորդ գիշեր։', miss: 'Դիտավորյալ վրիպում. այս գիշեր չենք կրակում։', free: 'Թիրախ չկա, ըստ իրավիճակի՝ նայեք Դոնին։', follow: 'Կրկնեք իմ հետևից. կրակեք այն համարին, որ ես ցույց կտամ։', answer: 'Պատասխան. եթե մերոնց ցերեկը հեռացրին՝ կրակում ենք նրան, ով առաջադրել էր։', fakeMe: 'Ես կբացվեմ որպես շերիֆ (կեղծ շերիֆ)։', fakeYou: 'Դու բացվում ես որպես շերիֆ։', nominate: 'Առաջադրում ենք այս խաղացողին։', vote: 'Քվեարկում ենք այս խաղացողի դեմ։', spare: 'Սրան չենք դիպչում. ոչ առաջադրում, ոչ քվե։', split: 'Քվեարկում ենք առանձին, չենք խմբվում, որ ընտանիքը չբացվի։',
+    if: 'Պայման. «Եթե շերիֆը բացվել է → շերիֆին»։', else: 'Այլապես՝ պահեստային տարբերակ։', then: 'Հետո՝ հաջորդ քայլը հերթով։', yes: 'Այո, հասկացա, համաձայն եմ։', no: 'Ոչ, այդպես չէ՝ չեղարկում եմ նախորդ ժեստը։' } });
 /* ---------------- Discord voice room of an online table (v33), all languages ---------------- */
 Object.assign(I18N.ru.ui, {
   dcwTitle: 'Discord сейчас', dcwOnline: '{n} онлайн', dcwVoice: 'в голосовых', dcwTables: 'столов в голосе', dcwNobody: 'В голосовых пока пусто — зайдите первым', dcwJoin: 'Войти в Discord',
@@ -7282,8 +7355,12 @@ function hostTableHTML(st) {
   l.players.forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
   for (let i = 0; i < st.n; i++) { const e = Object.entries(l.seats || {}).find(([k, v]) => Number(v) === i); const pl = e && l.players.find(p => p.tgId === Number(e[0])); const prof = (st.seatProfiles || [])[i] ? profById(st.seatProfiles[i]) : null; const name = (st.names[i] || '').trim() || (pl ? pl.name : '') || (prof ? prof.name : ''); seats.push({ seat: i + 1, name: name || u.tbSeatFree, tgId: e ? Number(e[0]) : null, alive: true }); if (!name) marks[i + 1] = { dim: true }; if (pl) marks[i + 1] = { joined: true }; }
   const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-host">${esc(hostName())}</div><div class="rt-n">${tt(u.tbPlayersN, { n: `${l.players.length} / ${st.n}` })}</div>`;
+  // the host moves players by tapping: a player, then a seat (whoever sat there takes the vacated one)
+  const sel = S.ui.seatSel || 0; seats.forEach(sx => { const m = marks[sx.seat] = marks[sx.seat] || {}; m.act = `data-a="host-seat" data-seat="${sx.seat}"`; if (sx.seat === sel) m.picked = true; if (sel && sx.seat !== sel) m.pick = true; });
+  const selPl = sel ? l.players.find(p => l.seats && l.seats[p.tgId] === sel - 1) : null;
   const rows = l.players.map(pl => { const seated = l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n; const watching = ONL.watching.includes(pl.tgId) || !!pl.online; return `<div class="fr-row" role="button" data-a="fr-open" data-id="${pl.tgId}" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(pl)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${seated ? tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 }) : u.tbNoSeat}${pl.points ? ` · ${pl.points}` : ''}${pl.club ? ` · ${esc(pl.club)}` : ''}${watching ? ` · <span class="fr-on">${u.tbInApp}</span>` : ''}</div></div>${seated ? '' : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`; }).join('');
-  return `<div class="panel"><div class="eyebrow" style="margin-bottom:8px">${u.tbLobby}</div>${roundTableHTML(seats, profiles, center, marks)}
+  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button></div>${roundTableHTML(seats, profiles, center, marks)}
+    <div class="hint" style="text-align:center;margin-top:6px">${selPl ? `${tt(u.seatMoveHint, { name: esc(selPl.name) })} <button class="btn xs ghost" data-a="host-seat" data-seat="${sel}">${u.seatMoveCancel}</button>` : l.players.length ? u.seatTapHint : ''}</div>
     <div class="eyebrow" style="margin-top:12px">${u.tbJoinedList} · ${l.players.length}</div>${rows ? `<div class="stack-s" style="margin-top:6px">${rows}</div>` : `<div class="hint" style="margin-top:6px">${u.tgWaiting}</div>`}</div>`;
 }
 /* ============================================================ PLAYER'S TABLE SCREEN */
@@ -7332,7 +7409,7 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
     const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${free ? '·' : esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
     const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
     const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : ''].filter(Boolean).join(' ');
-    const act = m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
+    const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
     return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `<div class="rt-meta">${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
@@ -7517,7 +7594,10 @@ Object.assign(ACT, {
 });
 /* home banner: the table I sit at */
 function tableBannerHTML() {
-  const u = U(); const t = S.cloud && S.cloud.table; if (!TG.app || !apiBase() || !t || (S.cloud.user && t.hostId === S.cloud.user.id)) return '';
+  const u = U(); const t = S.cloud && S.cloud.table; if (!TG.app || !apiBase()) return '';
+  // the host of an open table (whether they opened it or were invited to run it): a gear into the table settings and the deal
+  const l = S.lobby; if (l && l.code && !creatorPlays() && lobbyIsOpen() && !(S.game && !S.game.winner)) return `<div class="panel" role="button" data-a="setup-jump" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.gear}</div><div class="grow"><div style="font-weight:800">${tt(u.hostBanner, { code: esc(l.code) })}</div><div class="hint" style="margin:0">${tt(u.hostBannerD, { n: (l.players || []).length })}</div></div><span class="btn xs primary">${u.gearSetup}</span></div></div>`;
+  if (!t || (S.cloud.user && t.hostId === S.cloud.user.id)) return '';
   return `<div class="panel" role="button" data-a="table-open" data-id="${esc(t.code)}" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.game}</div><div class="grow"><div style="font-weight:800">${tt(u.tbBanner, { code: esc(t.code), host: esc(t.host || '') })}</div><div class="hint" style="margin:0">${t.status === 'live' ? u.tbOnlineTag : u.tbLobby}</div></div><span class="btn xs primary">${u.tbOpen}</span><button class="btn xs ghost" data-a="tb-leave" data-code="${esc(t.code)}" title="${u.tbLeaveTable}" aria-label="${u.tbLeaveTable}" style="flex:0 0 auto;padding:6px 9px">✕</button></div></div>`;
 }
 Object.assign(ACT, {
@@ -7632,7 +7712,7 @@ function podiumHTML(rows, keyPrefix = 'pod') {
      hidden until the window closes; whoever has not voted goes to the last candidate
    ============================================================ */
 const HS = { LEAD: 3000, STEP: 1000, N: 10, GRACE: 2000, SHOW: 2600, ANIM: 700 }; // the shot: lead-in, a second per number, ten numbers, late hands, how long the outcome stays
-const PLC = { DUR: 4000, GAP: 900, GRACE: 1800, LAST: 2500 }; // the vote: the window, the pause between candidates, late answers, the "rest to the last" pause
+const PLC = { DUR: 3000, GAP: 3600, CD: 3, GRACE: 1800, LAST: 2500 }; // the vote: the window after the count, the pause before a candidate (its last CD seconds are the "3, 2, 1"), late answers, the "rest to the last" pause
 const classicOnline = g => !!(g && typeof isClassic === 'function' && isClassic(g) && onlineActive(g));
 const srvNow = () => Date.now() + (ONL.skew || 0); // the host's estimate of server time
 const tbNow = () => Date.now() + (TB.skew || 0); // the player's estimate of server time
@@ -7776,11 +7856,15 @@ function hsHandsHTML(g, step, shot, mine) {
   const res = shot.result ? `<div class="hs-res ${shot.result.hit ? 'hit' : 'miss'}">${shot.result.hit ? tt(u.hsHit, { n: shot.result.seat }) : shot.result.none ? u.hsMissNone : shot.result.dead ? u.hsMissDead : u.hsMiss}</div>` : '';
   return `<div class="panel hs"><div class="eyebrow gold">${u.hsAuto}</div><div class="hs-num ${lead ? 'lead' : over ? 'over' : ''}" id="hs-num" data-at="${shot.at}">${lead ? u.hsWake : over ? u.hsOver : cur}</div><div class="hs-hands">${hands}</div>${res}${mine ? '' : `<div class="hint" style="margin-top:8px">${u.hsHostHint}</div>`}</div>`;
 }
+/* the "3, 2, 1" before a window: a digit while it runs, "Vote!" while the window is open, "window closed" after */
+function plCountText(at, dur, last, now) { const u = U(); if (last) return ''; if (now < at) { const c = Math.ceil((at - now) / 1000); return c <= PLC.CD ? String(c) : '·'; } return now < at + dur ? u.plVoteNow : u.plOver; }
+function plCountHTML(at, dur, last, now) { const t = plCountText(at, dur, last, now); return `<div class="pl-cd ${now < at ? 'cd' : now < at + dur ? 'go' : 'over'}" id="pl-cd" data-at="${at}" data-dur="${dur}" data-last="${last ? 1 : 0}">${t}</div>`; }
+function plCandsHTML(seatsList, cur, doneBefore) { return `<div class="pl-cands big">${seatsList.map((sx, i) => `<span class="${cur !== undefined && i === cur ? 'cur' : doneBefore !== undefined && i < doneBefore ? 'done' : ''}">${sx}</span>`).join('')}</div>`; }
 function plHostHTML(g) {
   const u = U(); const onl = onlState(g); const b = g.ballot; const pl = onl.poll; const active = pollActive(g); const o = voteOutcome(g);
   const cands = active ? pl.cands : (b.candidates || []);
   const row = cands.length ? `<div class="pl-cands">${cands.map((id, i) => `<span class="${active && i === pl.idx ? 'cur' : active && i < pl.idx ? 'done' : ''}">${P(g, id).seat}</span>`).join('')}</div>` : '';
-  if (active) { const cand = P(g, pl.cands[pl.idx]); const now = srvNow(); const left = pl.last ? 0 : Math.max(0, pl.at + pl.dur - now); return `<div class="panel raised"><div class="eyebrow gold">${u.plRunning}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: cand.seat }) : tt(u.plFor, { seat: cand.seat })}</div><div class="pl-bar ${left ? '' : 'over'}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${pl.last ? 100 : Math.round(100 * (1 - left / pl.dur))}%"></i></div><div class="hint" style="margin-top:6px">${tt(u.plOf, { k: pl.idx + 1, n: pl.cands.length })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button></div></div>`; }
+  if (active) { const cand = P(g, pl.cands[pl.idx]); const now = srvNow(); const left = pl.last ? 0 : Math.max(0, pl.at + pl.dur - now); return `<div class="panel raised"><div class="eyebrow gold">${u.plRunning}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: cand.seat }) : tt(u.plFor, { seat: cand.seat })}</div>${plCountHTML(pl.at, pl.dur, pl.last, now)}<div class="pl-bar ${left ? '' : 'over'}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${pl.last ? 100 : Math.round(100 * (1 - left / pl.dur))}%"></i></div><div class="hint" style="margin-top:6px">${tt(u.plOf, { k: pl.idx + 1, n: pl.cands.length })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button></div></div>`; }
   if (onl.pollManual) return `<div class="panel"><div class="hint">${u.plManualHint}</div><div class="btn-row" style="margin-top:8px"><button class="btn primary sm" data-a="poll-start" ${o.kind === 'skip1' || o.kind === 'empty' ? 'disabled' : ''}>${u.plStart}</button></div></div>`;
   return `<div class="panel raised"><div class="eyebrow gold">${u.plTitle}</div>${row}<div class="hint" style="margin-top:6px">${tt(u.plHostHint, { s: Math.round(PLC.DUR / 1000) })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button><button class="btn primary grow" data-a="poll-start" ${o.kind === 'skip1' || o.kind === 'empty' ? 'disabled' : ''}>${u.plStart}</button></div></div>`;
 }
@@ -7788,8 +7872,26 @@ function hostLiveTick() { // the host's own screen: the count and the vote bar m
   const g = S.game; if (!classicOnline(g) || S.screen !== 'game') return; const u = U(); const now = srvNow();
   const el = document.querySelector('#hs-num'); if (el && !el.dataset.done) { const at = Number(el.dataset.at); const lead = now < at, over = now >= at + HS.N * HS.STEP; const cur = Math.min(HS.N, Math.floor((now - at) / HS.STEP) + 1); const txt = lead ? u.hsWake : over ? u.hsOver : String(cur); if (el.textContent !== txt) { el.textContent = txt; el.className = `hs-num ${lead ? 'lead' : over ? 'over' : ''}`; if (!lead && !over && cur === 1) render(); } }
   const bar = document.querySelector('#pl-bar'); if (bar && bar.dataset.last !== '1') { const at = Number(bar.dataset.at), dur = Number(bar.dataset.dur); const w = Math.max(0, Math.min(100, Math.round(100 * (now - at) / dur))); bar.firstElementChild.style.width = w + '%'; bar.classList.toggle('over', now >= at + dur); }
+  plCountPaint(now);
 }
+function plCountPaint(now) { const cd = document.querySelector('#pl-cd'); if (!cd || cd.dataset.last === '1') return; const at = Number(cd.dataset.at), dur = Number(cd.dataset.dur); const t = plCountText(at, dur, false, now); if (cd.textContent !== t) cd.textContent = t; cd.className = `pl-cd ${now < at ? 'cd' : now < at + dur ? 'go' : 'over'}`; }
 
+/* ---------- the host's gear above the table, the Don's sign guide ---------- */
+function hostGearHTML(u) { return `<div class="panel" role="button" data-a="setup-jump" style="border-color:rgba(240,205,122,.5);cursor:pointer"><div class="row"><div class="ico" style="color:var(--gold)">${I.gear}</div><div class="grow"><div style="font-weight:800">${u.gearSetup}</div><div class="hint" style="margin:0">${u.gearSetupD}</div></div><span class="chev">${I.chev}</span></div></div>`; }
+function dlDocHTML() {
+  const u = U(); const help = u.dlHelp || {};
+  const guide = `<div class="section"><div class="eyebrow gold">${u.dlGuideTitle}</div>
+    <p style="margin-top:6px;font-size:14px">${u.dlGuide0}</p>${dlSeqHTML(['night1', 'n5', 'night2', 'next'], false)}
+    <p style="margin-top:10px;font-size:14px">${u.dlGuideN}</p><div class="hs-hands" style="margin-top:4px"><div class="hs-hand"><div class="lb">${u.dlHandFist}</div>${handSVG(HAND_FIST, 0, { size: 56 })}</div><div class="hs-hand"><div class="lb">${u.dlHandGun}</div>${handSVG(HAND_GUN, 0, { size: 56 })}</div><div class="hs-hand fired"><div class="lb">${u.dlHandShot}</div>${handSVG(HAND_GUN, 0, { size: 56 })}<div class="at">${tt(u.hsShotAt, { n: 5 })}</div></div></div>
+    <p style="margin-top:10px;font-size:14px">${u.dlGuideD}</p><div class="pl-cands big" style="margin-top:4px"><span class="cur">1</span><span>4</span></div><div class="pl-cd cd" style="margin-top:2px">3 · 2 · 1</div></div>`;
+  const rowHTML = (toks, title, key) => `<div class="dl-row">${toks.length > 1 ? `<div class="dl-toks">${toks.map(t => dlTokenHTML(t.id, 'mid')).join('')}</div>` : dlTokenHTML(toks[0].id, 'mid')}<div class="dl-help"><b>${esc(title)}</b><div class="hint" style="margin:2px 0 0">${esc(help[key] || '')}</div></div></div>`;
+  const cats = DL_CATS.map(c => { const toks = DL_TOKENS.filter(t => t.cat === c); let rows;
+    if (c === 'num') rows = rowHTML([toks[2], toks[6]], '1–10', 'num');
+    else if (c === 'mark') rows = rowHTML([toks[0]], u.dlTok.night.replace('{n}', '1–5'), 'night') + rowHTML([toks[5]], u.dlTok.day.replace('{n}', '1–4'), 'day');
+    else rows = toks.map(t => rowHTML([t], dlLabel(t.id), t.id)).join('');
+    return `<div class="eyebrow" style="margin-top:12px">${u.dlCat[c]}</div><div class="stack-s" style="margin-top:6px">${rows}</div>`; }).join('');
+  return `<div class="roledoc">${guide}<div class="section"><div class="eyebrow gold">${u.dlSignsTitle}</div>${cats}</div></div>`;
+}
 /* ---------- player: screens ---------- */
 function tbPeerRows(key) { const d = TB.data; if (!d || !Array.isArray(d.peers)) return []; const seats = (d.pub && d.pub.seats) || []; return d.peers.filter(r => r.key === key).map(r => { const s = seats.find(x => x.tgId === r.tgId); return { tgId: r.tgId, seat: s ? s.seat : null, payload: r.payload || {}, at: r.at }; }); }
 function tbDealHTML(ask, me) {
@@ -7815,13 +7917,13 @@ function tbHandsHTML(ask, me, pub) {
 }
 function tbCountHTML(shot) { const u = U(); const now = tbNow(); const lead = now < shot.at, over = now >= shot.at + shot.n * shot.step; const cur = Math.min(shot.n, Math.max(1, Math.floor((now - shot.at) / shot.step) + 1)); return `<div class="panel hs"><div class="eyebrow">${u.hsCount}</div><div class="hs-num ${lead ? 'lead' : over ? 'over' : ''}" id="hs-num" data-at="${shot.at}" data-n="${shot.n}" data-step="${shot.step}">${lead ? u.hsWake : over ? u.hsOver : cur}</div></div>`; }
 function tbPollHTML(ask, me, pub) {
-  const u = U(); const pl = pub.poll; const now = tbNow(); const mine = ask.kind === 'poll'; const over = pl.last || now >= pl.at + pl.dur; const w = pl.last ? 100 : Math.max(0, Math.min(100, Math.round(100 * (now - pl.at) / pl.dur)));
+  const u = U(); const pl = pub.poll; const now = tbNow(); const mine = ask.kind === 'poll'; const over = pl.last || now >= pl.at + pl.dur; const open = !pl.last && now >= pl.at && !over; const w = pl.last ? 100 : Math.max(0, Math.min(100, Math.round(100 * (now - pl.at) / pl.dur)));
   const sent = TB.sent[ask.key]; const yes = sent ? !!sent.yes : ask.yes; const answered = mine && (!!sent || ask.done);
   const row = `<div class="pl-cands">${(pl.cands || []).map((s, i) => `<span class="${i === pl.idx ? 'cur' : i < pl.idx ? 'done' : ''}">${s}</span>`).join('')}</div>`;
   const myVote = (pub.dayInfo && pub.dayInfo.votes && pub.dayInfo.votes[me.seat]) || null;
   const line = mine ? (over ? u.plOver : answered ? u.plSent : '') : myVote ? tt(u.plVoted, { seat: myVote }) : pl.cand === me.seat ? '' : u.plCant;
-  const btns = mine ? `<div class="pl-btns"><button class="btn ${answered && yes ? 'danger sel' : 'ghost'}" data-a="pl-ans" data-yes="1" ${over ? 'disabled' : ''}>${u.plYes}${answered && yes ? ' ✓' : ''}</button><button class="btn ${answered && !yes ? 'primary sel' : 'ghost'}" data-a="pl-ans" data-yes="0" ${over ? 'disabled' : ''}>${u.plNo}${answered && !yes ? ' ✓' : ''}</button></div>` : '';
-  return `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${u.plTitle} · ${tt(u.plOf, { k: pl.idx + 1, n: pl.n })}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: pl.cand }) : tt(u.plFor, { seat: pl.cand })}</div><div class="pl-bar ${over ? 'over' : ''}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${w}%"></i></div>${btns}${line ? `<div class="hint" style="margin-top:8px;text-align:center">${line}</div>` : ''}</div>`;
+  const btns = mine ? `<div class="pl-btns"><button class="btn ${answered && yes ? 'danger sel' : 'ghost'}" data-a="pl-ans" data-yes="1" ${open ? '' : 'disabled'}>${u.plYes}${answered && yes ? ' ✓' : ''}</button><button class="btn ${answered && !yes ? 'primary sel' : 'ghost'}" data-a="pl-ans" data-yes="0" ${open ? '' : 'disabled'}>${u.plNo}${answered && !yes ? ' ✓' : ''}</button></div>` : '';
+  return `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${u.plTitle} · ${tt(u.plOf, { k: pl.idx + 1, n: pl.n })}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: pl.cand }) : tt(u.plFor, { seat: pl.cand })}</div>${plCountHTML(pl.at, pl.dur, pl.last, now)}<div class="pl-bar ${over ? 'over' : ''}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${w}%"></i></div>${btns}${line ? `<div class="hint" style="margin-top:8px;text-align:center">${line}</div>` : ''}</div>`;
 }
 /* what my screen needs beyond the host's prompt: the family watching the Don, the count for everyone, the vote for those who only watch it */
 function tbSynthAsk(d) {
@@ -7829,12 +7931,15 @@ function tbSynthAsk(d) {
   if (pub.phase === 'night0' && me.deal !== undefined && !(me.ask && me.ask.kind === 'deal')) return { key: 'night0:deal:w', kind: 'dealWatch', done: true };
   if (pub.phase === 'night' && pub.shot && !(me.ask && me.ask.kind === 'hands')) return { key: pub.shot.key + ':w', kind: me.mates !== undefined && (me.hands || me.shotResult || (me.peerKeys || []).includes(pub.shot.key)) ? 'handsWatch' : 'count', at: pub.shot.at, n: pub.shot.n, step: pub.shot.step, done: true };
   if (pub.phase === 'day' && pub.poll && !pub.poll.done && !(me.ask && me.ask.kind === 'poll')) return { key: pub.poll.key + ':w', kind: 'pollWatch', done: true };
+  const di = pub.dayInfo; if (pub.phase === 'day' && di && (di.stage === 'vote' || di.stage === 'speeches') && di.candidates && di.candidates.length && !me.ask) return { key: `day${pub.day}:cands:${di.stage}`, kind: 'candsWatch', done: true };
   return null;
 }
+function tbCandsHTML(pub) { const u = U(); const di = pub.dayInfo; return `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${u.plCands}</div>${plCandsHTML(di.candidates)}${di.stage === 'vote' ? `<div class="hint" style="text-align:center;margin-top:8px">${u.plCandsWait}</div>` : ''}</div>`; }
 function tbLiveTick() { // every 100 ms on the table screen: the count and the vote bar move; a full render at the turning points
   const d = TB.data; if (S.screen !== 'table' || !d || !d.pub) return; const u = U(); const now = tbNow(); let stage = '';
   const el = document.querySelector('#hs-num'); if (el) { const at = Number(el.dataset.at), n = Number(el.dataset.n), step = Number(el.dataset.step); const lead = now < at, over = now >= at + n * step; const cur = Math.min(n, Math.max(1, Math.floor((now - at) / step) + 1)); stage = 'hs:' + (lead ? 'lead' : over ? 'over' : 'count'); const txt = lead ? u.hsWake : over ? u.hsOver : String(cur); if (el.textContent !== txt) { el.textContent = txt; el.className = `hs-num ${lead ? 'lead' : over ? 'over' : ''}`; } TB.hsCur = { key: el.dataset.key || '', n: cur, lead, over }; }
   const bar = document.querySelector('#pl-bar'); if (bar) { const at = Number(bar.dataset.at), dur = Number(bar.dataset.dur); const over = bar.dataset.last === '1' || now >= at + dur; stage += '|pl:' + (over ? 'over' : now < at ? 'wait' : 'open'); if (bar.dataset.last !== '1') { bar.firstElementChild.style.width = Math.max(0, Math.min(100, Math.round(100 * (now - at) / dur))) + '%'; bar.classList.toggle('over', over); } }
+  plCountPaint(now);
   if (stage !== (TB.liveStage || '')) { const prev = TB.liveStage || ''; TB.liveStage = stage; if (prev) keepFocus(render); }
 }
 
@@ -7887,8 +7992,21 @@ function tbLiveTick() { // every 100 ms on the table screen: the count and the v
     if (ask.kind === 'hands' || ask.kind === 'handsWatch') return tbHandsHTML(ask, me, pub);
     if (ask.kind === 'count') return tbCountHTML(pub.shot);
     if ((ask.kind === 'poll' || ask.kind === 'pollWatch') && pub.poll) return tbPollHTML(ask, me, pub);
+    if (ask.kind === 'candsWatch' && pub.dayInfo && pub.dayInfo.candidates) return tbCandsHTML(pub);
     return origAsk(ask, seats); };
-  const origTable = tableScreen; tableScreen = function () { const d = TB.data; if (d && d.me && d.pub && !d.me.ask) { const s = tbSynthAsk(d); if (s) { d.me.ask = s; d.me.synth = true; } } else if (d && d.me && d.me.synth && d.me.ask && !tbSynthAsk(d)) { d.me.ask = null; d.me.synth = false; } return origTable(); };
+  const origTable = tableScreen; tableScreen = function () { const d = TB.data; if (d && d.me && d.pub && !d.me.ask) { const s = tbSynthAsk(d); if (s) { d.me.ask = s; d.me.synth = true; } } else if (d && d.me && d.me.synth && d.me.ask && !tbSynthAsk(d)) { d.me.ask = null; d.me.synth = false; }
+    let html = origTable(); const pub = d && d.pub; if (d && d.isHost && pub && (pub.phase === 'lobby' || pub.phase === 'deal')) { const u = U(); const i = html.indexOf('<div class="stack">'); if (i >= 0) html = html.slice(0, i + 19) + hostGearHTML(u) + html.slice(i + 19); } return html; };
+  const origRoleDoc = roleDoc; roleDoc = function (r) { if (!r || r.id !== 'don') return origRoleDoc(r); const u = U(); const tab = S.ui.roleTab === 'signs' ? 'signs' : 'card'; const seg = `<div class="segment n2" style="margin-bottom:10px"><button class="${tab === 'card' ? 'active' : ''}" data-a="role-tab" data-id="card">${u.dlTabCard}</button><button class="${tab === 'signs' ? 'active' : ''}" data-a="role-tab" data-id="signs">${u.dlTab}</button></div>`; return seg + (tab === 'signs' ? dlDocHTML() : origRoleDoc(r)); };
+  Object.assign(ACT, {
+    'role-tab'(el) { S.ui.roleTab = el.dataset.id; render(); },
+    // the host: into the table settings; from the setup screen itself — down to the settings under the round table
+    'setup-jump'() { if (S.screen !== 'setup') { go('setup'); return; } try { const t = document.querySelector('#host-table'); const next = t && t.nextElementSibling; if (next && next.scrollIntoView) next.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} },
+    // the host moves a player: tap them, then tap a seat
+    'host-seat'(el) { const l = S.lobby; if (!l || !l.code) return; const seat = Number(el.dataset.seat); const sel = S.ui.seatSel || 0; const tgAt = sx => { const e = Object.entries(l.seats || {}).find(([k, v]) => Number(v) === sx - 1); return e ? Number(e[0]) : 0; };
+      if (!sel) { if (!tgAt(seat)) return; S.ui.seatSel = seat; tgHaptic('light'); render(); return; }
+      if (sel === seat) { S.ui.seatSel = 0; render(); return; }
+      const tg = tgAt(sel); S.ui.seatSel = 0; if (!tg) { render(); return; } ACT['tg-seat-set']({ dataset: { tg: String(tg) }, value: String(seat - 1) }); }
+  });
   const origTablePoll = tablePoll; tablePoll = function () { origTablePoll(); const want = S.screen === 'table' && TB.code && TG.app && apiBase(); if (want && !TB.live) TB.live = setInterval(() => { try { tbLiveTick(); } catch (e) {} }, 100); if (!want && TB.live) { clearInterval(TB.live); TB.live = null; TB.liveStage = ''; } };
   const origActionsPoll = actionsPoll; actionsPoll = function () { origActionsPoll(); const g = S.game; const want = TG.app && apiBase() && classicOnline(g) && g.dealt && !g.winner && S.screen === 'game'; if (want && !ONL.live) ONL.live = setInterval(() => { try { hostLiveTick(); } catch (e) {} }, 200); if (!want && ONL.live) { clearInterval(ONL.live); ONL.live = null; } };
 })();
