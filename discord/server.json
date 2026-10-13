@@ -18,7 +18,9 @@
     "chat": "1559482158547214458",
     "ideas": "1559482161118318672",
     "lobby": "1559482163395694633",
-    "catTables": "1559482164825952332"
+    "catTables": "1559482164825952332",
+    "catAdmin": "1559490646283264130",
+    "analytics": "1559490652306411652"
   },
   "roles": {
     "host": "1559482119439253556",
@@ -39,13 +41,21 @@
       "id": "1559482179707207700",
       "name": "Mafia Pro · Итоги",
       "channel": "1559482156630155414"
+    },
+    "analytics": {
+      "id": "1559490662959947786",
+      "name": "Mafia Pro · Аналитика",
+      "channel": "1559490652306411652"
     }
   },
   "tablesCategory": "1559482164825952332",
-  "updatedAt": "2026-10-13T08:38:12.673Z",
+  "updatedAt": "2026-10-13T08:59:32.196Z",
   "bot": {
     "id": "1559473078558392390",
     "username": "bot1559473078558392390"
   },
-  "telegramBot": "mafiaprof_bot"
+  "telegramBot": "mafiaprof_bot",
+  "application": "1559473078558392390",
+  "publicKey": "0043fbf602abd13573ec140afe6ed1e9cc5978c4806e18f5068f42a951faff76",
+  "commandsHash": "515160fe"
 }
