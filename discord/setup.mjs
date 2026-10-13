@@ -59,11 +59,12 @@ const TEAM_ICON = { black: '🖤', red: '❤️', neutral: '🤍', ww: '🐺' };
 const STARS = { role: 100, scenario: 500, pack: 1750 };
 const players = n => { const d = n % 10, h = n % 100; return `${n} ${d === 1 && h !== 11 ? 'игрок' : d >= 2 && d <= 4 && (h < 12 || h > 14) ? 'игрока' : 'игроков'}`; };
 const cut = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s; };
-const embedSize = e => (e.title || '').length + (e.description || '').length + ((e.footer && e.footer.text) || '').length + (e.fields || []).reduce((a, f) => a + f.name.length + f.value.length, 0);
-/* pack embeds into messages: ≤ 10 embeds and ≤ 5800 characters each */
+const B = s => Buffer.byteLength(String(s || ''), 'utf8'); // Discord rejects messages by their UTF-8 size (413 "message.embeds"), Cyrillic is 2 bytes a letter
+const embedSize = e => B(e.title) + B(e.description) + B(e.footer && e.footer.text) + (e.fields || []).reduce((a, f) => a + B(f.name) + B(f.value), 0);
+/* pack embeds into messages: ≤ 10 embeds and ≤ 5000 bytes of text each */
 function packEmbeds(embeds, extra = {}) {
   const out = []; let cur = [], size = 0;
-  for (const e of embeds) { const s = embedSize(e); if (cur.length && (cur.length >= 10 || size + s > 5800)) { out.push(Object.assign({ embeds: cur }, extra)); cur = []; size = 0; } cur.push(e); size += s; }
+  for (const e of embeds) { const s = embedSize(e); if (cur.length && (cur.length >= 10 || size + s > 5000)) { out.push(Object.assign({ embeds: cur }, extra)); cur = []; size = 0; } cur.push(e); size += s; }
   if (cur.length) out.push(Object.assign({ embeds: cur }, extra));
   return out;
 }
@@ -85,7 +86,7 @@ export function buildContent(app, ctx) {
     if (inPack) fields.push({ name: 'Доступ', value: `📦 пак «${packName}» · ${STARS.pack} ⭐`, inline: true });
     else if (r.premium) fields.push({ name: 'Доступ', value: `💎 премиум · ${STARS.role} ⭐`, inline: true });
     else fields.push({ name: 'Доступ', value: 'бесплатно', inline: true });
-    return { title: `${TEAM_ICON[r.team] || '🃏'} ${t.name || r.id}${inPack ? ' · 📦' : r.premium ? ' · 💎' : ''}`, description: desc, color: r.team === 'black' ? COLOR.mafia : r.team === 'red' ? COLOR.city : r.team === 'ww' ? COLOR.ww : COLOR.neutral, fields, footer: t.lore ? { text: cut(t.lore, 300) } : undefined };
+    return { title: `${TEAM_ICON[r.team] || '🃏'} ${t.name || r.id}${inPack ? ' · 📦' : r.premium ? ' · 💎' : ''}`, description: desc, color: r.team === 'black' ? COLOR.mafia : r.team === 'red' ? COLOR.city : r.team === 'ww' ? COLOR.ww : COLOR.neutral, fields, footer: t.lore ? { text: cut(t.lore, 200) } : undefined };
   };
   const order = r => (pack.roles.includes(r.id) ? 2 : r.premium ? 1 : 0);
   const cardsOf = teams => app.ROLES.filter(r => teams.includes(r.team)).sort((a, b) => order(a) - order(b)).map(roleEmbed);

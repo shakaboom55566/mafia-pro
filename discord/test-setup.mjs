@@ -18,8 +18,8 @@ console.log('content: Discord limits');
   ok(app.ROLES.length >= 50, 'roles loaded from the app: ' + app.ROLES.length);
   const cards = ['cardsMafia', 'cardsCity', 'cardsNeutral'].reduce((a, k) => a + content[k].reduce((b, m) => b + m.embeds.length, 0) - 1, 0); ok(cards === app.ROLES.length, `every role has a card: ${cards}/${app.ROLES.length}`);
   for (const [k, msgs] of Object.entries(content)) msgs.forEach((m, i) => {
-    const size = m.embeds.reduce((a, e) => a + (e.title || '').length + (e.description || '').length + ((e.footer && e.footer.text) || '').length + (e.fields || []).reduce((b, f) => b + f.name.length + f.value.length, 0), 0);
-    ok(m.embeds.length >= 1 && m.embeds.length <= 10 && size <= 6000, `${k}[${i}]: ${m.embeds.length} embeds, ${size} chars`);
+    const B = x => Buffer.byteLength(String(x || ''), 'utf8'); const size = m.embeds.reduce((a, e) => a + B(e.title) + B(e.description) + B(e.footer && e.footer.text) + (e.fields || []).reduce((b, f) => b + B(f.name) + B(f.value), 0), 0);
+    ok(m.embeds.length >= 1 && m.embeds.length <= 10 && size <= 5600, `${k}[${i}]: ${m.embeds.length} embeds, ${size} bytes (Discord refused 11332)`);
     m.embeds.forEach(e => { ok((e.title || '').length <= 256 && (e.description || '').length <= 4096 && (e.fields || []).length <= 25 && (e.fields || []).every(f => f.name.length <= 256 && f.value.length <= 1024 && f.value.length > 0) && (!e.footer || e.footer.text.length <= 2048), `${k}: embed "${(e.title || '').slice(0, 40)}" within limits`); ok(!/undefined|NaN|\[object/.test(JSON.stringify(e)), `${k}: no undefined in "${(e.title || '').slice(0, 30)}"`); });
   });
   ok(content.cardsMafia.slice(1).some(m => m.embeds.some(e => /Дон мафии/.test(e.title))) && content.cardsCity.slice(1).some(m => m.embeds.some(e => /Шериф/.test(e.title))), 'Don in the mafia cards, Sheriff in the city cards');
