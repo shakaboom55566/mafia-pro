@@ -36,6 +36,7 @@ jobs:
         run: |
           node test/sim.js
           for lang in ru uk en pl hy; do LANG_CODE=$lang node test/ui-smoke.js; done
+          node seo/test-site.mjs
 
       - name: Prepare site (inject backend address from the MAFIA_API_URL repository variable)
         env:
@@ -46,6 +47,10 @@ jobs:
           [ -n "$MAFIA_API_URL" ] || MAFIA_API_URL=$(cat .mafia-api-url 2>/dev/null | tr -d '[:space:]')
           echo "backend: ${MAFIA_API_URL:-<none>}"
           sed "s#__MAFIA_API__#${MAFIA_API_URL}#" index.html > _site/index.html
+          # search-engine ownership tags (v38): seo/verify.txt — lines "google=<code>" / "bing=<code>" from Search Console / Bing Webmaster
+          G=$(sed -n 's/^google=//p' seo/verify.txt 2>/dev/null | tr -d '[:space:]'); B=$(sed -n 's/^bing=//p' seo/verify.txt 2>/dev/null | tr -d '[:space:]')
+          V=""; [ -n "$G" ] && V="$V<meta name=\"google-site-verification\" content=\"$G\">"; [ -n "$B" ] && V="$V<meta name=\"msvalidate.01\" content=\"$B\">"
+          [ -n "$V" ] && sed -i "s#<!--GSC_VERIFY-->#$V#" _site/index.html && echo "verification tags: ${G:+google }${B:+bing}"
           cp 404.html _site/
           touch _site/.nojekyll
           grep -o '<meta name="mafia-api" content="[^"]*">' _site/index.html
@@ -64,6 +69,14 @@ jobs:
           for l in ru uk en pl hy; do node discord/render-cards.js _site/cards/$l mafia-pro.html $l; done
           cp _site/cards/ru/*.png _site/cards/  # v33 addresses (cards/<role>.png) keep working
           du -sh _site/cards
+
+      - name: Public website for search engines (<lang>/, roles, rules, setups, sitemap.xml)
+        run: |
+          GSC_VERIFY=$(sed -n 's/^google=//p' seo/verify.txt 2>/dev/null | tr -d '[:space:]') node seo/build-site.mjs _site
+
+      - name: Website pictures (card thumbnails, link previews)
+        continue-on-error: true
+        run: node seo/render-images.js _site && du -sh _site/og
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

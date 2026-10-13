@@ -3,6 +3,17 @@
 Приложение ведущего для живой игры в мафию — Telegram Mini App. Один HTML-файл, без сервера: роли, 2D-иллюстрации карт, 3D-карта с рубашкой, ночь/день/голосование по правилам, разбор партии, профили и рейтинги, магазин. Пять языков: русский (по умолчанию), украинский, английский, польский, армянский.
 
 **Приложение:** https://shakaboom55566.github.io/mafia-pro/
+**Сайт для поисковиков:** https://shakaboom55566.github.io/mafia-pro/ru/ (и `uk/`, `en/`, `pl/`, `hy/`)
+
+## Сайт для поисковиков (v38)
+
+Само приложение рисуется скриптом — поисковик видит пустую страницу. Поэтому рядом с ним Pages-workflow собирает обычный быстрый сайт из данных приложения (`seo/build-site.mjs`, тексты страниц — `seo/texts.mjs`, общие блоки «Как идёт партия» и «Как играть» — из `discord/texts.mjs`):
+
+- `<язык>/` — что такое Mafia Pro, возможности, форматы, роли, вопросы и ответы; `<язык>/roles/` и страница на каждую из 55 ролей с картой; `<язык>/rules/`; `<язык>/scenarios/` — составы на 7–24 игроков, классика и сценарии. Всего 295 страниц на 5 языках.
+- На каждой: title, description, canonical, hreflang на все языки (+ x-default → en), Open Graph с картинкой (`og/<язык>.png`, карта роли на её странице), JSON-LD (SoftwareApplication, FAQPage, ItemList, Article, BreadcrumbList). `sitemap.xml` с hreflang, `robots.txt`.
+- Картинки: `seo/render-images.js` — квадратные превью карт `cards/<язык>/t/<id>.jpg` и превью ссылок. Страница приложения получила title, description, Open Graph, JSON-LD и ссылки на сайт в `<noscript>` (`seo/app-head.html`, `seo/app-noscript.html`).
+- Подтверждение владения в Google Search Console / Bing Webmaster: код из «HTML-тега» — в `seo/verify.txt` (`google=…`, `bing=…`), workflow вставит мета-тег на главную приложения.
+- Проверка: `node seo/test-site.mjs` (уникальные title/description, canonical, hreflang, JSON-LD, ссылки, sitemap) — в шаге smoke-тестов Pages. Свой домен: `SITE_URL=https://домен/`.
 
 ## Оффлайн и онлайн игра
 

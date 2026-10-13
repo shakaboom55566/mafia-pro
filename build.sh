@@ -22,7 +22,10 @@ mkdir -p deploy
   echo '<script src="https://telegram.org/js/telegram-web-app.js?59"></script>'
   # backend address: the Pages workflow replaces the placeholder with the MAFIA_API_URL repository variable (empty = no backend)
   echo '<meta name="mafia-api" content="__MAFIA_API__">'
+  # search engines and link previews (v38): the app page renders by script, the crawlable site lives in <lang>/ (seo/build-site.mjs)
+  cat seo/app-head.html
   cat mafia-pro.html | sed '/<\/style>/,$!b;/<\/style>/{p;s/.*/<\/head><body>/;}' 
+  cat seo/app-noscript.html
   echo '</body></html>'
 } > deploy/index.html
 wc -c deploy/index.html
