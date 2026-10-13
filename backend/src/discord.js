@@ -49,31 +49,54 @@ export async function createVoice(env, code, lang, seats) {
 export async function setVoiceLimit(env, channelId, seats) { return dcall(env, 'PATCH', `/channels/${channelId}`, { user_limit: limitFor(seats) }); }
 export async function deleteVoice(env, channelId) { const r = await dcall(env, 'DELETE', `/channels/${channelId}`); return r.ok || r.status === 404; } // already gone counts as done
 
-/* ---------- webhooks of the Mafia Pro server (created by discord/setup.mjs): new online tables and game results ---------- */
-export const HOOKS = { tables: 'Mafia Pro · Столы', results: 'Mafia Pro · Итоги', analytics: 'Mafia Pro · Аналитика' };
+/* ---------- webhooks of the Mafia Pro server (created by discord/setup.mjs): new online tables and game results ----------
+   v34: every language has its own #ищу-игру / #результаты (seen only by members with that language role), each with its own webhook.
+   A table goes to the channel of its language; if that webhook is missing, to the Russian one (with Russian texts). */
+export const HOOKS = {
+  tables: { ru: 'Mafia Pro · Столы', uk: 'Mafia Pro · Столи', en: 'Mafia Pro · Tables', pl: 'Mafia Pro · Stoły', hy: 'Mafia Pro · Սեղաններ' },
+  results: { ru: 'Mafia Pro · Итоги', uk: 'Mafia Pro · Підсумки', en: 'Mafia Pro · Results', pl: 'Mafia Pro · Wyniki', hy: 'Mafia Pro · Արդյունքներ' },
+  analytics: { ru: 'Mafia Pro · Аналитика' } // admins only, one channel
+};
 const HOOK_TTL = 6 * 3600, HOOK_MISS_TTL = 600;
 /* the webhook's id + token, looked up by name in the guild and cached in D1 (discord_cfg) */
-export async function hookOf(env, kind, fresh) {
-  const key = 'hook:' + kind; const ts = Math.floor(Date.now() / 1000);
+export async function hookOf(env, kind, fresh, lang = 'ru') {
+  lang = HOOKS[kind][lang] ? lang : 'ru';
+  const key = 'hook:' + kind + (lang === 'ru' ? '' : ':' + lang); const ts = Math.floor(Date.now() / 1000);
   if (!fresh) { const c = await env.DB.prepare('SELECT value, updated_at FROM discord_cfg WHERE key = ?1').bind(key).first(); if (c && ts - c.updated_at < (c.value ? HOOK_TTL : HOOK_MISS_TTL)) return c.value ? JSON.parse(c.value) : null; }
   const r = await dcall(env, 'GET', `/guilds/${String(env.DISCORD_GUILD_ID).trim()}/webhooks`);
-  const w = r.ok && Array.isArray(r.data) ? r.data.find(x => x && x.name === HOOKS[kind] && x.token) : null;
+  if (!r.ok) return null; // Discord unreachable: no cache entry, try again next time
+  const w = Array.isArray(r.data) ? r.data.find(x => x && x.name === HOOKS[kind][lang] && x.token) : null;
   const val = w ? JSON.stringify({ id: String(w.id), token: w.token }) : '';
   await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(key, val, ts).run();
   return w ? { id: String(w.id), token: w.token } : null;
 }
+/* which language's channel takes a post: the table's own if it has a webhook, else Russian */
+export async function hookLang(env, kind, lang) {
+  if (lang && lang !== 'ru' && HOOKS[kind][lang] && await hookOf(env, kind, false, lang)) return lang;
+  return 'ru';
+}
 /* post (returns the message id) or edit a webhook message; a deleted webhook is looked up again once */
-export async function hookSend(env, kind, payload, messageId) {
+export async function hookSend(env, kind, payload, messageId, lang = 'ru') {
   for (let i = 0; i < 2; i++) {
-    const h = await hookOf(env, kind, i > 0); if (!h) return { ok: false, error: 'no_webhook' };
+    const h = await hookOf(env, kind, i > 0, lang); if (!h) return { ok: false, error: 'no_webhook' };
     const base = `/webhooks/${h.id}/${h.token}`;
     const r = messageId ? await dcall(env, 'PATCH', `${base}/messages/${messageId}`, payload) : await dcall(env, 'POST', `${base}?wait=true`, Object.assign({ allowed_mentions: { parse: [] } }, payload));
     if (r.ok) return { ok: true, id: r.data && r.data.id ? String(r.data.id) : messageId };
-    if (r.status === 404 && messageId && i === 0) { const again = await hookOf(env, kind, true); if (again && again.id === h.id) return { ok: false, error: 'message_gone', gone: true }; continue; }
+    if (r.status === 404 && messageId && i === 0) { const again = await hookOf(env, kind, true, lang); if (again && again.id === h.id) return { ok: false, error: 'message_gone', gone: true }; continue; }
     if (r.status !== 404) return { ok: false, error: r.error };
   }
   return { ok: false, error: 'no_webhook' };
 }
+
+/* texts of the table / result cards in the five languages */
+export const CARD_T = {
+  ru: { status: { open: 'набор игроков', dealt: 'раздача карт', live: 'идёт партия', finished: 'партия завершена', closed: 'стол закрыт' }, table: 'Стол', players: 'Игроки', host: 'Ведущий', host_l: 'ведущий', seekHost: 'ищут ведущего', voice: 'Голос', voiceLink: 'Войти в голосовой канал', sit: 'Сесть за стол', openTg: 'Открыть в Telegram', ended: 'Стол больше не принимает игроков.', about: 'Онлайн-мафия в приложении Mafia Pro: игроки ходят со своих телефонов, говорим в Discord.', results: 'Итоги', days: 'дней', footer: 'Mafia Pro · онлайн-мафия' },
+  uk: { status: { open: 'набір гравців', dealt: 'роздача карт', live: 'йде партія', finished: 'партію завершено', closed: 'стіл закрито' }, table: 'Стіл', players: 'Гравці', host: 'Ведучий', host_l: 'ведучий', seekHost: 'шукають ведучого', voice: 'Голос', voiceLink: 'Увійти в голосовий канал', sit: 'Сісти за стіл', openTg: 'Відкрити в Telegram', ended: 'Стіл більше не приймає гравців.', about: 'Онлайн-мафія в застосунку Mafia Pro: гравці ходять зі своїх телефонів, говоримо в Discord.', results: 'Підсумки', days: 'днів', footer: 'Mafia Pro · онлайн-мафія' },
+  en: { status: { open: 'seating players', dealt: 'dealing cards', live: 'game in progress', finished: 'game over', closed: 'table closed' }, table: 'Table', players: 'Players', host: 'Host', host_l: 'host', seekHost: 'looking for a host', voice: 'Voice', voiceLink: 'Join the voice channel', sit: 'Take a seat', openTg: 'Open in Telegram', ended: 'The table no longer takes players.', about: 'Online mafia in the Mafia Pro app: everyone plays from their own phone, we talk on Discord.', results: 'Results', days: 'days', footer: 'Mafia Pro · online mafia' },
+  pl: { status: { open: 'zbieranie graczy', dealt: 'rozdawanie kart', live: 'trwa gra', finished: 'gra zakończona', closed: 'stół zamknięty' }, table: 'Stół', players: 'Gracze', host: 'Prowadzący', host_l: 'prowadzący', seekHost: 'szukają prowadzącego', voice: 'Głos', voiceLink: 'Wejdź na kanał głosowy', sit: 'Usiądź przy stole', openTg: 'Otwórz w Telegramie', ended: 'Stół nie przyjmuje już graczy.', about: 'Mafia online w aplikacji Mafia Pro: każdy gra ze swojego telefonu, rozmawiamy na Discordzie.', results: 'Wyniki', days: 'dni', footer: 'Mafia Pro · mafia online' },
+  hy: { status: { open: 'խաղացողների հավաքագրում', dealt: 'քարտերի բաժանում', live: 'խաղն ընթանում է', finished: 'խաղն ավարտված է', closed: 'սեղանը փակ է' }, table: 'Սեղան', players: 'Խաղացողներ', host: 'Վարող', host_l: 'վարող', seekHost: 'վարող են փնտրում', voice: 'Ձայն', voiceLink: 'Մտնել ձայնային ալիք', sit: 'Նստել սեղանի շուրջ', openTg: 'Բացել Telegram-ում', ended: 'Սեղանն այլևս խաղացողներ չի ընդունում։', about: 'Առցանց մաֆիա Mafia Pro հավելվածում․ յուրաքանչյուրը խաղում է իր հեռախոսից, խոսում ենք Discord-ում։', results: 'Արդյունքներ', days: 'օր', footer: 'Mafia Pro · առցանց մաֆիա' }
+};
+export const cardT = lang => CARD_T[lang] || CARD_T.ru;
 
 /* ---------- slash commands (HTTP interactions): Ed25519 signature of timestamp + body with the application's public key ---------- */
 const hexBytes = h => new Uint8Array(String(h).match(/../g).map(x => parseInt(x, 16)));
@@ -92,3 +115,37 @@ export async function verifyInteraction(env, sigHex, timestamp, body) {
 }
 /* when a Discord account was created (from its snowflake) */
 export const snowflakeTime = id => { try { return Number((BigInt(id) >> 22n) + 1420070400000n); } catch (e) { return 0; } };
+
+/* ---------- buttons on the server (v34): the bot's messages carry buttons that give / take a role ----------
+   Discord sends a click as an HTTP interaction (type 3) to /discord/interactions, the same endpoint as the slash commands
+   (signature checked by verifyInteraction). */
+/* replies to a button: in the chosen language (language buttons) or in the user's Discord language */
+const LANG_NAMES = { ru: 'Русский', uk: 'Українська', en: 'English', pl: 'Polski', hy: 'Հայերեն' };
+const ROLE_NAMES = { host: { ru: '🎩 Ведущий', uk: '🎩 Ведучий', en: '🎩 Host', pl: '🎩 Prowadzący', hy: '🎩 Վարող' }, player: { ru: '🎲 Игрок', uk: '🎲 Гравець', en: '🎲 Player', pl: '🎲 Gracz', hy: '🎲 Խաղացող' } };
+const IX_T = {
+  ru: { langOn: n => `✅ ${n}: каналы на этом языке открыты — смотрите список каналов слева.`, langOff: n => `➖ ${n}: каналы на этом языке скрыты.`, roleOn: n => `✅ Роль ${n} выдана.`, roleOff: n => `➖ Роль ${n} снята.`, fail: 'Не получилось изменить роль — попробуйте ещё раз через минуту.' },
+  uk: { langOn: n => `✅ ${n}: канали цією мовою відкрито — дивіться список каналів ліворуч.`, langOff: n => `➖ ${n}: канали цією мовою приховано.`, roleOn: n => `✅ Роль ${n} видано.`, roleOff: n => `➖ Роль ${n} знято.`, fail: 'Не вдалося змінити роль — спробуйте ще раз за хвилину.' },
+  en: { langOn: n => `✅ ${n}: channels in this language are now open — see the channel list on the left.`, langOff: n => `➖ ${n}: channels in this language are hidden.`, roleOn: n => `✅ You now have the ${n} role.`, roleOff: n => `➖ The ${n} role was removed.`, fail: 'Could not change the role — please try again in a minute.' },
+  pl: { langOn: n => `✅ ${n}: kanały w tym języku są otwarte — zobacz listę kanałów po lewej.`, langOff: n => `➖ ${n}: kanały w tym języku są ukryte.`, roleOn: n => `✅ Masz rolę ${n}.`, roleOff: n => `➖ Rola ${n} została zdjęta.`, fail: 'Nie udało się zmienić roli — spróbuj ponownie za minutę.' },
+  hy: { langOn: n => `✅ ${n}․ այս լեզվով ալիքները բաց են — տեսեք ալիքների ցանկը ձախ կողմում։`, langOff: n => `➖ ${n}․ այս լեզվով ալիքները թաքցված են։`, roleOn: n => `✅ Դուք ստացաք ${n} դերը։`, roleOff: n => `➖ ${n} դերը հանված է։`, fail: 'Չհաջողվեց փոխել դերը — փորձեք մեկ րոպեից։' }
+};
+export const localeLang = loc => { const l = String(loc || '').slice(0, 2).toLowerCase(); return IX_T[l] ? l : l === 'be' ? 'ru' : 'en'; };
+const reply = (text, flags = 64) => ({ type: 4, data: { content: text, flags, allowed_mentions: { parse: [] } } });
+
+/* one interaction → the JSON answer. custom_id: "mp:l:<lang>:<roleId>" (language), "mp:p:<host|player>:<roleId>" (game role) */
+export async function handleButton(env, it) {
+  const guild = String(env.DISCORD_GUILD_ID || '').trim();
+  const m = /^mp:([lp]):([a-z]{2,6}):(\d{5,25})$/.exec(String((it.data && it.data.custom_id) || ''));
+  const userId = it.member && it.member.user && it.member.user.id;
+  const ui = localeLang(it.locale);
+  if (!m || !userId || String(it.guild_id || '') !== guild) return reply(IX_T[ui].fail);
+  const [, kind, what, roleId] = m;
+  if (kind === 'l' && !LANG_NAMES[what]) return reply(IX_T[ui].fail);
+  if (kind === 'p' && !ROLE_NAMES[what]) return reply(IX_T[ui].fail);
+  const has = (it.member.roles || []).map(String).includes(roleId);
+  const r = await dcall(env, has ? 'DELETE' : 'PUT', `/guilds/${guild}/members/${userId}/roles/${roleId}`);
+  const lang = kind === 'l' ? what : ui; const T = IX_T[lang];
+  if (!r.ok) { console.error('discord role', r.status, r.error); return reply(T.fail); }
+  const name = kind === 'l' ? LANG_NAMES[what] : ROLE_NAMES[what][lang];
+  return reply(kind === 'l' ? (has ? T.langOff(name) : T.langOn(name)) : (has ? T.roleOff(name) : T.roleOn(name)));
+}

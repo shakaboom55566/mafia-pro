@@ -55,13 +55,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Role card images for the Discord library (_site/cards/<role>.png)
+      - name: Role card images for the Discord library (_site/cards/<lang>/<role>.png)
         continue-on-error: true
         run: |
           set -eo pipefail
           npm install --no-save --no-audit --no-fund playwright@1.56.0 2>&1 | tail -1
           npx playwright install --with-deps chromium 2>&1 | tail -1
-          node discord/render-cards.js _site/cards mafia-pro.html ru
+          for l in ru uk en pl hy; do node discord/render-cards.js _site/cards/$l mafia-pro.html $l; done
+          cp _site/cards/ru/*.png _site/cards/  # v33 addresses (cards/<role>.png) keep working
           du -sh _site/cards
 
       - name: Configure Pages

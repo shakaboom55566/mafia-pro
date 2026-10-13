@@ -718,6 +718,43 @@ console.log('discord server webhooks: the #ищу-игру card follows an onlin
   ok(rr.status === 200 && card().length === n0, 'no webhook → the table works, nothing posted');
   for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API']) delete env[k];
   await dc.close(); }
+console.log('discord v34: per-language #ищу-игру / #результаты, buttons that give language and game roles');
+{ const dc = await startMockDiscord(8798); Object.assign(env, { DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base });
+  await env.DB.prepare('DELETE FROM discord_cfg').run();
+  const dreq = async (method, p, body) => (await fetch(dc.base + p, { method, headers: { Authorization: 'Bot dc-token', 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })).json();
+  const mk = async (name, hook) => { const c = await dreq('POST', '/guilds/111111111111/channels', { name, type: 0 }); await dreq('POST', `/channels/${c.id}/webhooks`, { name: hook }); return c; };
+  const ruT = await mk('ищу-игру', 'Mafia Pro · Столы'), ruR = await mk('результаты', 'Mafia Pro · Итоги'), plT = await mk('szukam-gry', 'Mafia Pro · Stoły'), plR = await mk('wyniki', 'Mafia Pro · Wyniki'), ukT = await mk('шукаю-гру', 'Mafia Pro · Столи');
+  const msgs = c => dc.messages.get(c.id) || [];
+  const hp = user(2300, 'pl'); const h = await initData(hp);
+  const code = (await (await post('/api/lobby', { initData: h, fresh: true, lang: 'pl' })).json()).code; await post('/api/lobby/role', { initData: h, code, online: true, seats: 8 }); await settle();
+  ok(msgs(plT).length === 1 && msgs(plT)[0].embeds[0].title === `🇵🇱 Stół ${code} · zbieranie graczy` && JSON.stringify(msgs(plT)[0].embeds[0].fields).includes('Otwórz w Telegramie') && !msgs(ruT).some(m => m.embeds[0].title.includes(code)), 'a Polish table goes to the Polish channel, in Polish: ' + JSON.stringify(msgs(plT)[0] && msgs(plT)[0].embeds[0]).slice(0, 200));
+  await post('/api/lobby/close', { initData: h, code }); await settle(); ok(msgs(plT).length === 1 && msgs(plT)[0].embeds[0].title.includes('stół zamknięty'), 'the same Polish card is closed');
+  const hu = user(2301, 'uk'); const hU = await initData(hu); const cu = (await (await post('/api/lobby', { initData: hU, fresh: true, lang: 'uk' })).json()).code; await post('/api/lobby/role', { initData: hU, code: cu, online: true, seats: 8 }); await settle();
+  ok(msgs(ukT).length === 1 && msgs(ukT)[0].embeds[0].title === `🇺🇦 Стіл ${cu} · набір гравців`, 'a Ukrainian table → the Ukrainian channel');
+  await post('/api/table/publish', { initData: hU, code: cu, pub: { phase: 'end', code: cu, n: 8, day: 2, online: true, result: { side: 'mafia', title: 'Перемога мафії' }, roles: [{ seat: 1, name: 'A', rn: 'Дон мафії', won: true, total: 9, place: 1 }] }, priv: {} }); await settle();
+  ok(msgs(ruR).length === 1 && msgs(ruR)[0].embeds[0].description.includes('Стол **' + cu) && msgs(ruR)[0].embeds[0].description.includes('ведущий'), 'no Ukrainian results webhook → the Russian #результаты, in Russian');
+  const he = user(2302, 'en'); const hE = await initData(he); const ce = (await (await post('/api/lobby', { initData: hE, fresh: true, lang: 'en' })).json()).code; await post('/api/lobby/role', { initData: hE, code: ce, online: true, seats: 8 }); await settle();
+  ok(msgs(ruT).some(m => m.embeds[0].title === `🇬🇧 Стол ${ce} · набор игроков`), 'no English webhook → the Russian channel with Russian texts');
+  // buttons: signed interactions (type 3) on the slash-command endpoint
+  const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+  const hex = b => Buffer.from(new Uint8Array(b)).toString('hex'); env.DISCORD_PUBLIC_KEY = hex(await crypto.subtle.exportKey('raw', kp.publicKey));
+  const ix = async (obj, { bad, key } = {}) => { const raw = JSON.stringify(obj); const ts = String(now()); const sig = hex(await crypto.subtle.sign({ name: 'Ed25519' }, key || kp.privateKey, new TextEncoder().encode(ts + raw + (bad ? 'x' : '')))); return call('/discord/interactions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature-Ed25519': sig, 'X-Signature-Timestamp': ts }, body: raw }); };
+  eq(await (await ix({ type: 1 })).json(), { type: 1 }, 'PING → PONG');
+  eq((await ix({ type: 3, data: { custom_id: 'mp:l:uk:1' } }, { bad: true })).status, 401, 'a button click with a wrong signature → 401');
+  const ukRole = (await dreq('POST', '/guilds/111111111111/roles', { name: 'Українська' })).id; const hostRole = (await dreq('POST', '/guilds/111111111111/roles', { name: '🎩 Ведущий' })).id;
+  dc.join({ id: '424242424242', username: 'nina' }); const has = r => dc.members.get('424242424242').roles.includes(r);
+  const click = (cid, roles = [], locale = 'ru', uid = '424242424242') => ix({ type: 3, guild_id: '111111111111', locale, data: { custom_id: cid, component_type: 2 }, member: { user: { id: uid }, roles } });
+  const a1 = await (await click(`mp:l:uk:${ukRole}`)).json();
+  ok(a1.type === 4 && a1.data.flags === 64 && a1.data.content.includes('Українська') && a1.data.content.includes('відкрито') && has(ukRole), 'language button → role given, private answer in that language: ' + JSON.stringify(a1));
+  const a2 = await (await click(`mp:l:uk:${ukRole}`, [ukRole])).json(); ok(a2.data.content.includes('приховано') && !has(ukRole), 'second click → role taken back');
+  const a3 = await (await click(`mp:p:host:${hostRole}`, [], 'pl')).json(); ok(a3.data.content.includes('Prowadzący') && has(hostRole), 'game role button, answer in the Discord language (pl)');
+  const a4 = await (await click(`mp:p:host:${hostRole}`, [hostRole], 'ja')).json(); ok(a4.data.content.includes('Host') && !has(hostRole), 'unknown Discord language → English');
+  const a5 = await (await ix({ type: 3, guild_id: '999', locale: 'ru', data: { custom_id: `mp:l:uk:${ukRole}` }, member: { user: { id: '424242424242' }, roles: [] } })).json(); ok(a5.data.content.includes('Не получилось') && !has(ukRole), 'another server → refused');
+  const a6 = await (await click('mp:l:xx:123456789')).json(); ok(a6.data.content.includes('Не получилось'), 'unknown language → refused');
+  const a7 = await (await click('mp:l:uk:99999999')).json(); ok(a7.data.flags === 64 && a7.data.content.includes('Не вдалося'), 'a deleted role → an error, nothing breaks');
+  const a8 = await (await click(`mp:l:en:${ukRole}`, [], 'en', '5')).json(); ok(a8.data.content.includes('Could not'), 'not a member any more → an error');
+  for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API', 'DISCORD_PUBLIC_KEY']) delete env[k];
+  await dc.close(); }
 console.log('channel posts (drafts → admin approval → channel)');
 { env.CHANNEL_ID = '@mafiaprof';
   const key = await postsKey('test-token');

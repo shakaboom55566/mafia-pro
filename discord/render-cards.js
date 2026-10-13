@@ -1,6 +1,6 @@
 /* Renders every role card (the app's own card face: art, name, type, rule, lore) to an image for the Discord library.
-   Run after build.sh: node discord/render-cards.js <out dir> [app html] [lang=ru]  — the Pages workflow writes them to _site/cards/<id>.png,
-   so the bot can show them as https://<pages>/cards/<id>.png?v=<hash>. */
+   Run after build.sh: node discord/render-cards.js <out dir> [app html] [lang=ru]  — the Pages workflow writes every language to
+   _site/cards/<lang>/<id>.png, so the bot can show them as https://<pages>/cards/<lang>/<id>.png?v=<hash>. */
 const path = require('path'); const fs = require('fs');
 const { chromium } = require('playwright');
 (async () => {

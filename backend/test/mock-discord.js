@@ -8,7 +8,7 @@ export function startMockDiscord(port = 8792, opts = {}) {
   const botUser = { id: '555000000000000001', username: 'MafiaProBot', bot: true };
   const guild = { id: guildId, name: opts.guildName || 'Test server', system_channel_id: null, default_message_notifications: 0, verification_level: 0, owner_id: '1' };
   roles.set(guildId, { id: guildId, name: '@everyone', permissions: '1071698660929', position: 0, color: 0, hoist: false, mentionable: false, managed: false });
-  const st = { fail: 0, failMsg: 'Missing Permissions', rateOnce: false, inviteFail: false, membersFail: false };
+  const st = { fail: 0, failMsg: 'Missing Permissions', rateOnce: false, inviteFail: false, membersFail: false, endpointFail: false };
   const id = () => String(++seq);
   const msgList = ch => { if (!messages.has(ch)) messages.set(ch, []); return messages.get(ch); };
   const server = http.createServer((req, res) => {
@@ -38,16 +38,21 @@ export function startMockDiscord(port = 8792, opts = {}) {
       if (req.method === 'POST' && url === `/guilds/${guildId}/roles`) { const r = Object.assign({ id: id(), permissions: '0', position: roles.size, managed: false }, params); roles.set(r.id, r); return send(200, r); }
       if ((m = /^\/guilds\/\d+\/roles\/(\d+)$/.exec(url)) && req.method === 'PATCH') { const r = roles.get(m[1]); if (!r) return send(404, { message: 'Unknown Role', code: 10011 }); Object.assign(r, params); return send(200, r); }
       if (req.method === 'GET' && url === `/guilds/${guildId}/channels`) return send(200, [...channels.values()]);
+      if (req.method === 'PATCH' && url === `/guilds/${guildId}/channels`) { for (const p of Array.isArray(params) ? params : []) { const ch = channels.get(p.id); if (!ch) return send(400, { message: 'Invalid Form Body', code: 50035 }); if (p.position !== undefined) ch.position = p.position; if (p.parent_id !== undefined) ch.parent_id = p.parent_id; } return send(204, null); } // channel order
       if (req.method === 'GET' && url === `/guilds/${guildId}/members`) { if (st.membersFail) return send(403, { message: 'Missing Access', code: 50001 }); const after = query.get('after') || '0'; return send(200, [...members.values()].filter(x => BigInt(x.user.id) > BigInt(after)).sort((a, b) => (BigInt(a.user.id) < BigInt(b.user.id) ? -1 : 1)).slice(0, Number(query.get('limit')) || 1)); }
       if (req.method === 'GET' && url === `/guilds/${guildId}/invites`) return send(200, [...invites.values()]);
       if (req.method === 'GET' && url === '/applications/@me') return send(200, app);
-      if (req.method === 'PATCH' && url === '/applications/@me') { Object.assign(app, params); return send(200, app); }
+      if (req.method === 'PATCH' && url === '/applications/@me') { if (st.endpointFail) return send(400, { message: 'Invalid Form Body', code: 50035, errors: { interactions_endpoint_url: { _errors: [{ code: 'APPLICATION_INTERACTIONS_ENDPOINT_URL_INVALID', message: 'The specified interactions endpoint url could not be verified.' }] } } }); Object.assign(app, params); return send(200, app); }
+      if ((m = /^\/guilds\/\d+\/members\/(\d+)\/roles\/(\d+)$/.exec(url)) && (req.method === 'PUT' || req.method === 'DELETE')) { // a member's role on / off (buttons in 🌐・language)
+        const mem = members.get(m[1]); if (!mem) return send(404, { message: 'Unknown Member', code: 10007 }); if (!roles.has(m[2])) return send(404, { message: 'Unknown Role', code: 10011 });
+        mem.roles = (mem.roles || []).filter(r => r !== m[2]).concat(req.method === 'PUT' ? [m[2]] : []); return send(204, null);
+      }
       if (req.method === 'PUT' && url === `/applications/${app.id}/guilds/${guildId}/commands`) { commands = params; return send(200, params.map((c, i) => Object.assign({ id: String(700 + i) }, c))); }
       if (req.method === 'GET' && url === `/guilds/${guildId}/webhooks`) return send(200, [...webhooks.values()]);
       if (req.method === 'POST' && url === `/guilds/${guildId}/channels`) {
         if (params.parent_id && params.parent_id !== opts.category && !channels.has(params.parent_id)) return send(400, { message: 'Invalid Form Body', code: 50035 });
         const name = params.type === 0 ? String(params.name).toLowerCase().replace(/\s+/g, '-') : params.name; // Discord's text-channel name normalisation
-        const ch = { id: id(), guild_id: guildId, name, type: params.type, topic: params.topic || null, user_limit: params.user_limit || 0, parent_id: params.parent_id || null, position: params.position || 0, permission_overwrites: params.permission_overwrites || [] };
+        const ch = { id: id(), guild_id: guildId, name, type: params.type, topic: params.topic || null, user_limit: params.user_limit || 0, parent_id: params.parent_id || null, position: params.position !== undefined ? params.position : [...channels.values()].filter(c => (c.type === 4) === (params.type === 4) && c.parent_id === (params.parent_id || null)).length, permission_overwrites: params.permission_overwrites || [] };
         channels.set(ch.id, ch); return send(201, ch);
       }
       if ((m = /^\/channels\/(\d+)\/invites$/.exec(url)) && req.method === 'POST') {

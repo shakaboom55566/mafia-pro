@@ -2,7 +2,11 @@
 /* ============================================================
    Mafia Pro — Discord server setup through the bot (runs in GitHub Actions, workflow discord.yml).
    Idempotent: re-running updates what it created and never touches other channels.
-   - roles: 🎩 Ведущий, 🎲 Игрок
+   v34 — languages: everyone sees 📌 MAFIA PRO (welcome, 🌐 language choice, news, lobby) and the voice tables; the library and
+   game text channels exist in five languages (ru, uk, en, pl, hy) and each set is visible only to its language role.
+   The 🌐 channel has buttons: a language button gives / takes the language role, 🎩 / 🎲 — the game roles. Clicks reach the
+   backend worker (/discord/interactions), which this script registers as the app's Interactions Endpoint URL.
+   - roles: 🎩 Ведущий, 🎲 Игрок, Русский, Українська, English, Polski, Հայերեն
    - categories / channels: info (welcome, server rules, news, how to play), library (mafia / city / neutral cards,
      scenarios, game rules), game (#ищу-игру, #результаты, chat, ideas, 🔊 Лобби), 🎧 ИГРОВЫЕ СТОЛЫ (voice rooms of tables)
    - read-only info / library / bot channels, the welcome channel as the system channel, notifications = mentions only
@@ -16,6 +20,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { T, LANG_ORDER, GAME_ROLES } from './texts.mjs';
+import { HOOKS } from '../backend/src/discord.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -54,13 +60,12 @@ function client(env, log) {
 }
 
 /* ---------- content ---------- */
-const COLOR = { gold: 0xd4a24c, mafia: 0x8b1e2d, city: 0xc9a24c, neutral: 0x7a7f8c, ww: 0x6b4fa0, blurple: 0x5865f2, green: 0x3ba55d };
+const COLOR = { gold: 0xd4a24c, mafia: 0x8b1e2d, city: 0xc9a24c, neutral: 0x7a7f8c, ww: 0x6b4fa0, blurple: 0x5865f2, green: 0x3ba55d, lang: 0x99aab5 };
 const TEAM_ICON = { black: '🖤', red: '❤️', neutral: '🤍', ww: '🐺' };
 const STARS = { role: 100, scenario: 500, pack: 1750 };
-const players = n => { const d = n % 10, h = n % 100; return `${n} ${d === 1 && h !== 11 ? 'игрок' : d >= 2 && d <= 4 && (h < 12 || h > 14) ? 'игрока' : 'игроков'}`; };
 const hash8 = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }; // FNV-1a: the card image URL changes when the card does
 const cut = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s; };
-const B = s => Buffer.byteLength(String(s || ''), 'utf8'); // Discord rejects messages by their UTF-8 size (413 "message.embeds"), Cyrillic is 2 bytes a letter
+const B = s => Buffer.byteLength(String(s || ''), 'utf8'); // Discord rejects messages by their UTF-8 size (413 "message.embeds"), Cyrillic is 2 bytes a letter, Armenian 2
 const embedSize = e => B(e.title) + B(e.description) + B(e.footer && e.footer.text) + (e.fields || []).reduce((a, f) => a + B(f.name) + B(f.value), 0);
 /* pack embeds into messages: ≤ 10 embeds and ≤ 5000 bytes of text each */
 function packEmbeds(embeds, extra = {}) {
@@ -70,132 +75,121 @@ function packEmbeds(embeds, extra = {}) {
   return out;
 }
 const linkButtons = links => ({ components: [{ type: 1, components: links.filter(l => l.url).slice(0, 5).map(l => ({ type: 2, style: 5, label: l.label, url: l.url })) }] });
+/* the channel key of a language: Russian keeps the original keys (and channel ids) of v33, the others get a suffix */
+export const LK = (key, lang) => (lang === 'ru' ? key : `${key}_${lang}`);
+export const LANG_CHANNELS = { lib: ['rules', 'howto', 'cardsMafia', 'cardsCity', 'cardsNeutral', 'scenarios', 'gameRules'], game: ['lfg', 'results', 'chat', 'ideas'] };
 
-export function buildContent(app, ctx) {
-  const { L } = app; const R = id => (L.roles[id] || {}).name || id; const ch = k => ctx.ids[k] ? `<#${ctx.ids[k]}>` : `#${k}`;
-  const tgLink = ctx.botUsername ? `https://t.me/${ctx.botUsername}` : null; const play = tgLink || ctx.appUrl;
-  const pack = app.PACKS.diplomacy; const packName = (L.ui && L.ui.packTitle) || 'Дипломатическая игра';
-  const buttons = linkButtons([{ label: '▶️ Играть в Telegram', url: tgLink }, { label: '🌐 Веб-версия', url: ctx.appUrl }]);
+/* the library and game channels of one language; keys are the base keys (rules, howto, cardsMafia…) */
+export function buildContent(app, ctx, lang = 'ru') {
+  const { L } = app; const t = T[lang]; const R = id => (L.roles[id] || {}).name || id;
+  const ch = k => { const id = ctx.ids[k === 'language' ? k : LK(k, lang)]; return id ? `<#${id}>` : `#${k}`; };
+  const tgLink = ctx.botUsername ? `https://t.me/${ctx.botUsername}` : null;
+  const pack = app.PACKS.diplomacy; const packName = (L.ui && L.ui.packTitle) || 'Diplomacy';
+  const buttons = linkButtons([{ label: t.btnTg, url: tgLink }, { label: t.btnWeb, url: ctx.appUrl }]);
   const compText = ids => { const c = {}; ids.forEach(id => { c[id] = (c[id] || 0) + 1; }); return Object.entries(c).map(([id, n]) => R(id) + (n > 1 ? ` ×${n}` : '')).join(', '); };
 
-  // ----- role cards
+  // ----- role cards (names, rules, lore from the app in this language; the picture is the card rendered in this language)
   const roleEmbed = r => {
-    const t = L.roles[r.id] || {}; const inPack = pack.roles.includes(r.id);
-    const rules = (t.rules || []).map(x => '• ' + x).join('\n');
-    const desc = cut([t.kind ? `*${t.kind}*` : '', t.short || '', rules, t.tip ? `💡 ${t.tip}` : ''].filter(Boolean).join('\n\n'), 3000);
-    const fields = [{ name: 'Команда', value: (L.teams && L.teams[r.team]) || r.team, inline: true }, { name: 'Для проверок', value: (L.colors && L.colors[r.color]) || r.color, inline: true }];
-    if (inPack) fields.push({ name: 'Доступ', value: `📦 пак «${packName}» · ${STARS.pack} ⭐`, inline: true });
-    else if (r.premium) fields.push({ name: 'Доступ', value: `💎 премиум · ${STARS.role} ⭐`, inline: true });
-    else fields.push({ name: 'Доступ', value: 'бесплатно', inline: true });
-    const e = { title: `${TEAM_ICON[r.team] || '🃏'} ${t.name || r.id}${inPack ? ' · 📦' : r.premium ? ' · 💎' : ''}`, description: desc, color: r.team === 'black' ? COLOR.mafia : r.team === 'red' ? COLOR.city : r.team === 'ww' ? COLOR.ww : COLOR.neutral, fields };
-    if (ctx.cardsBase) e.image = { url: `${ctx.cardsBase}${r.id}.png?v=${hash8(JSON.stringify([t.name, t.kind, t.short, t.lore, r.team, !!r.premium]) + (app.roleArt ? app.roleArt(r.id) : ''))}` }; // the app's own card face (art, name, rule, lore), rendered by discord/render-cards.js into the Pages site
-    else if (t.lore) e.footer = { text: cut(t.lore, 200) };
+    const tr = L.roles[r.id] || {}; const inPack = pack.roles.includes(r.id);
+    const rules = (tr.rules || []).map(x => '• ' + x).join('\n');
+    const desc = cut([tr.kind ? `*${tr.kind}*` : '', tr.short || '', rules, tr.tip ? `💡 ${tr.tip}` : ''].filter(Boolean).join('\n\n'), 3000);
+    const fields = [{ name: t.team, value: (L.teams && L.teams[r.team]) || r.team, inline: true }, { name: t.checks, value: (L.colors && L.colors[r.color]) || r.color, inline: true }];
+    fields.push({ name: t.access, value: inPack ? t.pack(packName, STARS.pack) : r.premium ? t.premium(STARS.role) : t.free, inline: true });
+    const e = { title: `${TEAM_ICON[r.team] || '🃏'} ${tr.name || r.id}${inPack ? ' · 📦' : r.premium ? ' · 💎' : ''}`, description: desc, color: r.team === 'black' ? COLOR.mafia : r.team === 'red' ? COLOR.city : r.team === 'ww' ? COLOR.ww : COLOR.neutral, fields };
+    if (ctx.cardsBase) e.image = { url: `${ctx.cardsBase}${r.id}.png?v=${hash8(JSON.stringify([tr.name, tr.kind, tr.short, tr.lore, r.team, !!r.premium]) + (app.roleArt ? app.roleArt(r.id) : ''))}` }; // the app's own card face, rendered by discord/render-cards.js into the Pages site
+    else if (tr.lore) e.footer = { text: cut(tr.lore, 200) };
     return e;
   };
   const order = r => (pack.roles.includes(r.id) ? 2 : r.premium ? 1 : 0);
   const cardsOf = teams => app.ROLES.filter(r => teams.includes(r.team)).sort((a, b) => order(a) - order(b)).map(roleEmbed);
-  const cardsIntro = (title, text, color) => ({ embeds: [{ title, description: `${text}\n\nБесплатные карты идут первыми, затем 💎 премиум (${STARS.role} ⭐ за карту) и 📦 карты пака «${packName}». Купить — в магазине приложения Mafia Pro.`, color }] });
+  const cardsIntro = ([title, text], color) => ({ embeds: [{ title, description: `${text}\n\n${t.cardsNote(packName, STARS.role)}`, color }] });
 
   // ----- scenarios
   const sizes = [7, 8, 10, 12, 15, 20, 24].filter(n => n >= app.MIN_PLAYERS && n <= app.MAX_PLAYERS);
   const freeEmbeds = [
-    { title: `🎯 ${app.CLASSIC.name} · 10 игроков · бесплатно`, description: cut(app.CLASSIC.lore, 1500), color: COLOR.gold, fields: [{ name: 'Состав', value: compText(app.CLASSIC.comp) }, { name: 'Формат', value: 'за живым столом с ведущим (оффлайн)', inline: true }] },
-    { title: `🎭 Ролевая мафия · ${app.MIN_PLAYERS}–${players(app.MAX_PLAYERS)} · бесплатно`, description: 'Сбалансированные составы под любое число игроков: приложение подбирает роли, их можно менять вручную. Играется оффлайн (ведущий раздаёт карты с телефона) и онлайн (каждый ходит со своего телефона, голос — в Discord).', color: COLOR.gold, fields: sizes.map(n => ({ name: players(n), value: cut(compText(app.presetFor(n)), 1000) })) }
+    { title: t.classic(app.CLASSIC.name, app.CLASSIC.comp.length || 10), description: cut(app.CLASSIC.lore, 1500), color: COLOR.gold, fields: [{ name: t.comp, value: compText(app.CLASSIC.comp) }, { name: t.format, value: t.offline, inline: true }] },
+    { title: t.roleGame(`${app.MIN_PLAYERS}–${t.players(app.MAX_PLAYERS)}`), description: t.roleGameD, color: COLOR.gold, fields: sizes.map(n => ({ name: t.players(n), value: cut(compText(app.presetFor(n)), 1000) })) }
   ];
-  const scenEmbed = s => ({ title: `${s.pack ? '📦' : '💎'} ${s.name}`, description: cut(s.lore, 1500), color: s.pack ? COLOR.ww : COLOR.blurple, fields: [{ name: 'Особые роли', value: cut(s.roles.map(R).join(', '), 1000) }, { name: 'Игроков', value: `${s.min}–${s.max}`, inline: true }, { name: 'Доступ', value: s.pack ? `пак «${packName}» · ${STARS.pack} ⭐` : `${STARS.scenario} ⭐`, inline: true }] });
-  const packEmbed = { title: `📦 Пак «${packName}» · ${STARS.pack} ⭐`, description: cut((L.ui && L.ui.packSub) || '12 ролей и 4 сценария', 500), color: COLOR.ww, fields: [{ name: 'Роли', value: cut(pack.roles.map(R).join(', '), 1000) }, { name: 'Сценарии', value: cut(pack.scenarios.map(id => (app.SCENARIOS.find(s => s.id === id) || {}).name || id).join(', '), 1000) }] };
+  const scenEmbed = s => ({ title: `${s.pack ? '📦' : '💎'} ${s.name}`, description: cut(s.lore, 1500), color: s.pack ? COLOR.ww : COLOR.blurple, fields: [{ name: t.special, value: cut(s.roles.map(R).join(', '), 1000) }, { name: t.count, value: `${s.min}–${s.max}`, inline: true }, { name: t.access, value: s.pack ? t.pack(packName, STARS.pack) : `${STARS.scenario} ⭐`, inline: true }] });
+  const packEmbed = { title: t.packTitle(packName, STARS.pack), description: cut((L.ui && L.ui.packSub) || '', 500) || packName, color: COLOR.ww, fields: [{ name: t.rolesF, value: cut(pack.roles.map(R).join(', '), 1000) }, { name: t.scenariosF, value: cut(pack.scenarios.map(id => (app.SCENARIOS.find(s => s.id === id) || {}).name || id).join(', '), 1000) }] };
 
   // ----- game rules
   const ui = L.ui || {};
   const gameRules = [
-    { title: '🌗 Как идёт партия', color: COLOR.gold, description: [
-      '**Команды.** Мафия (чёрные карты) знает друг друга и ночью убивает; мирный город (красные) ищет мафию днём; нейтралы играют сами за себя; Оборотень приходит к мафии, но считается за город.',
-      '**Ночь.** Ведущий будит роли по порядку: семья мафии выбирает цель (Дон решает), затем просыпаются активные роли со своими способностями. Порядок указан в приложении у каждой карты.',
-      '**День.** Утром ведущий объявляет итоги ночи. Дальше — речи по кругу, выставление кандидатов и голосование. Ничья → оправдательные речи → переголосование.',
-      '**Победа.** Город — когда в игре не осталось мафии. Мафия — когда её не меньше, чем мирных. У нейтралов свои условия (написаны на карте).',
-      '**Выбывшие** не разговаривают о партии до конца игры и не подсказывают живым.'
-    ].join('\n\n') },
-    { title: `🎯 ${ui.classicRulesTitle || 'Классическая мафия — спортивные правила'}`, color: COLOR.gold, description: (ui.classicRules || []).map(x => '• ' + x).join('\n') },
-    { title: '📱 Онлайн-формат', color: COLOR.blurple, description: [ui.onOnlineD || '', '', '**С Discord:** ведущий включает «Игра с Discord», бот создаёт голосовой канал стола на все места + ведущий в категории «🎧 Игровые столы». Игроки заходят по кнопке в приложении и жмут «Я на связи». Карты раздаются только после того, как ведущий подтвердит, что все на связи. После игры канал удаляется сам.'].join('\n') },
-    { title: '👁 Открытая и закрытая игра', color: COLOR.neutral, description: [`**${ui.openGame || 'Открытая игра'}.** ${ui.openGameHint || ''}`, `**${ui.closedGame || 'Закрытая игра'}.** ${ui.closedGameHint || ''}`].join('\n\n') },
-    { title: '🏅 Очки и рейтинг', color: COLOR.green, description: 'После партии приложение начисляет очки: за победу своей команды и за полезные ходы (верные проверки, спасения, точные выстрелы), разбор показывает каждый ход. Рейтинг общий для всех столов Mafia Pro, лучшие игроки — в разделе «Рейтинг» и в ' + ch('results') + '.' }
+    { title: t.howGame[0], color: COLOR.gold, description: t.howGame[1].join('\n\n') },
+    { title: `🎯 ${app.CLASSIC.name} — ${t.sport}`, color: COLOR.gold, description: (ui.classicRules || []).map(x => '• ' + x).join('\n') },
+    { title: t.online[0], color: COLOR.blurple, description: [ui.onOnlineD || '', '', t.online[1]].join('\n') },
+    { title: t.openClosed, color: COLOR.neutral, description: [`**${ui.openGame || ''}.** ${ui.openGameHint || ''}`, `**${ui.closedGame || ''}.** ${ui.closedGameHint || ''}`].join('\n\n') },
+    { title: t.points[0], color: COLOR.green, description: t.points[1](ch('results')) }
   ];
 
-  // ----- server rules
-  const serverRules = [
-    ['Уважение', 'Никаких оскорблений, травли, угроз и дискриминации. Спорим об игре, а не о людях.'],
-    ['Честная игра', 'Не раскрывайте свою роль иначе, чем позволяет игра. Никаких подсказок через ЛС, другие чаты и звонки во время партии (метагейм). Не пересказывайте закрытые роли после выбывания.'],
-    ['Выбывшие молчат', 'Выбыли — выключите микрофон до конца партии. Слушать можно, подсказывать — нет.'],
-    ['Голосовой канал', 'Говорите в свою речь и не перебивайте. Шумный микрофон — на кнопку. Ведущий может заглушить игрока на время речи другого.'],
-    ['Слово ведущего', 'Во время партии решение ведущего окончательно. Спорные моменты — после игры, в ' + ch('ideas') + ' или ведущему в личку.'],
-    ['Ник', 'Ник в Discord должен совпадать с ником в Telegram-приложении (или быть понятным), чтобы ведущий и игроки вас узнавали.'],
-    ['Без спама и рекламы', 'Реклама, ссылки на другие серверы и продажа чего-либо — только с разрешения администрации.'],
-    ['Контент', 'Без NSFW, шок-контента и политических споров.'],
-    ['Санкции', 'Предупреждение → мут → бан. При грубых нарушениях администрация действует сразу.'],
-    ['Правила Discord', 'Действуют [Условия использования](https://discord.com/terms) и [Принципы сообщества Discord](https://discord.com/guidelines).']
-  ];
-  const rulesEmbed = { title: '📜 Правила сервера', color: COLOR.gold, description: serverRules.map(([t, x], i) => `**${i + 1}. ${t}.** ${x}`).join('\n\n'), footer: { text: 'Заходя на сервер, вы соглашаетесь с правилами.' } };
-
-  // ----- welcome / how to play
-  const welcome = { title: '🎩 Добро пожаловать в Mafia Pro', color: COLOR.gold, description: 'Сервер для онлайн-мафии с голосом. Сама игра — в Telegram-приложении **Mafia Pro**: карты, ночные ходы, голосование и рейтинг. Здесь — голосовые каналы столов, библиотека карт и сценариев и итоги партий.', fields: [
-    { name: 'С чего начать', value: [`1. Прочитайте ${ch('rules')}.`, `2. Откройте Mafia Pro в Telegram${ctx.botUsername ? ` — @${ctx.botUsername}` : ''} → «Играть».`, `3. «Поиск стола» → садитесь за онлайн-стол (столы появляются и в ${ch('lfg')}).`, '4. Ведущий включил Discord — в приложении жмите «Войти в голосовой», затем «Я на связи».'].join('\n') },
-    { name: 'Каналы', value: [`${ch('howto')} — как устроено приложение`, `${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — все карты ролей`, `${ch('scenarios')} — сценарии и составы`, `${ch('gameRules')} — правила игры`, `${ch('results')} — итоги партий`, `${ch('chat')} — общение`].join('\n') },
-    { name: 'Языки столов', value: 'Флаг у стола — язык ведущего: 🇺🇦 русский / украинский, 🇦🇲 армянский, 🇵🇱 польский, 🇬🇧 английский.' }
+  // ----- server rules, start, how to play
+  const rulesEmbed = { title: t.rulesTitle, color: COLOR.gold, description: t.rules(ch).map(([a, x], i) => `**${i + 1}. ${a}.** ${x}`).join('\n\n'), footer: { text: t.rulesFooter } };
+  const start = { title: t.start.title, color: COLOR.gold, description: t.start.desc, fields: [
+    { name: t.start.steps[0], value: t.start.steps[1](ch, ctx.botUsername) },
+    { name: t.start.chans[0], value: t.start.chans[1](ch) },
+    { name: t.start.langs[0], value: t.start.langs[1](ch('language')) }
   ] };
-  const howto = [
-    { title: '📱 Как играть в Mafia Pro', color: COLOR.gold, description: `Приложение открывается в Telegram${ctx.botUsername ? ` у бота @${ctx.botUsername}` : ''}. Есть два формата.` , fields: [
-      { name: '🃏 Оффлайн (живой стол)', value: 'Все сидят вместе, ведущий ведёт партию со своего телефона: раздаёт карты (или отправляет их в приложение игрокам), будит роли ночью, ведёт таймер речей и голосование.' },
-      { name: '🌐 Онлайн', value: 'Каждый ходит со своего телефона: мафия предлагает цель, Дон решает, роли выбирают игрока, все голосуют сами. Чат стола открыт утром и в балаган, в речах — только говорящему.' },
-      { name: '🔎 Поиск стола', value: `В главном меню «Поиск стола» показывает все онлайн-столы: флаг языка, ведущий, сколько мест занято, 🎧 — стол с Discord. Новые столы публикуются и в ${ch('lfg')}.` },
-      { name: '🎧 Голос в Discord', value: 'Ведущий включает «Игра с Discord» — бот создаёт канал стола (места + ведущий). Заходите по кнопке «Войти в голосовой» и жмите «Я на связи». Ведущий раздаёт карты, когда подтвердит, что все на связи.' },
-      { name: '🎩 Свой стол', value: '«Ролевая мафия» → «Онлайн игра» → пригласите друзей или клуб. Можно и самому играть — тогда пригласите ведущего («Я — игрок» → «Пригласить ведущего»).' },
-      { name: '🏆 Рейтинг, друзья, клубы', value: 'Очки за победы и полезные ходы, общий рейтинг, серии побед, друзья и клубы со своим чатом и приглашениями к столу.' },
-      { name: '💎 Магазин', value: `Премиум-карта — ${STARS.role} ⭐, сценарий — ${STARS.scenario} ⭐, пак «${packName}» — ${STARS.pack} ⭐ (Telegram Stars).` }
-    ] }
-  ];
+  const stars = { role: STARS.role, scenario: STARS.scenario, pack: STARS.pack, packName };
+  const howto = { title: t.howto.title, color: COLOR.gold, description: t.howto.desc(ctx.botUsername), fields: t.howto.fields(ch).map(([name, v]) => ({ name, value: typeof v === 'function' ? v(stars) : v })) };
 
   return {
-    welcome: [Object.assign({ embeds: [welcome] }, buttons)],
     rules: [{ embeds: [rulesEmbed] }],
-    news: [{ embeds: [{ title: '📣 Новости Mafia Pro', color: COLOR.gold, description: 'Обновления приложения, турниры и вечера игры. Включите уведомления канала, чтобы не пропустить.' }] }],
-    howto: [Object.assign({ embeds: howto }, buttons)],
-    cardsMafia: [cardsIntro('🖤 Карты мафии', 'Семья мафии: знают друг друга, ночью выбирают жертву, днём прикрывают своих. Для проверок Шерифа — чёрные.', COLOR.mafia)].concat(packEmbeds(cardsOf(['black']))),
-    cardsCity: [cardsIntro('❤️ Карты мирного города', 'Город не знает, кто есть кто: ищет мафию проверками, защитой и голосованием. Для проверок — красные.', COLOR.city)].concat(packEmbeds(cardsOf(['red']))),
-    cardsNeutral: [cardsIntro('🤍 Нейтралы и Оборотень', 'Нейтралы играют за себя и побеждают по своим условиям. Оборотень раздаётся вместе с мафией, но считается за город.', COLOR.neutral)].concat(packEmbeds(cardsOf(['neutral', 'ww']))),
-    scenarios: [{ embeds: [{ title: '📚 Сценарии и составы', color: COLOR.gold, description: 'Бесплатные режимы, премиум-сценарии и пак. Всё запускается в приложении: «Сценарии» на главном экране.' }] }, { embeds: freeEmbeds }].concat(packEmbeds(app.SCENARIOS.filter(s => !s.pack).map(scenEmbed)), packEmbeds([packEmbed].concat(app.SCENARIOS.filter(s => s.pack).map(scenEmbed)))),
+    howto: [Object.assign({ embeds: [start, howto] }, buttons)],
+    cardsMafia: [cardsIntro(t.intro.mafia, COLOR.mafia)].concat(packEmbeds(cardsOf(['black']))),
+    cardsCity: [cardsIntro(t.intro.city, COLOR.city)].concat(packEmbeds(cardsOf(['red']))),
+    cardsNeutral: [cardsIntro(t.intro.neutral, COLOR.neutral)].concat(packEmbeds(cardsOf(['neutral', 'ww']))),
+    scenarios: [{ embeds: [{ title: t.scenIntro[0], color: COLOR.gold, description: t.scenIntro[1] }] }, { embeds: freeEmbeds }].concat(packEmbeds(app.SCENARIOS.filter(s => !s.pack).map(scenEmbed)), packEmbeds([packEmbed].concat(app.SCENARIOS.filter(s => s.pack).map(scenEmbed)))),
     gameRules: packEmbeds(gameRules),
-    lfg: [Object.assign({ embeds: [{ title: '🔎 Ищу игру', color: COLOR.gold, description: 'Сюда бот сам публикует онлайн-столы: флаг языка, ведущий, сколько мест занято, ссылка «Сесть за стол» и голосовой канал. Карточка обновляется, пока идёт набор, и закрывается, когда стол стартует или закрыт.' }] }, buttons)],
-    results: [{ embeds: [{ title: '🏆 Результаты', color: COLOR.gold, description: 'Итоги онлайн-партий: кто победил, роли игроков, места и очки. Публикуются автоматически после каждой партии.' }] }],
-    chat: [], ideas: [{ embeds: [{ title: '💡 Идеи и баги', color: COLOR.blurple, description: 'Нашли ошибку или есть идея? Напишите: что делали, что ожидали, что получилось, скриншот. Укажите телефон и язык приложения.' }] }]
+    lfg: [Object.assign({ embeds: [{ title: t.lfg[0], color: COLOR.gold, description: t.lfg[1] }] }, buttons)],
+    results: [{ embeds: [{ title: t.results[0], color: COLOR.gold, description: t.results[1] }] }],
+    chat: [],
+    ideas: [{ embeds: [{ title: t.ideas[0], color: COLOR.blurple, description: t.ideas[1] }] }]
+  };
+}
+
+/* the channels everyone sees: welcome, the language chooser (buttons), news */
+export function buildShared(ctx) {
+  const tgLink = ctx.botUsername ? `https://t.me/${ctx.botUsername}` : null; const r = ctx.roleIds || {};
+  const lang = ctx.ids.language ? `<#${ctx.ids.language}>` : '#language';
+  const line = (l, s) => `${T[l].emoji || '▫️'} **${T[l].name}** — ${s}`;
+  const welcome = { title: '🎩 Mafia Pro', color: COLOR.gold, description: LANG_ORDER.map(l => line(l, T[l].hello)).join('\n\n') + `\n\n🌐 → ${lang}` };
+  const chooser = { title: '🌐 ' + ['Язык', 'Мова', 'Language', 'Język', 'Լեզու'].join(' · '), color: COLOR.blurple, description: LANG_ORDER.map(l => line(l, T[l].pick)).join('\n\n') };
+  const langRow = { type: 1, components: LANG_ORDER.filter(l => r['lang_' + l]).map(l => Object.assign({ type: 2, style: 2, label: T[l].name, custom_id: `mp:l:${l}:${r['lang_' + l]}` }, T[l].emoji ? { emoji: { name: T[l].emoji } } : {})) };
+  const roleRow = { type: 1, components: ['host', 'player'].filter(k => r[k]).map(k => ({ type: 2, style: k === 'host' ? 1 : 2, label: `${GAME_ROLES[k].ru} · ${GAME_ROLES[k].en.replace(/^\S+ /, '')}`, custom_id: `mp:p:${k}:${r[k]}` })) };
+  return {
+    welcome: [Object.assign({ embeds: [welcome] }, linkButtons([{ label: '▶️ Telegram', url: tgLink }, { label: '🌐 Web', url: ctx.appUrl }]))],
+    language: [{ embeds: [chooser], components: [langRow, roleRow].filter(x => x.components.length) }],
+    news: [{ embeds: [{ title: '📣 Mafia Pro', color: COLOR.gold, description: LANG_ORDER.map(l => line(l, T[l].news)).join('\n') }] }]
   };
 }
 
 /* ---------- server layout ---------- */
-const DENY_VIEW = String(1n << 10n);
-const DENY_SEND = String((1n << 11n) | (1n << 35n) | (1n << 36n) | (1n << 38n)); // send messages, create public / private threads, send in threads
-export const LAYOUT = [
-  { key: 'catInfo', type: 4, name: '📌 MAFIA PRO' },
-  { key: 'welcome', type: 0, name: '👋・добро-пожаловать', parent: 'catInfo', ro: true, topic: 'Что это за сервер и с чего начать' },
-  { key: 'rules', type: 0, name: '📜・правила-сервера', parent: 'catInfo', ro: true, topic: 'Правила сервера' },
-  { key: 'news', type: 0, name: '📣・новости', parent: 'catInfo', ro: true, topic: 'Обновления Mafia Pro, турниры и вечера игры', hook: 'Mafia Pro · Новости' },
-  { key: 'howto', type: 0, name: '📱・как-играть', parent: 'catInfo', ro: true, topic: 'Как устроено приложение Mafia Pro: оффлайн, онлайн, Discord' },
-  { key: 'catLib', type: 4, name: '📚 БИБЛИОТЕКА' },
-  { key: 'cardsMafia', type: 0, name: '🖤・карты-мафии', parent: 'catLib', ro: true, topic: 'Все карты мафии: способности, порядок, советы' },
-  { key: 'cardsCity', type: 0, name: '❤️・карты-города', parent: 'catLib', ro: true, topic: 'Все карты мирного города' },
-  { key: 'cardsNeutral', type: 0, name: '🤍・нейтралы', parent: 'catLib', ro: true, topic: 'Нейтралы и Оборотень' },
-  { key: 'scenarios', type: 0, name: '📚・сценарии', parent: 'catLib', ro: true, topic: 'Бесплатные составы, премиум-сценарии и пак' },
-  { key: 'gameRules', type: 0, name: '⚖️・правила-игры', parent: 'catLib', ro: true, topic: 'Как идёт партия, классика, онлайн-формат, очки' },
-  { key: 'catGame', type: 4, name: '🎲 ИГРА' },
-  { key: 'lfg', type: 0, name: '🔎・ищу-игру', parent: 'catGame', ro: true, topic: 'Открытые онлайн-столы — бот публикует сам', hook: 'Mafia Pro · Столы' },
-  { key: 'results', type: 0, name: '🏆・результаты', parent: 'catGame', ro: true, topic: 'Итоги онлайн-партий', hook: 'Mafia Pro · Итоги' },
-  { key: 'chat', type: 0, name: '💬・общий-чат', parent: 'catGame', topic: 'Общение об игре и не только' },
-  { key: 'ideas', type: 0, name: '💡・идеи-и-баги', parent: 'catGame', topic: 'Предложения и ошибки приложения' },
-  { key: 'lobby', type: 2, name: '🔊 Лобби', parent: 'catGame' },
-  { key: 'catTables', type: 4, name: '🎧 ИГРОВЫЕ СТОЛЫ' },
-  { key: 'catAdmin', type: 4, name: '🔒 АДМИНИСТРАЦИЯ', hidden: true },
-  { key: 'analytics', type: 0, name: '📊・аналитика', parent: 'catAdmin', hidden: true, topic: 'Кто пришёл и по чьему приглашению, кто ушёл — бот пишет сам. /invites — сводка', hook: 'Mafia Pro · Аналитика' }
-];
-/* slash commands, answered by the backend at <api>/discord/interactions */
+const VIEW = 1n << 10n;
+const SEND = (1n << 11n) | (1n << 35n) | (1n << 36n) | (1n << 38n); // send messages, create public / private threads, send in threads
+export function buildLayout() {
+  const out = [
+    { key: 'catInfo', type: 4, name: '📌 MAFIA PRO' },
+    { key: 'welcome', type: 0, name: '👋・welcome', prev: ['👋・добро-пожаловать'], parent: 'catInfo', ro: true, topic: 'Mafia Pro — ' + LANG_ORDER.map(l => T[l].code).join(' · ') },
+    { key: 'language', type: 0, name: '🌐・language', parent: 'catInfo', ro: true, topic: 'Язык · Мова · Language · Język · Լեզու — 🎩 / 🎲' },
+    { key: 'news', type: 0, name: '📣・news', prev: ['📣・новости'], parent: 'catInfo', ro: true, topic: 'Mafia Pro — news · новини · новости · aktualności · նորություններ', hook: 'Mafia Pro · Новости' },
+    { key: 'lobby', type: 2, name: '🔊 Lobby', prev: ['🔊 Лобби'], parent: 'catInfo' }
+  ];
+  for (const l of LANG_ORDER) {
+    const t = T[l];
+    for (const [cat, keys] of [['lib', LANG_CHANNELS.lib], ['game', LANG_CHANNELS.game]]) {
+      const ck = LK(cat === 'lib' ? 'catLib' : 'catGame', l);
+      out.push({ key: ck, type: 4, name: t.cat[cat], prev: (t.catPrev || {})[cat], lang: l });
+      for (const k of keys) out.push({ key: LK(k, l), base: k, type: 0, name: t.ch[k][0], topic: t.ch[k][1], parent: ck, lang: l, ro: !['chat', 'ideas'].includes(k), hook: k === 'lfg' ? HOOKS.tables[l] : k === 'results' ? HOOKS.results[l] : undefined });
+    }
+  }
+  out.push({ key: 'catTables', type: 4, name: '🎧 ИГРОВЫЕ СТОЛЫ' });
+  out.push({ key: 'catAdmin', type: 4, name: '🔒 АДМИНИСТРАЦИЯ', hidden: true });
+  out.push({ key: 'analytics', type: 0, name: '📊・аналитика', parent: 'catAdmin', hidden: true, topic: 'Кто пришёл и по чьему приглашению, кто ушёл — бот пишет сам. /invites — сводка', hook: 'Mafia Pro · Аналитика' });
+  return out;
+}
+export const LAYOUT = buildLayout();
+/* slash commands, answered by the backend at <api>/discord/interactions (v35) */
 export const COMMANDS = [
   { name: 'stats', type: 1, description: 'Mafia Pro player statistics', description_localizations: { ru: 'Статистика игрока Mafia Pro', uk: 'Статистика гравця Mafia Pro' }, options: [{ type: 6, name: 'player', name_localizations: { ru: 'игрок', uk: 'гравець' }, description: 'A server member (yourself if empty)', description_localizations: { ru: 'Участник сервера (пусто — вы сами)', uk: 'Учасник сервера (порожньо — ви)' }, required: false }] },
   { name: 'link', type: 1, description: 'Link this Discord to your Mafia Pro account in Telegram', description_localizations: { ru: 'Привязать Discord к аккаунту Mafia Pro в Telegram', uk: 'Прив’язати Discord до акаунта Mafia Pro у Telegram' } },
@@ -204,8 +198,25 @@ export const COMMANDS = [
 export const ROLES_LAYOUT = [
   { key: 'host', name: '🎩 Ведущий', color: COLOR.gold, hoist: true, mentionable: true },
   { key: 'player', name: '🎲 Игрок', color: COLOR.blurple, hoist: false, mentionable: false }
-];
+].concat(LANG_ORDER.map(l => ({ key: 'lang_' + l, name: T[l].name, color: 0, hoist: false, mentionable: false })));
 const norm = (s, type) => (type === 0 ? String(s).toLowerCase().replace(/\s+/g, '-') : String(s)).trim();
+/* the permission overwrites a channel should have: read-only → @everyone may not send; a language channel → hidden from
+   @everyone, visible to its language role; an admin channel → hidden from everyone but the admins. Overwrites of other roles / members (made by hand) are kept. */
+export function wantOverwrites(c, guildId, roleIds) {
+  const out = []; let deny = 0n;
+  if (c.ro) deny |= SEND; if (c.lang || c.hidden) deny |= VIEW; // hidden = admins only
+  if (deny) out.push({ id: guildId, type: 0, allow: '0', deny: String(deny) });
+  if (c.lang && roleIds['lang_' + c.lang]) out.push({ id: roleIds['lang_' + c.lang], type: 0, allow: String(VIEW), deny: '0' });
+  return out;
+}
+function mergeOverwrites(cur, want, managed) {
+  const kept = (cur || []).filter(o => !managed.has(String(o.id)));
+  const curM = (cur || []).filter(o => managed.has(String(o.id))).map(o => `${o.id}:${o.allow}:${o.deny}`).sort().join('|');
+  const wantM = want.map(o => `${o.id}:${o.allow}:${o.deny}`).sort().join('|');
+  return curM === wantM ? null : kept.concat(want);
+}
+const compKey = comps => JSON.stringify((comps || []).map(row => (row.components || []).map(b => [b.type, b.style || null, b.label || null, b.url || null, b.custom_id || null, b.emoji && b.emoji.name ? b.emoji.name : null])));
+const embKey = embeds => JSON.stringify((embeds || []).map(e => [e.title, e.description, (e.fields || []).map(f => [f.name, f.value]), e.image ? e.image.url : null, e.footer ? e.footer.text : null]));
 
 export async function run(env, log = console.log) {
   const api = client(env, log); const guildId = String(env.DISCORD_GUILD_ID || '').trim();
@@ -221,8 +232,8 @@ export async function run(env, log = console.log) {
   if (!botUsername && env.BOT_TOKEN) { try { const r = await (await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getMe`)).json(); if (r && r.ok) botUsername = r.result.username; } catch (e) {} }
   log(`telegram bot: ${botUsername ? '@' + botUsername : '(unknown — links go to the web app)'}`);
 
-  // roles
-  const roles = await api('GET', `/guilds/${guildId}/roles`);
+  // roles: game roles + one role per language
+  const roles = await api('GET', `/guilds/${guildId}/roles`); const oldLangRoles = LANG_ORDER.map(l => state.roles['lang_' + l]).filter(Boolean);
   for (const r of ROLES_LAYOUT) {
     let cur = roles.find(x => x.id === state.roles[r.key]) || roles.find(x => x.name === r.name);
     const spec = { name: r.name, color: r.color, hoist: r.hoist, mentionable: r.mentionable };
@@ -230,26 +241,39 @@ export async function run(env, log = console.log) {
     else if (cur.name !== spec.name || cur.color !== spec.color || cur.hoist !== spec.hoist || cur.mentionable !== spec.mentionable) { await api('PATCH', `/guilds/${guildId}/roles/${cur.id}`, spec); log(`~ role ${r.name}`); }
     state.roles[r.key] = cur.id;
   }
+  const managed = new Set([guildId].concat(oldLangRoles, LANG_ORDER.map(l => state.roles['lang_' + l]).filter(Boolean))); // a language role deleted by hand and re-created: its old overwrites go too
 
-  // categories and channels (matched by the saved id, then by name; never deleted)
+  // categories and channels (matched by the saved id, then by name — also the v33 name; never deleted)
   let existing = await api('GET', `/guilds/${guildId}/channels`);
-  const maxPos = existing.reduce((a, c) => Math.max(a, c.position || 0), 0); let pos = maxPos + 1;
+  const claimed = new Set(LAYOUT.map(c => state.channels[c.key]).filter(Boolean));
   for (const c of LAYOUT) {
     const parent = c.parent ? state.channels[c.parent] : null;
-    const deny = c.hidden ? DENY_VIEW : c.ro ? DENY_SEND : null; const overwrites = deny ? [{ id: guildId, type: 0, allow: '0', deny }] : undefined; // hidden = admins only
-    let cur = existing.find(x => x.id === state.channels[c.key]) || existing.find(x => x.type === c.type && norm(x.name, c.type) === norm(c.name, c.type));
+    const names = [c.name].concat(c.prev || []).map(n => norm(n, c.type));
+    let cur = existing.find(x => x.id === state.channels[c.key]);
+    if (!cur) { const cands = existing.filter(x => x.type === c.type && !claimed.has(x.id) && names.includes(norm(x.name, c.type))); cur = cands.find(x => (x.parent_id || null) === parent) || cands[0]; }
+    const overwrites = wantOverwrites(c, guildId, state.roles);
     if (!cur) {
-      const body = { name: c.name, type: c.type }; if (parent) body.parent_id = parent; if (c.topic) body.topic = c.topic; if (overwrites) body.permission_overwrites = overwrites; if (c.type === 4) body.position = pos++;
+      const body = { name: c.name, type: c.type }; if (parent) body.parent_id = parent; if (c.topic) body.topic = c.topic; if (overwrites.length) body.permission_overwrites = overwrites;
       cur = await api('POST', `/guilds/${guildId}/channels`, body); existing.push(cur); log(`+ ${c.type === 4 ? 'category' : c.type === 2 ? 'voice' : 'channel'} ${c.name}`);
     } else {
       const patch = {};
+      if (norm(cur.name, c.type) !== norm(c.name, c.type) && (c.prev || []).some(n => norm(n, c.type) === norm(cur.name, c.type))) patch.name = c.name; // the v33 name → the new one (a name changed by hand stays)
       if (parent && cur.parent_id !== parent) patch.parent_id = parent;
       if (c.topic && cur.topic !== c.topic) patch.topic = c.topic;
-      if (overwrites) { const ow = (cur.permission_overwrites || []).find(o => o.id === guildId); if (!ow || ow.deny !== deny) patch.permission_overwrites = (cur.permission_overwrites || []).filter(o => o.id !== guildId).concat(overwrites); }
-      if (Object.keys(patch).length) { await api('PATCH', `/channels/${cur.id}`, patch); log(`~ ${c.name}: ${Object.keys(patch).join(', ')}`); }
+      const ow = mergeOverwrites(cur.permission_overwrites, overwrites, managed); if (ow) patch.permission_overwrites = ow;
+      if (Object.keys(patch).length) { const upd = await api('PATCH', `/channels/${cur.id}`, patch); Object.assign(cur, upd || patch); log(`~ ${c.name}: ${Object.keys(patch).join(', ')}`); }
     }
-    state.channels[c.key] = cur.id;
+    state.channels[c.key] = cur.id; claimed.add(cur.id);
   }
+
+  // order: our categories in layout order (other categories after them), our channels in layout order inside each category
+  existing = await api('GET', `/guilds/${guildId}/channels`);
+  const byPos = (a, b) => (a.position || 0) - (b.position || 0) || (BigInt(a.id) < BigInt(b.id) ? -1 : 1);
+  const moves = [];
+  const reorder = (list, wantIds) => { const cur = list.slice().sort(byPos).map(x => x.id); const want = wantIds.filter(id => cur.includes(id)).concat(cur.filter(id => !wantIds.includes(id))); if (cur.join() !== want.join()) want.forEach((id, i) => moves.push({ id, position: i })); };
+  reorder(existing.filter(x => x.type === 4), LAYOUT.filter(c => c.type === 4).map(c => state.channels[c.key]));
+  for (const cat of LAYOUT.filter(c => c.type === 4)) { const catId = state.channels[cat.key]; reorder(existing.filter(x => x.parent_id === catId && x.type !== 2), LAYOUT.filter(c => c.parent === cat.key && c.type !== 2).map(c => state.channels[c.key])); }
+  if (moves.length) { await api('PATCH', `/guilds/${guildId}/channels`, moves); log(`~ order: ${moves.length} positions`); }
 
   // webhooks (the backend finds them by name; tokens are never written to the state file)
   for (const c of LAYOUT.filter(x => x.hook)) {
@@ -259,7 +283,37 @@ export async function run(env, log = console.log) {
     state.webhooks[c.key] = { id: w.id, name: c.hook, channel: state.channels[c.key] };
   }
 
-  // slash commands (/stats, /link, /invites) and the endpoint that answers them
+  // guild settings: the welcome channel greets newcomers, notifications only for mentions
+  const gpatch = {}; if (guild.system_channel_id !== state.channels.welcome) gpatch.system_channel_id = state.channels.welcome; if (guild.default_message_notifications !== 1) gpatch.default_message_notifications = 1;
+  if (Object.keys(gpatch).length) { await api('PATCH', `/guilds/${guildId}`, gpatch); log(`~ server: ${Object.keys(gpatch).join(', ')}`); }
+
+  // messages: the bot's own messages in each channel are edited in place, extras removed
+  const appUrl = env.APP_URL || 'https://shakaboom55566.github.io/mafia-pro/';
+  let cardsBase = env.CARDS_BASE !== undefined ? env.CARDS_BASE : appUrl.replace(/\/?$/, '/') + 'cards/';
+  if (cardsBase && !env.DISCORD_API) { // the Pages workflow renders the images (cards/<lang>/<role>.png) on the same push: wait for them (up to 8 minutes)
+    let ok = false; for (let i = 0; i < 24 && !ok; i++) { try { ok = (await fetch(cardsBase + 'hy/don.png', { method: 'HEAD' })).ok; } catch (e) {} if (!ok) { if (!i) log('waiting for the card images on Pages…'); await sleep(20000); } }
+    if (!ok) { log('card images not found — cards go without pictures this time'); cardsBase = ''; } else log('card images: ' + cardsBase + '<lang>/');
+  }
+  const content = {};
+  for (const [k, v] of Object.entries(buildShared({ ids: state.channels, botUsername, appUrl, roleIds: state.roles }))) content[k] = v;
+  for (const l of LANG_ORDER) {
+    const c = buildContent(loadApp(l), { ids: state.channels, botUsername, appUrl, cardsBase: cardsBase ? cardsBase + l + '/' : '' }, l);
+    for (const [k, v] of Object.entries(c)) content[LK(k, l)] = v;
+  }
+  let posted = 0, edited = 0, removed = 0;
+  for (const [key, msgs] of Object.entries(content)) {
+    const chId = state.channels[key]; if (!chId) continue;
+    const mine = (await api('GET', `/channels/${chId}/messages?limit=100`)).filter(m => m.author && m.author.id === me.id && !m.webhook_id).reverse(); // oldest first
+    for (let i = 0; i < msgs.length; i++) {
+      const body = Object.assign({ content: '', components: [] }, msgs[i], { allowed_mentions: { parse: [] } });
+      if (mine[i]) { if (embKey(mine[i].embeds) !== embKey(body.embeds) || compKey(mine[i].components) !== compKey(body.components)) { await api('PATCH', `/channels/${chId}/messages/${mine[i].id}`, body); edited++; } }
+      else { await api('POST', `/channels/${chId}/messages`, body); posted++; }
+    }
+    for (const m of mine.slice(msgs.length)) { await api('DELETE', `/channels/${chId}/messages/${m.id}`); removed++; }
+  }
+  log(`messages: ${posted} posted, ${edited} edited, ${removed} removed`);
+
+  // slash commands (/stats, /link, /invites) and the endpoint that answers them and the 🌐 buttons
   const app = await api('GET', '/applications/@me'); state.application = app.id; state.publicKey = app.verify_key;
   const cmdHash = hash8(JSON.stringify(COMMANDS));
   if (state.commandsHash !== cmdHash) { await api('PUT', `/applications/${app.id}/guilds/${guildId}/commands`, COMMANDS); state.commandsHash = cmdHash; log(`~ slash commands: ${COMMANDS.map(c => '/' + c.name).join(' ')}`); }
@@ -269,35 +323,8 @@ export async function run(env, log = console.log) {
     let ready = !!env.DISCORD_API; // the backend must answer Discord's PING with this application's key before the URL is saved
     for (let i = 0; i < 20 && !ready; i++) { try { const h = await (await fetch(apiUrl + '/')).json(); ready = !!(h && h.interactions && (!h.pk || h.pk === String(app.verify_key).slice(0, 8))); } catch (e) {} if (!ready) { if (!i) log('waiting for the backend with the interactions endpoint…'); await sleep(15000); } }
     if (!ready) log('! the backend is not ready for slash commands yet — re-run this workflow after the backend deploy');
-    else { try { await api('PATCH', '/applications/@me', { interactions_endpoint_url: endpoint }); log(`~ interactions endpoint: ${endpoint}`); } catch (e) { log('! Discord did not accept the interactions endpoint: ' + e.message); } }
-  }
-
-  // guild settings: the welcome channel greets newcomers, notifications only for mentions
-  const gpatch = {}; if (guild.system_channel_id !== state.channels.welcome) gpatch.system_channel_id = state.channels.welcome; if (guild.default_message_notifications !== 1) gpatch.default_message_notifications = 1;
-  if (Object.keys(gpatch).length) { await api('PATCH', `/guilds/${guildId}`, gpatch); log(`~ server: ${Object.keys(gpatch).join(', ')}`); }
-
-  // messages: the bot's own messages in each channel are edited in place, extras removed
-  const appUrl = env.APP_URL || 'https://shakaboom55566.github.io/mafia-pro/';
-  let cardsBase = env.CARDS_BASE !== undefined ? env.CARDS_BASE : appUrl.replace(/\/?$/, '/') + 'cards/';
-  if (cardsBase && !env.DISCORD_API) { // the Pages workflow renders the images on the same push: wait for them (up to 8 minutes)
-    let ok = false; for (let i = 0; i < 24 && !ok; i++) { try { ok = (await fetch(cardsBase + 'don.png', { method: 'HEAD' })).ok; } catch (e) {} if (!ok) { if (!i) log('waiting for the card images on Pages…'); await sleep(20000); } }
-    if (!ok) { log('card images not found — cards go without pictures this time'); cardsBase = ''; } else log('card images: ' + cardsBase);
-  }
-  const content = buildContent(loadApp('ru'), { ids: state.channels, botUsername, appUrl, cardsBase });
-  let posted = 0, edited = 0, removed = 0;
-  for (const [key, msgs] of Object.entries(content)) {
-    const chId = state.channels[key]; if (!chId) continue;
-    const mine = (await api('GET', `/channels/${chId}/messages?limit=100`)).filter(m => m.author && m.author.id === me.id && !m.webhook_id).reverse(); // oldest first
-    for (let i = 0; i < msgs.length; i++) {
-      const body = Object.assign({ content: '', components: [] }, msgs[i], { allowed_mentions: { parse: [] } });
-      if (mine[i]) {
-        const same = JSON.stringify(mine[i].embeds || []).length > 0 && JSON.stringify((mine[i].embeds || []).map(e => [e.title, e.description, (e.fields || []).map(f => f.value), e.image ? e.image.url : null])) === JSON.stringify(body.embeds.map(e => [e.title, e.description, (e.fields || []).map(f => f.value), e.image ? e.image.url : null])) && JSON.stringify((mine[i].components || []).length) === JSON.stringify(body.components.length);
-        if (!same) { await api('PATCH', `/channels/${chId}/messages/${mine[i].id}`, body); edited++; }
-      } else { await api('POST', `/channels/${chId}/messages`, body); posted++; }
-    }
-    for (const m of mine.slice(msgs.length)) { await api('DELETE', `/channels/${chId}/messages/${m.id}`); removed++; }
-  }
-  log(`messages: ${posted} posted, ${edited} edited, ${removed} removed`);
+    else { try { await api('PATCH', '/applications/@me', { interactions_endpoint_url: endpoint }, true); log(`~ interactions endpoint: ${endpoint}`); } catch (e) { log('! Discord did not accept the interactions endpoint: ' + e.message); } }
+  } else if (endpoint) log('interactions endpoint: ' + endpoint + ' (slash commands + 🌐 buttons)');
 
   state.tablesCategory = state.channels.catTables; state.updatedAt = new Date().toISOString(); state.bot = { id: me.id, username: me.username }; state.telegramBot = botUsername || null;
   fs.writeFileSync(stateFile, JSON.stringify(state, null, 2) + '\n');
