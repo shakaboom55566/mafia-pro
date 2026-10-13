@@ -50,6 +50,20 @@ jobs:
           touch _site/.nojekyll
           grep -o '<meta name="mafia-api" content="[^"]*">' _site/index.html
 
+      - name: Node (card images)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Role card images for the Discord library (_site/cards/<role>.png)
+        continue-on-error: true
+        run: |
+          set -eo pipefail
+          npm install --no-save --no-audit --no-fund playwright@1.56.0 2>&1 | tail -1
+          npx playwright install --with-deps chromium 2>&1 | tail -1
+          node discord/render-cards.js _site/cards mafia-pro.html ru
+          du -sh _site/cards
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:

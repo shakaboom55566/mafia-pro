@@ -9,12 +9,12 @@ import { run, LAYOUT, ROLES_LAYOUT, loadApp, buildContent } from './setup.mjs';
 let fails = 0, n = 0; const ok = (c, m) => { n++; if (!c) { fails++; console.log('  FAIL', m); } };
 const dc = await startMockDiscord(8795);
 const stateFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mp-discord-')), 'server.json');
-const env = { DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base, STATE_FILE: stateFile, TG_BOT_USERNAME: 'mafiapro_test_bot', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/' };
+const env = { CARDS_BASE: 'https://shakaboom55566.github.io/mafia-pro/cards/', DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base, STATE_FILE: stateFile, TG_BOT_USERNAME: 'mafiapro_test_bot', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/' };
 // a channel the owner made before: never touched
 const own = await (await fetch(dc.base + '/guilds/111111111111/channels', { method: 'POST', headers: { Authorization: 'Bot dc-token', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'основной', type: 0 }) })).json();
 
 console.log('content: Discord limits');
-{ const app = loadApp('ru'); const content = buildContent(app, { ids: {}, botUsername: 'x', appUrl: 'https://a.b/' });
+{ const app = loadApp('ru'); const content = buildContent(app, { ids: {}, botUsername: 'x', appUrl: 'https://a.b/', cardsBase: 'https://a.b/cards/' });
   ok(app.ROLES.length >= 50, 'roles loaded from the app: ' + app.ROLES.length);
   const cards = ['cardsMafia', 'cardsCity', 'cardsNeutral'].reduce((a, k) => a + content[k].reduce((b, m) => b + m.embeds.length, 0) - 1, 0); ok(cards === app.ROLES.length, `every role has a card: ${cards}/${app.ROLES.length}`);
   for (const [k, msgs] of Object.entries(content)) msgs.forEach((m, i) => {
@@ -23,6 +23,9 @@ console.log('content: Discord limits');
     m.embeds.forEach(e => { ok((e.title || '').length <= 256 && (e.description || '').length <= 4096 && (e.fields || []).length <= 25 && (e.fields || []).every(f => f.name.length <= 256 && f.value.length <= 1024 && f.value.length > 0) && (!e.footer || e.footer.text.length <= 2048), `${k}: embed "${(e.title || '').slice(0, 40)}" within limits`); ok(!/undefined|NaN|\[object/.test(JSON.stringify(e)), `${k}: no undefined in "${(e.title || '').slice(0, 30)}"`); });
   });
   ok(content.cardsMafia.slice(1).some(m => m.embeds.some(e => /Дон мафии/.test(e.title))) && content.cardsCity.slice(1).some(m => m.embeds.some(e => /Шериф/.test(e.title))), 'Don in the mafia cards, Sheriff in the city cards');
+  const imgs = ['cardsMafia', 'cardsCity', 'cardsNeutral'].flatMap(k => content[k].slice(1).flatMap(m => m.embeds)); ok(imgs.every(e => e.image && /^https:\/\/a\.b\/cards\/[a-z_]+\.png\?v=[0-9a-f]{8}$/.test(e.image.url)), 'every card has its picture: ' + imgs.filter(e => !e.image).map(e => e.title).join(', '));
+  ok(new Set(imgs.map(e => e.image.url)).size === imgs.length, 'one picture per role');
+  const noImg = buildContent(app, { ids: {}, botUsername: 'x', appUrl: 'https://a.b/', cardsBase: '' }); ok(noImg.cardsMafia[1].embeds.every(e => !e.image && e.footer), 'no images → lore in the footer');
   ok(content.scenarios.some(m => m.embeds.some(e => /Классическая мафия/.test(e.title))) && content.scenarios.some(m => m.embeds.some(e => /📦/.test(e.title))), 'scenarios: classic and the pack'); }
 
 console.log('first run: layout, roles, webhooks, messages');

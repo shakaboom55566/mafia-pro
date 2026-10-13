@@ -27,7 +27,7 @@ export function loadApp(lang = 'ru') {
   const ctx = { console, Math, Date, Object, Array, Set, Map, Number, String, JSON, Proxy, Intl, setTimeout, clearTimeout, setInterval, clearInterval,
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, document: { querySelector: () => null, addEventListener() {}, createElement: () => ({}), body: { appendChild() {} }, documentElement: {} }, navigator: { language: lang } };
   ctx.window = { scrollTo() {} }; ctx.self = ctx; vm.createContext(ctx);
-  vm.runInContext(files.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + `\nsetLang(${JSON.stringify(lang)}); this.APP = { L, ROLES, SCENARIOS, CLASSIC, PACKS, presetFor, MIN_PLAYERS, MAX_PLAYERS };`, ctx);
+  vm.runInContext(files.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + `\nsetLang(${JSON.stringify(lang)}); this.APP = { L, ROLES, SCENARIOS, CLASSIC, PACKS, presetFor, MIN_PLAYERS, MAX_PLAYERS, roleArt: typeof roleArt === 'function' ? roleArt : null };`, ctx);
   return ctx.APP;
 }
 
@@ -58,6 +58,7 @@ const COLOR = { gold: 0xd4a24c, mafia: 0x8b1e2d, city: 0xc9a24c, neutral: 0x7a7f
 const TEAM_ICON = { black: '🖤', red: '❤️', neutral: '🤍', ww: '🐺' };
 const STARS = { role: 100, scenario: 500, pack: 1750 };
 const players = n => { const d = n % 10, h = n % 100; return `${n} ${d === 1 && h !== 11 ? 'игрок' : d >= 2 && d <= 4 && (h < 12 || h > 14) ? 'игрока' : 'игроков'}`; };
+const hash8 = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }; // FNV-1a: the card image URL changes when the card does
 const cut = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s; };
 const B = s => Buffer.byteLength(String(s || ''), 'utf8'); // Discord rejects messages by their UTF-8 size (413 "message.embeds"), Cyrillic is 2 bytes a letter
 const embedSize = e => B(e.title) + B(e.description) + B(e.footer && e.footer.text) + (e.fields || []).reduce((a, f) => a + B(f.name) + B(f.value), 0);
@@ -86,7 +87,10 @@ export function buildContent(app, ctx) {
     if (inPack) fields.push({ name: 'Доступ', value: `📦 пак «${packName}» · ${STARS.pack} ⭐`, inline: true });
     else if (r.premium) fields.push({ name: 'Доступ', value: `💎 премиум · ${STARS.role} ⭐`, inline: true });
     else fields.push({ name: 'Доступ', value: 'бесплатно', inline: true });
-    return { title: `${TEAM_ICON[r.team] || '🃏'} ${t.name || r.id}${inPack ? ' · 📦' : r.premium ? ' · 💎' : ''}`, description: desc, color: r.team === 'black' ? COLOR.mafia : r.team === 'red' ? COLOR.city : r.team === 'ww' ? COLOR.ww : COLOR.neutral, fields, footer: t.lore ? { text: cut(t.lore, 200) } : undefined };
+    const e = { title: `${TEAM_ICON[r.team] || '🃏'} ${t.name || r.id}${inPack ? ' · 📦' : r.premium ? ' · 💎' : ''}`, description: desc, color: r.team === 'black' ? COLOR.mafia : r.team === 'red' ? COLOR.city : r.team === 'ww' ? COLOR.ww : COLOR.neutral, fields };
+    if (ctx.cardsBase) e.image = { url: `${ctx.cardsBase}${r.id}.png?v=${hash8(JSON.stringify([t.name, t.kind, t.short, t.lore, r.team, !!r.premium]) + (app.roleArt ? app.roleArt(r.id) : ''))}` }; // the app's own card face (art, name, rule, lore), rendered by discord/render-cards.js into the Pages site
+    else if (t.lore) e.footer = { text: cut(t.lore, 200) };
+    return e;
   };
   const order = r => (pack.roles.includes(r.id) ? 2 : r.premium ? 1 : 0);
   const cardsOf = teams => app.ROLES.filter(r => teams.includes(r.team)).sort((a, b) => order(a) - order(b)).map(roleEmbed);
@@ -251,7 +255,13 @@ export async function run(env, log = console.log) {
   if (Object.keys(gpatch).length) { await api('PATCH', `/guilds/${guildId}`, gpatch); log(`~ server: ${Object.keys(gpatch).join(', ')}`); }
 
   // messages: the bot's own messages in each channel are edited in place, extras removed
-  const content = buildContent(loadApp('ru'), { ids: state.channels, botUsername, appUrl: env.APP_URL || 'https://shakaboom55566.github.io/mafia-pro/' });
+  const appUrl = env.APP_URL || 'https://shakaboom55566.github.io/mafia-pro/';
+  let cardsBase = env.CARDS_BASE !== undefined ? env.CARDS_BASE : appUrl.replace(/\/?$/, '/') + 'cards/';
+  if (cardsBase && !env.DISCORD_API) { // the Pages workflow renders the images on the same push: wait for them (up to 8 minutes)
+    let ok = false; for (let i = 0; i < 24 && !ok; i++) { try { ok = (await fetch(cardsBase + 'don.png', { method: 'HEAD' })).ok; } catch (e) {} if (!ok) { if (!i) log('waiting for the card images on Pages…'); await sleep(20000); } }
+    if (!ok) { log('card images not found — cards go without pictures this time'); cardsBase = ''; } else log('card images: ' + cardsBase);
+  }
+  const content = buildContent(loadApp('ru'), { ids: state.channels, botUsername, appUrl, cardsBase });
   let posted = 0, edited = 0, removed = 0;
   for (const [key, msgs] of Object.entries(content)) {
     const chId = state.channels[key]; if (!chId) continue;
@@ -259,7 +269,7 @@ export async function run(env, log = console.log) {
     for (let i = 0; i < msgs.length; i++) {
       const body = Object.assign({ content: '', components: [] }, msgs[i], { allowed_mentions: { parse: [] } });
       if (mine[i]) {
-        const same = JSON.stringify(mine[i].embeds || []).length > 0 && JSON.stringify((mine[i].embeds || []).map(e => [e.title, e.description, (e.fields || []).map(f => f.value)])) === JSON.stringify(body.embeds.map(e => [e.title, e.description, (e.fields || []).map(f => f.value)])) && JSON.stringify((mine[i].components || []).length) === JSON.stringify(body.components.length);
+        const same = JSON.stringify(mine[i].embeds || []).length > 0 && JSON.stringify((mine[i].embeds || []).map(e => [e.title, e.description, (e.fields || []).map(f => f.value), e.image ? e.image.url : null])) === JSON.stringify(body.embeds.map(e => [e.title, e.description, (e.fields || []).map(f => f.value), e.image ? e.image.url : null])) && JSON.stringify((mine[i].components || []).length) === JSON.stringify(body.components.length);
         if (!same) { await api('PATCH', `/channels/${chId}/messages/${mine[i].id}`, body); edited++; }
       } else { await api('POST', `/channels/${chId}/messages`, body); posted++; }
     }
