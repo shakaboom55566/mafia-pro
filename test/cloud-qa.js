@@ -431,6 +431,21 @@ const path = require('path'); const http = require('http');
   const lbTxt = await q.$eval('#app', el => el.textContent);
   ok(await Q(() => (LB.list || []).some(l => l.host.name === 'Ведущий' && l.via === 'invite' && l.online && l.players === 0)) && lbTxt.includes(await Q(() => U().lbFind)) && lbTxt.includes('Ведущий') && lbTxt.includes('0 / 10') && !!(await q.$('[data-a="lb-join"]')), 'finder shows the host’s online table: host nick, players 0 / 10, marked as an invitation');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-lobbies.png') }).catch(() => {});
+  { // the web version (GitHub Pages, no Telegram): "Find a table" is there too; the list is public and «Sit down» opens the bot
+    const w = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errsW = []; w.on('pageerror', e => errsW.push(e.message));
+    await w.addInitScript(({ api }) => { window.MAFIA_API = api; window.__opened = []; window.open = u => { window.__opened.push(u); return {}; }; }, { api: 'http://127.0.0.1:8791' });
+    await w.goto('file://' + path.resolve(__dirname, '..', 'mafia-pro.html')); await w.waitForTimeout(700);
+    const W = fn => w.evaluate(fn);
+    ok(await W(() => { const items = [...document.querySelectorAll('.menu .menu-item')]; const i = items.findIndex(x => x.dataset.a === 'scen-use' && x.dataset.id === 'classic'); return !TG.app && i >= 0 && items[i + 1] && items[i + 1].dataset.to === 'tables'; }), 'web: "Find a table" under Classic Mafia without Telegram');
+    await W(() => { LB.at = 0; go('tables'); }); await w.waitForTimeout(1000);
+    const wTxt = await w.$eval('#app', el => el.textContent);
+    ok(wTxt.includes('Ведущий') && wTxt.includes('0 / 10') && wTxt.includes(await W(() => U().lbWebHint)) && !wTxt.includes(await W(() => U().frOnlyTg)), 'web: the finder lists the online table with host and seats');
+    await w.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'web-tables.png') }).catch(() => {});
+    await w.click('[data-a="lb-join"][data-code="' + oc + '"]'); await w.waitForTimeout(200);
+    const opened = await W(() => window.__opened); ok(opened.length === 1 && /^https:\/\/t\.me\/[A-Za-z0-9_]+\?start=join_[A-Z0-9]+$/.test(opened[0]) && opened[0].endsWith(oc), 'web: «Sit down» opens the bot with the table code: ' + await W(() => window.__opened[0]));
+    await W(() => { LB.code = 'ab12cd'.toUpperCase(); ACT['lb-join']({ dataset: { code: '' } }); }); ok(await W(() => window.__opened[1] && window.__opened[1].endsWith('join_AB12CD')), 'web: join by code opens the bot too');
+    ok(!errsW.length, 'web: no page errors ' + errsW.join('; ')); await w.close();
+  }
   await Q(async () => { const d = await api('/api/ping', {}); S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); }); await q.waitForTimeout(300);
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'tableInvite') && (await q.$eval('.sheet', el => el.textContent)).includes('Ведущий') && (await q.$eval('.sheet', el => el.textContent)).includes(oc), 'invitation sheet on the player’s screen with the host’s name and the table code');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-invite.png') }).catch(() => {});

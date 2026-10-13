@@ -1037,14 +1037,16 @@ async function seatPlayer(env, bot, code, u, lang) { // returns true when newly 
   return inserted;
 }
 /* open tables I can see: hosted by friends or club mates, or where I am invited / seated */
-async function apiLobbies(env, body) {
-  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
-  const me = v.user.id; const ts = now();
-  const friends = (await friendsOf(env, me)).map(f => f.tgId);
-  const club = await membershipOf(env, me);
+async function apiLobbies(env, bot, body) {
+  const v = await auth(env, body);
+  const pub0 = !v && !!(body && body.all); // the web version (no Telegram account): the public table finder, seats go through the bot
+  if (!v && !pub0) return json({ ok: false, error: 'unauthorized' }, 401);
+  const me = v ? v.user.id : 0; const ts = now();
+  const friends = v ? (await friendsOf(env, me)).map(f => f.tgId) : [];
+  const club = v ? await membershipOf(env, me) : null;
   const mates = club ? ((await env.DB.prepare('SELECT tg_id FROM club_members WHERE club_id = ?1').bind(club.club_id).all()).results || []).map(r => r.tg_id) : [];
-  const invited = ((await env.DB.prepare('SELECT code FROM table_invites WHERE tg_id = ?1 AND status = ?2').bind(me, 'pending').all()).results || []).map(r => r.code);
-  const seated = ((await env.DB.prepare('SELECT code FROM lobby_players WHERE tg_id = ?1').bind(me).all()).results || []).map(r => r.code);
+  const invited = v ? ((await env.DB.prepare('SELECT code FROM table_invites WHERE tg_id = ?1 AND status = ?2').bind(me, 'pending').all()).results || []).map(r => r.code) : [];
+  const seated = v ? ((await env.DB.prepare('SELECT code FROM lobby_players WHERE tg_id = ?1').bind(me).all()).results || []).map(r => r.code) : [];
   const all = !!body.all; // the table finder: every online table on the server (joinable ones first, running ones marked), not only friends'
   const rows = (await env.DB.prepare(`SELECT l.code, l.host_id, l.status, l.created_at, u.first_name, u.last_name, u.username, u.photo_url, u.seen_at, (SELECT COUNT(*) FROM lobby_players p WHERE p.code = l.code) AS n, ts.pub, o.online AS opt_online, o.host_plays, u.lang AS host_lang, mt.lang AS meta_lang, tv.status AS voice FROM lobbies l JOIN users u ON u.tg_id = l.host_id LEFT JOIN table_state ts ON ts.code = l.code LEFT JOIN lobby_opts o ON o.code = l.code LEFT JOIN lobby_meta mt ON mt.code = l.code LEFT JOIN table_voice tv ON tv.code = l.code WHERE l.status IN (${all ? "'open', 'dealt', 'live'" : "'open', 'dealt'"}) AND l.created_at > ?1 ORDER BY l.created_at DESC, l.rowid DESC LIMIT 300`).bind(ts - 8 * 3600).all()).results || [];
   const out = []; const hosts = new Set();
@@ -1055,11 +1057,12 @@ async function apiLobbies(env, body) {
     const pub = parseJSON(r.pub, {}) || {};
     const online = !!(r.opt_online || pub.online);
     if (all ? !online : !via) continue;
-    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: r.host_id, name: rowName(r) || String(r.host_id), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online, hostPlays: !!r.host_plays, flag: flagOf(r.meta_lang || pickLang(r.host_lang)), discord: r.voice === 'on', mode: pub.mode || null, phase: pub.phase || 'lobby', alive: Array.isArray(pub.seats) ? pub.seats.filter(x => x.alive !== false).length : null });
+    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: pub0 ? 0 : r.host_id, name: rowName(r) || (pub0 ? '…' : String(r.host_id)), username: pub0 ? '' : r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online, hostPlays: !!r.host_plays, flag: flagOf(r.meta_lang || pickLang(r.host_lang)), discord: r.voice === 'on', mode: pub.mode || null, phase: pub.phase || 'lobby', alive: Array.isArray(pub.seats) ? pub.seats.filter(x => x.alive !== false).length : null });
     if (out.length >= 60) break;
   }
   if (all) out.sort((a, b) => (a.status === 'live' ? 1 : 0) - (b.status === 'live' ? 1 : 0) || b.at - a.at); // joinable first
   try { await sweepVoice(env); } catch (e) {}
+  if (pub0) { let b = ''; try { b = await botUsername(env, bot); } catch (e) {} return json({ ok: true, lobbies: out, bot: b, public: true }); }
   return json({ ok: true, lobbies: out });
 }
 /* sit down at an open table from the app (the list of open tables or a typed code) */
@@ -1564,7 +1567,7 @@ export default {
           case '/api/lobby/close': return wrap(apiLobbyClose(env, body));
           case '/api/lobby/role': return wrap(apiLobbyRole(env, bot, body));
           case '/api/lobby/kick': return wrap(apiLobbyKick(env, bot, body));
-          case '/api/lobbies': return wrap(apiLobbies(env, body));
+          case '/api/lobbies': return wrap(apiLobbies(env, bot, body));
           case '/api/discord/invite': return wrap(apiDiscordInvite(env, body));
           case '/api/lobby/discord': return wrap(apiLobbyDiscord(env, bot, body));
           case '/api/lobby/voice-confirm': return wrap(apiLobbyVoiceConfirm(env, body));

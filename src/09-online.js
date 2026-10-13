@@ -384,21 +384,21 @@ function showInvites() {
   S.ui.sheet = { type: 'tableInvite', code: inv.code }; tgHaptic('warning'); render();
 }
 /* open tables on the home screen: friends', club mates', invitations, my seats; join by code */
-const LB = { list: null, at: 0, busy: false, code: '', timer: null };
-async function loadLobbies(force) { if (!TG.app || !apiBase() || LB.busy || (LB.list && !force && Date.now() - LB.at < 10000)) return; LB.busy = true; try { const d = await api('/api/lobbies', { all: true }); if (d.ok) { LB.list = d.lobbies || []; LB.at = Date.now(); } else if (!LB.list) LB.list = []; } finally { LB.busy = false; if (S.screen === 'tables') keepFocus(render); } }
-function tablesMenuItemHTML() { if (!TG.app || !apiBase()) return ''; const u = U(); return `<button class="menu-item" data-a="go" data-to="tables"><div class="ico">${I.search || I.users}</div><div><div class="t">${u.lbFind}</div><div class="d">${u.lbFindD}</div></div><span class="chev">${I.chev}</span></button>`; }
+const LB = { list: null, at: 0, busy: false, code: '', timer: null, bot: '' };
+async function loadLobbies(force) { if (!apiBase() || LB.busy || (LB.list && !force && Date.now() - LB.at < 10000)) return; LB.busy = true; try { const d = await api('/api/lobbies', { all: true }); if (d.ok) { LB.list = d.lobbies || []; LB.at = Date.now(); if (d.bot) LB.bot = d.bot; } else if (!LB.list) LB.list = []; } finally { LB.busy = false; if (S.screen === 'tables') keepFocus(render); } }
+function tablesMenuItemHTML() { if (!apiBase()) return ''; const u = U(); return `<button class="menu-item" data-a="go" data-to="tables"><div class="ico">${I.search || I.users}</div><div><div class="t">${u.lbFind}</div><div class="d">${u.lbFindD}</div></div><span class="chev">${I.chev}</span></button>`; }
 function tablesScreen() {
-  const u = U(); if (!TG.app || !apiBase()) return `${topbar(u.lbFind, '')}<div class="stack"><div class="panel"><div class="hint">${u.frOnlyTg}</div></div></div>`;
+  const u = U(); if (!apiBase()) return `${topbar(u.lbFind, '')}<div class="stack"><div class="panel"><div class="hint">${u.frOnlyTg}</div></div></div>`;
   if (!LB.timer) LB.timer = setInterval(() => { if (S.screen !== 'tables') { clearInterval(LB.timer); LB.timer = null; return; } loadLobbies(false); }, 10000); // the finder refreshes itself while open
   return `${topbar(u.lbFind, u.lbFindSub)}<div class="stack">${lobbiesHTML()}</div>`;
 }
 function lobbiesHTML() {
-  const u = U(); if (!TG.app || !apiBase()) return '';
+  const u = U(); if (!apiBase()) return ''; const web = !TG.app; // the web version: the list is public, «Sit down» opens the bot in Telegram
   if ((!LB.list || Date.now() - LB.at > 10000) && !LB.busy) setTimeout(() => loadLobbies(false), 0);
   const myId = S.cloud && S.cloud.user ? S.cloud.user.id : 0;
-  const list = (LB.list || []).filter(l => l.host.tgId !== myId);
+  const list = (LB.list || []).filter(l => !myId || l.host.tgId !== myId);
   const rows = list.map(l => { const live = l.status === 'live'; const n = live && typeof l.alive === 'number' ? tt(u.lbAlive, { alive: l.alive, n: l.seats || l.players }) : (l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })); return `<div class="fr-row" style="padding:8px 10px;${live ? 'opacity:.75' : ''}"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.flag ? `<span title="${u.dcTableLang}">${l.flag}</span> ` : ''}${esc(l.host.name)} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${n}${l.discord ? ` · <span class="dc-tag">🎧 ${u.dcTag}</span>` : ''} · ${live ? `<span style="color:var(--gold-2)">${u.lbLive}</span>` : u.tbLobby}${l.via && u.lbVia[l.via] ? ` · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${u.lbVia[l.via]}</span>` : ''}${l.hostPlays ? ` · ${u.tbHostPlaysNote}` : ''}</div></div>${live ? (l.via === 'seated' ? `<button class="btn xs" data-a="lb-join" data-code="${esc(l.code)}">${u.lbOpenMine}</button>` : '') : `<button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button>`}</div>`; }).join('');
-  return `<div class="panel" style="margin-bottom:14px"><div class="row"><div class="eyebrow grow">${u.lbTitle}${LB.list ? ` · ${list.length}` : ''}</div><button class="btn xs ghost" data-a="lb-refresh">${LB.busy ? '…' : u.tgRefresh}</button></div><div class="hint" style="margin:4px 0 8px">${u.lbHint}</div>
+  return `<div class="panel" style="margin-bottom:14px"><div class="row"><div class="eyebrow grow">${u.lbTitle}${LB.list ? ` · ${list.length}` : ''}</div><button class="btn xs ghost" data-a="lb-refresh">${LB.busy ? '…' : u.tgRefresh}</button></div><div class="hint" style="margin:4px 0 8px">${u.lbHint}${web ? ' ' + u.lbWebHint : ''}</div>
     ${rows ? `<div class="stack-s">${rows}</div>` : `<div class="hint">${LB.list ? u.lbEmpty : u.frLoading}</div>`}
     <div class="row" style="margin-top:10px"><input class="input grow" id="lb-code" data-a="lb-code" placeholder="${u.lbCodePh}" value="${esc(LB.code)}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8"><button class="btn sm" data-a="lb-join" data-code="" style="flex:0 0 auto">${u.lbJoinCode}</button></div></div>`;
 }
@@ -407,6 +407,7 @@ Object.assign(ACT, {
   'lb-code'(el) { LB.code = (el.value || '').toUpperCase(); },
   async 'lb-join'(el) {
     const code = String(el.dataset.code || LB.code || '').toUpperCase().trim(); if (!code) return; const u = U();
+    if (!TG.app) { if (!/^[A-Z0-9]{4,8}$/.test(code)) { toast(u.lbNotFound); return; } const url = `https://t.me/${LB.bot || 'mafiaprof_bot'}?start=join_${code}`; try { const w = window.open(url, '_blank', 'noopener'); if (!w) location.href = url; } catch (e) { location.href = url; } return; } // web: sit down through the bot
     const d = await api('/api/table/join', { code });
     if (!d.ok) { toast(d.error === 'not_found' || d.error === 'bad_code' ? u.lbNotFound : d.error === 'lobby_closed' ? u.lbClosed : d.error === 'host' ? u.lbHostSelf : u.tgOffline); return; }
     LB.code = ''; LB.at = 0; if (d.joined) { toast(tt(u.tbJoined, { code })); tgHaptic('success'); } S.cloud = S.cloud || {}; S.cloud.table = { code, status: 'open' }; tableOpen(code);

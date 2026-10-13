@@ -265,6 +265,10 @@ console.log('friends: invite link → accept (bot and Mini App) → list → inv
   const fa = await (await post('/api/lobbies', { initData: a, all: true })).json();
   ok(fa.ok && fa.lobbies.some(l => l.code === lobJ.code && l.online && l.host.name === 'User999' && l.players === 0) && !fa.lobbies.some(l => l.code === lobK.code), 'finder lists a stranger’s online table with host and player count, not the offline one');
   eq((await (await post('/api/lobbies', { initData: a })).json()).lobbies.filter(l => l.code === lobJ.code), [], 'the friends-only list still hides strangers');
+  const fw = await (await post('/api/lobbies', { all: true })).json(); const fwRow = fw.lobbies && fw.lobbies.find(l => l.code === lobJ.code);
+  ok(fw.ok && fw.public && fw.bot && fwRow && fwRow.host.name === 'User999' && fwRow.host.tgId === 0 && !fwRow.host.username && fwRow.via === null && !fw.lobbies.some(l => l.code === lobK.code), 'the web version (no Telegram) sees the public finder without host ids: ' + JSON.stringify(fw).slice(0, 200));
+  eq((await post('/api/lobbies', {})).status, 401, 'the friends list still needs Telegram');
+  eq((await post('/api/table/join', { code: lobJ.code })).status, 401, 'sitting down still needs Telegram');
   ok((await (await post('/api/table/join', { initData: a, code: lobJ.code })).json()).joined, '100 joins the stranger’s table from the finder');
   await post('/api/table/publish', { initData: await initData(user(999)), code: lobJ.code, pub: { phase: 'night', online: true, n: 10, seats: [{ seat: 1, tgId: 100, alive: true }, { seat: 2, alive: false }] }, priv: {} });
   const fl = (await (await post('/api/lobbies', { initData: await initData(user(301, 'en')), all: true })).json()).lobbies.find(l => l.code === lobJ.code);
