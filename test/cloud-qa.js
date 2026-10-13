@@ -126,6 +126,10 @@ const path = require('path'); const http = require('http');
   await env.DB.prepare('UPDATE table_invites SET created_at = created_at - 60').run(); await p.click('[data-a="tg-lobby-refresh"]').catch(() => {}); await S(() => refreshTable()); await p.waitForTimeout(700);
   const dm401 = lastTo(401); ok(dm401 && dm401.params.text.includes('кличе вас за стіл') && dm401.params.reply_markup.inline_keyboard[0][0].callback_data.startsWith('tb_acc_') && dm401.params.reply_markup.inline_keyboard[0][1].callback_data.startsWith('tb_dec_'), 'unanswered → friend 401 got "I’m in / Decline" buttons in Ukrainian');
   const dm402 = lastTo(402); ok(dm402 && dm402.params.text.includes('zaprasza'), 'friend 402 got it in Polish');
+  { const hostMode = await S(() => ({ classic: S.setup.scenario === 'classic', open: revealDeadIn(null) }));
+    const ukLine = `🃏 ${hostMode.classic ? 'Класична мафія' : 'Рольова мафія'} · ${hostMode.open ? 'у відкриту' : 'у закриту'}`; const plLine = `🃏 ${hostMode.classic ? 'Mafia klasyczna' : 'Mafia z rolami'} · ${hostMode.open ? 'gra otwarta' : 'gra zamknięta'}`;
+    ok(dm401.params.text.includes(ukLine) && dm402.params.text.includes(plLine), 'the DM says which game it is (mode, open / closed) in the friend’s language: ' + dm401.params.text.split('\n').pop() + ' | ' + dm402.params.text.split('\n').pop());
+    ok(inv401.invites[0].mode === (hostMode.classic ? 'classic' : 'extended') && inv401.invites[0].open === hostMode.open, 'the in-app invitation carries the mode too: ' + JSON.stringify({ mode: inv401.invites[0].mode, open: inv401.invites[0].open })); }
   ok(await S(() => S.ui.frSel.length === 0), 'selection cleared');
   ok(await S(() => S.screen === 'setup'), 'after inviting the host goes on to the table (setup screen), not the menu');
   await S(() => go('friends')); await p.waitForTimeout(400);
@@ -428,8 +432,11 @@ const path = require('path'); const http = require('http');
   ok(!(await q.$('[data-a="lb-join"]')) && await Q(() => { const items = [...document.querySelectorAll('.menu .menu-item')]; const i = items.findIndex(b => b.dataset.a === 'scen-use' && b.dataset.id === 'classic'); return i >= 0 && items[i + 1] && items[i + 1].dataset.to === 'tables'; }), 'no open-tables list on the home screen; "Find a table" is the item under Classic Mafia');
   await Q(() => { LB.at = 0; go('tables'); }); await q.waitForTimeout(1000);
   ok(await Q(() => Array.isArray(LB.list)), 'open tables loaded');
+  const lbTxt0 = await q.$eval('#app', el => el.textContent);
+  ok(!!(await q.$('[data-a="lb-tab"][data-id="role"].active')) && !!(await q.$('[data-a="lb-tab"][data-id="classic"]')) && !lbTxt0.includes('0 / 10') && lbTxt0.includes(await Q(() => U().lbEmptyMode)) && await Q(() => (LB.list || []).some(l => l.mode === 'classic' && l.open === true)), 'finder opens on "Role game": the host’s classic table is not there, the tab says there are none of this kind');
+  await q.click('[data-a="lb-tab"][data-id="classic"]'); await q.waitForTimeout(200);
   const lbTxt = await q.$eval('#app', el => el.textContent);
-  ok(await Q(() => (LB.list || []).some(l => l.host.name === 'Ведущий' && l.via === 'invite' && l.online && l.players === 0)) && lbTxt.includes(await Q(() => U().lbFind)) && lbTxt.includes('Ведущий') && lbTxt.includes('0 / 10') && !!(await q.$('[data-a="lb-join"]')), 'finder shows the host’s online table: host nick, players 0 / 10, marked as an invitation');
+  ok(await Q(() => (LB.list || []).some(l => l.host.name === 'Ведущий' && l.via === 'invite' && l.online && l.players === 0)) && lbTxt.includes(await Q(() => U().lbFind)) && lbTxt.includes('Ведущий') && lbTxt.includes('0 / 10') && lbTxt.includes(await Q(() => U().modeClassic + ' · ' + U().modeOpen)) && !!(await q.$('[data-a="lb-join"]')), 'the "Classic" tab shows the host’s online table: host nick, players 0 / 10, "Classic mafia · open game"');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-lobbies.png') }).catch(() => {});
   { // the web version (GitHub Pages, no Telegram): "Find a table" is there too; the list is public and «Sit down» opens the bot
     const w = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errsW = []; w.on('pageerror', e => errsW.push(e.message));
@@ -438,6 +445,7 @@ const path = require('path'); const http = require('http');
     const W = fn => w.evaluate(fn);
     ok(await W(() => { const items = [...document.querySelectorAll('.menu .menu-item')]; const i = items.findIndex(x => x.dataset.a === 'scen-use' && x.dataset.id === 'classic'); return !TG.app && i >= 0 && items[i + 1] && items[i + 1].dataset.to === 'tables'; }), 'web: "Find a table" under Classic Mafia without Telegram');
     await W(() => { LB.at = 0; go('tables'); }); await w.waitForTimeout(1000);
+    await w.click('[data-a="lb-tab"][data-id="classic"]'); await w.waitForTimeout(200);
     const wTxt = await w.$eval('#app', el => el.textContent);
     ok(wTxt.includes('Ведущий') && wTxt.includes('0 / 10') && wTxt.includes(await W(() => U().lbWebHint)) && !wTxt.includes(await W(() => U().frOnlyTg)), 'web: the finder lists the online table with host and seats');
     await w.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'web-tables.png') }).catch(() => {});
@@ -448,6 +456,7 @@ const path = require('path'); const http = require('http');
   }
   await Q(async () => { const d = await api('/api/ping', {}); S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); }); await q.waitForTimeout(300);
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'tableInvite') && (await q.$eval('.sheet', el => el.textContent)).includes('Ведущий') && (await q.$eval('.sheet', el => el.textContent)).includes(oc), 'invitation sheet on the player’s screen with the host’s name and the table code');
+  ok((await q.$eval('.sheet', el => el.textContent)).includes(await Q(() => U().modeClassic + ' · ' + U().modeOpen)), 'the sheet says "Classic mafia · open game"');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-invite.png') }).catch(() => {});
   // closed with × → not asked again this session, but still offered in the open-tables list
   await q.click('.sheet button[data-a="sheet-close"]'); await q.waitForTimeout(200);
@@ -484,6 +493,7 @@ const path = require('path'); const http = require('http');
   ok(await waitQ(() => TB.data && TB.data.pub && TB.data.pub.phase === 'lobby' && TB.data.pub.seats && TB.data.pub.seats.length === 10 && TB.data.pub.seats[2].tgId === 601), 'waiting room published: 10 seats, Нина at seat 3');
   const lobbyTxt = await q.$eval("#app", el => el.textContent);
   ok((await q.$$('.rt-seat')).length === 10 && lobbyTxt.includes('Mafia') && lobbyTxt.includes('PRO') && lobbyTxt.includes('Ведущий') && (await q.$eval('.rt-seat.mine .rt-num', el => el.textContent)) === '3' && lobbyTxt.includes('1000'), 'round table: 10 seats, "Mafia PRO" + host + player count in the middle, my seat 3 with rating');
+  ok(lobbyTxt.includes(await Q(() => U().modeClassic + ' · ' + U().modeOpen)), 'the waiting room header names the game: classic, open');
   ok(await Q(() => TB.data.profiles[601] && TB.data.profiles[601].points === 1000 && TB.data.profiles[602] && TB.data.profiles[602].name === 'Гена'), 'seat profiles (rating, name) came with the table');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-lobby.png') }).catch(() => {});
   // deal: the game is online, cards appear in the app (no role text in Telegram)
@@ -736,6 +746,7 @@ const path = require('path'); const http = require('http');
   // ----- classic: fixed table of 10, offline or online (the format chooser stays, with the classic description)
   await S(() => { S.setup.online = true; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300);
   ok(await S(() => S.setup.n === 10 && S.setup.online === true && !document.querySelector('[data-a="n"]') && !document.querySelector('#nrange') && !!document.querySelector('[data-a="on-mode"][data-id="online"].active') && document.querySelector('#app').textContent.includes(U().classicTitle) && document.querySelector('#app').textContent.includes(U().onOnlineClassicD)), 'classic setup: 10 players fixed, no count chooser, online format kept with the classic description');
+  ok(!(await p.$('[data-a="comp"]')) && !(await p.$('[data-a="preset"]')) && !(await p.$('[data-a="scen-clear"]')) && (await p.innerText('#app')).includes(await S(() => U().compFixed)) && await S(() => { const before = S.setup.comp.slice().sort().join(); ACT.comp({ dataset: { id: 'mafia', d: '1' } }); ACT.preset(); return S.setup.comp.slice().sort().join() === before && S.setup.comp.length === 10; }), 'classic: the line-up is listed without +/−, reset or ×; the handlers ignore it');
   await S(() => { ACT.new({ dataset: {} }); }); await p.waitForTimeout(300);
   ok(await S(() => S.setup.scenario === null && !!document.querySelector('[data-a="n"]') && document.querySelector('.topbar, .tb, h1') && document.querySelector('#app').textContent.includes(U().roleGame)), 'role game setup is titled "Ролевая мафия" with the player-count chooser back');
   // ----- settings switches: full size, inside the row

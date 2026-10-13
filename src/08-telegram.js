@@ -281,7 +281,7 @@ Object.assign(ACT, {
   },
   'tg-close-table'() { const l = S.lobby; S.lobby = null; save(); render(); if (l && l.code && TG.app && apiBase()) api('/api/lobby/close', { code: l.code }).catch(() => {}); },
   'tg-share'() {
-    const l = currentLobby(); if (!l || !l.link) return; const url = 'https://t.me/share/url?url=' + encodeURIComponent(l.link) + '&text=' + encodeURIComponent(U().tgShareText);
+    const l = currentLobby(); if (!l || !l.link) return; const ml = typeof modeLine === 'function' ? ' · ' + modeLine(S.setup.scenario === 'classic' ? 'classic' : 'extended', revealDeadIn(S.game && !S.game.winner ? S.game : null)) : ''; const url = 'https://t.me/share/url?url=' + encodeURIComponent(l.link) + '&text=' + encodeURIComponent(U().tgShareText + ml);
     try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {}
   },
   'tg-seat'(el) { const g = S.game; if (!g || !g.tg) return; const seat = Number(el.value) || 0; Object.keys(g.tg.map).forEach(k => { if (seat && g.tg.map[k] === seat && k !== el.dataset.tg) g.tg.map[k] = 0; }); g.tg.map[el.dataset.tg] = seat; save(); render(); },

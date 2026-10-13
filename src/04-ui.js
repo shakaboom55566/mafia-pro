@@ -260,6 +260,8 @@ function setupScreen() {
   }).join('');
   const dons = cnt('don');
   const sc = st.scenario ? SCENARIO[st.scenario] : null;
+  // classic: the line-up is the sport one and cannot be edited — a plain list instead of the +/− editor
+  const fixedRows = st.scenario === 'classic' ? `<div class="comp-group"><div class="comp">${['don', 'mafia', 'sheriff', 'citizen'].filter(id => ROLE[id]).map(id => `<div class="comp-row">${sealHTML(ROLE[id])}<div><div class="n">${ROLE[id].name}</div><div class="s">${ROLE[id].short}</div></div><div class="ctl"><span class="c">${cnt(id)}</span></div></div>`).join('')}</div></div><p class="hint">${u.compFixed}</p>` : '';
   const twoFrom = sc && sc.mods.twoFamiliesFrom ? sc.mods.twoFamiliesFrom : TWO_FAMILIES_FROM;
   const two2 = st.n >= twoFrom;
   const unowned = unownedInComp(st.comp);
@@ -276,7 +278,7 @@ function setupScreen() {
     warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
   }
   const ok = !unowned.length && stats.total === st.n && (two2 ? dons === 2 : dons === 1);
-  const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div><button class="btn xs ghost" data-a="scen-clear">×</button></div></div>` : '';
+  const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div>${sc.free ? '' : `<button class="btn xs ghost" data-a="scen-clear">×</button>`}</div></div>` : '';
   const sp = hostOffSeats();
   const names = Array.from({ length: st.n }, (_, i) => {
     const pr = sp[i] ? profById(sp[i]) : null;
@@ -301,8 +303,8 @@ function setupScreen() {
     </div>
     ${statsBar(stats)}
     ${warn}
-    <div class="row"><h2 class="grow">${u.composition}</h2><button class="btn xs ghost" data-a="preset">${u.resetPreset}</button></div>
-    ${rows}
+    <div class="row"><h2 class="grow">${u.composition}</h2>${classic ? '' : `<button class="btn xs ghost" data-a="preset">${u.resetPreset}</button>`}</div>
+    ${classic ? fixedRows : rows}
     <h2>${u.names}</h2>
     <p class="hint">${u.namesHint}</p>
     ${typeof setupLobbyHTML === 'function' ? setupLobbyHTML(st) : ''}
@@ -851,8 +853,8 @@ const ACT = {
   n(el) { const d = +el.dataset.d; setN(S.setup.n + d); },
   nrange(el) { setN(+el.value); },
   name(el) { S.setup.names[+el.dataset.i] = el.value; save(); },
-  comp(el) { const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
-  preset() { S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
+  comp(el) { if (S.setup.scenario === 'classic') return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
+  preset() { if (S.setup.scenario === 'classic') return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {

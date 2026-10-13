@@ -914,7 +914,9 @@ async function seatProfiles(env, ids) {
 }
 async function pendingInvites(env, tgId) {
   const rows = (await env.DB.prepare('SELECT i.code, i.from_id, i.kind, i.created_at, u.first_name, u.last_name, u.username, u.photo_url, l.status FROM table_invites i LEFT JOIN users u ON u.tg_id = i.from_id LEFT JOIN lobbies l ON l.code = i.code WHERE i.tg_id = ?1 AND i.status = ?2 AND i.created_at > ?3 ORDER BY i.created_at DESC LIMIT 5').bind(tgId, 'pending', now() - 6 * 3600).all()).results || [];
-  return rows.filter(r => r.status === 'open' || r.status === 'dealt').map(r => ({ code: r.code, fromId: r.from_id, from: rowName(r) || String(r.from_id), username: r.username || '', photo: r.photo_url || '', kind: r.kind, at: r.created_at * 1000 }));
+  const out = [];
+  for (const r of rows.filter(x => x.status === 'open' || x.status === 'dealt')) { const m = await tableModeOf(env, r.code); out.push({ code: r.code, fromId: r.from_id, from: rowName(r) || String(r.from_id), username: r.username || '', photo: r.photo_url || '', kind: r.kind, at: r.created_at * 1000, mode: m.mode, open: m.open }); }
+  return out;
 }
 /* the table a player currently sits at (latest open / dealt / live lobby, last 8 hours) */
 async function tableOf(env, tgId) {
@@ -934,6 +936,9 @@ async function supersededTable(env, code, hostId) {
   return true;
 }
 /* per-table options: does the creator sit as a player (looking for a host)? which format? */
+/* the table's mode (classic / role game) and open / closed game, from the state the host publishes */
+async function tableModeOf(env, code) { const row = await tableRow(env, code); const pub = row ? parseJSON(row.pub, {}) || {} : {}; return { mode: pub.mode === 'classic' ? 'classic' : 'extended', open: typeof pub.open === 'boolean' ? pub.open : typeof pub.openRoles === 'boolean' ? pub.openRoles : true }; }
+function modeLine(lang, m) { return t(lang, 'modeLine', { mode: t(lang, m.mode === 'classic' ? 'modeClassic' : 'modeRole'), open: t(lang, m.open ? 'modeOpen' : 'modeClosed') }); }
 async function lobbyOpts(env, code) { const r = await env.DB.prepare('SELECT host_plays, online FROM lobby_opts WHERE code = ?1').bind(code).first(); return { hostPlays: !!(r && r.host_plays), online: !!(r && r.online) }; }
 async function setLobbyOpts(env, code, o) {
   const cur = await lobbyOpts(env, code); const hp = typeof o.hostPlays === 'boolean' ? o.hostPlays : cur.hostPlays; const on = typeof o.online === 'boolean' ? o.online : cur.online;
@@ -1014,7 +1019,8 @@ async function inviteDm(env, bot, from, target, code, kind) {
   const fl = pickLang(target.lang);
   if (!kind) kind = (await env.DB.prepare('SELECT kind FROM table_invites WHERE code = ?1 AND tg_id = ?2').bind(code, target.tg_id).first('kind')) || 'friend';
   const host = kind === 'host';
-  const r = await bot.send(target.tg_id, t(fl, host ? 'hostInvite' : 'friendInvite', { name: esc(displayName(from)), code }), { reply_markup: { inline_keyboard: [[{ text: t(fl, host ? 'btnHostYes' : 'btnPlayNow'), callback_data: `${host ? 'th' : 'tb'}_acc_${code}` }, { text: t(fl, 'btnNoThanks'), callback_data: `${host ? 'th' : 'tb'}_dec_${code}` }]] } });
+  let ml = ''; try { ml = '\n' + modeLine(fl, await tableModeOf(env, code)); } catch (e) { ml = ''; }
+  const r = await bot.send(target.tg_id, t(fl, host ? 'hostInvite' : 'friendInvite', { name: esc(displayName(from)), code }) + ml, { reply_markup: { inline_keyboard: [[{ text: t(fl, host ? 'btnHostYes' : 'btnPlayNow'), callback_data: `${host ? 'th' : 'tb'}_acc_${code}` }, { text: t(fl, 'btnNoThanks'), callback_data: `${host ? 'th' : 'tb'}_dec_${code}` }]] } });
   await env.DB.prepare('UPDATE table_invites SET dm_at = ?1 WHERE code = ?2 AND tg_id = ?3').bind(now(), code, target.tg_id).run();
   return r && r.ok ? { ok: true, via: 'dm' } : { ok: false, error: (r && r.description) || 'send_failed' };
 }
@@ -1057,7 +1063,7 @@ async function apiLobbies(env, bot, body) {
     const pub = parseJSON(r.pub, {}) || {};
     const online = !!(r.opt_online || pub.online);
     if (all ? !online : !via) continue;
-    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: pub0 ? 0 : r.host_id, name: rowName(r) || (pub0 ? '…' : String(r.host_id)), username: pub0 ? '' : r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online, hostPlays: !!r.host_plays, flag: flagOf(r.meta_lang || pickLang(r.host_lang)), discord: r.voice === 'on', mode: pub.mode || null, phase: pub.phase || 'lobby', alive: Array.isArray(pub.seats) ? pub.seats.filter(x => x.alive !== false).length : null });
+    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: pub0 ? 0 : r.host_id, name: rowName(r) || (pub0 ? '…' : String(r.host_id)), username: pub0 ? '' : r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online, hostPlays: !!r.host_plays, flag: flagOf(r.meta_lang || pickLang(r.host_lang)), discord: r.voice === 'on', mode: pub.mode || null, open: typeof pub.open === 'boolean' ? pub.open : typeof pub.openRoles === 'boolean' ? pub.openRoles : true, phase: pub.phase || 'lobby', alive: Array.isArray(pub.seats) ? pub.seats.filter(x => x.alive !== false).length : null });
     if (out.length >= 60) break;
   }
   if (all) out.sort((a, b) => (a.status === 'live' ? 1 : 0) - (b.status === 'live' ? 1 : 0) || b.at - a.at); // joinable first
@@ -1261,6 +1267,7 @@ async function announceTable(env, bot, code, opt = {}) {
   const T = cardT(hl); const label = T.status[st] || T.status.open;
   const username = ended || !bot ? '' : await botUsername(env, bot);
   const fields = [{ name: T.players, value: `${n}${seats ? ' / ' + seats : ''}${o.hostPlays ? ' · ' + T.seekHost : ''}`, inline: true }, { name: T.host, value: rowName(host).slice(0, 80) || '—', inline: true }];
+  try { const m = await tableModeOf(env, code); fields.push({ name: T.mode || 'Mode', value: `${t(hl, m.mode === 'classic' ? 'modeClassic' : 'modeRole')} · ${t(hl, m.open ? 'modeOpen' : 'modeClosed')}`, inline: true }); } catch (e) {}
   if (!ended && voice && voice.status === 'on' && voice.invite) fields.push({ name: T.voice, value: `🎧 [${T.voiceLink}](${voice.invite})`, inline: false });
   if (!ended && lobby.status === 'open' && username) fields.push({ name: T.sit, value: `▶️ [${T.openTg}](https://t.me/${username}?start=join_${code})`, inline: false });
   const payload = { embeds: [{ title: `${flag} ${T.table} ${code} · ${label}`, description: ended ? T.ended : T.about, color, fields, timestamp: new Date(lobby.created_at * 1000).toISOString() }] };

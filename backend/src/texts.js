@@ -1,6 +1,7 @@
 /* Bot messages in the five app languages. Russian is the default; a user's Telegram language picks the rest. */
 export const TEXTS = {
   ru: {
+    modeClassic: 'Классическая мафия', modeRole: 'Ролевая мафия', modeOpen: 'в открытую', modeClosed: 'в закрытую', modeLine: '🃏 {mode} · {open}',
     clubApplied: '🏛 Заявка на клуб «{name}» отправлена. Подтвердим в течение 1–2 дней.', clubApproved: '🏛 Клуб «{name}» подтверждён и виден в списке клубов. Вы — глава: приглашайте игроков из приложения.', clubRejected: 'Заявка на клуб «{name}» отклонена. Напишите нам, если это ошибка.',
     clubInvite: '🏛 <b>{name}</b> приглашает вас в клуб «{club}»{city}. Игрок может состоять только в одном клубе.', clubJoined: '✅ Вы в клубе «{club}». Чат клуба — в приложении.', clubInviteGone: 'Приглашение уже обработано.', clubInviteDeclined: 'Приглашение отклонено.',
     clubMemberJoined: '👤 <b>{name}</b> вступил(а) в клуб «{club}».', clubApplyNew: '📨 <b>{name}</b> хочет вступить в клуб «{club}». Подтвердите в приложении: Клубы → Заявки.', clubApplyOk: '✅ Вас приняли в клуб «{club}».', clubApplyNo: 'Заявку в клуб «{club}» отклонили.', clubKicked: 'Вы исключены из клуба «{club}».',
@@ -49,6 +50,7 @@ export const TEXTS = {
     unknown: 'Откройте приложение кнопкой «Играть» или через кнопку меню внизу.'
   },
   uk: {
+    modeClassic: 'Класична мафія', modeRole: 'Рольова мафія', modeOpen: 'у відкриту', modeClosed: 'у закриту', modeLine: '🃏 {mode} · {open}',
     clubApplied: '🏛 Заявку на клуб «{name}» надіслано. Підтвердимо протягом 1–2 днів.', clubApproved: '🏛 Клуб «{name}» підтверджено, він у списку клубів. Ви — голова: запрошуйте гравців із застосунку.', clubRejected: 'Заявку на клуб «{name}» відхилено. Напишіть нам, якщо це помилка.',
     clubInvite: '🏛 <b>{name}</b> запрошує вас у клуб «{club}»{city}. Гравець може бути лише в одному клубі.', clubJoined: '✅ Ви в клубі «{club}». Чат клубу — у застосунку.', clubInviteGone: 'Запрошення вже оброблено.', clubInviteDeclined: 'Запрошення відхилено.',
     clubMemberJoined: '👤 <b>{name}</b> вступив(ла) до клубу «{club}».', clubApplyNew: '📨 <b>{name}</b> хоче вступити до клубу «{club}». Підтвердьте в застосунку: Клуби → Заявки.', clubApplyOk: '✅ Вас прийняли до клубу «{club}».', clubApplyNo: 'Заявку до клубу «{club}» відхилено.', clubKicked: 'Вас виключено з клубу «{club}».',
@@ -97,6 +99,7 @@ export const TEXTS = {
     unknown: 'Відкрийте застосунок кнопкою «Грати» або через кнопку меню внизу.'
   },
   en: {
+    modeClassic: 'Classic mafia', modeRole: 'Role mafia', modeOpen: 'open game', modeClosed: 'closed game', modeLine: '🃏 {mode} · {open}',
     clubApplied: '🏛 Club application “{name}” sent. We confirm within 1–2 days.', clubApproved: '🏛 Club “{name}” is approved and listed. You are the head: invite players from the app.', clubRejected: 'The club application “{name}” was declined. Message us if this is a mistake.',
     clubInvite: '🏛 <b>{name}</b> invites you to the club “{club}”{city}. A player can belong to one club only.', clubJoined: '✅ You are in the club “{club}”. The club chat is in the app.', clubInviteGone: 'This invitation has already been handled.', clubInviteDeclined: 'Invitation declined.',
     clubMemberJoined: '👤 <b>{name}</b> joined the club “{club}”.', clubApplyNew: '📨 <b>{name}</b> wants to join the club “{club}”. Confirm in the app: Clubs → Requests.', clubApplyOk: '✅ You were accepted into the club “{club}”.', clubApplyNo: 'Your application to the club “{club}” was declined.', clubKicked: 'You were removed from the club “{club}”.',
@@ -145,6 +148,7 @@ export const TEXTS = {
     unknown: 'Open the app with the “Play” button or the menu button below.'
   },
   pl: {
+    modeClassic: 'Mafia klasyczna', modeRole: 'Mafia z rolami', modeOpen: 'gra otwarta', modeClosed: 'gra zamknięta', modeLine: '🃏 {mode} · {open}',
     clubApplied: '🏛 Zgłoszenie klubu „{name}” wysłane. Potwierdzimy w ciągu 1–2 dni.', clubApproved: '🏛 Klub „{name}” został zatwierdzony i jest na liście. Jesteś szefem: zapraszaj graczy z aplikacji.', clubRejected: 'Zgłoszenie klubu „{name}” odrzucone. Napisz do nas, jeśli to pomyłka.',
     clubInvite: '🏛 <b>{name}</b> zaprasza Cię do klubu „{club}”{city}. Gracz może należeć tylko do jednego klubu.', clubJoined: '✅ Jesteś w klubie „{club}”. Czat klubu jest w aplikacji.', clubInviteGone: 'To zaproszenie zostało już obsłużone.', clubInviteDeclined: 'Zaproszenie odrzucone.',
     clubMemberJoined: '👤 <b>{name}</b> dołączył(a) do klubu „{club}”.', clubApplyNew: '📨 <b>{name}</b> chce dołączyć do klubu „{club}”. Potwierdź w aplikacji: Kluby → Zgłoszenia.', clubApplyOk: '✅ Przyjęto Cię do klubu „{club}”.', clubApplyNo: 'Zgłoszenie do klubu „{club}” odrzucone.', clubKicked: 'Usunięto Cię z klubu „{club}”.',
@@ -193,6 +197,7 @@ export const TEXTS = {
     unknown: 'Otwórz aplikację przyciskiem „Graj” lub przyciskiem menu poniżej.'
   },
   hy: {
+    modeClassic: 'Դասական մաֆիա', modeRole: 'Դերային մաֆիա', modeOpen: 'բաց խաղ', modeClosed: 'փակ խաղ', modeLine: '🃏 {mode} · {open}',
     clubApplied: '🏛 «{name}» ակումբի հայտն ուղարկված է։ Կհաստատենք 1–2 օրվա ընթացքում։', clubApproved: '🏛 «{name}» ակումբը հաստատված է և ցանկում է։ Դուք ղեկավարն եք՝ հրավիրեք խաղացողներին հավելվածից։', clubRejected: '«{name}» ակումբի հայտը մերժված է։ Գրեք մեզ, եթե սա սխալ է։',
     clubInvite: '🏛 <b>{name}</b>-ը ձեզ հրավիրում է «{club}» ակումբ{city}։ Խաղացողը կարող է լինել միայն մեկ ակումբում։', clubJoined: '✅ Դուք «{club}» ակումբում եք։ Ակումբի չատը հավելվածում է։', clubInviteGone: 'Հրավերն արդեն մշակված է։', clubInviteDeclined: 'Հրավերը մերժված է։',
     clubMemberJoined: '👤 <b>{name}</b>-ը միացավ «{club}» ակումբին։', clubApplyNew: '📨 <b>{name}</b>-ը ցանկանում է միանալ «{club}» ակումբին։ Հաստատեք հավելվածում՝ Ակումբներ → Հայտեր։', clubApplyOk: '✅ Ձեզ ընդունեցին «{club}» ակումբ։', clubApplyNo: '«{club}» ակումբի հայտը մերժված է։', clubKicked: 'Ձեզ հեռացրել են «{club}» ակումբից։',
