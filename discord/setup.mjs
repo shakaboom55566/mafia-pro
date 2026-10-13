@@ -199,19 +199,23 @@ export const ROLES_LAYOUT = [
 ].concat(LANG_ORDER.map(l => ({ key: 'lang_' + l, name: T[l].name, color: 0, hoist: false, mentionable: false })));
 const norm = (s, type) => (type === 0 ? String(s).toLowerCase().replace(/\s+/g, '-') : String(s)).trim();
 /* the permission overwrites a channel should have (v36.1 — one explicit matrix, so the server's base role does not matter):
-   - read-only (info, library, bot channels): readers get view + history; @everyone may not write, react, open threads, send voice messages or polls
+   - read-only (info, library, bot channels): readers get view + history; nobody may write, react, open threads, send voice messages
+     or polls — @everyone AND every role of ours (🎩, 🎲, the five languages) get an explicit deny (v36.2), so it shows in Discord too
    - chat (общий-чат, идеи-и-баги): readers may write, attach, react, use threads
    - voice (lobby, the tables' category — the rooms made by the backend get the same, see voiceOverwrites): view, connect, speak with an
      open mic (voice activity), camera / screen share, the room's chat
    - language → hidden from @everyone, the rights above go to its language role; admin → hidden from everyone but the admins
-   Overwrites of other roles / members (made by hand) are kept. */
+   Overwrites of other roles / members (made by hand) are kept — in read-only channels with the writing rights taken out (see mergeOverwrites). */
+export const OUR_ROLES = ['host', 'player'].concat(LANG_ORDER.map(l => 'lang_' + l));
 export function wantOverwrites(c, guildId, roleIds) {
   if (c.hidden) return [{ id: guildId, type: 0, allow: '0', deny: String(PERM.VIEW) }];
   if (c.voice) return [{ id: guildId, type: 0, allow: String(PERM.VOICE), deny: '0' }];
   const give = c.ro ? PERM.READ : (PERM.READ | PERM.WRITE); const deny = c.ro ? PERM.RO_DENY : 0n;
-  if (!c.lang) return [{ id: guildId, type: 0, allow: String(give), deny: String(deny) }];
-  const role = roleIds['lang_' + c.lang];
-  return [{ id: guildId, type: 0, allow: '0', deny: String(deny | PERM.VIEW) }].concat(role ? [{ id: role, type: 0, allow: String(give), deny: '0' }] : []);
+  const langRole = c.lang ? roleIds['lang_' + c.lang] : null;
+  const out = [{ id: guildId, type: 0, allow: c.lang ? '0' : String(give), deny: String(c.lang ? deny | PERM.VIEW : deny) }];
+  if (c.ro) { for (const k of OUR_ROLES) if (roleIds[k]) out.push({ id: roleIds[k], type: 0, allow: roleIds[k] === langRole ? String(give) : '0', deny: String(deny) }); }
+  else if (langRole) out.push({ id: langRole, type: 0, allow: String(give), deny: '0' });
+  return out;
 }
 /* what a member with no roles (and a member with a language role) may do in a channel — for the audit in the log */
 export function effective(base, overwrites, guildId, roleIds = []) {
@@ -220,11 +224,13 @@ export function effective(base, overwrites, guildId, roleIds = []) {
   let a = 0n, d = 0n; for (const o of ow) if (o.type === 0 && roleIds.includes(String(o.id))) { a |= BigInt(o.allow); d |= BigInt(o.deny); }
   return (p & ~d) | a;
 }
-function mergeOverwrites(cur, want, managed) {
-  const kept = (cur || []).filter(o => !managed.has(String(o.id)));
-  const curM = (cur || []).filter(o => managed.has(String(o.id))).map(o => `${o.id}:${o.allow}:${o.deny}`).sort().join('|');
-  const wantM = want.map(o => `${o.id}:${o.allow}:${o.deny}`).sort().join('|');
-  return curM === wantM ? null : kept.concat(want);
+/* our overwrites replace the managed ids' ones; the rest is kept. In a read-only channel (ro) the kept ones lose the writing rights
+   (allow − RO_DENY, deny + RO_DENY) unless they belong to an exempt id (the bot, integration roles, administrators). null = nothing to change. */
+function mergeOverwrites(cur, want, managed, ro, exempt = new Set()) {
+  const key = list => list.map(o => `${o.id}:${o.type}:${o.allow}:${o.deny}`).sort().join('|');
+  const kept = (cur || []).filter(o => !managed.has(String(o.id))).map(o => (!ro || exempt.has(String(o.id)) ? o : Object.assign({}, o, { allow: String(BigInt(o.allow) & ~PERM.RO_DENY), deny: String(BigInt(o.deny) | PERM.RO_DENY) })));
+  const next = kept.concat(want);
+  return key(cur || []) === key(next) ? null : next;
 }
 const compKey = comps => JSON.stringify((comps || []).map(row => (row.components || []).map(b => [b.type, b.style || null, b.label || null, b.url || null, b.custom_id || null, b.emoji && b.emoji.name ? b.emoji.name : null])));
 const embKey = embeds => JSON.stringify((embeds || []).map(e => [e.title, e.description, (e.fields || []).map(f => [f.name, f.value]), e.image ? e.image.url : null, e.footer ? e.footer.text : null]));
@@ -252,7 +258,9 @@ export async function run(env, log = console.log) {
     else if (cur.name !== spec.name || cur.color !== spec.color || cur.hoist !== spec.hoist || cur.mentionable !== spec.mentionable) { await api('PATCH', `/guilds/${guildId}/roles/${cur.id}`, spec); log(`~ role ${r.name}`); }
     state.roles[r.key] = cur.id;
   }
-  const managed = new Set([guildId].concat(oldLangRoles, LANG_ORDER.map(l => state.roles['lang_' + l]).filter(Boolean))); // a language role deleted by hand and re-created: its old overwrites go too
+  const managed = new Set([guildId].concat(oldLangRoles, OUR_ROLES.map(k => state.roles[k]).filter(Boolean))); // a language role deleted by hand and re-created: its old overwrites go too
+  const ADMIN = 1n << 3n; const rolesNow = await api('GET', `/guilds/${guildId}/roles`);
+  const exempt = new Set([String(me.id)].concat(rolesNow.filter(r => r.id !== guildId && (r.managed || (BigInt(r.permissions || 0) & ADMIN))).map(r => String(r.id)))); // the bot, integrations, administrators
 
   // categories and channels (matched by the saved id, then by name — also the v33 name; never deleted)
   let existing = await api('GET', `/guilds/${guildId}/channels`);
@@ -271,7 +279,7 @@ export async function run(env, log = console.log) {
       if (norm(cur.name, c.type) !== norm(c.name, c.type) && (c.prev || []).some(n => norm(n, c.type) === norm(cur.name, c.type))) patch.name = c.name; // the v33 name → the new one (a name changed by hand stays)
       if (parent && cur.parent_id !== parent) patch.parent_id = parent;
       if (c.topic && cur.topic !== c.topic) patch.topic = c.topic;
-      const ow = mergeOverwrites(cur.permission_overwrites, overwrites, managed); if (ow) patch.permission_overwrites = ow;
+      const ow = mergeOverwrites(cur.permission_overwrites, overwrites, managed, !!c.ro, exempt); if (ow) patch.permission_overwrites = ow;
       if (Object.keys(patch).length) { const upd = await api('PATCH', `/channels/${cur.id}`, patch); Object.assign(cur, upd || patch); log(`~ ${c.name}: ${Object.keys(patch).join(', ')}`); }
     }
     state.channels[c.key] = cur.id; claimed.add(cur.id);
@@ -308,12 +316,20 @@ export async function run(env, log = console.log) {
       else {
         if (!has(who, PERM.READ)) bad.push('cannot read');
         if (spec.ro && (who & PERM.RO_DENY)) bad.push('can write');
+        if (spec.ro) for (const r of allRoles) { // every role on the server, alone and together with the channel's language
+          if (r.id === guildId || exempt.has(String(r.id))) continue;
+          const p = effective(BigInt(base) | BigInt(r.permissions || 0), ch.permission_overwrites, guildId, [String(r.id)].concat(spec.lang ? langIds(spec.lang) : []));
+          if (has(p, PERM.VIEW) && (p & PERM.RO_DENY)) bad.push(`role «${r.name}» can write`);
+        }
+        if (spec.ro) for (const o of ch.permission_overwrites || []) if (o.type === 1 && !exempt.has(String(o.id)) && (BigInt(o.allow) & PERM.RO_DENY)) bad.push(`member ${o.id} can write`);
         if (!spec.ro && !has(who, PERM.WRITE)) bad.push('cannot write');
         if (spec.lang && has(guest, PERM.VIEW)) bad.push('visible without the language');
         if (spec.lang) for (const l of LANG_ORDER) if (l !== spec.lang && has(effective(base, ch.permission_overwrites, guildId, langIds(l)), PERM.VIEW) && !has(guest, PERM.VIEW)) bad.push(`visible to ${l}`);
       }
       if (bad.length) problems.push(`${ch.name}: ${bad.join(', ')}`);
     }
+    const admins = allRoles.filter(r => r.id !== guildId && !r.managed && (BigInt(r.permissions || 0) & ADMIN)).map(r => r.name);
+    log(`read-only channels: nobody writes — no role, no language, 🎩 / 🎲 included; only the owner${admins.length ? ' and administrator roles (' + admins.join(', ') + ')' : ''} can, by Discord's rules`);
     log(`permissions: ${checked} channels checked${fixed ? `, voice opened in ${fixed}` : ''} — ${problems.length ? 'PROBLEMS:' : 'all as intended (read-only info, open chats, voice with an open mic)'}`);
     for (const x of problems) log('  ! ' + x);
     state.permissions = { checked, problems: problems.length };

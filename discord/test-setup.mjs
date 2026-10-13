@@ -76,7 +76,7 @@ const ow = (k, id) => (C(k).permission_overwrites || []).find(o => o.id === id);
 for (const l of LANG_ORDER) {
   const role = s1.roles['lang_' + l]; const keys = [LK('catLib', l), LK('catGame', l)].concat(LANG_CHANNELS.lib.map(k => LK(k, l)), LANG_CHANNELS.game.map(k => LK(k, l)));
   ok(keys.every(k => ow(k, G) && BigInt(ow(k, G).deny) & VIEW && ow(k, role) && BigInt(ow(k, role).allow) & VIEW), `${l}: hidden from @everyone, open to «${T[l].name}»`);
-  ok(LANG_ORDER.filter(x => x !== l).every(x => keys.every(k => !ow(k, s1.roles['lang_' + x]))), `${l}: other languages do not see it`);
+  ok(LANG_ORDER.filter(x => x !== l).every(x => keys.every(k => { const o = ow(k, s1.roles['lang_' + x]); return !o || !(BigInt(o.allow) & VIEW); }) && keys.every(k => !(effective(dc.roles.get(G).permissions, C(k).permission_overwrites, G, [s1.roles['lang_' + x]]) & VIEW))), `${l}: other languages do not see it`);
   ok(BigInt(ow(LK('rules', l), G).deny) & SEND && !(BigInt(ow(LK('chat', l), G).deny) & SEND), `${l}: library read-only, chat open for writing`);
   ok(C(LK('lfg', l)).name === T[l].ch.lfg[0] && C(LK('catLib', l)).name === T[l].cat.lib, `${l}: channels named in the language`);
 }
@@ -127,6 +127,27 @@ ok(ow('chat_en', '777') && ow('chat_en', s1.roles.lang_en), 'a member overwrite 
 dc.messages.get(s1.channels.rules).push({ id: '1', channel_id: s1.channels.rules, author: dc.botUser, embeds: [{ title: 'old' }], components: [] }); await run(env, () => {}); ok(msgs('rules').length === 1, 'an extra bot message is removed');
 dc.roles.delete(s1.roles.lang_pl); const s3 = await run(env, () => {}); const plRole = s3.roles.lang_pl;
 ok(plRole !== s1.roles.lang_pl && ow('lfg_pl', plRole) && !ow('lfg_pl', s1.roles.lang_pl) && msgs('language')[0].components[0].components[3].custom_id === `mp:l:pl:${plRole}`, 'a deleted language role is re-created; channels and the button follow it');
+
+console.log('read-only channels: nobody writes — with or without roles (v36.2)');
+{ const base = () => BigInt(dc.roles.get(G).permissions); const can = (k, roles, extra = 0n) => effective(base() | extra, C(k).permission_overwrites, G, roles);
+  const mod = await dreq('POST', `/guilds/${G}/roles`, { name: 'Модератор чата', permissions: String(SEND | VIEW) }); // a role made by hand, with writing rights at server level
+  const adm = await dreq('POST', `/guilds/${G}/roles`, { name: 'Админ', permissions: String(1n << 3n) });
+  C('rules_uk').permission_overwrites.push({ id: mod.id, type: 0, allow: String(SEND | (1n << 6n)), deny: '0' }, { id: '888888888888', type: 1, allow: String(SEND), deny: '0' }, { id: adm.id, type: 0, allow: String(SEND), deny: '0' });
+  C('news').permission_overwrites.push({ id: mod.id, type: 0, allow: String(SEND | VIEW), deny: '0' });
+  const lg = []; const s6 = await run(env, x => lg.push(x)); const R = k => s6.roles[k];
+  const RO = LAYOUT.filter(c => c.ro && c.type === 0);
+  const noWrite = (k, roles, extra) => { const p = can(k, roles, extra); return !(p & PERM.RO_DENY); };
+  ok(RO.every(c => noWrite(c.key, [])), 'no roles → cannot write anywhere read-only');
+  ok(RO.every(c => ['host', 'player'].concat(LANG_ORDER.map(l => 'lang_' + l)).every(k => noWrite(c.key, [R(k)].concat(c.lang ? [R('lang_' + c.lang)] : [])))), '🎩, 🎲 and every language role → cannot write in any read-only channel');
+  ok(RO.every(c => noWrite(c.key, [R('host'), R('player'), mod.id].concat(LANG_ORDER.map(l => R('lang_' + l))), BigInt(mod.permissions))), 'all roles at once, plus a hand-made role with server-level writing → still cannot write');
+  ok(RO.every(c => (BigInt(ow(c.key, R('host')).deny) & SEND) && (BigInt(ow(c.key, R('player')).deny) & SEND)), 'the deny is explicit on 🎩 and 🎲 (visible in Discord)');
+  const u = ow('rules_uk', mod.id), m = ow('rules_uk', '888888888888'), a = ow('rules_uk', adm.id);
+  ok(u && !(BigInt(u.allow) & SEND) && (BigInt(u.allow) & (1n << 6n)) === 0n && m && !(BigInt(m.allow) & SEND), 'hand-made role and member overwrites lose the right to write (kept otherwise)');
+  ok(a && BigInt(a.allow) & SEND, 'an administrator role is left alone');
+  ok(LANG_ORDER.every(l => ['chat', 'ideas'].every(k => (can(LK(k, l), [R('lang_' + l)]) & PERM.WRITE) === PERM.WRITE && !ow(LK(k, l), R('host')))), 'chats stay writable for their language');
+  ok(RO.every(c => (can(c.key, c.lang ? [R('lang_' + c.lang)] : []) & PERM.READ) === PERM.READ), 'everyone still reads');
+  ok(lg.some(l => l.includes('all as intended')) && lg.some(l => l.includes('only the owner and administrator roles (Админ)')), 'audit: every role checked, administrators named');
+  const calls1 = dc.calls.length; await run(env, () => {}); ok(!dc.calls.slice(calls1).some(c => c.method === 'PATCH' && /\/channels\/\d+$/.test(c.url)), 'the next run changes no permissions'); }
 
 console.log('the endpoint refused (backend not deployed yet): logged, nothing else breaks');
 dc.app.interactions_endpoint_url = null; dc.st.endpointFail = true; const logs4 = []; await run(env, x => logs4.push(x)); dc.st.endpointFail = false;
