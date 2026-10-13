@@ -33,12 +33,25 @@ export async function dcall(env, method, path, body) {
 }
 
 export const channelName = (code, lang) => `${flagOf(lang)} Mafia · ${code}`;
+/* ---------- permissions on the Mafia Pro server (v36.1): one matrix for discord/setup.mjs and the tables' voice rooms ---------- */
+const bit = n => 1n << BigInt(n);
+const P = { reactions: bit(6), stream: bit(9), view: bit(10), send: bit(11), tts: bit(12), embed: bit(14), attach: bit(15), history: bit(16), extEmoji: bit(18), connect: bit(20), speak: bit(21), vad: bit(25), appCmd: bit(31), pubThreads: bit(35), privThreads: bit(36), threadSend: bit(38), activities: bit(39), soundboard: bit(42), voiceMsg: bit(46), polls: bit(49) };
+const or = (...k) => k.reduce((a, x) => a | P[x], 0n);
+export const PERM = {
+  READ: or('view', 'history'), // see a channel and its history
+  WRITE: or('send', 'embed', 'attach', 'reactions', 'extEmoji', 'history', 'pubThreads', 'threadSend', 'voiceMsg', 'appCmd'), // a chat: write, attach, react, threads
+  RO_DENY: or('send', 'tts', 'reactions', 'pubThreads', 'privThreads', 'threadSend', 'voiceMsg', 'polls'), // read-only: no messages, reactions, threads, voice messages, polls
+  VOICE: or('view', 'connect', 'speak', 'vad', 'stream', 'activities', 'soundboard', 'history', 'send', 'embed', 'attach', 'reactions', 'appCmd'), // talk with an open mic (voice activity, no push-to-talk), camera / screen, the voice room's chat
+  VIEW: P.view
+};
+/* a table's voice room: everyone may join and talk with an open mic, whatever the category or the server's base role says */
+export const voiceOverwrites = guildId => [{ id: String(guildId), type: 0, allow: String(PERM.VOICE), deny: '0' }];
 export const limitFor = seats => Math.min(MAX_LIMIT, Math.max(2, (Number(seats) || 10) + 1)); // every seat + the host
 
 /* a voice channel with an 8-hour invite; on any failure nothing is left behind */
 export async function createVoice(env, code, lang, seats) {
   const guild = String(env.DISCORD_GUILD_ID).trim(); const parent = String(env.DISCORD_CATEGORY_ID || '').trim();
-  const spec = { name: channelName(code, lang), type: 2, user_limit: limitFor(seats) };
+  const spec = { name: channelName(code, lang), type: 2, user_limit: limitFor(seats), permission_overwrites: voiceOverwrites(guild) };
   let ch = await dcall(env, 'POST', `/guilds/${guild}/channels`, /^\d{5,25}$/.test(parent) ? Object.assign({ parent_id: parent }, spec) : spec);
   if (!ch.ok && /^\d{5,25}$/.test(parent) && ch.status === 400) ch = await dcall(env, 'POST', `/guilds/${guild}/channels`, spec); // a wrong category id must not break the table
   if (!ch.ok || !ch.data || !ch.data.id) return { ok: false, error: ch.error || 'create_failed', status: ch.status };

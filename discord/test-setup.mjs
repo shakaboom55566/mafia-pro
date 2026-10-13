@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { startMockDiscord } from '../backend/test/mock-discord.js';
-import { run, LAYOUT, ROLES_LAYOUT, loadApp, buildContent, buildShared, LK, LANG_CHANNELS } from './setup.mjs';
+import { run, LAYOUT, ROLES_LAYOUT, loadApp, buildContent, buildShared, LK, LANG_CHANNELS, effective } from './setup.mjs';
+import { PERM, createVoice } from '../backend/src/discord.js';
 import { T, LANG_ORDER } from './texts.mjs';
 
 let fails = 0, n = 0; const ok = (c, m) => { n++; if (!c) { fails++; console.log('  FAIL', m); } };
@@ -48,6 +49,10 @@ for (const l of LANG_ORDER) {
 console.log('the v33 server (Russian only) as it is now');
 // v33: the layout before languages, made by the previous setup.mjs — channels that must be found and moved, not duplicated
 const own = await dreq('POST', `/guilds/${G}/channels`, { name: 'основной', type: 0 });
+// the owner's voice channels: an open one (gets the voice rights) and a private one (stays hidden); a stingy base role without voice rights
+const ownVoice = await dreq('POST', `/guilds/${G}/channels`, { name: 'Основной', type: 2, permission_overwrites: [{ id: G, type: 0, allow: '0', deny: String(1n << 21n) }] });
+const privVoice = await dreq('POST', `/guilds/${G}/channels`, { name: 'Штаб', type: 2, permission_overwrites: [{ id: G, type: 0, allow: '0', deny: String(VIEW) }] });
+dc.roles.get(G).permissions = String(VIEW | (1n << 16n) | SEND);
 const v33 = {}; const mk = async (key, name, type, parent, ro) => { const b = { name, type }; if (parent) b.parent_id = v33[parent]; if (ro) b.permission_overwrites = [{ id: G, type: 0, allow: '0', deny: String(SEND) }]; v33[key] = (await dreq('POST', `/guilds/${G}/channels`, b)).id; };
 await mk('catInfo', '📌 MAFIA PRO', 4); await mk('welcome', '👋・добро-пожаловать', 0, 'catInfo', 1); await mk('rules', '📜・правила-сервера', 0, 'catInfo', 1); await mk('news', '📣・новости', 0, 'catInfo', 1); await mk('howto', '📱・как-играть', 0, 'catInfo', 1);
 await mk('catLib', '📚 БИБЛИОТЕКА', 4); for (const [k, nm] of [['cardsMafia', '🖤・карты-мафии'], ['cardsCity', '❤️・карты-города'], ['cardsNeutral', '🤍・нейтралы'], ['scenarios', '📚・сценарии'], ['gameRules', '⚖️・правила-игры']]) await mk(k, nm, 0, 'catLib', 1);
@@ -75,7 +80,16 @@ for (const l of LANG_ORDER) {
   ok(BigInt(ow(LK('rules', l), G).deny) & SEND && !(BigInt(ow(LK('chat', l), G).deny) & SEND), `${l}: library read-only, chat open for writing`);
   ok(C(LK('lfg', l)).name === T[l].ch.lfg[0] && C(LK('catLib', l)).name === T[l].cat.lib, `${l}: channels named in the language`);
 }
-ok(['welcome', 'language', 'news'].every(k => BigInt(ow(k, G).deny) & SEND && !(BigInt(ow(k, G).deny) & VIEW)) && !ow('lobby', G) && !ow('catTables', G), 'shared channels: visible to all, read-only; lobby and tables open');
+ok(['welcome', 'language', 'news'].every(k => BigInt(ow(k, G).deny) & SEND && !(BigInt(ow(k, G).deny) & VIEW)), 'shared channels: visible to all, read-only');
+{ const base = dc.roles.get(G).permissions; const can = (k, roles = []) => effective(base, C(k).permission_overwrites, G, roles); const all = (p, b) => (p & b) === b;
+  const SPEAK = (1n << 20n) | (1n << 21n) | (1n << 25n), REACT = 1n << 6n, THREAD = 1n << 35n;
+  ok(['welcome', 'language', 'news'].every(k => all(can(k), PERM.READ) && !(can(k) & (SEND | REACT | THREAD))), 'newcomer in 📌: reads, cannot write, react or open threads');
+  ok(LANG_ORDER.every(l => LANG_CHANNELS.lib.concat(['lfg', 'results']).every(k => { const p = can(LK(k, l), [s1.roles['lang_' + l]]); return all(p, PERM.READ) && !(p & (SEND | REACT | THREAD)); })), 'library, #lfg, #results in every language: the language role reads only');
+  ok(LANG_ORDER.every(l => ['chat', 'ideas'].every(k => all(can(LK(k, l), [s1.roles['lang_' + l]]), PERM.READ | PERM.WRITE) && !(can(LK(k, l)) & VIEW))), 'chats: the language role writes, attaches, reacts; a newcomer does not see them');
+  ok(all(can('lobby'), PERM.VOICE) && all(can('lobby'), SPEAK) && all(can('catTables'), PERM.VOICE), 'lobby and the tables category: connect, speak, open mic (voice activity) — even with a base role without voice');
+  ok(!(can('analytics') & VIEW) && !(can('catAdmin') & VIEW), 'admin channels hidden');
+  ok(all(effective(base, dc.channels.get(ownVoice.id).permission_overwrites, G), SPEAK) && !(effective(base, dc.channels.get(privVoice.id).permission_overwrites, G) & VIEW), 'the owner’s open voice channel can talk now; the private one stays hidden');
+  ok(logs.some(l => l.startsWith('permissions:') && l.includes('all as intended')) && logs.some(l => l.includes('~ voice rights: Основной')), 'audit in the log: all as intended'); }
 const hooks = [...dc.webhooks.values()]; const hk = (name, key) => hooks.some(w => w.name === name && w.channel_id === s1.channels[key]);
 ok(hk('Mafia Pro · Столы', 'lfg') && hk('Mafia Pro · Итоги', 'results') && hk('Mafia Pro · Stoły', 'lfg_pl') && hk('Mafia Pro · Підсумки', 'results_uk') && hk('Mafia Pro · Սեղաններ', 'lfg_hy') && hk('Mafia Pro · Новости', 'news'), 'webhooks per language + news');
 ok(hooks.filter(w => w.name === 'Mafia Pro · Столы').length === 1 && hooks.some(w => w.id === oldHook.id), 'the v33 webhook is reused');
@@ -117,6 +131,11 @@ ok(plRole !== s1.roles.lang_pl && ow('lfg_pl', plRole) && !ow('lfg_pl', s1.roles
 console.log('the endpoint refused (backend not deployed yet): logged, nothing else breaks');
 dc.app.interactions_endpoint_url = null; dc.st.endpointFail = true; const logs4 = []; await run(env, x => logs4.push(x)); dc.st.endpointFail = false;
 ok(logs4.some(l => l.includes('did not accept')) && logs4.some(l => l.includes('tables category')), 'warning in the log, the run finishes');
+
+console.log('a table voice room made by the backend: open mic for everyone');
+{ const r = await createVoice({ DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: G, DISCORD_CATEGORY_ID: s1.tablesCategory, DISCORD_API: dc.base }, 'AB12', 'uk', 8);
+  const p = effective(dc.roles.get(G).permissions, dc.channels.get(r.channelId).permission_overwrites, G); ok(r.ok && (p & PERM.VOICE) === PERM.VOICE && dc.channels.get(r.channelId).parent_id === s1.tablesCategory, 'table room: connect, speak, voice activity');
+  const logs5 = []; await run(env, x => logs5.push(x)); ok(!logs5.some(l => l.includes('~ voice rights')) && logs5.some(l => l.includes('all as intended')), 'the next run leaves the table room alone'); }
 
 console.log('backend role names are in sync with the app');
 { const { roleNamesSource } = await import('./gen-role-names.mjs'); ok(fs.readFileSync(new URL('../backend/src/role-names.js', import.meta.url), 'utf8') === roleNamesSource(), 'backend/src/role-names.js is up to date (node discord/gen-role-names.mjs)'); }

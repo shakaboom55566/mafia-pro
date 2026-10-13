@@ -21,7 +21,7 @@ import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { T, LANG_ORDER, GAME_ROLES } from './texts.mjs';
-import { HOOKS } from '../backend/src/discord.js';
+import { HOOKS, PERM } from '../backend/src/discord.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -165,25 +165,23 @@ export function buildShared(ctx) {
 }
 
 /* ---------- server layout ---------- */
-const VIEW = 1n << 10n;
-const SEND = (1n << 11n) | (1n << 35n) | (1n << 36n) | (1n << 38n); // send messages, create public / private threads, send in threads
 export function buildLayout() {
   const out = [
-    { key: 'catInfo', type: 4, name: '📌 MAFIA PRO' },
+    { key: 'catInfo', type: 4, name: '📌 MAFIA PRO', ro: true },
     { key: 'welcome', type: 0, name: '👋・welcome', prev: ['👋・добро-пожаловать'], parent: 'catInfo', ro: true, topic: 'Mafia Pro — ' + LANG_ORDER.map(l => T[l].code).join(' · ') },
     { key: 'language', type: 0, name: '🌐・language', parent: 'catInfo', ro: true, topic: 'Язык · Мова · Language · Język · Լեզու — 🎩 / 🎲' },
     { key: 'news', type: 0, name: '📣・news', prev: ['📣・новости'], parent: 'catInfo', ro: true, topic: 'Mafia Pro — news · новини · новости · aktualności · նորություններ', hook: 'Mafia Pro · Новости' },
-    { key: 'lobby', type: 2, name: '🔊 Lobby', prev: ['🔊 Лобби'], parent: 'catInfo' }
+    { key: 'lobby', type: 2, name: '🔊 Lobby', prev: ['🔊 Лобби'], parent: 'catInfo', voice: true }
   ];
   for (const l of LANG_ORDER) {
     const t = T[l];
     for (const [cat, keys] of [['lib', LANG_CHANNELS.lib], ['game', LANG_CHANNELS.game]]) {
       const ck = LK(cat === 'lib' ? 'catLib' : 'catGame', l);
-      out.push({ key: ck, type: 4, name: t.cat[cat], prev: (t.catPrev || {})[cat], lang: l });
+      out.push({ key: ck, type: 4, name: t.cat[cat], prev: (t.catPrev || {})[cat], lang: l, ro: cat === 'lib' });
       for (const k of keys) out.push({ key: LK(k, l), base: k, type: 0, name: t.ch[k][0], topic: t.ch[k][1], parent: ck, lang: l, ro: !['chat', 'ideas'].includes(k), hook: k === 'lfg' ? HOOKS.tables[l] : k === 'results' ? HOOKS.results[l] : undefined });
     }
   }
-  out.push({ key: 'catTables', type: 4, name: '🎧 ИГРОВЫЕ СТОЛЫ' });
+  out.push({ key: 'catTables', type: 4, name: '🎧 ИГРОВЫЕ СТОЛЫ', voice: true });
   out.push({ key: 'catAdmin', type: 4, name: '🔒 АДМИНИСТРАЦИЯ', hidden: true });
   out.push({ key: 'analytics', type: 0, name: '📊・аналитика', parent: 'catAdmin', hidden: true, topic: 'Кто пришёл и по чьему приглашению, кто ушёл — бот пишет сам. /invites — сводка', hook: 'Mafia Pro · Аналитика' });
   return out;
@@ -200,14 +198,27 @@ export const ROLES_LAYOUT = [
   { key: 'player', name: '🎲 Игрок', color: COLOR.blurple, hoist: false, mentionable: false }
 ].concat(LANG_ORDER.map(l => ({ key: 'lang_' + l, name: T[l].name, color: 0, hoist: false, mentionable: false })));
 const norm = (s, type) => (type === 0 ? String(s).toLowerCase().replace(/\s+/g, '-') : String(s)).trim();
-/* the permission overwrites a channel should have: read-only → @everyone may not send; a language channel → hidden from
-   @everyone, visible to its language role; an admin channel → hidden from everyone but the admins. Overwrites of other roles / members (made by hand) are kept. */
+/* the permission overwrites a channel should have (v36.1 — one explicit matrix, so the server's base role does not matter):
+   - read-only (info, library, bot channels): readers get view + history; @everyone may not write, react, open threads, send voice messages or polls
+   - chat (общий-чат, идеи-и-баги): readers may write, attach, react, use threads
+   - voice (lobby, the tables' category — the rooms made by the backend get the same, see voiceOverwrites): view, connect, speak with an
+     open mic (voice activity), camera / screen share, the room's chat
+   - language → hidden from @everyone, the rights above go to its language role; admin → hidden from everyone but the admins
+   Overwrites of other roles / members (made by hand) are kept. */
 export function wantOverwrites(c, guildId, roleIds) {
-  const out = []; let deny = 0n;
-  if (c.ro) deny |= SEND; if (c.lang || c.hidden) deny |= VIEW; // hidden = admins only
-  if (deny) out.push({ id: guildId, type: 0, allow: '0', deny: String(deny) });
-  if (c.lang && roleIds['lang_' + c.lang]) out.push({ id: roleIds['lang_' + c.lang], type: 0, allow: String(VIEW), deny: '0' });
-  return out;
+  if (c.hidden) return [{ id: guildId, type: 0, allow: '0', deny: String(PERM.VIEW) }];
+  if (c.voice) return [{ id: guildId, type: 0, allow: String(PERM.VOICE), deny: '0' }];
+  const give = c.ro ? PERM.READ : (PERM.READ | PERM.WRITE); const deny = c.ro ? PERM.RO_DENY : 0n;
+  if (!c.lang) return [{ id: guildId, type: 0, allow: String(give), deny: String(deny) }];
+  const role = roleIds['lang_' + c.lang];
+  return [{ id: guildId, type: 0, allow: '0', deny: String(deny | PERM.VIEW) }].concat(role ? [{ id: role, type: 0, allow: String(give), deny: '0' }] : []);
+}
+/* what a member with no roles (and a member with a language role) may do in a channel — for the audit in the log */
+export function effective(base, overwrites, guildId, roleIds = []) {
+  let p = BigInt(base || 0); const ow = overwrites || []; const e = ow.find(o => String(o.id) === String(guildId));
+  if (e) p = (p & ~BigInt(e.deny)) | BigInt(e.allow);
+  let a = 0n, d = 0n; for (const o of ow) if (o.type === 0 && roleIds.includes(String(o.id))) { a |= BigInt(o.allow); d |= BigInt(o.deny); }
+  return (p & ~d) | a;
 }
 function mergeOverwrites(cur, want, managed) {
   const kept = (cur || []).filter(o => !managed.has(String(o.id)));
@@ -274,6 +285,39 @@ export async function run(env, log = console.log) {
   reorder(existing.filter(x => x.type === 4), LAYOUT.filter(c => c.type === 4).map(c => state.channels[c.key]));
   for (const cat of LAYOUT.filter(c => c.type === 4)) { const catId = state.channels[cat.key]; reorder(existing.filter(x => x.parent_id === catId && x.type !== 2), LAYOUT.filter(c => c.parent === cat.key && c.type !== 2).map(c => state.channels[c.key])); }
   if (moves.length) { await api('PATCH', `/guilds/${guildId}/channels`, moves); log(`~ order: ${moves.length} positions`); }
+
+  // permissions audit (v36.1): what a newcomer and each language role really may do, channel by channel. Our channels must match the
+  // matrix; any other voice channel that people can see gets the voice rights too (a hidden one stays hidden); the rest is only reported.
+  {
+    const allRoles = await api('GET', `/guilds/${guildId}/roles`); const base = (allRoles.find(r => r.id === guildId) || {}).permissions || '0';
+    const chans = await api('GET', `/guilds/${guildId}/channels`); const mine = new Map(LAYOUT.map(c => [state.channels[c.key], c]));
+    const has = (p, b) => (p & b) === b; const langIds = l => [state.roles['lang_' + l]].filter(Boolean);
+    const problems = []; let fixed = 0, checked = 0;
+    for (const ch of chans.slice().sort((a, b) => (a.position || 0) - (b.position || 0))) {
+      const spec = mine.get(ch.id); const guest = effective(base, ch.permission_overwrites, guildId); checked++;
+      if (!spec && ch.type === 2 && has(guest, PERM.VIEW) && !has(guest, PERM.VOICE)) { // someone else's voice channel (or a table room made before v36.1)
+        const ow = mergeOverwrites(ch.permission_overwrites, [{ id: guildId, type: 0, allow: String(PERM.VOICE), deny: '0' }], new Set([guildId]));
+        if (ow) { await api('PATCH', `/channels/${ch.id}`, { permission_overwrites: ow }); fixed++; log(`~ voice rights: ${ch.name}`); }
+        continue;
+      }
+      if (!spec) { if (ch.type !== 4) log(`  · not managed: ${ch.name} — ${has(guest, PERM.VIEW) ? 'everyone sees it' : 'hidden'}${has(guest, PERM.VIEW) && ch.type === 0 ? has(guest, 1n << 11n) ? ', may write' : ', read-only' : ''}`); continue; }
+      const who = spec.lang ? effective(base, ch.permission_overwrites, guildId, langIds(spec.lang)) : guest;
+      const bad = [];
+      if (spec.hidden) { if (has(guest, PERM.VIEW)) bad.push('visible to everyone'); }
+      else if (spec.voice) { if (!has(who, PERM.VOICE)) bad.push('cannot talk'); }
+      else {
+        if (!has(who, PERM.READ)) bad.push('cannot read');
+        if (spec.ro && (who & PERM.RO_DENY)) bad.push('can write');
+        if (!spec.ro && !has(who, PERM.WRITE)) bad.push('cannot write');
+        if (spec.lang && has(guest, PERM.VIEW)) bad.push('visible without the language');
+        if (spec.lang) for (const l of LANG_ORDER) if (l !== spec.lang && has(effective(base, ch.permission_overwrites, guildId, langIds(l)), PERM.VIEW) && !has(guest, PERM.VIEW)) bad.push(`visible to ${l}`);
+      }
+      if (bad.length) problems.push(`${ch.name}: ${bad.join(', ')}`);
+    }
+    log(`permissions: ${checked} channels checked${fixed ? `, voice opened in ${fixed}` : ''} — ${problems.length ? 'PROBLEMS:' : 'all as intended (read-only info, open chats, voice with an open mic)'}`);
+    for (const x of problems) log('  ! ' + x);
+    state.permissions = { checked, problems: problems.length };
+  }
 
   // webhooks (the backend finds them by name; tokens are never written to the state file)
   for (const c of LAYOUT.filter(x => x.hook)) {
