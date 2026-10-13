@@ -29,12 +29,23 @@ jobs:
           node-version: 22
       - name: Tests (summary, token)
         run: node seo/test-report.mjs
+      - name: Lighthouse (mobile) of the key pages — used when there is no PSI_KEY
+        continue-on-error: true
+        env:
+          PSI_KEY: ${{ secrets.PSI_KEY }}
+        run: |
+          [ -n "$PSI_KEY" ] && { echo "PSI_KEY set — PageSpeed Insights is used"; exit 0; }
+          mkdir -p /tmp/lh; SITE=$( (cat seo/site-url.txt 2>/dev/null || echo https://shakaboom55566.github.io/mafia-pro/) | tr -d '[:space:]'); SITE=${SITE%/}/
+          n=0; for u in "${SITE}ru/" "${SITE}en/" "${SITE}ru/roles/don/"; do
+            npx -y lighthouse@12 "$u" --quiet --output=json --output-path=/tmp/lh/lh-$n.json --only-categories=performance,seo,accessibility --chrome-flags="--headless=new --no-sandbox" || true
+            n=$((n+1)); done; ls -la /tmp/lh
       - name: Collect (Search Console, Bing, PageSpeed, live pages)
         env:
           GSC_SA_KEY: ${{ secrets.GSC_SA_KEY }}
           GSC_PROPERTY: ${{ secrets.GSC_PROPERTY }}
           BING_API_KEY: ${{ secrets.BING_API_KEY }}
           PSI_KEY: ${{ secrets.PSI_KEY }}
+          LH_DIR: /tmp/lh
         run: node seo/report.mjs
       - name: Commit the report
         run: |

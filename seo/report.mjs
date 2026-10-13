@@ -80,14 +80,21 @@ async function bing() {
 }
 
 /* ---------- PageSpeed Insights ---------- */
+const PSI_URLS = () => [SITE + 'ru/', SITE + 'en/', SITE + 'ru/roles/don/'];
+/* a Lighthouse result (the same shape in PageSpeed's lighthouseResult and in a local `lighthouse --output=json`) → the row */
+function lhRow(url, lr, field) {
+  const c = lr.categories; const a = lr.audits;
+  const fails = Object.values(a).filter(x => x.score !== null && x.score < 0.9 && ['seo', 'performance'].some(g => (c[g].auditRefs || []).some(r => r.id === x.id && r.weight > 0))).map(x => x.title).slice(0, 6);
+  return { url, performance: Math.round(c.performance.score * 100), seo: Math.round(c.seo.score * 100), accessibility: Math.round(c.accessibility.score * 100), lcp: a['largest-contentful-paint'].displayValue, cls: a['cumulative-layout-shift'].displayValue, tbt: a['total-blocking-time'].displayValue, fails, field: field || null };
+}
 async function psi() {
+  // without a PSI_KEY the shared PageSpeed quota is often used up (429): the workflow runs Lighthouse itself into LH_DIR (lh-<n>.json)
+  if (!env.PSI_KEY && env.LH_DIR) return PSI_URLS().map((url, n) => { try { return Object.assign(lhRow(url, JSON.parse(fs.readFileSync(path.join(env.LH_DIR, `lh-${n}.json`), 'utf8'))), { source: 'lighthouse' }); } catch (e) { return { url, error: 'Lighthouse: ' + e.message }; } });
   const out = [];
-  for (const url of [SITE + 'ru/', SITE + 'en/', SITE + 'ru/roles/don/']) {
+  for (const url of PSI_URLS()) {
     const u = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile&category=performance&category=seo&category=accessibility${env.PSI_KEY ? '&key=' + env.PSI_KEY : ''}`;
     try {
-      const j = await fetchJson(u); const c = j.lighthouseResult.categories; const a = j.lighthouseResult.audits;
-      const fails = Object.values(a).filter(x => x.score !== null && x.score < 0.9 && ['seo', 'performance'].some(g => (c[g].auditRefs || []).some(r => r.id === x.id && r.weight > 0))).map(x => x.title).slice(0, 6);
-      out.push({ url, performance: Math.round(c.performance.score * 100), seo: Math.round(c.seo.score * 100), accessibility: Math.round(c.accessibility.score * 100), lcp: a['largest-contentful-paint'].displayValue, cls: a['cumulative-layout-shift'].displayValue, tbt: a['total-blocking-time'].displayValue, fails, field: j.loadingExperience && j.loadingExperience.overall_category || null });
+      const j = await fetchJson(u); out.push(Object.assign(lhRow(url, j.lighthouseResult, j.loadingExperience && j.loadingExperience.overall_category), { source: 'pagespeed' }));
     } catch (e) { out.push({ url, error: e.message }); }
   }
   return out;
@@ -150,7 +157,7 @@ function markdown(r) {
     if (s.top.length) L.push('', '**Топ запросов:**', ...s.top.slice(0, 10).map(x => `- «${x.query}» → /${x.page} — поз. ${f1(x.position)}, ${x.impressions} показов, ${x.clicks} кликов`));
     L.push('');
   }
-  if (r.psi) L.push('## Скорость (PageSpeed, мобильные)', ...r.psi.map(p => p.error ? `- ${p.url} — ошибка: ${p.error}` : `- ${p.url.replace(r.site, '/')} — скорость ${p.performance}, SEO ${p.seo}, доступность ${p.accessibility}; LCP ${p.lcp}, CLS ${p.cls}${p.fails.length ? '; проблемы: ' + p.fails.join('; ') : ''}`), '');
+  if (r.psi) L.push(`## Скорость (${(r.psi[0] || {}).source === 'lighthouse' ? 'Lighthouse' : 'PageSpeed'}, мобильные)`, ...r.psi.map(p => p.error ? `- ${p.url} — ошибка: ${p.error}` : `- ${p.url.replace(r.site, '/')} — скорость ${p.performance}, SEO ${p.seo}, доступность ${p.accessibility}; LCP ${p.lcp}, CLS ${p.cls}${p.fails.length ? '; проблемы: ' + p.fails.join('; ') : ''}`), '');
   const bad = r.live.filter(x => x.error || x.status !== 200 || x.noindex || (x.canonicalOk === false && x.name === undefined));
   L.push('## Живые страницы', bad.length ? bad.map(x => `- ${x.url} — ${x.error || `HTTP ${x.status}${x.noindex ? ', noindex' : ''}${x.canonicalOk === false ? ', canonical не совпадает' : ''}`}`).join('\n') : `Все ${r.live.length} проверок в порядке.`, '');
   if (r.bing && r.bing.GetQueryStats) L.push('## Bing', `Запросов с показами: ${r.bing.GetQueryStats.length}.`, ...r.bing.GetQueryStats.sort((a, b) => b.Impressions - a.Impressions).slice(0, 10).map(x => `- «${x.Query}» — поз. ${x.AvgImpressionPosition}, ${x.Impressions} показов, ${x.Clicks} кликов`), '');
@@ -168,4 +175,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   })().catch(e => { console.error(e); process.exit(1); });
 }
 
-export { summarize, markdown, googleToken, langOf };
+export { summarize, markdown, googleToken, langOf, lhRow, PSI_URLS };

@@ -6,7 +6,7 @@
 
 ## Каждый запуск
 1. Репозиторий `shakaboom55566/mafia-pro`: `git fetch origin main`, работать от свежего main. Параллельные сессии пушат в main — перед пушем rebase.
-2. Данные: если `seo/reports/latest.md` старше 2 дней — `gh workflow run seo-report.yml`, дождаться (`gh run watch`), `git pull`.
+2. Данные: если `seo/reports/latest.md` старше 2 дней — запустить отчёт через REST (GraphQL из сессий недоступен, `gh workflow run` не работает): `gh api -X POST repos/shakaboom55566/mafia-pro/actions/workflows/seo-report.yml/dispatches -f ref=main`, ждать, пока `gh api "repos/shakaboom55566/mafia-pro/actions/workflows/seo-report.yml/runs?per_page=1" -q '.workflow_runs[0].status'` станет `completed` (3–6 мин), затем `git pull`.
    Прочитать `seo/reports/latest.md`, свежий `seo/reports/<дата>.json`, `seo/journal.md`, `seo/keywords.json`, `seo/overrides.json`.
 3. Решить, что улучшить — **не больше 5 правок за запуск**, по приоритету:
    1. Техника: живые проверки с ошибками, ключевые страницы не в индексе, «canonical не совпадает», PageSpeed SEO < 90 или скорость < 80 — найти причину и исправить в `seo/`.
