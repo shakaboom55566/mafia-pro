@@ -58,6 +58,8 @@ jobs:
           set -eo pipefail
           CAT=$(node -e 'console.log(require("./discord/server.json").tablesCategory || "")')
           [ -n "$CAT" ] && sed -i "s/^DISCORD_CATEGORY_ID = \".*\"/DISCORD_CATEGORY_ID = \"$CAT\"/" backend/wrangler.toml
+          PK=$(node -e 'console.log(require("./discord/server.json").publicKey || "")' | tr -cd '0-9a-f')
+          [ -n "$PK" ] && sed -i "s/^DISCORD_PUBLIC_KEY = \".*\"/DISCORD_PUBLIC_KEY = \"$PK\"/" backend/wrangler.toml
           git add discord/server.json backend/wrangler.toml
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git diff --cached --quiet backend/wrangler.toml || echo "redeploy=true" >> "$GITHUB_OUTPUT"

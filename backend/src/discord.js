@@ -50,7 +50,7 @@ export async function setVoiceLimit(env, channelId, seats) { return dcall(env, '
 export async function deleteVoice(env, channelId) { const r = await dcall(env, 'DELETE', `/channels/${channelId}`); return r.ok || r.status === 404; } // already gone counts as done
 
 /* ---------- webhooks of the Mafia Pro server (created by discord/setup.mjs): new online tables and game results ---------- */
-export const HOOKS = { tables: 'Mafia Pro · Столы', results: 'Mafia Pro · Итоги' };
+export const HOOKS = { tables: 'Mafia Pro · Столы', results: 'Mafia Pro · Итоги', analytics: 'Mafia Pro · Аналитика' };
 const HOOK_TTL = 6 * 3600, HOOK_MISS_TTL = 600;
 /* the webhook's id + token, looked up by name in the guild and cached in D1 (discord_cfg) */
 export async function hookOf(env, kind, fresh) {
@@ -74,3 +74,21 @@ export async function hookSend(env, kind, payload, messageId) {
   }
   return { ok: false, error: 'no_webhook' };
 }
+
+/* ---------- slash commands (HTTP interactions): Ed25519 signature of timestamp + body with the application's public key ---------- */
+const hexBytes = h => new Uint8Array(String(h).match(/../g).map(x => parseInt(x, 16)));
+let keyCache = null;
+export async function verifyInteraction(env, sigHex, timestamp, body) {
+  const pk = String(env.DISCORD_PUBLIC_KEY || '').trim(); if (!/^[0-9a-f]{64}$/i.test(pk) || !/^[0-9a-f]{128}$/i.test(String(sigHex || '')) || !timestamp) return false;
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false; // replayed
+  try {
+    if (!keyCache || keyCache.pk !== pk) {
+      let key; try { key = await crypto.subtle.importKey('raw', hexBytes(pk), { name: 'Ed25519' }, false, ['verify']); }
+      catch (e) { key = await crypto.subtle.importKey('raw', hexBytes(pk), { name: 'NODE-ED25519', namedCurve: 'NODE-ED25519' }, false, ['verify']); } // older Workers runtimes
+      keyCache = { pk, key, alg: key.algorithm && key.algorithm.name === 'NODE-ED25519' ? { name: 'NODE-ED25519' } : { name: 'Ed25519' } };
+    }
+    return await crypto.subtle.verify(keyCache.alg, keyCache.key, hexBytes(sigHex), new TextEncoder().encode(String(timestamp) + body));
+  } catch (e) { console.error('ed25519', e); return false; }
+}
+/* when a Discord account was created (from its snowflake) */
+export const snowflakeTime = id => { try { return Number((BigInt(id) >> 22n) + 1420070400000n); } catch (e) { return 0; } };

@@ -647,6 +647,14 @@ const path = require('path'); const http = require('http');
     Object.assign(env, { DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base });
     await S(async () => { CLOUD.busy = false; await cloudSync(); }); await Q(async () => { CLOUD.busy = false; await cloudSync(); });
     ok(await S(() => S.cloud.discord === true), 'the app learns that Discord is available');
+    { const wc = await (await fetch(dc.base + '/guilds/111111111111/channels', { method: 'POST', headers: { Authorization: 'Bot dc-token', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'welcome', type: 0 }) })).json(); dc.guild.system_channel_id = wc.id;
+      await S(() => { S.game = null; S.lobby = null; S.ui.sheet = null; go('home'); }); await p.waitForTimeout(300);
+      ok(await S(() => { const h = document.querySelector('.hero'); const d = h && h.querySelector('[data-a="dc-server"]'); const t = h && h.querySelector('[data-a="tg-channel"]'); return !!(d && t && d.textContent.includes(U().dcServer) && t.textContent.includes(U().tgChannel)); }), 'home banner: "Our Discord" and "Our channel" buttons');
+      await p.click('[data-a="dc-server"]'); await p.waitForTimeout(600);
+      const inv = await S(() => window.__tg.links.filter(l => /discord\.gg/.test(l)).pop());
+      ok(/^https:\/\/discord\.gg\/mp\d+$/.test(inv || '') && [...dc.invites.values()].some(x => inv.endsWith(x.code) && x.channel.id === wc.id), 'Discord button opens a personal invite to the welcome channel: ' + inv);
+      await p.click('[data-a="tg-channel"]'); await p.waitForTimeout(100); ok(await S(() => window.__tg.links.includes('https://t.me/mafiaprof')), 'channel button opens t.me/mafiaprof');
+      await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'home-links.png') }).catch(() => {}); }
     await S(() => { S.game = null; S.lobby = null; S.ui.sheet = null; S.setup.hostRole = 'host'; S.setup.online = false; ACT.new({ dataset: {} }); }); await p.waitForTimeout(300);
     ok(!(await p.$('[data-a="dc-toggle"]')), 'offline format: no Discord switch');
     await p.click('[data-a="on-mode"][data-id="online"]'); await p.waitForTimeout(900);

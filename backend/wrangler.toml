@@ -21,6 +21,8 @@ SUPPORT_USERNAME = ""
 # Empty guild id or no token = the "Play with Discord" switch is hidden in the app.
 DISCORD_GUILD_ID = ""
 DISCORD_CATEGORY_ID = "1559482164825952332"
+# public key of the Discord application (not a secret): verifies slash-command requests at /discord/interactions; discord/setup.mjs keeps it in sync
+DISCORD_PUBLIC_KEY = "0043fbf602abd13573ec140afe6ed1e9cc5978c4806e18f5068f42a951faff76"
 # Telegram channel for daily posts (the bot must be its admin with "Post messages"); drafts go to ADMIN_IDS for approval
 CHANNEL_ID = "@mafiaprof"
 
@@ -29,9 +31,9 @@ binding = "DB"
 database_name = "mafia-pro"
 database_id = "__D1_DATABASE_ID__"   # replaced by the deploy workflow; any value works for local dev
 
-# every 5 minutes: approved channel posts whose time has come are published
+# every 5 minutes: approved channel posts whose time has come are published; every minute: Discord members (joins / leaves analytics)
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["*/5 * * * *", "* * * * *"]
 
 [observability]
 enabled = true

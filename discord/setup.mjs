@@ -171,6 +171,7 @@ export function buildContent(app, ctx) {
 }
 
 /* ---------- server layout ---------- */
+const DENY_VIEW = String(1n << 10n);
 const DENY_SEND = String((1n << 11n) | (1n << 35n) | (1n << 36n) | (1n << 38n)); // send messages, create public / private threads, send in threads
 export const LAYOUT = [
   { key: 'catInfo', type: 4, name: '📌 MAFIA PRO' },
@@ -190,7 +191,15 @@ export const LAYOUT = [
   { key: 'chat', type: 0, name: '💬・общий-чат', parent: 'catGame', topic: 'Общение об игре и не только' },
   { key: 'ideas', type: 0, name: '💡・идеи-и-баги', parent: 'catGame', topic: 'Предложения и ошибки приложения' },
   { key: 'lobby', type: 2, name: '🔊 Лобби', parent: 'catGame' },
-  { key: 'catTables', type: 4, name: '🎧 ИГРОВЫЕ СТОЛЫ' }
+  { key: 'catTables', type: 4, name: '🎧 ИГРОВЫЕ СТОЛЫ' },
+  { key: 'catAdmin', type: 4, name: '🔒 АДМИНИСТРАЦИЯ', hidden: true },
+  { key: 'analytics', type: 0, name: '📊・аналитика', parent: 'catAdmin', hidden: true, topic: 'Кто пришёл и по чьему приглашению, кто ушёл — бот пишет сам. /invites — сводка', hook: 'Mafia Pro · Аналитика' }
+];
+/* slash commands, answered by the backend at <api>/discord/interactions */
+export const COMMANDS = [
+  { name: 'stats', type: 1, description: 'Mafia Pro player statistics', description_localizations: { ru: 'Статистика игрока Mafia Pro', uk: 'Статистика гравця Mafia Pro' }, options: [{ type: 6, name: 'player', name_localizations: { ru: 'игрок', uk: 'гравець' }, description: 'A server member (yourself if empty)', description_localizations: { ru: 'Участник сервера (пусто — вы сами)', uk: 'Учасник сервера (порожньо — ви)' }, required: false }] },
+  { name: 'link', type: 1, description: 'Link this Discord to your Mafia Pro account in Telegram', description_localizations: { ru: 'Привязать Discord к аккаунту Mafia Pro в Telegram', uk: 'Прив’язати Discord до акаунта Mafia Pro у Telegram' } },
+  { name: 'invites', type: 1, description: 'Who brought whom to the server (admins)', description_localizations: { ru: 'Кто кого привёл на сервер (для админов)', uk: 'Хто кого привів на сервер (для адмінів)' }, default_member_permissions: '32', options: [{ type: 4, name: 'days', name_localizations: { ru: 'дней', uk: 'днів' }, description: 'Period in days (30 by default)', description_localizations: { ru: 'За сколько дней (по умолчанию 30)', uk: 'За скільки днів (типово 30)' }, required: false, min_value: 1, max_value: 365 }] }
 ];
 export const ROLES_LAYOUT = [
   { key: 'host', name: '🎩 Ведущий', color: COLOR.gold, hoist: true, mentionable: true },
@@ -227,7 +236,7 @@ export async function run(env, log = console.log) {
   const maxPos = existing.reduce((a, c) => Math.max(a, c.position || 0), 0); let pos = maxPos + 1;
   for (const c of LAYOUT) {
     const parent = c.parent ? state.channels[c.parent] : null;
-    const overwrites = c.ro ? [{ id: guildId, type: 0, allow: '0', deny: DENY_SEND }] : undefined;
+    const deny = c.hidden ? DENY_VIEW : c.ro ? DENY_SEND : null; const overwrites = deny ? [{ id: guildId, type: 0, allow: '0', deny }] : undefined; // hidden = admins only
     let cur = existing.find(x => x.id === state.channels[c.key]) || existing.find(x => x.type === c.type && norm(x.name, c.type) === norm(c.name, c.type));
     if (!cur) {
       const body = { name: c.name, type: c.type }; if (parent) body.parent_id = parent; if (c.topic) body.topic = c.topic; if (overwrites) body.permission_overwrites = overwrites; if (c.type === 4) body.position = pos++;
@@ -236,7 +245,7 @@ export async function run(env, log = console.log) {
       const patch = {};
       if (parent && cur.parent_id !== parent) patch.parent_id = parent;
       if (c.topic && cur.topic !== c.topic) patch.topic = c.topic;
-      if (overwrites) { const ow = (cur.permission_overwrites || []).find(o => o.id === guildId); if (!ow || ow.deny !== DENY_SEND) patch.permission_overwrites = (cur.permission_overwrites || []).filter(o => o.id !== guildId).concat(overwrites); }
+      if (overwrites) { const ow = (cur.permission_overwrites || []).find(o => o.id === guildId); if (!ow || ow.deny !== deny) patch.permission_overwrites = (cur.permission_overwrites || []).filter(o => o.id !== guildId).concat(overwrites); }
       if (Object.keys(patch).length) { await api('PATCH', `/channels/${cur.id}`, patch); log(`~ ${c.name}: ${Object.keys(patch).join(', ')}`); }
     }
     state.channels[c.key] = cur.id;
@@ -248,6 +257,19 @@ export async function run(env, log = console.log) {
     let w = list.find(x => x.name === c.hook);
     if (!w) { w = await api('POST', `/channels/${state.channels[c.key]}/webhooks`, { name: c.hook }); log(`+ webhook ${c.hook}`); }
     state.webhooks[c.key] = { id: w.id, name: c.hook, channel: state.channels[c.key] };
+  }
+
+  // slash commands (/stats, /link, /invites) and the endpoint that answers them
+  const app = await api('GET', '/applications/@me'); state.application = app.id; state.publicKey = app.verify_key;
+  const cmdHash = hash8(JSON.stringify(COMMANDS));
+  if (state.commandsHash !== cmdHash) { await api('PUT', `/applications/${app.id}/guilds/${guildId}/commands`, COMMANDS); state.commandsHash = cmdHash; log(`~ slash commands: ${COMMANDS.map(c => '/' + c.name).join(' ')}`); }
+  const apiUrl = String(env.API_URL || (() => { try { return fs.readFileSync(path.join(ROOT, '.mafia-api-url'), 'utf8'); } catch (e) { return ''; } })()).trim().replace(/\/$/, '');
+  const endpoint = apiUrl ? apiUrl + '/discord/interactions' : '';
+  if (endpoint && app.interactions_endpoint_url !== endpoint) {
+    let ready = !!env.DISCORD_API; // the backend must answer Discord's PING with this application's key before the URL is saved
+    for (let i = 0; i < 20 && !ready; i++) { try { const h = await (await fetch(apiUrl + '/')).json(); ready = !!(h && h.interactions && (!h.pk || h.pk === String(app.verify_key).slice(0, 8))); } catch (e) {} if (!ready) { if (!i) log('waiting for the backend with the interactions endpoint…'); await sleep(15000); } }
+    if (!ready) log('! the backend is not ready for slash commands yet — re-run this workflow after the backend deploy');
+    else { try { await api('PATCH', '/applications/@me', { interactions_endpoint_url: endpoint }); log(`~ interactions endpoint: ${endpoint}`); } catch (e) { log('! Discord did not accept the interactions endpoint: ' + e.message); } }
   }
 
   // guild settings: the welcome channel greets newcomers, notifications only for mentions

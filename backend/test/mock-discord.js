@@ -4,11 +4,11 @@ import http from 'node:http';
 
 export function startMockDiscord(port = 8792, opts = {}) {
   const token = opts.token || 'dc-token'; const guildId = opts.guild || '111111111111';
-  const channels = new Map(); const calls = []; const webhooks = new Map(); const messages = new Map(); const roles = new Map(); let seq = 900000000000;
+  const channels = new Map(); const members = new Map(); const invites = new Map(); const app = { id: '1559473078558392390', verify_key: opts.verifyKey || '0043fbf602abd13573ec140afe6ed1e9cc5978c4806e18f5068f42a951faff76', interactions_endpoint_url: null }; let commands = []; const calls = []; const webhooks = new Map(); const messages = new Map(); const roles = new Map(); let seq = 900000000000;
   const botUser = { id: '555000000000000001', username: 'MafiaProBot', bot: true };
   const guild = { id: guildId, name: opts.guildName || 'Test server', system_channel_id: null, default_message_notifications: 0, verification_level: 0, owner_id: '1' };
   roles.set(guildId, { id: guildId, name: '@everyone', permissions: '1071698660929', position: 0, color: 0, hoist: false, mentionable: false, managed: false });
-  const st = { fail: 0, failMsg: 'Missing Permissions', rateOnce: false, inviteFail: false };
+  const st = { fail: 0, failMsg: 'Missing Permissions', rateOnce: false, inviteFail: false, membersFail: false };
   const id = () => String(++seq);
   const msgList = ch => { if (!messages.has(ch)) messages.set(ch, []); return messages.get(ch); };
   const server = http.createServer((req, res) => {
@@ -38,6 +38,11 @@ export function startMockDiscord(port = 8792, opts = {}) {
       if (req.method === 'POST' && url === `/guilds/${guildId}/roles`) { const r = Object.assign({ id: id(), permissions: '0', position: roles.size, managed: false }, params); roles.set(r.id, r); return send(200, r); }
       if ((m = /^\/guilds\/\d+\/roles\/(\d+)$/.exec(url)) && req.method === 'PATCH') { const r = roles.get(m[1]); if (!r) return send(404, { message: 'Unknown Role', code: 10011 }); Object.assign(r, params); return send(200, r); }
       if (req.method === 'GET' && url === `/guilds/${guildId}/channels`) return send(200, [...channels.values()]);
+      if (req.method === 'GET' && url === `/guilds/${guildId}/members`) { if (st.membersFail) return send(403, { message: 'Missing Access', code: 50001 }); const after = query.get('after') || '0'; return send(200, [...members.values()].filter(x => BigInt(x.user.id) > BigInt(after)).sort((a, b) => (BigInt(a.user.id) < BigInt(b.user.id) ? -1 : 1)).slice(0, Number(query.get('limit')) || 1)); }
+      if (req.method === 'GET' && url === `/guilds/${guildId}/invites`) return send(200, [...invites.values()]);
+      if (req.method === 'GET' && url === '/applications/@me') return send(200, app);
+      if (req.method === 'PATCH' && url === '/applications/@me') { Object.assign(app, params); return send(200, app); }
+      if (req.method === 'PUT' && url === `/applications/${app.id}/guilds/${guildId}/commands`) { commands = params; return send(200, params.map((c, i) => Object.assign({ id: String(700 + i) }, c))); }
       if (req.method === 'GET' && url === `/guilds/${guildId}/webhooks`) return send(200, [...webhooks.values()]);
       if (req.method === 'POST' && url === `/guilds/${guildId}/channels`) {
         if (params.parent_id && params.parent_id !== opts.category && !channels.has(params.parent_id)) return send(400, { message: 'Invalid Form Body', code: 50035 });
@@ -48,7 +53,8 @@ export function startMockDiscord(port = 8792, opts = {}) {
       if ((m = /^\/channels\/(\d+)\/invites$/.exec(url)) && req.method === 'POST') {
         if (!channels.has(m[1])) return send(404, { message: 'Unknown Channel', code: 10003 });
         if (st.inviteFail) return send(403, { message: 'Missing Permissions', code: 50013 });
-        return send(200, { code: 'mp' + m[1].slice(-6), max_age: params.max_age, channel: { id: m[1] } });
+        const inv = { code: 'mp' + m[1].slice(-6) + String(invites.size), uses: 0, max_age: params.max_age, max_uses: params.max_uses || 0, inviter: botUser, channel: { id: m[1], name: channels.get(m[1]).name } };
+        invites.set(inv.code, inv); return send(200, inv);
       }
       if ((m = /^\/channels\/(\d+)\/webhooks$/.exec(url))) {
         if (!channels.has(m[1])) return send(404, { message: 'Unknown Channel', code: 10003 });
@@ -74,5 +80,8 @@ export function startMockDiscord(port = 8792, opts = {}) {
       return send(404, { message: '404: Not Found', code: 0 });
     });
   });
-  return new Promise(resolve => server.listen(port, '127.0.0.1', () => resolve({ server, channels, calls, st, webhooks, messages, roles, guild, botUser, base: `http://127.0.0.1:${port}/api/v10`, lastId: () => String(seq), close: () => new Promise(r => server.close(r)) })));
+  const join = (user, code, at) => { members.set(user.id, { user, joined_at: new Date(at || Date.now()).toISOString(), roles: [] }); if (code && invites.has(code)) invites.get(code).uses++; };
+  const leave = uid => members.delete(uid);
+  const memberInvite = (inviter, code) => { const inv = { code, uses: 0, max_age: 0, max_uses: 0, inviter, channel: { id: '1', name: 'general' } }; invites.set(code, inv); return inv; };
+  return new Promise(resolve => server.listen(port, '127.0.0.1', () => resolve({ server, channels, calls, st, webhooks, messages, roles, guild, botUser, members, invites, app, commands: () => commands, join, leave, memberInvite, base: `http://127.0.0.1:${port}/api/v10`, lastId: () => String(seq), close: () => new Promise(r => server.close(r)) })));
 }

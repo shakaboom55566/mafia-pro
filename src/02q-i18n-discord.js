@@ -1,5 +1,6 @@
 /* ---------------- Discord voice room of an online table (v33), all languages ---------------- */
 Object.assign(I18N.ru.ui, {
+  dcServer: 'Наш Discord', tgChannel: 'Наш канал',
   dcTitle: 'Голос в Discord', dcSwitch: 'Игра с Discord', dcSwitchD: 'Бот создаст голосовой канал на {n} мест: игроки + ведущий. Раздать карты можно, когда вы подтвердите, что все на связи.',
   dcCreating: 'Создаю голосовой канал…', dcCreated: 'Голосовой канал создан', dcRemoved: 'Голосовой канал удалён', dcJoin: 'Войти в голосовой',
   dcChannel: 'Канал «{name}» · до {n} человек', dcCount: 'На связи: {k} из {n}', dcNobody: 'Пока никто не отметился',
@@ -10,6 +11,7 @@ Object.assign(I18N.ru.ui, {
   dcImOn: 'Я на связи', dcImOnDone: '✓ Я на связи', dcOnMark: 'на связи', dcTag: 'Discord', dcGame: 'Голосовой', dcTableLang: 'Язык стола'
 });
 Object.assign(I18N.uk.ui, {
+  dcServer: 'Наш Discord', tgChannel: 'Наш канал',
   dcTitle: 'Голос у Discord', dcSwitch: 'Гра з Discord', dcSwitchD: 'Бот створить голосовий канал на {n} місць: гравці + ведучий. Роздати карти можна, коли ви підтвердите, що всі на зв’язку.',
   dcCreating: 'Створюю голосовий канал…', dcCreated: 'Голосовий канал створено', dcRemoved: 'Голосовий канал видалено', dcJoin: 'Увійти в голосовий',
   dcChannel: 'Канал «{name}» · до {n} осіб', dcCount: 'На зв’язку: {k} з {n}', dcNobody: 'Поки ніхто не відмітився',
@@ -20,6 +22,7 @@ Object.assign(I18N.uk.ui, {
   dcImOn: 'Я на зв’язку', dcImOnDone: '✓ Я на зв’язку', dcOnMark: 'на зв’язку', dcTag: 'Discord', dcGame: 'Голосовий', dcTableLang: 'Мова столу'
 });
 Object.assign(I18N.en.ui, {
+  dcServer: 'Our Discord', tgChannel: 'Our channel',
   dcTitle: 'Voice on Discord', dcSwitch: 'Play with Discord', dcSwitchD: 'The bot creates a voice channel for {n} people: the players + the host. Cards can be dealt once you confirm everyone is on voice.',
   dcCreating: 'Creating the voice channel…', dcCreated: 'Voice channel created', dcRemoved: 'Voice channel removed', dcJoin: 'Join voice',
   dcChannel: 'Channel “{name}” · up to {n} people', dcCount: 'On voice: {k} of {n}', dcNobody: 'Nobody has checked in yet',
@@ -30,6 +33,7 @@ Object.assign(I18N.en.ui, {
   dcImOn: 'I’m on voice', dcImOnDone: '✓ I’m on voice', dcOnMark: 'on voice', dcTag: 'Discord', dcGame: 'Voice', dcTableLang: 'Table language'
 });
 Object.assign(I18N.pl.ui, {
+  dcServer: 'Nasz Discord', tgChannel: 'Nasz kanał',
   dcTitle: 'Głos na Discordzie', dcSwitch: 'Gra z Discordem', dcSwitchD: 'Bot utworzy kanał głosowy dla {n} osób: gracze + prowadzący. Karty można rozdać, gdy potwierdzisz, że wszyscy są na łączach.',
   dcCreating: 'Tworzę kanał głosowy…', dcCreated: 'Kanał głosowy utworzony', dcRemoved: 'Kanał głosowy usunięty', dcJoin: 'Wejdź na kanał głosowy',
   dcChannel: 'Kanał „{name}” · do {n} osób', dcCount: 'Na łączach: {k} z {n}', dcNobody: 'Nikt się jeszcze nie zgłosił',
@@ -40,6 +44,7 @@ Object.assign(I18N.pl.ui, {
   dcImOn: 'Jestem na łączach', dcImOnDone: '✓ Jestem na łączach', dcOnMark: 'na łączach', dcTag: 'Discord', dcGame: 'Głos', dcTableLang: 'Język stołu'
 });
 Object.assign(I18N.hy.ui, {
+  dcServer: 'Մեր Discord-ը', tgChannel: 'Մեր ալիքը',
   dcTitle: 'Ձայն Discord-ում', dcSwitch: 'Խաղ Discord-ով', dcSwitchD: 'Բոտը կստեղծի ձայնային ալիք {n} հոգու համար՝ խաղացողներ + վարող։ Քարտերը կարելի է բաժանել, երբ հաստատեք, որ բոլորը կապի մեջ են։',
   dcCreating: 'Ստեղծում եմ ձայնային ալիքը…', dcCreated: 'Ձայնային ալիքը ստեղծված է', dcRemoved: 'Ձայնային ալիքը ջնջված է', dcJoin: 'Մտնել ձայնային ալիք',
   dcChannel: '«{name}» ալիք · մինչև {n} հոգի', dcCount: 'Կապի մեջ՝ {k}-ը {n}-ից', dcNobody: 'Դեռ ոչ ոք չի նշվել',

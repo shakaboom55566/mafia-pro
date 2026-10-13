@@ -778,6 +778,74 @@ console.log('channel posts (drafts → admin approval → channel)');
   await hook(msg(stranger, '/posts')); ok(!lastTo(778).params.text.includes('@mafiaprof'), '/posts is admin-only');
   delete env.CHANNEL_ID; }
 
+console.log('discord analytics: baseline, joins through whose invite, leaves, personal app links tie Telegram, /stats /link /invites');
+{ const dc = await startMockDiscord(8796); Object.assign(env, { DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base });
+  await env.DB.prepare('DELETE FROM discord_cfg').run();
+  const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']); const pub = Buffer.from(await crypto.subtle.exportKey('raw', kp.publicKey)).toString('hex'); env.DISCORD_PUBLIC_KEY = pub;
+  const signed = async (bodyObj, ts = String(Math.floor(Date.now() / 1000))) => { const raw = JSON.stringify(bodyObj); const sig = Buffer.from(await crypto.subtle.sign({ name: 'Ed25519' }, kp.privateKey, new TextEncoder().encode(ts + raw))).toString('hex'); return call('/discord/interactions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature-Ed25519': sig, 'X-Signature-Timestamp': ts }, body: raw }); };
+  const cron = async () => { await worker.scheduled({ cron: '* * * * *' }, env, ctx); await settle(); };
+  const dreq = async (method, p, body) => (await fetch(dc.base + p, { method, headers: { Authorization: 'Bot dc-token', 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })).json();
+  const welcome = await dreq('POST', '/guilds/111111111111/channels', { name: 'добро-пожаловать', type: 0 }); dc.guild.system_channel_id = welcome.id;
+  const an = await dreq('POST', '/guilds/111111111111/channels', { name: 'аналитика', type: 0 }); await dreq('POST', `/channels/${an.id}/webhooks`, { name: 'Mafia Pro · Аналитика' });
+  const posts = () => dc.messages.get(an.id) || []; const lastPost = () => posts()[posts().length - 1];
+  const du = (id, name) => ({ id: String(id), username: name, global_name: name[0].toUpperCase() + name.slice(1) });
+  dc.join(du('800000000000000001', 'owner')); dc.join(du('800000000000000002', 'vera')); dc.join({ id: '800000000000000003', username: 'somebot', bot: true });
+  eq((await (await call('/')).json()).interactions, true, 'health: interactions endpoint ready');
+  await cron(); eq(posts().length, 0, 'first look = baseline, no events');
+  ok(await env.DB.prepare("SELECT COUNT(*) AS n FROM discord_members WHERE status = 'in'").first('n') === 2, 'two people in the baseline, bots skipped');
+  // a member's own invite
+  dc.memberInvite(du('800000000000000002', 'vera'), 'veraInv'); await cron();
+  dc.join(du('800000000000000010', 'artem'), 'veraInv'); await cron();
+  ok(posts().length === 1 && lastPost().embeds[0].title === '📥 Новый участник' && JSON.stringify(lastPost().embeds[0]).includes('приглашение от Vera (@vera)') && JSON.stringify(lastPost().embeds[0]).includes('<@800000000000000002>') && JSON.stringify(lastPost().embeds[0]).includes('veraInv'), 'join through Vera’s invite: ' + JSON.stringify(lastPost() && lastPost().embeds[0]).slice(0, 300));
+  // personal link from the app ties the newcomer to the Telegram account
+  const tgU = user(2300, 'ru'); const tid = await initData(tgU);
+  const iv = await (await post('/api/discord/invite', { initData: tid })).json(); ok(iv.ok && /^https:\/\/discord\.gg\/mp\d+$/.test(iv.url) && iv.linked === null, 'personal invite for the app: ' + iv.url);
+  eq((await (await post('/api/discord/invite', { initData: tid })).json()).url, iv.url, 'the same link next time');
+  const code = iv.url.split('/').pop(); ok(dc.invites.get(code).channel.id === welcome.id && dc.invites.get(code).max_age === 0, 'permanent invite to the welcome channel');
+  dc.join(du('800000000000000020', 'nina'), code); await cron();
+  ok(JSON.stringify(lastPost().embeds[0]).includes('личная ссылка из приложения · User2300 (@user2300)') && JSON.stringify(lastPost().embeds[0]).includes('Telegram'), 'join through the app link names the Telegram user');
+  eq(await env.DB.prepare('SELECT tg_id FROM discord_members WHERE user_id = ?1').bind('800000000000000020').first('tg_id'), 2300, 'Discord member tied to Telegram 2300');
+  eq((await (await post('/api/discord/invite', { initData: tid })).json()).linked.inside, true, 'the app knows the account is tied');
+  // two joins in one minute through different invites → both attributed
+  dc.memberInvite(du('800000000000000001', 'owner'), 'ownInv'); await cron();
+  dc.join(du('800000000000000030', 'oleg'), 'ownInv'); dc.join(du('800000000000000031', 'pavlo'), 'veraInv'); await cron();
+  const two = posts().slice(-2).map(m => JSON.stringify(m.embeds[0])); ok(posts().length === 4 && two.join().includes('Owner') && two.join().includes('Vera') && two.every(x => x.includes(' ≈')), 'two joins through different links in one minute: both posted, marked ≈');
+  // a join through a table's voice room link
+  const host = await initData(user(2310, 'uk')); const lc = (await (await post('/api/lobby', { initData: host, fresh: true, lang: 'uk' })).json()).code; await post('/api/lobby/role', { initData: host, code: lc, online: true });
+  const vr = await (await post('/api/lobby/discord', { initData: host, code: lc, on: true, seats: 8 })).json(); const vcode = vr.voice.invite.split('/').pop(); await cron();
+  dc.join(du('800000000000000040', 'guest'), vcode); await cron(); ok(JSON.stringify(lastPost().embeds[0]).includes('голосовой канал стола ' + lc), 'join through a table’s voice link names the table');
+  // leave
+  dc.leave('800000000000000010'); await cron();
+  ok(lastPost().embeds[0].title === '📤 Вышел с сервера' && JSON.stringify(lastPost().embeds[0]).includes('приглашение от Vera') && JSON.stringify(lastPost().embeds[0]).includes('Был на сервере'), 'leave posted with where they came from');
+  eq(await env.DB.prepare('SELECT status FROM discord_members WHERE user_id = ?1').bind('800000000000000010').first('status'), 'left', 'marked left');
+  const nPosts = posts().length; await cron(); eq(posts().length, nPosts, 'quiet minute → nothing posted');
+  dc.join(du('800000000000000010', 'artem'), 'veraInv'); await cron(); ok(posts().length === nPosts + 1 && lastPost().embeds[0].title === '📥 Новый участник', 'came back → a new join');
+  // interactions: signature, ping, /stats, /link, /invites
+  eq((await call('/discord/interactions', { method: 'POST', headers: { 'X-Signature-Ed25519': '00'.repeat(64), 'X-Signature-Timestamp': String(Math.floor(Date.now() / 1000)) }, body: '{"type":1}' })).status, 401, 'bad signature → 401');
+  eq((await (await signed({ type: 1 })).json()).type, 1, 'PING → PONG');
+  eq((await signed({ type: 1 }, String(Math.floor(Date.now() / 1000) - 1000))).status, 401, 'old timestamp → 401');
+  await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (2300, 42, 10, 6, 1, 1) ON CONFLICT(tg_id) DO UPDATE SET points = 42, games = 10, wins = 6, hosted = 1').run();
+  await env.DB.prepare('INSERT INTO games (game_id, host_id, mode, players, winner, summary, created_at) VALUES (?1, 2310, ?2, 10, ?3, ?4, ?5)').bind('g-dc-1', 'roles', 'city', JSON.stringify([{ tgId: 2300, roleId: 'sheriff', won: true, points: 12, side: 'city' }]), now()).run();
+  const asker = { member: { user: du('800000000000000002', 'vera') } };
+  const st = await (await signed(Object.assign({ type: 2, data: { name: 'stats', options: [{ name: 'player', type: 6, value: '800000000000000020' }], resolved: { users: { '800000000000000020': du('800000000000000020', 'nina') } } } }, asker))).json();
+  ok(st.type === 4 && st.data.embeds[0].title === '📊 User2300' && JSON.stringify(st.data.embeds[0].fields).includes('1042') && JSON.stringify(st.data.embeds[0].fields).includes('6 · 60%') && !st.data.flags, '/stats @nina → her app statistics: ' + JSON.stringify(st.data.embeds && st.data.embeds[0].fields).slice(0, 300));
+  const st2 = await (await signed(Object.assign({ type: 2, data: { name: 'stats', options: [{ name: 'player', type: 6, value: '800000000000000030' }], resolved: { users: { '800000000000000030': du('800000000000000030', 'oleg') } } } }, asker))).json();
+  ok(st2.data.flags === 64 && st2.data.content.includes('Oleg') && st2.data.content.includes('/link'), 'not tied → private hint about /link');
+  const st3 = await (await signed(Object.assign({ type: 2, data: { name: 'stats' } }, asker))).json(); ok(st3.data.flags === 64 && st3.data.content.includes('Ваш Discord'), '/stats without a player = me');
+  const lk = await (await signed(Object.assign({ type: 2, data: { name: 'link' } }, asker))).json(); const lurl = lk.data.components[0].components[0].url;
+  ok(lk.data.flags === 64 && /^https:\/\/t\.me\/mafiapro_test_bot\?start=dlink_[0-9a-f]{24}$/.test(lurl), '/link → private button to the Telegram bot');
+  await hook(msg(user(2320, 'ru'), '/start ' + lurl.split('start=')[1])); ok(lastTo(2320).params.text.includes('привязан'), 'the bot confirms the link');
+  eq(await env.DB.prepare('SELECT tg_id FROM discord_members WHERE user_id = ?1').bind('800000000000000002').first('tg_id'), 2320, 'Vera tied to Telegram 2320');
+  await hook(msg(user(2320, 'ru'), '/start ' + lurl.split('start=')[1])); ok(lastTo(2320).params.text.includes('устарела'), 'a link works once');
+  const st4 = await (await signed(Object.assign({ type: 2, data: { name: 'stats' } }, asker))).json(); ok(st4.type === 4 && st4.data.embeds && st4.data.embeds[0].title === '📊 User2320', 'now /stats shows Vera’s own statistics');
+  const inv = await (await signed(Object.assign({ type: 2, data: { name: 'invites', options: [{ name: 'days', type: 4, value: 30 }] } }, asker))).json();
+  ok(inv.data.flags === 64 && inv.data.embeds[0].description.includes('<@800000000000000002> — пришло 3, ушло 1') && inv.data.embeds[0].fields[0].value === '6', '/invites: Vera brought 3, 1 left; 6 joins: ' + (inv.data.embeds && inv.data.embeds[0].description).slice(0, 300));
+  // the Members intent switched off: one warning a day, nothing breaks
+  dc.st.membersFail = true; await cron(); await cron(); ok(posts().filter(m => m.embeds[0].title.includes('не видит участников')).length === 1, 'missing intent → one warning');
+  dc.st.membersFail = false;
+  for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API', 'DISCORD_PUBLIC_KEY']) delete env[k];
+  await dc.close(); }
+
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
   eq((await call('/api/nothing', { method: 'POST', body: '{}' })).status, 404, 'unknown api');

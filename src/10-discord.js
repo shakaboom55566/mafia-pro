@@ -75,6 +75,23 @@ Object.assign(ACT, {
     TB.data.voice = d.voice; if (want) tgHaptic('success'); render();
   }
 });
+/* home banner: our Discord server (a personal invite: whoever joins through it is tied to this Telegram account) and our Telegram channel */
+const ICON_HEADSET = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>';
+const channelUrl = () => (S.cloud && S.cloud.channel) || 'https://t.me/mafiaprof';
+function heroLinksHTML() {
+  const u = U(); const dc = discordOn();
+  return `<div class="hero-links">${dc ? `<button class="btn sm hl-discord" data-a="dc-server" ${DC.inviting ? 'disabled' : ''}>${ICON_HEADSET}<span>${u.dcServer}</span></button>` : ''}<button class="btn sm hl-tg" data-a="tg-channel">${I.tg.replace('width="22" height="22"', 'width="18" height="18"')}<span>${u.tgChannel}</span></button></div>`;
+}
+Object.assign(ACT, {
+  async 'dc-server'() {
+    if (DC.inviting) return; const u = U();
+    if (S.cloud && S.cloud.dcInvite) { openVoice(S.cloud.dcInvite); return; }
+    DC.inviting = true; render(); const d = await api('/api/discord/invite', {}); DC.inviting = false; render();
+    if (!d.ok || !d.url) { toast(u.tgOffline); return; }
+    S.cloud = S.cloud || {}; S.cloud.dcInvite = d.url; openVoice(d.url);
+  },
+  'tg-channel'() { const url = channelUrl(); try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} tgHaptic('light'); }
+});
 (function () {
   // the room sits right under the format chooser on the setup screen
   const origSetup = setupScreen;
@@ -85,6 +102,8 @@ Object.assign(ACT, {
     if (k > 0) return html.slice(0, k) + p + html.slice(k);
     const j = html.indexOf('<div class="stack">'); return j < 0 ? html : html.slice(0, j + 19) + p + html.slice(j + 19);
   };
+  // the Discord / Telegram channel buttons on the home banner, under the tagline
+  const origHome = homeScreen; homeScreen = function () { const html = origHome(); let l = ''; try { l = heroLinksHTML(); } catch (e) { l = ''; } const i = html.indexOf('<div class="skyline">'); return i < 0 || !l ? html : html.slice(0, i) + l + html.slice(i); };
   // offline format: the room goes (the server deletes it too)
   const origMode = ACT['on-mode']; ACT['on-mode'] = function (el) { const r = origMode.call(this, el); if (!S.setup.online && S.lobby && S.lobby.voice) { S.lobby.voice = null; DC.ask = false; save(); render(); } return r; };
   // the host's game strip carries the room link

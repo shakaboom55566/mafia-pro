@@ -9,7 +9,7 @@ import { run, LAYOUT, ROLES_LAYOUT, loadApp, buildContent } from './setup.mjs';
 let fails = 0, n = 0; const ok = (c, m) => { n++; if (!c) { fails++; console.log('  FAIL', m); } };
 const dc = await startMockDiscord(8795);
 const stateFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mp-discord-')), 'server.json');
-const env = { CARDS_BASE: 'https://shakaboom55566.github.io/mafia-pro/cards/', DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base, STATE_FILE: stateFile, TG_BOT_USERNAME: 'mafiapro_test_bot', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/' };
+const env = { CARDS_BASE: 'https://shakaboom55566.github.io/mafia-pro/cards/', DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base, STATE_FILE: stateFile, TG_BOT_USERNAME: 'mafiapro_test_bot', API_URL: 'https://api.test', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/' };
 // a channel the owner made before: never touched
 const own = await (await fetch(dc.base + '/guilds/111111111111/channels', { method: 'POST', headers: { Authorization: 'Bot dc-token', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'основной', type: 0 }) })).json();
 
@@ -49,6 +49,9 @@ ok(!fs.readFileSync(stateFile, 'utf8').includes('tok'), 'no webhook token in the
 ok(dc.channels.has(own.id) && dc.channels.get(own.id).parent_id === null, 'the owner’s own channel is untouched');
 ok(!dc.calls.some(c => c.method === 'DELETE' && /\/channels\/\d+$/.test(c.url)), 'no channel deleted');
 
+const an = dc.channels.get(s1.channels.analytics); ok(an && an.parent_id === s1.channels.catAdmin && an.permission_overwrites.some(o => o.id === '111111111111' && BigInt(o.deny) & (1n << 10n)) && hooks.some(w => w.name === 'Mafia Pro · Аналитика' && w.channel_id === an.id), '#аналитика: admins only, with its webhook');
+ok(JSON.stringify(dc.commands().map(c => c.name)) === '["stats","link","invites"]' && dc.commands()[0].options[0].type === 6 && dc.commands()[2].default_member_permissions === '32', 'slash commands /stats (member option), /link, /invites (admins)');
+ok(dc.app.interactions_endpoint_url === 'https://api.test/discord/interactions' && s1.publicKey === dc.app.verify_key, 'interactions endpoint set, public key saved');
 console.log('second run: nothing new');
 const before = { ch: dc.channels.size, hooks: dc.webhooks.size, roles: dc.roles.size, msgs: [...dc.messages.values()].reduce((a, l) => a + l.length, 0) }; const calls0 = dc.calls.length;
 const logs2 = []; await run(env, x => logs2.push(x));
@@ -59,6 +62,9 @@ ok(logs2.some(l => l.includes('0 posted, 0 edited, 0 removed')), 'messages uncha
 console.log('a channel renamed by hand is found by its id; the state from another server is ignored');
 dc.channels.get(s1.channels.chat).name = 'болталка'; await run(env, () => {}); ok(dc.channels.size === before.ch, 'renamed channel kept, no duplicate');
 dc.messages.get(s1.channels.rules).push({ id: '1', channel_id: s1.channels.rules, author: dc.botUser, embeds: [{ title: 'old' }], components: [] }); await run(env, () => {}); ok(msgs('rules').length === 1, 'an extra bot message is removed');
+
+console.log('backend role names are in sync with the app');
+{ const { roleNamesSource } = await import('./gen-role-names.mjs'); ok(fs.readFileSync(new URL('../backend/src/role-names.js', import.meta.url), 'utf8') === roleNamesSource(), 'backend/src/role-names.js is up to date (node discord/gen-role-names.mjs)'); }
 
 await dc.close();
 console.log(fails ? `\n${fails} of ${n} checks FAILED` : `\nALL OK (${n} checks)`); process.exit(fails ? 1 : 0);

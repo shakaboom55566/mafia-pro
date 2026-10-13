@@ -42,7 +42,8 @@
 import { Bot, verifyInitData, esc } from './tg.js';
 import { apiPostDraft, onPostCallback, onPostReply, listPosts, runPostsCron } from './posts.js';
 import { t, pickLang } from './texts.js';
-import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend } from './discord.js';
+import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, dcall, verifyInteraction, snowflakeTime } from './discord.js';
+import { ROLE_NAMES } from './role-names.js';
 
 const VERSION = '0.1.0';
 const KINDS = ['role', 'scenario', 'pack'];
@@ -488,6 +489,8 @@ async function onText(env, bot, msg) {
     const param = m[1] || '';
     const j = /^join_([A-Z0-9]{4,8})$/i.exec(param);
     if (j) return joinLobby(env, bot, chat, u, lang, j[1].toUpperCase());
+    const dl = /^dlink_([0-9a-f]{24})$/.exec(param);
+    if (dl) return linkDiscord(env, bot, chat, u, dl[1]);
     const f = /^(friend|ref)_([A-Z0-9]{6,10})$/i.exec(param);
     if (f) {
       if (isNew) await attachReferral(env, bot, u, f[2].toUpperCase(), lang);
@@ -574,7 +577,7 @@ async function apiMe(env, bot, body) {
   const partner = club && club.owner_id ? await env.DB.prepare('SELECT 1 FROM partners WHERE tg_id = ?1 AND status = ?2').bind(club.owner_id, 'active').first() : null;
   if (typeof body.city === 'string') { const city = body.city.trim().slice(0, 48); await env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2, updated_at = ?3').bind(u.id, city, now()).run(); }
   const table = await tableOf(env, u.id); const invites = await pendingInvites(env, u.id);
-  return json({ ok: true, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  return json({ ok: true, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -657,7 +660,13 @@ async function apiAdminPartners(env, bot, body, action) {
 async function apiProfile(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const id = Number(body.tgId); if (!id) return json({ ok: false, error: 'bad_id' }, 400);
-  const u = await userRow(env, id); if (!u) return json({ ok: false, error: 'not_found' }, 404);
+  const d = await profileData(env, id); if (!d) return json({ ok: false, error: 'not_found' }, 404);
+  const isFriend = !!(await env.DB.prepare('SELECT 1 FROM friends WHERE tg_id = ?1 AND friend_id = ?2').bind(v.user.id, id).first());
+  return json(Object.assign({ ok: true }, d, { isFriend, grant: !!(await grantFor(env, id)) }));
+}
+/* a player's public game profile: rating, per-role results, recent games, win streaks, club (the app's profile screen and Discord /stats) */
+async function profileData(env, id) {
+  const u = await userRow(env, id); if (!u) return null;
   const seen = await env.DB.prepare('SELECT seen_at, created_at FROM users WHERE tg_id = ?1').bind(id).first();
   const rating = await ratingFor(env, id);
   const rows = (await env.DB.prepare("SELECT game_id, mode, winner, summary, created_at FROM games WHERE summary LIKE ?1 ORDER BY created_at DESC LIMIT 300").bind('%"tgId":' + id + ',%').all()).results || [];
@@ -670,11 +679,10 @@ async function apiProfile(env, body) {
     if (recent.length < 12) recent.push({ at: g.created_at * 1000, mode: g.mode, roleId: p.roleId, won: !!p.won, points: Number(p.points) || 0, n: players.length, winner: g.winner });
   }
   const roles = Object.values(byRole).sort((a, b) => b.wins - a.wins || b.games - a.games || b.points - a.points);
-  const isFriend = !!(await env.DB.prepare('SELECT 1 FROM friends WHERE tg_id = ?1 AND friend_id = ?2').bind(v.user.id, id).first());
   const ts = now();
   const club = await membershipOf(env, id);
-  return json({ ok: true, user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '' },
-    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, isFriend, grant: !!(await grantFor(env, id)), streaks: await streaksOf(env, id) });
+  return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '' },
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id) };
 }
 async function apiPlayers(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -1280,6 +1288,158 @@ async function sweepPosts(env, bot) {
   const rows = (await env.DB.prepare("SELECT p.code FROM discord_posts p JOIN lobbies l ON l.code = p.code WHERE p.kind = 'table' AND p.final = 0 AND l.status IN ('closed', 'finished') LIMIT 3").all()).results || [];
   for (const r of rows) { try { await announceTable(env, bot, r.code, { force: true }); } catch (e) { console.error('post sweep', e); } }
 }
+/* ---------- Discord server analytics (v35): who joined through whose invite, who left — polled every minute by the cron ---------- */
+async function cfgGet(env, key) { return env.DB.prepare('SELECT value FROM discord_cfg WHERE key = ?1').bind(key).first('value'); }
+async function cfgSet(env, key, value) { await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(key, value == null ? null : String(value), now()).run(); }
+const dname = u => (u && (u.global_name || u.username)) || '—';
+const tgLabel = r => (r ? `${rowName(r)}${r.username ? ' (@' + r.username + ')' : ''}` : '');
+async function guildMembers(env) {
+  const out = []; let after = '0';
+  for (let i = 0; i < 25; i++) {
+    const r = await dcall(env, 'GET', `/guilds/${String(env.DISCORD_GUILD_ID).trim()}/members?limit=1000&after=${after}`);
+    if (!r.ok) return { error: r.error, status: r.status };
+    out.push(...(r.data || [])); if (!r.data || r.data.length < 1000) break; after = r.data[r.data.length - 1].user.id;
+  }
+  return { members: out };
+}
+/* where an invite code came from, in words: a personal app link, a member's invite, a table's voice room */
+async function inviteSource(env, inv, row) {
+  if (row && row.tg_id) { const u = await userRow(env, row.tg_id); return { via: `личная ссылка из приложения · ${tgLabel(u) || row.tg_id}`, inviterTg: row.tg_id, inviterId: null }; }
+  const room = await env.DB.prepare('SELECT code FROM table_voice WHERE invite = ?1').bind('https://discord.gg/' + inv.code).first('code');
+  if (room) return { via: `голосовой канал стола ${room}`, inviterTg: null, inviterId: null };
+  if (inv.inviter && inv.inviter.bot) return { via: `ссылка бота (${inv.channel ? '#' + inv.channel.name : inv.code})`, inviterTg: null, inviterId: null };
+  if (inv.inviter) return { via: `приглашение от ${dname(inv.inviter)} (@${inv.inviter.username})`, inviterTg: null, inviterId: inv.inviter.id };
+  return { via: `ссылка ${inv.code}`, inviterTg: null, inviterId: null };
+}
+async function postAnalytics(env, embed) { try { await hookSend(env, 'analytics', { embeds: [Object.assign({ timestamp: new Date().toISOString() }, embed)] }); } catch (e) { console.error('analytics post', e); } }
+async function syncDiscordMembers(env) {
+  if (!discordReady(env)) return { skipped: true };
+  const g = String(env.DISCORD_GUILD_ID).trim(); const ts = now();
+  const mem = await guildMembers(env);
+  if (mem.error) { // "Server Members Intent" switched off in the Developer Portal: say so once a day
+    const last = Number(await cfgGet(env, 'members_error_at')) || 0;
+    if (ts - last > 86400) { await cfgSet(env, 'members_error_at', ts); await postAnalytics(env, { title: '⚠️ Аналитика не видит участников', color: 0xe0a33c, description: `Discord ответил: ${String(mem.error).slice(0, 200)}.\nВключите **Server Members Intent**: Developer Portal → приложение → Бот → Privileged Gateway Intents.` }); }
+    return { error: mem.error };
+  }
+  const invR = await dcall(env, 'GET', `/guilds/${g}/invites`); const invites = invR.ok && Array.isArray(invR.data) ? invR.data : [];
+  const known = new Map(((await env.DB.prepare('SELECT * FROM discord_invites').all()).results || []).map(r => [r.code, r]));
+  const members = mem.members.filter(m => m.user && !m.user.bot);
+  const inside = new Map(((await env.DB.prepare("SELECT * FROM discord_members WHERE status = 'in'").all()).results || []).map(r => [r.user_id, r]));
+  const saveInvites = async () => { for (const inv of invites) { const k = known.get(inv.code); if (!k) await env.DB.prepare('INSERT INTO discord_invites (code, uses, inviter_id, inviter_name, channel_id, tg_id, kind, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7, ?7)').bind(inv.code, inv.uses || 0, inv.inviter ? inv.inviter.id : null, inv.inviter ? dname(inv.inviter) : null, inv.channel ? inv.channel.id : null, inv.inviter && inv.inviter.bot ? 'bot' : 'member', ts).run(); else if (k.uses !== (inv.uses || 0)) await env.DB.prepare('UPDATE discord_invites SET uses = ?1, updated_at = ?2 WHERE code = ?3').bind(inv.uses || 0, ts, inv.code).run(); } };
+  if (!(await cfgGet(env, 'members_baseline'))) { // first look at the server: everyone already inside is the baseline, no events
+    for (const m of members) await env.DB.prepare("INSERT INTO discord_members (user_id, username, display, status, joined_at, via, updated_at) VALUES (?1, ?2, ?3, 'in', ?4, 'до запуска аналитики', ?5) ON CONFLICT(user_id) DO UPDATE SET status = 'in', username = ?2, display = ?3").bind(m.user.id, m.user.username, dname(m.user), m.joined_at ? Math.floor(Date.parse(m.joined_at) / 1000) : ts, ts).run();
+    await saveInvites(); await cfgSet(env, 'members_baseline', ts); await cfgSet(env, 'members_count', members.length);
+    return { baseline: members.length };
+  }
+  const fresh = members.filter(m => !inside.has(m.user.id)).sort((a, b) => Date.parse(a.joined_at || 0) - Date.parse(b.joined_at || 0));
+  const gone = [...inside.values()].filter(r => !members.some(m => m.user.id === r.user_id));
+  // which invites were used since the last look: their uses grew (a code unknown so far counts from 0)
+  const pool = []; for (const inv of invites) { const k = known.get(inv.code); const d = (inv.uses || 0) - (k ? k.uses : 0); for (let i = 0; i < d; i++) pool.push(inv); }
+  const exact = pool.length === fresh.length && (fresh.length <= 1 || new Set(pool.map(x => x.code)).size === 1); // several people through different links in one minute: the pairing is a guess (≈)
+  for (let i = 0; i < fresh.length; i++) {
+    const m = fresh[i]; const inv = pool[i] || null; const row = inv ? known.get(inv.code) || null : null;
+    const src = inv ? await inviteSource(env, inv, row) : { via: 'неизвестно (ванити-ссылка, виджет или приглашение уже истекло)', inviterTg: null, inviterId: null };
+    if (inv && !exact) src.via += ' ≈';
+    const prev = await env.DB.prepare('SELECT tg_id FROM discord_members WHERE user_id = ?1').bind(m.user.id).first('tg_id');
+    let tg = prev || null; // a personal app link ties the newcomer to its Telegram owner, unless that account is tied to someone else already
+    if (!tg && src.inviterTg && exact) { const taken = await env.DB.prepare('SELECT 1 FROM discord_members WHERE tg_id = ?1').bind(src.inviterTg).first(); if (!taken) tg = src.inviterTg; }
+    const joined = m.joined_at ? Math.floor(Date.parse(m.joined_at) / 1000) : ts;
+    await env.DB.prepare("INSERT INTO discord_members (user_id, username, display, status, joined_at, left_at, invite_code, via, inviter_id, inviter_tg, tg_id, updated_at) VALUES (?1, ?2, ?3, 'in', ?4, NULL, ?5, ?6, ?7, ?8, ?9, ?10) ON CONFLICT(user_id) DO UPDATE SET username = ?2, display = ?3, status = 'in', joined_at = ?4, left_at = NULL, invite_code = ?5, via = ?6, inviter_id = ?7, inviter_tg = ?8, tg_id = ?9, updated_at = ?10")
+      .bind(m.user.id, m.user.username, dname(m.user), joined, inv ? inv.code : null, src.via, src.inviterId, src.inviterTg, tg, ts).run();
+    await env.DB.prepare('INSERT INTO discord_events (kind, user_id, invite_code, via, inviter_id, inviter_tg, at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)').bind('join', m.user.id, inv ? inv.code : null, src.via, src.inviterId, src.inviterTg, ts).run();
+    const age = snowflakeTime(m.user.id); const tgRow = tg ? await userRow(env, tg) : null;
+    const fields = [{ name: 'Откуда', value: src.via.slice(0, 1000) }];
+    if (src.inviterId) fields.push({ name: 'Пригласил', value: `<@${src.inviterId}>`, inline: true });
+    if (inv) fields.push({ name: 'Код', value: inv.code, inline: true });
+    fields.push({ name: 'Участников', value: String(members.length), inline: true });
+    if (tgRow) fields.push({ name: 'Telegram', value: tgLabel(tgRow).slice(0, 200), inline: true });
+    if (age) fields.push({ name: 'Аккаунт Discord', value: `<t:${Math.floor(age / 1000)}:R>`, inline: true });
+    await postAnalytics(env, { title: '📥 Новый участник', color: 0x3ba55d, description: `<@${m.user.id}> · ${dname(m.user)} (@${m.user.username})`, fields });
+  }
+  for (const r of gone) {
+    await env.DB.prepare("UPDATE discord_members SET status = 'left', left_at = ?1, updated_at = ?1 WHERE user_id = ?2").bind(ts, r.user_id).run();
+    await env.DB.prepare('INSERT INTO discord_events (kind, user_id, invite_code, via, inviter_id, inviter_tg, at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)').bind('leave', r.user_id, r.invite_code, r.via, r.inviter_id, r.inviter_tg, ts).run();
+    const days = r.joined_at ? Math.max(0, Math.round((ts - r.joined_at) / 86400)) : null; const tgRow = r.tg_id ? await userRow(env, r.tg_id) : null;
+    const fields = [{ name: 'Пришёл', value: String(r.via || 'неизвестно').slice(0, 1000) }];
+    if (days !== null) fields.push({ name: 'Был на сервере', value: days ? `${days} дн.` : 'меньше суток', inline: true });
+    fields.push({ name: 'Участников', value: String(members.length), inline: true });
+    if (tgRow) fields.push({ name: 'Telegram', value: tgLabel(tgRow).slice(0, 200), inline: true });
+    await postAnalytics(env, { title: '📤 Вышел с сервера', color: 0x8b1e2d, description: `<@${r.user_id}> · ${r.display || r.username || r.user_id}${r.username ? ` (@${r.username})` : ''}`, fields });
+  }
+  await saveInvites(); await cfgSet(env, 'members_count', members.length);
+  return { joined: fresh.length, left: gone.length, members: members.length };
+}
+/* the app's Discord button: a personal invite per Telegram user (whoever joins through it first is tied to that Telegram account) */
+async function welcomeChannel(env) {
+  const c = await cfgGet(env, 'welcome_channel'); if (c) return c;
+  const g = await dcall(env, 'GET', `/guilds/${String(env.DISCORD_GUILD_ID).trim()}`); const id = g.ok && g.data ? g.data.system_channel_id : null;
+  if (id) await cfgSet(env, 'welcome_channel', id); return id;
+}
+async function apiDiscordInvite(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!discordReady(env)) return json({ ok: false, error: 'discord_off' }, 503);
+  const linked = await env.DB.prepare("SELECT user_id, display, status FROM discord_members WHERE tg_id = ?1 ORDER BY status = 'in' DESC LIMIT 1").bind(v.user.id).first();
+  const mine = await env.DB.prepare("SELECT code FROM discord_invites WHERE tg_id = ?1 AND kind = 'app' ORDER BY created_at DESC LIMIT 1").bind(v.user.id).first('code');
+  if (mine) return json({ ok: true, url: 'https://discord.gg/' + mine, linked: linked ? { name: linked.display, inside: linked.status === 'in' } : null });
+  const ch = await welcomeChannel(env); if (!ch) return json({ ok: false, error: 'no_channel' }, 502);
+  const r = await dcall(env, 'POST', `/channels/${ch}/invites`, { max_age: 0, max_uses: 0, unique: true, temporary: false });
+  if (!r.ok || !r.data || !r.data.code) { if (r.status === 404) await cfgSet(env, 'welcome_channel', null); return json({ ok: false, error: 'discord_failed', detail: r.error }, 502); }
+  await env.DB.prepare("INSERT INTO discord_invites (code, uses, inviter_id, inviter_name, channel_id, tg_id, kind, created_at, updated_at) VALUES (?1, 0, ?2, ?3, ?4, ?5, 'app', ?6, ?6) ON CONFLICT(code) DO UPDATE SET tg_id = ?5, kind = 'app'").bind(r.data.code, r.data.inviter ? r.data.inviter.id : null, 'Mafia Pro', ch, v.user.id, now()).run();
+  return json({ ok: true, url: 'https://discord.gg/' + r.data.code, linked: linked ? { name: linked.display, inside: linked.status === 'in' } : null });
+}
+/* ---------- slash commands: /stats [player], /link, /invites (admins) ---------- */
+const ephemeral = (content, extra = {}) => json(Object.assign({ type: 4, data: Object.assign({ content, flags: 64, allowed_mentions: { parse: [] } }, extra) }));
+function pct(a, b) { return b ? Math.round(100 * a / b) + '%' : '—'; }
+async function statsEmbed(env, tgId, member) {
+  const d = await profileData(env, tgId); if (!d) return null;
+  const r = d.rating; const top = (d.roles || []).slice(0, 3).map(x => `${ROLE_NAMES[x.roleId] || x.roleId} — ${x.wins}/${x.games}`).join('\n');
+  const st = d.streaks || {}; const best = Object.entries(st).filter(([, n]) => n >= 2).map(([k, n]) => `${{ city: 'город', mafia: 'мафия', neutral: 'нейтрал' }[k]} ×${n}`).join(', ');
+  const recent = (d.recent || []).slice(0, 5).map(g => (g.won ? '✅' : '❌')).join(' ');
+  const fields = [{ name: 'Рейтинг', value: String(r.points), inline: true }, { name: 'Игр', value: String(r.games || 0), inline: true }, { name: 'Побед', value: `${r.wins || 0} · ${pct(r.wins || 0, r.games || 0)}`, inline: true }];
+  if (r.hosted) fields.push({ name: 'Вёл партий', value: String(r.hosted), inline: true });
+  if (d.user.club) fields.push({ name: 'Клуб', value: d.user.club.slice(0, 100), inline: true });
+  if (best) fields.push({ name: 'Серия побед', value: best, inline: true });
+  if (top) fields.push({ name: 'Лучшие роли', value: top.slice(0, 1000) });
+  if (recent) fields.push({ name: 'Последние партии', value: recent });
+  return { title: `📊 ${d.user.name}`.slice(0, 250), url: d.user.username ? `https://t.me/${d.user.username}` : undefined, description: `${member ? `<@${member}> · ` : ''}игрок Mafia Pro${d.user.since ? ` с <t:${Math.floor(d.user.since / 1000)}:D>` : ''}`, color: 0xd4a24c, thumbnail: d.user.photo && /^https:\/\//.test(d.user.photo) ? { url: d.user.photo } : undefined, fields, footer: { text: 'Mafia Pro · статистика из приложения' } };
+}
+async function onInteraction(env, bot, it) {
+  if (it.type === 1) return json({ type: 1 }); // PING from Discord when the endpoint is saved
+  if (it.type !== 2 || !it.data) return ephemeral('Неизвестное действие.');
+  const me = (it.member && it.member.user) || it.user || {}; const name = it.data.name;
+  if (name === 'stats') {
+    const opt = (it.data.options || []).find(o => o.name === 'player'); const target = opt ? String(opt.value) : String(me.id);
+    const tu = opt && it.data.resolved && it.data.resolved.users ? it.data.resolved.users[target] : me;
+    const row = await env.DB.prepare('SELECT tg_id FROM discord_members WHERE user_id = ?1').bind(target).first('tg_id');
+    if (!row) return ephemeral(target === String(me.id) ? 'Ваш Discord ещё не привязан к Mafia Pro. Введите **/link** — бот пришлёт ссылку в Telegram, откройте её, и статистика появится.' : `У **${dname(tu)}** Discord не привязан к Mafia Pro, поэтому статистики нет. Привязать можно командой **/link**.`);
+    const e = await statsEmbed(env, row, target); if (!e) return ephemeral('Игрок ещё не открывал приложение Mafia Pro.');
+    return json({ type: 4, data: { embeds: [e], allowed_mentions: { parse: [] } } });
+  }
+  if (name === 'link') {
+    const token = randomId(12); await env.DB.prepare('INSERT INTO discord_links (token, user_id, username, created_at) VALUES (?1, ?2, ?3, ?4)').bind(token, String(me.id), dname(me), now()).run();
+    await env.DB.prepare('DELETE FROM discord_links WHERE created_at < ?1').bind(now() - 86400).run();
+    const username = await botUsername(env, bot); const url = `https://t.me/${username}?start=dlink_${token}`;
+    return ephemeral('Откройте ссылку в Telegram и нажмите «Старт» — бот привяжет этот Discord к вашему аккаунту Mafia Pro. Ссылка действует 30 минут.', { components: [{ type: 1, components: [{ type: 2, style: 5, label: '🔗 Привязать в Telegram', url }] }] });
+  }
+  if (name === 'invites') {
+    const days = Math.max(1, Math.min(365, Number(((it.data.options || []).find(o => o.name === 'days') || {}).value) || 30)); const since = now() - days * 86400;
+    const ev = (await env.DB.prepare('SELECT kind, via, inviter_id, inviter_tg FROM discord_events WHERE at > ?1').bind(since).all()).results || [];
+    const by = {}; for (const e of ev) { const k = e.inviter_id ? `<@${e.inviter_id}>` : String(e.via || 'неизвестно').replace(/ ≈$/, '').slice(0, 80); const x = by[k] = by[k] || { join: 0, leave: 0 }; x[e.kind]++; }
+    const rows = Object.entries(by).sort((a, b) => b[1].join - a[1].join).slice(0, 15).map(([k, x], i) => `${i + 1}. ${k} — пришло ${x.join}${x.leave ? `, ушло ${x.leave}` : ''}`);
+    const joins = ev.filter(e => e.kind === 'join').length, leaves = ev.filter(e => e.kind === 'leave').length;
+    return ephemeral('', { embeds: [{ title: `📈 Приглашения за ${days} дн.`, color: 0x5865f2, description: (rows.join('\n') || 'Пока никто не пришёл.').slice(0, 3900), fields: [{ name: 'Пришло', value: String(joins), inline: true }, { name: 'Ушло', value: String(leaves), inline: true }, { name: 'Сейчас на сервере', value: String((await cfgGet(env, 'members_count')) || '—'), inline: true }] }] });
+  }
+  return ephemeral('Неизвестная команда.');
+}
+/* the Telegram side of /link: /start dlink_<token> */
+async function linkDiscord(env, bot, chat, u, token) {
+  const row = await env.DB.prepare('SELECT * FROM discord_links WHERE token = ?1').bind(token).first();
+  if (!row || now() - row.created_at > 1800) return bot.send(chat, 'Ссылка для привязки Discord устарела. Введите /link в Discord ещё раз.');
+  await env.DB.prepare('DELETE FROM discord_links WHERE token = ?1').bind(token).run();
+  await env.DB.prepare('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1 AND user_id != ?2').bind(u.id, row.user_id).run(); // one Discord account per Telegram account
+  await env.DB.prepare("INSERT INTO discord_members (user_id, username, display, status, tg_id, updated_at) VALUES (?1, ?2, ?2, 'in', ?3, ?4) ON CONFLICT(user_id) DO UPDATE SET tg_id = ?3, updated_at = ?4").bind(row.user_id, row.username, u.id, now()).run();
+  return bot.send(chat, `✅ Discord <b>${esc(row.username || row.user_id)}</b> привязан к вашему аккаунту Mafia Pro. Теперь <b>/stats</b> в Discord показывает вашу статистику.`);
+}
 /* host: switch the Discord room on / off, or update its size (seats + 1) */
 async function apiLobbyDiscord(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -1346,6 +1506,12 @@ export default {
         return new Response('ok'); // always 200 so Telegram does not retry forever
       }
       if (path === '/posts/draft' && req.method === 'POST') { const r = await apiPostDraft(env, bot, req); return json(r.body, r.status); }
+      if (path === '/discord/interactions' && req.method === 'POST') { // Discord slash commands (Interactions Endpoint URL of the application)
+        const raw = await req.text();
+        if (!(await verifyInteraction(env, req.headers.get('X-Signature-Ed25519'), req.headers.get('X-Signature-Timestamp'), raw))) return new Response('invalid request signature', { status: 401 });
+        let it = null; try { it = JSON.parse(raw); } catch (e) { return new Response('bad request', { status: 400 }); }
+        return onInteraction(env, bot, it);
+      }
       if (path.startsWith('/api/')) {
         const cors = corsHeaders(env, req);
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
@@ -1399,6 +1565,7 @@ export default {
           case '/api/lobby/role': return wrap(apiLobbyRole(env, bot, body));
           case '/api/lobby/kick': return wrap(apiLobbyKick(env, bot, body));
           case '/api/lobbies': return wrap(apiLobbies(env, body));
+          case '/api/discord/invite': return wrap(apiDiscordInvite(env, body));
           case '/api/lobby/discord': return wrap(apiLobbyDiscord(env, bot, body));
           case '/api/lobby/voice-confirm': return wrap(apiLobbyVoiceConfirm(env, body));
           case '/api/table/voice': return wrap(apiTableVoice(env, body));
@@ -1413,7 +1580,7 @@ export default {
           default: return wrap(Promise.resolve(json({ ok: false, error: 'not_found' }, 404)));
         }
       }
-      if (path === '/' && req.method === 'GET') return json({ ok: true, service: 'mafia-pro-api', version: VERSION, app: env.APP_URL || null });
+      if (path === '/' && req.method === 'GET') return json({ ok: true, service: 'mafia-pro-api', version: VERSION, app: env.APP_URL || null, interactions: !!env.DISCORD_PUBLIC_KEY, pk: env.DISCORD_PUBLIC_KEY ? String(env.DISCORD_PUBLIC_KEY).slice(0, 8) : null });
       return new Response('not found', { status: 404 });
     } catch (e) {
       console.error(e && e.stack || e);
@@ -1422,6 +1589,8 @@ export default {
   },
   /* cron (wrangler.toml [triggers]): channel posts whose time has come */
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
+    const minute = !!(event && event.cron === '* * * * *'); // every minute: Discord members; every 5 minutes: channel posts
+    if (!minute) ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
+    if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
   }
 };

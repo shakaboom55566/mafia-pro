@@ -508,6 +508,11 @@ p { margin: 0; }
 .dc-tag { color: #9aa8f0; font-weight: 600; }
 .dc-ok { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .dc-need { color: var(--gold-2); }
+.hero-links { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; position: relative; z-index: 1; }
+.hero-links .btn { flex: 0 1 auto; width: auto; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; font-weight: 700; }
+.hero-links .hl-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+.hero-links .hl-tg { background: #2aabee; border-color: #2aabee; color: #fff; }
+.hero-links svg { flex: none; }
 .switch.on::after { transform: translateX(20px); background: #1a1206; }
 
 /* Scenario list */
@@ -3500,6 +3505,7 @@ Object.assign(I18N.pl.ui, { lbTitle: 'Otwarte stoły', lbHint: 'Wszystkie stoły
 Object.assign(I18N.hy.ui, { lbTitle: 'Բաց սեղաններ', lbHint: 'Օնլայն մաֆիայի բոլոր սեղանները․ ով է վարում և քանի խաղացող։ «Նստել»՝ քանի դեռ հավաքվում են․ ընթացող խաղերը ցուցադրված են տեղեկության համար։', lbFind: 'Սեղանի որոնում', lbFindD: 'Օնլայն մաֆիայի բաց սեղաններ․ վարողն ու խաղացողների թիվը', lbFindSub: 'Օնլայն սեղանները սերվերում', lbLive: 'խաղն ընթանում է', lbAlive: '{alive} խաղում են {n}-ից', tgNoSeatOpt: 'առանց տեղի', tgSeatPick: 'Տեղ', tgSeatsHint: 'Տեղը կարելի է փոխել․ զբաղված տեղը կփոխանակվի ընթացիկի հետ։ ✕՝ հեռացնել խաղացողին սեղանից։', tgSeatedToast: '{name} → տեղ {seat}', tgKick: 'Հեռացնել սեղանից', tgKickSure: 'Հեռացնե՞լ', tgKicked: '{name}-ը հեռացվեց սեղանից', lbEmpty: 'Այժմ բաց սեղաններ չկան', lbSit: 'Նստել', lbOpenMine: 'Բացել', lbCodePh: 'Սեղանի կոդ', lbJoinCode: 'Նստել կոդով', lbVia: { friend: 'ընկեր', club: 'ակումբ', invite: 'ձեզ կանչում են', seated: 'ձեր տեղը', own: 'ձեր սեղանը' }, lbSeats: '{n} / {seats}', lbClosed: 'Սեղանն արդեն փակ է', lbNotFound: 'Այդ կոդով սեղան չկա', lbHostSelf: 'Սա ձեր սեղանն է', tbClosedByHost: 'Վարողը փակեց սեղանը', tbLeaveTable: 'Թողնել սեղանը', frGameRunning: 'Խաղն արդեն ընթանում է․ ընկերներին կարող եք կանչել հաջորդին', roleGame: 'Դերային մաֆիա', openRolesTitle: 'Դուրս եկածների քարտերը', hostRoleTitle: 'Ով է վարում', hostRoleHost: 'Ես վարող եմ', hostRolePlayer: 'Ես խաղացող եմ', hostRoleHostHint: 'Դուք վարում եք խաղը և տեղ չեք զբաղեցնում։', hostRolePlayerHint: 'Դուք կնստեք սեղանի մոտ որպես խաղացող։ Խնդրեք ընկերոջը վարել սեղանը․ նա կստանա նստեցումը, բաժանումը և խաղը։', inviteHost: 'Հրավիրել վարողի', inviteHostSub: 'Ով կվարի սեղանը', inviteHostHint: 'Ընտրեք մեկ ընկերոջ․ նա կստանա ձեր սեղանը վարելու հրավեր։ Ընդունելով՝ նա կբաժանի քարտերը և կվարի խաղը, իսկ դուք կմնաք սեղանի մոտ որպես խաղացող։', inviteHostBtn: 'Խնդրել վարել՝ {name}', hostInvited: 'Վարելու հրավերն ուղարկված է՝ {name}', hostInvitePending: 'Վարողը հրավիրված է՝ {name}․ սպասում ենք պատասխանի', hostInviteDeclined: '{name}-ը հրաժարվեց վարել․ կանչեք մեկ ուրիշի', hostTook: '{name}-ը վարում է սեղանը․ դուք խաղում եք', hostingNow: 'Դուք վարում եք {code} սեղանը', dealNeedsHost: 'Դուք խաղում եք այս սեղանի մոտ․ քարտերը կբաժանի հրավիրված վարողը', tbInviteHost: '{name}-ը խնդրում է ձեզ վարել {code} սեղանը', tbInviteHostHint: 'Խաղացողներն արդեն նստում են։ Ընդունելով՝ նստեցումը, բաժանումը և ամբողջ խաղը կտեղափոխվեն ձեր հեռախոս․ հրավիրողը կմնա սեղանի մոտ որպես խաղացող։', tbAcceptHost: 'Կվարեմ', tbHostWanted: 'Սեղանին վարող է պետք', tbHostPlaysNote: 'ինքն է խաղում', openGame: 'Բաց խաղ', closedGame: 'Փակ խաղ', openGameHint: 'Բոլորը տեսնում են դուրս եկած խաղացողի դերը։', closedGameHint: 'Դուրս եկածի դերը մնում է գաղտնի մինչև խաղի վերջը, բացի այն դերերից, որոնք գործում են դուրս գալուց հետո (Ազազել, Մորփեուս, Ռումբ)։', tbLeftToast: 'Դուք դուրս եկաք սեղանից', tgPlayerLeft: 'Դուրս եկավ սեղանից՝ {name}', frInvitedGo: 'Հրավերներն ուղարկված են․ սպասում ենք խաղացողներին սեղանի մոտ' });
 /* ---------------- Discord voice room of an online table (v33), all languages ---------------- */
 Object.assign(I18N.ru.ui, {
+  dcServer: 'Наш Discord', tgChannel: 'Наш канал',
   dcTitle: 'Голос в Discord', dcSwitch: 'Игра с Discord', dcSwitchD: 'Бот создаст голосовой канал на {n} мест: игроки + ведущий. Раздать карты можно, когда вы подтвердите, что все на связи.',
   dcCreating: 'Создаю голосовой канал…', dcCreated: 'Голосовой канал создан', dcRemoved: 'Голосовой канал удалён', dcJoin: 'Войти в голосовой',
   dcChannel: 'Канал «{name}» · до {n} человек', dcCount: 'На связи: {k} из {n}', dcNobody: 'Пока никто не отметился',
@@ -3510,6 +3516,7 @@ Object.assign(I18N.ru.ui, {
   dcImOn: 'Я на связи', dcImOnDone: '✓ Я на связи', dcOnMark: 'на связи', dcTag: 'Discord', dcGame: 'Голосовой', dcTableLang: 'Язык стола'
 });
 Object.assign(I18N.uk.ui, {
+  dcServer: 'Наш Discord', tgChannel: 'Наш канал',
   dcTitle: 'Голос у Discord', dcSwitch: 'Гра з Discord', dcSwitchD: 'Бот створить голосовий канал на {n} місць: гравці + ведучий. Роздати карти можна, коли ви підтвердите, що всі на зв’язку.',
   dcCreating: 'Створюю голосовий канал…', dcCreated: 'Голосовий канал створено', dcRemoved: 'Голосовий канал видалено', dcJoin: 'Увійти в голосовий',
   dcChannel: 'Канал «{name}» · до {n} осіб', dcCount: 'На зв’язку: {k} з {n}', dcNobody: 'Поки ніхто не відмітився',
@@ -3520,6 +3527,7 @@ Object.assign(I18N.uk.ui, {
   dcImOn: 'Я на зв’язку', dcImOnDone: '✓ Я на зв’язку', dcOnMark: 'на зв’язку', dcTag: 'Discord', dcGame: 'Голосовий', dcTableLang: 'Мова столу'
 });
 Object.assign(I18N.en.ui, {
+  dcServer: 'Our Discord', tgChannel: 'Our channel',
   dcTitle: 'Voice on Discord', dcSwitch: 'Play with Discord', dcSwitchD: 'The bot creates a voice channel for {n} people: the players + the host. Cards can be dealt once you confirm everyone is on voice.',
   dcCreating: 'Creating the voice channel…', dcCreated: 'Voice channel created', dcRemoved: 'Voice channel removed', dcJoin: 'Join voice',
   dcChannel: 'Channel “{name}” · up to {n} people', dcCount: 'On voice: {k} of {n}', dcNobody: 'Nobody has checked in yet',
@@ -3530,6 +3538,7 @@ Object.assign(I18N.en.ui, {
   dcImOn: 'I’m on voice', dcImOnDone: '✓ I’m on voice', dcOnMark: 'on voice', dcTag: 'Discord', dcGame: 'Voice', dcTableLang: 'Table language'
 });
 Object.assign(I18N.pl.ui, {
+  dcServer: 'Nasz Discord', tgChannel: 'Nasz kanał',
   dcTitle: 'Głos na Discordzie', dcSwitch: 'Gra z Discordem', dcSwitchD: 'Bot utworzy kanał głosowy dla {n} osób: gracze + prowadzący. Karty można rozdać, gdy potwierdzisz, że wszyscy są na łączach.',
   dcCreating: 'Tworzę kanał głosowy…', dcCreated: 'Kanał głosowy utworzony', dcRemoved: 'Kanał głosowy usunięty', dcJoin: 'Wejdź na kanał głosowy',
   dcChannel: 'Kanał „{name}” · do {n} osób', dcCount: 'Na łączach: {k} z {n}', dcNobody: 'Nikt się jeszcze nie zgłosił',
@@ -3540,6 +3549,7 @@ Object.assign(I18N.pl.ui, {
   dcImOn: 'Jestem na łączach', dcImOnDone: '✓ Jestem na łączach', dcOnMark: 'na łączach', dcTag: 'Discord', dcGame: 'Głos', dcTableLang: 'Język stołu'
 });
 Object.assign(I18N.hy.ui, {
+  dcServer: 'Մեր Discord-ը', tgChannel: 'Մեր ալիքը',
   dcTitle: 'Ձայն Discord-ում', dcSwitch: 'Խաղ Discord-ով', dcSwitchD: 'Բոտը կստեղծի ձայնային ալիք {n} հոգու համար՝ խաղացողներ + վարող։ Քարտերը կարելի է բաժանել, երբ հաստատեք, որ բոլորը կապի մեջ են։',
   dcCreating: 'Ստեղծում եմ ձայնային ալիքը…', dcCreated: 'Ձայնային ալիքը ստեղծված է', dcRemoved: 'Ձայնային ալիքը ջնջված է', dcJoin: 'Մտնել ձայնային ալիք',
   dcChannel: '«{name}» ալիք · մինչև {n} հոգի', dcCount: 'Կապի մեջ՝ {k}-ը {n}-ից', dcNobody: 'Դեռ ոչ ոք չի նշվել',
@@ -6258,7 +6268,7 @@ async function cloudSync() {
     const o = d.owned || {}; let added = 0;
     S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
     [['roles', o.roles], ['scenarios', o.scenarios], ['packs', o.packs]].forEach(([k, arr]) => (arr || []).forEach(id => { if (!S.owned[k].includes(id)) { S.owned[k].push(id); added++; } }));
-    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord;
+    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || '';
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -7542,6 +7552,23 @@ Object.assign(ACT, {
     TB.data.voice = d.voice; if (want) tgHaptic('success'); render();
   }
 });
+/* home banner: our Discord server (a personal invite: whoever joins through it is tied to this Telegram account) and our Telegram channel */
+const ICON_HEADSET = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>';
+const channelUrl = () => (S.cloud && S.cloud.channel) || 'https://t.me/mafiaprof';
+function heroLinksHTML() {
+  const u = U(); const dc = discordOn();
+  return `<div class="hero-links">${dc ? `<button class="btn sm hl-discord" data-a="dc-server" ${DC.inviting ? 'disabled' : ''}>${ICON_HEADSET}<span>${u.dcServer}</span></button>` : ''}<button class="btn sm hl-tg" data-a="tg-channel">${I.tg.replace('width="22" height="22"', 'width="18" height="18"')}<span>${u.tgChannel}</span></button></div>`;
+}
+Object.assign(ACT, {
+  async 'dc-server'() {
+    if (DC.inviting) return; const u = U();
+    if (S.cloud && S.cloud.dcInvite) { openVoice(S.cloud.dcInvite); return; }
+    DC.inviting = true; render(); const d = await api('/api/discord/invite', {}); DC.inviting = false; render();
+    if (!d.ok || !d.url) { toast(u.tgOffline); return; }
+    S.cloud = S.cloud || {}; S.cloud.dcInvite = d.url; openVoice(d.url);
+  },
+  'tg-channel'() { const url = channelUrl(); try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} tgHaptic('light'); }
+});
 (function () {
   // the room sits right under the format chooser on the setup screen
   const origSetup = setupScreen;
@@ -7552,6 +7579,8 @@ Object.assign(ACT, {
     if (k > 0) return html.slice(0, k) + p + html.slice(k);
     const j = html.indexOf('<div class="stack">'); return j < 0 ? html : html.slice(0, j + 19) + p + html.slice(j + 19);
   };
+  // the Discord / Telegram channel buttons on the home banner, under the tagline
+  const origHome = homeScreen; homeScreen = function () { const html = origHome(); let l = ''; try { l = heroLinksHTML(); } catch (e) { l = ''; } const i = html.indexOf('<div class="skyline">'); return i < 0 || !l ? html : html.slice(0, i) + l + html.slice(i); };
   // offline format: the room goes (the server deletes it too)
   const origMode = ACT['on-mode']; ACT['on-mode'] = function (el) { const r = origMode.call(this, el); if (!S.setup.online && S.lobby && S.lobby.voice) { S.lobby.voice = null; DC.ask = false; save(); render(); } return r; };
   // the host's game strip carries the room link

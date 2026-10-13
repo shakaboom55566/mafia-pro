@@ -300,3 +300,50 @@ CREATE TABLE IF NOT EXISTS channel_posts (
   updated_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS channel_posts_due ON channel_posts (status, slot_at);
+-- Discord server analytics (v35): members seen by the bot (polled every minute), which invite brought them, the Telegram account linked to them
+CREATE TABLE IF NOT EXISTS discord_members (
+  user_id     TEXT PRIMARY KEY,
+  username    TEXT,
+  display     TEXT,
+  status      TEXT NOT NULL,          -- in | left
+  joined_at   INTEGER,
+  left_at     INTEGER,
+  invite_code TEXT,
+  via         TEXT,                   -- human-readable source: who invited / which link
+  inviter_id  TEXT,                   -- Discord user who created the invite
+  inviter_tg  INTEGER,                -- Telegram user whose personal app link was used
+  tg_id       INTEGER,                -- linked Telegram account (personal app link or /link)
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS discord_members_tg ON discord_members (tg_id);
+-- invites of the server: uses as last seen; personal app links carry their Telegram owner
+CREATE TABLE IF NOT EXISTS discord_invites (
+  code        TEXT PRIMARY KEY,
+  uses        INTEGER NOT NULL DEFAULT 0,
+  inviter_id  TEXT,
+  inviter_name TEXT,
+  channel_id  TEXT,
+  tg_id       INTEGER,
+  kind        TEXT,                   -- app | member | bot
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS discord_invites_tg ON discord_invites (tg_id);
+CREATE TABLE IF NOT EXISTS discord_events (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind        TEXT NOT NULL,          -- join | leave
+  user_id     TEXT NOT NULL,
+  invite_code TEXT,
+  via         TEXT,
+  inviter_id  TEXT,
+  inviter_tg  INTEGER,
+  at          INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS discord_events_at ON discord_events (at);
+-- /link: a one-time token that opens the Telegram bot and ties the Discord user to that Telegram account
+CREATE TABLE IF NOT EXISTS discord_links (
+  token       TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL,
+  username    TEXT,
+  created_at  INTEGER NOT NULL
+);
