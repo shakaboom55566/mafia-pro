@@ -1,0 +1,47 @@
+name: SEO report
+
+# Weekly search data for the SEO agent (a Claude scheduled task reads seo/reports/latest.md, improves the site, pushes).
+# Secrets (all optional — a missing one is noted in the report):
+#   GSC_SA_KEY   — JSON key of a Google Cloud service account added as a user (Full) of the Search Console property
+#   GSC_PROPERTY — the property as Search Console names it: "sc-domain:mafiapro.app" or "https://shakaboom55566.github.io/mafia-pro/"
+#   BING_API_KEY — Bing Webmaster Tools → Settings → API access
+#   PSI_KEY      — Google API key for PageSpeed Insights (works without it, with a lower quota)
+
+on:
+  schedule:
+    - cron: '7 5 * * 1'  # Mondays 08:07 Kyiv
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seo-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests (summary, token)
+        run: node seo/test-report.mjs
+      - name: Collect (Search Console, Bing, PageSpeed, live pages)
+        env:
+          GSC_SA_KEY: ${{ secrets.GSC_SA_KEY }}
+          GSC_PROPERTY: ${{ secrets.GSC_PROPERTY }}
+          BING_API_KEY: ${{ secrets.BING_API_KEY }}
+          PSI_KEY: ${{ secrets.PSI_KEY }}
+        run: node seo/report.mjs
+      - name: Commit the report
+        run: |
+          git config user.name "mafia-pro-seo"
+          git config user.email "seo@users.noreply.github.com"
+          git add seo/reports
+          git diff --cached --quiet && { echo "no changes"; exit 0; }
+          git commit -q -m "chore: SEO report $(date -u +%F)"
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
+          echo "pushed $(git rev-parse --short HEAD)"

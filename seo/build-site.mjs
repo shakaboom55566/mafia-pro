@@ -34,11 +34,13 @@ const noEmoji = s => String(s || '').replace(/^[^\p{L}\p{N}«“„"]+/u, '').tr
 const cut = (s, n) => { s = String(s || ''); if (s.length <= n) return s; const c = s.slice(0, n - 1); const i = c.lastIndexOf(' '); return (i > n * 0.6 ? c.slice(0, i) : c).replace(/[,.;:—–-]+$/, '') + '…'; };
 
 export function build(outDir, env = process.env) {
-  const SITE = String(env.SITE_URL || DEFAULT_SITE).replace(/\/?$/, '/');
+  const fileSite = (() => { try { return fs.readFileSync(path.join(ROOT, 'seo/site-url.txt'), 'utf8').trim(); } catch (e) { return ''; } })(); // an own domain later: one line in seo/site-url.txt
+  const SITE = String(env.SITE_URL || fileSite || DEFAULT_SITE).replace(/\/?$/, '/');
   const BASE = new URL(SITE).pathname; // '/mafia-pro/' on GitHub Pages, '/' on an own domain
   const BOT = String(env.BOT_USERNAME || 'mafiaprof_bot').replace(/^@/, '');
   const verify = String(env.GSC_VERIFY || '').trim();
   const apps = {}; LANGS.forEach(l => { apps[l] = loadApp(l); });
+  const OVR = (() => { try { const j = JSON.parse(fs.readFileSync(env.SEO_OVERRIDES || path.join(ROOT, 'seo/overrides.json'), 'utf8')); delete j._; return j; } catch (e) { return {}; } })();
   const pages = []; // { path, lang, alt: {lang: path} } for the sitemap
   const write = (rel, html) => { const f = path.join(outDir, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); };
   const abs = p => SITE + p.replace(/^\//, '');
@@ -50,6 +52,16 @@ export function build(outDir, env = process.env) {
   /* ---------- page shell ---------- */
   function page({ l, p, title, desc, h1, lead, body, ld = [], crumbs = [], image, alt, ogType = 'website' }) {
     const s = S[l]; const altMap = alt || Object.fromEntries(LANGS.map(x => [x, p.replace(/^[a-z]{2}\//, x + '/')]));
+    /* per-page edits of the SEO agent (seo/overrides.json): a better title / description / h1, an extra paragraph, FAQ for the queries the page ranks for */
+    const o = OVR[p] || {};
+    if (o.title) title = o.title; if (o.desc) desc = o.desc; if (o.h1) h1 = o.h1;
+    if (o.intro) body = `<p>${esc(o.intro)}</p>` + body;
+    if (o.faq && o.faq.length) {
+      const old = ld.find(x => x['@type'] === 'FAQPage');
+      const qa = o.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } }));
+      if (old) old.mainEntity = old.mainEntity.concat(qa); else ld = ld.concat([{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: qa }]);
+      body += `<section><h2>${esc(s.home.faqH)}</h2>${o.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</section>`;
+    }
     pages.push({ path: p, lang: l, alt: altMap });
     const ogImg = image || abs(`og/${l}.png`);
     const nav = [['home', `${l}/`], ['roles', `${l}/roles/`], ['rules', `${l}/rules/`], ['scenarios', `${l}/scenarios/`]];
@@ -197,6 +209,7 @@ ${pages.map(pg => `<url><loc>${abs(pg.path)}</loc><lastmod>${today}</lastmod><pr
 `;
   write('sitemap.xml', sm);
   const icon = path.join(ROOT, 'bot/media/avatar-512.png'); if (fs.existsSync(icon)) fs.copyFileSync(icon, path.join(outDir, 'favicon.png'));
+  const ink = path.join(ROOT, 'seo/indexnow-key.txt'); if (fs.existsSync(ink)) { const k = fs.readFileSync(ink, 'utf8').trim(); write(k + '.txt', k); } // IndexNow key file (seo/indexnow.mjs)
   write('robots.txt', `User-agent: *\nAllow: /\nDisallow: ${BASE}og/\n\nSitemap: ${SITE}sitemap.xml\n`);
   return { pages: pages.length, site: SITE };
 }

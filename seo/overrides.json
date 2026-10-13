@@ -1,0 +1,3 @@
+{
+  "_": "Per-page edits by the SEO agent (see seo/AGENT.md). Key = page path as in the sitemap (\"ru/roles/don/\"). Fields, all optional: title (≤ 60 chars), desc (≤ 155), h1, intro (one paragraph shown first), faq ([[question, answer], …] — shown on the page and as FAQPage). Facts must come from the app (rules, roles) — nothing invented."
+}

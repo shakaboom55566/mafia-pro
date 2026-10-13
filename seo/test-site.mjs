@@ -36,6 +36,10 @@ for (const f of files) {
 const sm = fs.readFileSync(path.join(out, 'sitemap.xml'), 'utf8');
 ok((sm.match(/<url>/g) || []).length === r.pages + 1, 'sitemap lists every page + the app');
 ok(fs.readFileSync(path.join(out, 'robots.txt'), 'utf8').includes('Sitemap: ' + DEFAULT_SITE + 'sitemap.xml'), 'robots.txt points at the sitemap');
+const ovr = path.join(os.tmpdir(), 'mp-ovr.json'); fs.writeFileSync(ovr, JSON.stringify({ 'ru/roles/don/': { title: 'Дон мафии: как играть за главу семьи | Mafia Pro', intro: 'Проверочный абзац.', faq: [['Кто такой Дон?', 'Глава мафии.']] }, 'en/': { faq: [['Extra?', 'Yes.']] } }));
+const od = fs.mkdtempSync(path.join(os.tmpdir(), 'mp-site-')); build(od, { SITE_URL: DEFAULT_SITE, SEO_OVERRIDES: ovr });
+{ const h = fs.readFileSync(path.join(od, 'ru/roles/don/index.html'), 'utf8'); ok(h.includes('<title>Дон мафии: как играть за главу семьи | Mafia Pro</title>') && h.includes('<p>Проверочный абзац.</p>') && /"@type":"FAQPage"/.test(h) && h.includes('<summary>Кто такой Дон?</summary>'), 'override: title, intro, FAQ on a role page'); }
+{ const h = fs.readFileSync(path.join(od, 'en/index.html'), 'utf8'); const faq = JSON.parse(h.match(/<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"FAQPage"[\s\S]*?)<\/script>/)[1]); ok(faq.mainEntity.length === 7 && (h.match(/"@type":"FAQPage"/g) || []).length === 1, 'override FAQ merges into the landing FAQ'); }
 const own = build(fs.mkdtempSync(path.join(os.tmpdir(), 'mp-site-')), { SITE_URL: 'https://mafiapro.example/' });
 ok(own.site === 'https://mafiapro.example/', 'an own domain works (SITE_URL)');
 fs.rmSync(out, { recursive: true, force: true });

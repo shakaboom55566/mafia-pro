@@ -1,0 +1,85 @@
+{
+  "_": "Target search queries of the website by language → the page that should rank. tier: brand (our name), long (long tail: a role, a player count, a rule), mid (mid-frequency), head (very competitive). markets: GSC country codes (ISO 3166-1 alpha-3) where the language is searched. The weekly SEO agent tracks these and adds new ones from Search Console.",
+  "ru": {
+    "markets": ["ukr", "kaz", "blr", "arm", "pol", "deu", "isr", "geo", "mda", "lva", "est", "ltu"],
+    "queries": [
+      { "q": "mafia pro мафия", "page": "ru/", "tier": "brand" },
+      { "q": "мафия в телеграм", "page": "ru/", "tier": "mid" },
+      { "q": "приложение для ведущего мафии", "page": "ru/", "tier": "mid" },
+      { "q": "мафия онлайн с друзьями", "page": "ru/", "tier": "head" },
+      { "q": "роли в мафии", "page": "ru/roles/", "tier": "mid" },
+      { "q": "роли в мафии список с описанием", "page": "ru/roles/", "tier": "mid" },
+      { "q": "правила игры в мафию", "page": "ru/rules/", "tier": "head" },
+      { "q": "спортивная мафия правила", "page": "ru/rules/", "tier": "mid" },
+      { "q": "мафия на 8 человек роли", "page": "ru/scenarios/", "tier": "long" },
+      { "q": "мафия на 12 человек роли", "page": "ru/scenarios/", "tier": "long" },
+      { "q": "роль маньяк в мафии", "page": "ru/roles/maniac/", "tier": "long" },
+      { "q": "роль доктор в мафии", "page": "ru/roles/doctor/", "tier": "long" },
+      { "q": "роль оборотень в мафии", "page": "ru/roles/werewolf/", "tier": "long" },
+      { "q": "дон мафии роль", "page": "ru/roles/don/", "tier": "long" },
+      { "q": "роль камикадзе мафия", "page": "ru/roles/kamikaze/", "tier": "long" }
+    ]
+  },
+  "uk": {
+    "markets": ["ukr", "pol", "deu", "cze"],
+    "queries": [
+      { "q": "mafia pro мафія", "page": "uk/", "tier": "brand" },
+      { "q": "мафія в телеграм", "page": "uk/", "tier": "mid" },
+      { "q": "мафія онлайн", "page": "uk/", "tier": "head" },
+      { "q": "застосунок для ведучого мафії", "page": "uk/", "tier": "long" },
+      { "q": "ролі в мафії", "page": "uk/roles/", "tier": "mid" },
+      { "q": "правила гри в мафію", "page": "uk/rules/", "tier": "mid" },
+      { "q": "мафія правила класика", "page": "uk/rules/", "tier": "long" },
+      { "q": "мафія на 10 гравців ролі", "page": "uk/scenarios/", "tier": "long" },
+      { "q": "роль лікар у мафії", "page": "uk/roles/doctor/", "tier": "long" },
+      { "q": "роль шериф мафія", "page": "uk/roles/sheriff/", "tier": "long" },
+      { "q": "роль маніяк мафія", "page": "uk/roles/maniac/", "tier": "long" }
+    ]
+  },
+  "en": {
+    "markets": ["gbr", "deu", "nld", "irl", "swe", "pol", "cze", "fra", "esp", "ita", "usa"],
+    "queries": [
+      { "q": "mafia pro telegram", "page": "en/", "tier": "brand" },
+      { "q": "mafia game telegram", "page": "en/", "tier": "mid" },
+      { "q": "mafia game app for moderator", "page": "en/", "tier": "mid" },
+      { "q": "mafia party game online with friends", "page": "en/", "tier": "head" },
+      { "q": "mafia game roles", "page": "en/roles/", "tier": "head" },
+      { "q": "mafia game roles list and descriptions", "page": "en/roles/", "tier": "mid" },
+      { "q": "how to play mafia party game", "page": "en/rules/", "tier": "head" },
+      { "q": "mafia game rules 10 players", "page": "en/rules/", "tier": "mid" },
+      { "q": "mafia roles for 8 players", "page": "en/scenarios/", "tier": "long" },
+      { "q": "mafia game werewolf role", "page": "en/roles/werewolf/", "tier": "long" },
+      { "q": "mafia game kamikaze role", "page": "en/roles/kamikaze/", "tier": "long" },
+      { "q": "mafia game maniac role", "page": "en/roles/maniac/", "tier": "long" }
+    ]
+  },
+  "pl": {
+    "markets": ["pol", "deu", "gbr", "irl", "nld"],
+    "queries": [
+      { "q": "mafia pro telegram", "page": "pl/", "tier": "brand" },
+      { "q": "mafia gra w telegramie", "page": "pl/", "tier": "long" },
+      { "q": "mafia gra towarzyska online", "page": "pl/", "tier": "mid" },
+      { "q": "aplikacja do gry w mafię", "page": "pl/", "tier": "mid" },
+      { "q": "role w mafii", "page": "pl/roles/", "tier": "mid" },
+      { "q": "mafia gra towarzyska role", "page": "pl/roles/", "tier": "mid" },
+      { "q": "zasady gry w mafię", "page": "pl/rules/", "tier": "mid" },
+      { "q": "mafia zasady gry towarzyskiej", "page": "pl/rules/", "tier": "mid" },
+      { "q": "mafia na 10 osób role", "page": "pl/scenarios/", "tier": "long" },
+      { "q": "rola szeryf mafia", "page": "pl/roles/sheriff/", "tier": "long" },
+      { "q": "rola lekarz mafia", "page": "pl/roles/doctor/", "tier": "long" }
+    ]
+  },
+  "hy": {
+    "markets": ["arm", "rus", "geo", "usa", "fra"],
+    "queries": [
+      { "q": "mafia pro մաֆիա", "page": "hy/", "tier": "brand" },
+      { "q": "մաֆիա խաղ", "page": "hy/", "tier": "mid" },
+      { "q": "մաֆիա խաղ առցանց", "page": "hy/", "tier": "mid" },
+      { "q": "մաֆիա telegram", "page": "hy/", "tier": "long" },
+      { "q": "մաֆիայի դերեր", "page": "hy/roles/", "tier": "long" },
+      { "q": "մաֆիա խաղի կանոններ", "page": "hy/rules/", "tier": "long" },
+      { "q": "մաֆիա 10 հոգու համար", "page": "hy/scenarios/", "tier": "long" },
+      { "q": "շերիֆ մաֆիա դեր", "page": "hy/roles/sheriff/", "tier": "long" }
+    ]
+  }
+}

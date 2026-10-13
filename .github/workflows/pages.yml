@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    paths-ignore: ['seo/reports/**', 'seo/journal.md']  # the weekly SEO report commits only data — no redeploy
   workflow_dispatch:
     inputs:
       api_url:
@@ -78,6 +79,10 @@ jobs:
         continue-on-error: true
         run: node seo/render-images.js _site && du -sh _site/og
 
+      - name: IndexNow — which website pages changed against the live site
+        continue-on-error: true
+        run: node seo/indexnow.mjs diff _site /tmp/indexnow.txt
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
@@ -91,6 +96,10 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: IndexNow — tell Bing / Yandex / Seznam / Naver about the changed pages
+        continue-on-error: true
+        run: node seo/indexnow.mjs submit /tmp/indexnow.txt
 
       - name: Note the build on the commit (which backend address went into the page)
         if: always()

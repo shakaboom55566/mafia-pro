@@ -13,6 +13,10 @@
 - На каждой: title, description, canonical, hreflang на все языки (+ x-default → en), Open Graph с картинкой (`og/<язык>.png`, карта роли на её странице), JSON-LD (SoftwareApplication, FAQPage, ItemList, Article, BreadcrumbList). `sitemap.xml` с hreflang, `robots.txt`.
 - Картинки: `seo/render-images.js` — квадратные превью карт `cards/<язык>/t/<id>.jpg` и превью ссылок. Страница приложения получила title, description, Open Graph, JSON-LD и ссылки на сайт в `<noscript>` (`seo/app-head.html`, `seo/app-noscript.html`).
 - Подтверждение владения в Google Search Console / Bing Webmaster: код из «HTML-тега» — в `seo/verify.txt` (`google=…`, `bing=…`), workflow вставит мета-тег на главную приложения.
+- **IndexNow** (v38.1): при каждом деплое Pages сравнивает страницы с живыми и отправляет изменённые в Bing / Yandex / Seznam / Naver (`seo/indexnow.mjs`, ключ — `seo/indexnow-key.txt`, файл ключа кладёт сборка).
+- **SEO-агент** (v38.1): workflow «SEO report» (`seo-report.yml`, понедельник 08:07 Киев) собирает Search Console, Bing Webmaster, PageSpeed и живые проверки в `seo/reports/latest.md`; scheduled task «Mafia Pro: SEO-агент» читает отчёт и правит сайт по `seo/AGENT.md` — через `seo/overrides.json` (title, description, абзац, FAQ на страницу) и `seo/keywords.json`; журнал правок — `seo/journal.md`.
+- **Подключить Search Console к отчёту:** Google Cloud Console → проект → включить «Google Search Console API» → IAM → Service accounts → создать → Keys → Add key → JSON. В Search Console → Настройки → Пользователи и разрешения → добавить e-mail сервисного аккаунта с полным доступом. В репозитории Settings → Secrets → Actions: `GSC_SA_KEY` (весь JSON) и `GSC_PROPERTY` (`https://shakaboom55566.github.io/mafia-pro/` или `sc-domain:<домен>`). Bing: Webmaster Tools → Настройки → API access → ключ в секрет `BING_API_KEY`.
+- Свой домен: одна строка в `seo/site-url.txt` (`https://домен/`) — её читают сборка сайта, IndexNow и отчёт.
 - Проверка: `node seo/test-site.mjs` (уникальные title/description, canonical, hreflang, JSON-LD, ссылки, sitemap) — в шаге smoke-тестов Pages. Свой домен: `SITE_URL=https://домен/`.
 
 ## Оффлайн и онлайн игра
