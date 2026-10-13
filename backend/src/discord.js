@@ -48,3 +48,29 @@ export async function createVoice(env, code, lang, seats) {
 }
 export async function setVoiceLimit(env, channelId, seats) { return dcall(env, 'PATCH', `/channels/${channelId}`, { user_limit: limitFor(seats) }); }
 export async function deleteVoice(env, channelId) { const r = await dcall(env, 'DELETE', `/channels/${channelId}`); return r.ok || r.status === 404; } // already gone counts as done
+
+/* ---------- webhooks of the Mafia Pro server (created by discord/setup.mjs): new online tables and game results ---------- */
+export const HOOKS = { tables: 'Mafia Pro · Столы', results: 'Mafia Pro · Итоги' };
+const HOOK_TTL = 6 * 3600, HOOK_MISS_TTL = 600;
+/* the webhook's id + token, looked up by name in the guild and cached in D1 (discord_cfg) */
+export async function hookOf(env, kind, fresh) {
+  const key = 'hook:' + kind; const ts = Math.floor(Date.now() / 1000);
+  if (!fresh) { const c = await env.DB.prepare('SELECT value, updated_at FROM discord_cfg WHERE key = ?1').bind(key).first(); if (c && ts - c.updated_at < (c.value ? HOOK_TTL : HOOK_MISS_TTL)) return c.value ? JSON.parse(c.value) : null; }
+  const r = await dcall(env, 'GET', `/guilds/${String(env.DISCORD_GUILD_ID).trim()}/webhooks`);
+  const w = r.ok && Array.isArray(r.data) ? r.data.find(x => x && x.name === HOOKS[kind] && x.token) : null;
+  const val = w ? JSON.stringify({ id: String(w.id), token: w.token }) : '';
+  await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(key, val, ts).run();
+  return w ? { id: String(w.id), token: w.token } : null;
+}
+/* post (returns the message id) or edit a webhook message; a deleted webhook is looked up again once */
+export async function hookSend(env, kind, payload, messageId) {
+  for (let i = 0; i < 2; i++) {
+    const h = await hookOf(env, kind, i > 0); if (!h) return { ok: false, error: 'no_webhook' };
+    const base = `/webhooks/${h.id}/${h.token}`;
+    const r = messageId ? await dcall(env, 'PATCH', `${base}/messages/${messageId}`, payload) : await dcall(env, 'POST', `${base}?wait=true`, Object.assign({ allowed_mentions: { parse: [] } }, payload));
+    if (r.ok) return { ok: true, id: r.data && r.data.id ? String(r.data.id) : messageId };
+    if (r.status === 404 && messageId && i === 0) { const again = await hookOf(env, kind, true); if (again && again.id === h.id) return { ok: false, error: 'message_gone', gone: true }; continue; }
+    if (r.status !== 404) return { ok: false, error: r.error };
+  }
+  return { ok: false, error: 'no_webhook' };
+}

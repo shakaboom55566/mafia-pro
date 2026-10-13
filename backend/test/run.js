@@ -16,7 +16,8 @@ const env = {
   APP_URL: 'https://shakaboom55566.github.io/mafia-pro/', ALLOWED_ORIGIN: 'https://shakaboom55566.github.io',
   TELEGRAM_API: tg.base, STARS_ROLE: '100', STARS_SCENARIO: '500', STARS_PACK: '1750', ADMIN_IDS: '777'
 };
-const ctx = { waitUntil() {}, passThroughOnException() {} };
+const pending = []; const ctx = { waitUntil(p) { pending.push(p); }, passThroughOnException() {} };
+const settle = async () => { while (pending.length) await Promise.all(pending.splice(0)); };
 let fails = 0, n = 0;
 const now = () => Math.floor(Date.now() / 1000);
 const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log('  FAIL', msg); } };
@@ -663,6 +664,54 @@ console.log('discord voice room: online tables only, seats + 1, creator flag, "I
   Object.assign(env, { DISCORD_CATEGORY_ID: '999' }); const l5 = (await (await post('/api/lobby', { initData: await initData(user(2106, 'ru')), fresh: true })).json()).code; await post('/api/lobby/role', { initData: await initData(user(2106, 'ru')), code: l5, online: true });
   const v5 = await (await post('/api/lobby/discord', { initData: await initData(user(2106, 'ru')), code: l5, on: true, seats: 10 })).json(); ok(v5.ok && dc.channels.get(dc.lastId()).parent_id === null, 'a wrong category id → room without a category');
   for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_CATEGORY_ID', 'DISCORD_API']) delete env[k];
+  await dc.close(); }
+
+console.log('discord server webhooks: the #ищу-игру card follows an online table, #результаты gets one card per game');
+{ const dc = await startMockDiscord(8794); Object.assign(env, { DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base });
+  await env.DB.prepare('DELETE FROM discord_cfg').run();
+  const dreq = async (method, p, body) => (await fetch(dc.base + p, { method, headers: { Authorization: 'Bot dc-token', 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })).json();
+  const chT = await dreq('POST', '/guilds/111111111111/channels', { name: 'ищу-игру', type: 0 }); const chR = await dreq('POST', '/guilds/111111111111/channels', { name: 'результаты', type: 0 });
+  await dreq('POST', `/channels/${chT.id}/webhooks`, { name: 'Mafia Pro · Столы' }); await dreq('POST', `/channels/${chR.id}/webhooks`, { name: 'Mafia Pro · Итоги' });
+  const card = () => (dc.messages.get(chT.id) || []); const last = () => card()[card().length - 1]; const old = c => env.DB.prepare('UPDATE discord_posts SET updated_at = ?1 WHERE code = ?2').bind(now() - 60, c).run();
+  const hu = user(2200, 'pl'); const h = await initData(hu); const pa = user(2201, 'ru'), pb = user(2202, 'uk');
+  const off = (await (await post('/api/lobby', { initData: h, fresh: true, lang: 'pl' })).json()).code; await post('/api/lobby/status', { initData: h, code: off, seats: 10 }); await settle();
+  eq(card().length, 0, 'an offline table is not announced');
+  const code = (await (await post('/api/lobby', { initData: h, fresh: true, lang: 'pl' })).json()).code;
+  await post('/api/lobby/role', { initData: h, code, online: true, seats: 10 }); await settle();
+  ok(card().length === 1 && last().embeds[0].title === `🇵🇱 Стол ${code} · набор игроков` && JSON.stringify(last().embeds[0].fields).includes(`https://t.me/mafiapro_test_bot?start=join_${code}`) && JSON.stringify(last().embeds[0].fields).includes('0 / 10'), 'online table → card in #ищу-игру with the flag, 0 / 10 and a Telegram join link: ' + JSON.stringify(last() && last().embeds[0]).slice(0, 300));
+  ok(last().webhook_id && dc.calls.some(c => c.method === 'POST' && /\/webhooks\/\d+\/tok\d+$/.test(c.url) && c.params.allowed_mentions), 'posted through the webhook, no pings');
+  await post('/api/table/join', { initData: await initData(pa), code }); await post('/api/lobby/status', { initData: h, code, seats: 10 }); await settle();
+  ok(!JSON.stringify(last().embeds[0].fields).includes('1 / 10'), 'count edits are throttled');
+  await old(code); await post('/api/lobby/status', { initData: h, code, seats: 10 }); await settle();
+  ok(card().length === 1 && JSON.stringify(last().embeds[0].fields).includes('1 / 10'), 'the same card is edited: 1 / 10');
+  await post('/api/lobby/role', { initData: h, code, online: true }); await post('/api/lobby/discord', { initData: h, code, on: true, seats: 10 }); await settle();
+  ok(JSON.stringify(last().embeds[0].fields).includes('Войти в голосовой канал') && JSON.stringify(last().embeds[0].fields).includes('https://discord.gg/'), 'the voice room link appears on the card');
+  await post('/api/table/join', { initData: await initData(pb), code }); await post('/api/lobby/voice-confirm', { initData: h, code });
+  await post('/api/lobby/deal', { initData: h, code, cards: [{ tgId: 2201, seat: 1, roleId: 'don' }, { tgId: 2202, seat: 2, roleId: 'sheriff' }] });
+  await post('/api/table/publish', { initData: h, code, pub: { phase: 'night0', code, n: 10 }, priv: {} }); await settle();
+  ok(last().embeds[0].title.includes('идёт партия') && !JSON.stringify(last().embeds[0].fields).includes('start=join_'), 'game running → "идёт партия", no join link');
+  const endPub = { phase: 'end', code, n: 10, day: 3, online: true, result: { side: 'city', title: 'Победа города' }, roles: [{ seat: 1, name: 'User2201', roleId: 'don', rn: 'Дон мафии', won: false, total: -2, place: 2 }, { seat: 2, name: 'User2202', roleId: 'sheriff', rn: 'Шериф', won: true, total: 14, place: 1 }] };
+  await post('/api/table/publish', { initData: h, code, pub: endPub, priv: {} }); await settle();
+  const res = dc.messages.get(chR.id) || [];
+  ok(res.length === 1 && res[0].embeds[0].title === '🏆 Победа города' && res[0].embeds[0].description.includes('🥇') && res[0].embeds[0].description.includes('Шериф ✅ +14') && res[0].embeds[0].description.includes('Дон мафии ❌ -2') && res[0].embeds[0].description.includes('🇵🇱'), 'one result card in #результаты: ' + JSON.stringify(res[0] && res[0].embeds[0]).slice(0, 400));
+  ok(last().embeds[0].title.includes('партия завершена') && !JSON.stringify(last().embeds[0].fields).includes('discord.gg'), 'the table card is closed: "партия завершена", no voice link');
+  await post('/api/table/publish', { initData: h, code, pub: endPub, priv: {} }); await settle(); eq((dc.messages.get(chR.id) || []).length, 1, 'no second result card');
+  // an aborted game posts no result; a closed table's card says so
+  const c2 = (await (await post('/api/lobby', { initData: h, fresh: true, lang: 'pl' })).json()).code; await post('/api/lobby/role', { initData: h, code: c2, online: true, seats: 8 }); await settle();
+  ok(card().length === 2 && last().embeds[0].title.includes(c2), 'second table → second card');
+  await post('/api/lobby/close', { initData: h, code: c2 }); await settle(); ok(last().embeds[0].title.includes('стол закрыт'), 'closed table → "стол закрыт"');
+  const c3 = (await (await post('/api/lobby', { initData: h, fresh: true, lang: 'pl' })).json()).code; await post('/api/lobby/role', { initData: h, code: c3, online: true }); await settle();
+  await post('/api/table/publish', { initData: h, code: c3, pub: { phase: 'end', code: c3, aborted: true, result: { side: 'none', title: 'Партия прервана' }, roles: [] }, priv: {} }); await settle();
+  eq((dc.messages.get(chR.id) || []).length, 1, 'an aborted game posts no result');
+  // a superseded table (its host opened another) is finalised by the heartbeat
+  const c4 = (await (await post('/api/lobby', { initData: h, fresh: true, lang: 'pl' })).json()).code; await post('/api/lobby/role', { initData: h, code: c4, online: true }); await settle();
+  const c4msg = last(); await post('/api/lobby', { initData: h, fresh: true, lang: 'pl' }); await post('/api/ping', { initData: h }); await settle();
+  ok(c4msg.embeds[0].title.includes('стол закрыт'), 'a table closed by opening a new one gets "стол закрыт" on the next heartbeat');
+  // the webhook removed by hand: nothing breaks, nothing is posted
+  dc.webhooks.clear(); await env.DB.prepare('DELETE FROM discord_cfg').run(); const n0 = card().length;
+  const c5 = (await (await post('/api/lobby', { initData: h, fresh: true })).json()).code; const rr = await post('/api/lobby/role', { initData: h, code: c5, online: true }); await settle();
+  ok(rr.status === 200 && card().length === n0, 'no webhook → the table works, nothing posted');
+  for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API']) delete env[k];
   await dc.close(); }
 
 console.log('robustness');

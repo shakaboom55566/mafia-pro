@@ -269,3 +269,19 @@ CREATE TABLE IF NOT EXISTS table_voice_ok (
   at         INTEGER NOT NULL,
   PRIMARY KEY (code, tg_id)
 );
+-- Discord server integration (v33.1): cached webhook ids/tokens, and the messages posted for each table (announcement edited as players sit, result once)
+CREATE TABLE IF NOT EXISTS discord_cfg (
+  key        TEXT PRIMARY KEY,
+  value      TEXT,
+  updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS discord_posts (
+  code       TEXT NOT NULL,
+  kind       TEXT NOT NULL,          -- table | result
+  message_id TEXT,
+  hash       TEXT,
+  seats      INTEGER,
+  final      INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (code, kind)
+);
