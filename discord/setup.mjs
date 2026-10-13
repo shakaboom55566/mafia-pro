@@ -287,6 +287,10 @@ export async function run(env, log = console.log) {
   const gpatch = {}; if (guild.system_channel_id !== state.channels.welcome) gpatch.system_channel_id = state.channels.welcome; if (guild.default_message_notifications !== 1) gpatch.default_message_notifications = 1;
   if (Object.keys(gpatch).length) { await api('PATCH', `/guilds/${guildId}`, gpatch); log(`~ server: ${Object.keys(gpatch).join(', ')}`); }
 
+  // the server widget: the app's «Find a table» shows who is online and who sits in the tables' voice rooms
+  const widget = await api('GET', `/guilds/${guildId}/widget`);
+  if (!widget.enabled || widget.channel_id !== state.channels.welcome) { await api('PATCH', `/guilds/${guildId}/widget`, { enabled: true, channel_id: state.channels.welcome }); log('~ server widget on (invite → welcome)'); }
+
   // messages: the bot's own messages in each channel are edited in place, extras removed
   const appUrl = env.APP_URL || 'https://shakaboom55566.github.io/mafia-pro/';
   let cardsBase = env.CARDS_BASE !== undefined ? env.CARDS_BASE : appUrl.replace(/\/?$/, '/') + 'cards/';

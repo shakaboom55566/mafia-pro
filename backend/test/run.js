@@ -884,7 +884,18 @@ console.log('discord analytics: baseline, joins through whose invite, leaves, pe
   // the Members intent switched off: one warning a day, nothing breaks
   dc.st.membersFail = true; await cron(); await cron(); ok(posts().filter(m => m.embeds[0].title.includes('не видит участников')).length === 1, 'missing intent → one warning');
   dc.st.membersFail = false;
+  // the finder's Discord panel (server widget)
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'widget'").run();
+  eq((await (await call('/api/discord/widget')).json()).error, 'widget_disabled', 'widget switched off → widget_disabled');
+  dc.widget.enabled = true; const room = [...dc.channels.values()].find(c => c.type === 2 && /Mafia · /.test(c.name));
+  dc.members.get('800000000000000020').voice = room.id; dc.members.get('800000000000000030').voice = room.id;
+  const wg = await (await call('/api/discord/widget')).json();
+  ok(wg.ok && wg.online >= 6 && wg.inVoice === 2 && wg.rooms.length === 1 && wg.rooms[0].n === 2 && wg.rooms[0].table && wg.avatars.length >= 6 && wg.avatars.filter(a => a.voice).length === 2, 'widget: online, 2 in the table room: ' + JSON.stringify(wg).slice(0, 300));
+  dc.members.get('800000000000000031').voice = room.id; eq((await (await call('/api/discord/widget')).json()).inVoice, 2, 'cached for 30 s');
+  await env.DB.prepare("UPDATE discord_cfg SET updated_at = 0 WHERE key = 'widget'").run(); eq((await (await call('/api/discord/widget')).json()).inVoice, 3, 'then refreshed');
+  dc.widget.enabled = false; await env.DB.prepare("UPDATE discord_cfg SET updated_at = 0 WHERE key = 'widget'").run(); eq((await (await call('/api/discord/widget')).json()).inVoice, 3, 'Discord down → the last known numbers');
   for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API', 'DISCORD_PUBLIC_KEY']) delete env[k];
+  eq((await call('/api/discord/widget')).status, 503, 'no Discord configured → 503');
   await dc.close(); }
 
 console.log('robustness');

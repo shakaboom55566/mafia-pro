@@ -1375,6 +1375,21 @@ async function syncDiscordMembers(env) {
   await saveInvites(); await cfgSet(env, 'members_count', members.length);
   return { joined: fresh.length, left: gone.length, members: members.length };
 }
+/* the finder's Discord panel: who is online on the server and who sits in voice rooms (the server widget, cached for 30 s) */
+const WIDGET_TTL = 30;
+async function apiDiscordWidget(env) {
+  if (!discordReady(env)) return json({ ok: false, error: 'discord_off' }, 503);
+  const c = await env.DB.prepare("SELECT value, updated_at FROM discord_cfg WHERE key = 'widget'").first();
+  if (c && c.value && now() - c.updated_at < WIDGET_TTL) return json(JSON.parse(c.value), 200, { 'Cache-Control': 'public, max-age=20' });
+  const r = await dcall(env, 'GET', `/guilds/${String(env.DISCORD_GUILD_ID).trim()}/widget.json`);
+  if (!r.ok || !r.data) { if (c && c.value) return json(JSON.parse(c.value)); return json({ ok: false, error: r.status === 403 ? 'widget_disabled' : 'discord_failed' }, 502); }
+  const w = r.data; const members = Array.isArray(w.members) ? w.members : []; const chans = Array.isArray(w.channels) ? w.channels : [];
+  const rooms = chans.map(ch => ({ name: String(ch.name || '').slice(0, 60), n: members.filter(m => m.channel_id === ch.id).length, table: /Mafia · [A-Z0-9]{4,8}$/.test(ch.name || '') })).filter(x => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
+  const out = { ok: true, name: w.name || 'Mafia Pro', online: Number(w.presence_count) || members.length, inVoice: members.filter(m => m.channel_id).length, rooms,
+    avatars: members.slice(0, 12).map(m => ({ name: String(m.username || '').slice(0, 32), avatar: /^https:\/\//.test(m.avatar_url || '') ? m.avatar_url : '', voice: !!m.channel_id })), invite: w.instant_invite || null, at: now() * 1000 };
+  await env.DB.prepare("INSERT INTO discord_cfg (key, value, updated_at) VALUES ('widget', ?1, ?2) ON CONFLICT(key) DO UPDATE SET value = ?1, updated_at = ?2").bind(JSON.stringify(out), now()).run();
+  return json(out, 200, { 'Cache-Control': 'public, max-age=20' });
+}
 /* the app's Discord button: a personal invite per Telegram user (whoever joins through it first is tied to that Telegram account) */
 async function welcomeChannel(env) {
   const c = await cfgGet(env, 'welcome_channel'); if (c) return c;
@@ -1524,6 +1539,7 @@ export default {
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
         const wrap = p => p.then(r => { for (const [k, v] of Object.entries(cors)) r.headers.set(k, v); return r; });
         if (req.method === 'GET' && path === '/api/leaderboard') return wrap(apiLeaderboard(env, url));
+        if (req.method === 'GET' && path === '/api/discord/widget') return wrap(apiDiscordWidget(env));
         if (req.method === 'GET' && path === '/api/clubs/top') return wrap(apiClubsTop(env, url));
         if (req.method !== 'POST') return wrap(Promise.resolve(json({ ok: false, error: 'method' }, 405)));
         let body = null; try { body = await req.json(); } catch (e) { return wrap(Promise.resolve(json({ ok: false, error: 'bad_json' }, 400))); }

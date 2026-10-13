@@ -692,7 +692,15 @@ const path = require('path'); const http = require('http');
     ok(!!(await p.$('[data-a="dc-toggle"]:not(.on)')), 'back online: Discord is off until switched on again');
     await p.click('[data-a="dc-toggle"]'); await p.waitForTimeout(900);
     // the player finds the table (flag + 🎧), sits down, joins the room, marks "on voice"
+    { dc.widget.enabled = true; const vroom = [...dc.channels.values()].find(c => c.type === 2 && c.name.includes(dcode));
+      dc.join({ id: '810000000000000001', username: 'anya' }); dc.join({ id: '810000000000000002', username: 'bogdan' }); dc.join({ id: '810000000000000003', username: 'vika' });
+      dc.members.get('810000000000000001').voice = vroom.id; dc.members.get('810000000000000002').voice = vroom.id; }
     await Q(() => { S.ui.sheet = null; LB.at = 0; go('tables'); }); await q.waitForTimeout(1000);
+    ok(await q.waitForFunction(() => !!document.querySelector('.dc-widget'), null, { timeout: 8000 }).then(() => true).catch(() => false), 'finder: the Discord panel on top');
+    const wtxt = await q.$eval('.dc-widget', el => el.textContent);
+    ok(wtxt.includes(await Q(() => tt(U().dcwOnline, { n: 3 }))) && /2\s*у голосових/.test(wtxt.replace(/\s+/g, ' ')) && wtxt.includes('Mafia · ' + dcode) && (await q.$$('.dc-widget .dcw-av')).length === 3 && (await q.$$('.dc-widget .dcw-av.v')).length === 2, 'Discord panel: 3 online, 2 in the table’s voice room (uk): ' + wtxt.replace(/\s+/g, ' ').slice(0, 200));
+    ok(await q.evaluate(() => { const w = document.querySelector('.dc-widget'); const list = document.querySelector('[data-a="lb-refresh"]'); return !!(w && list && (w.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'the panel sits above the table list');
+    await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'finder-discord.png') }).catch(() => {});
     ok(await q.evaluate(c => (LB.list || []).some(l => l.code === c && l.flag === '🇺🇦' && l.discord === true), dcode) && (await q.$eval('#app', el => el.textContent)).includes('🎧'), 'finder: the table with its flag and the Discord mark');
     await q.evaluate(async c => { await api('/api/table/join', { code: c }); tableOpen(c); }, dcode); await q.waitForTimeout(1200);
     ok(!!(await q.$('[data-a="dc-join"]')) && !!(await q.$('[data-a="dc-im-on"]')) && (await q.$eval('#app', el => el.textContent)).includes('🇺🇦'), 'player’s waiting room: join button, "I am on voice", flag');

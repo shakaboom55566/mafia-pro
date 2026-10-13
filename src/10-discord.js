@@ -92,6 +92,27 @@ Object.assign(ACT, {
   },
   'tg-channel'() { const url = channelUrl(); try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} tgHaptic('light'); }
 });
+/* «Find a table»: the Discord server right now — online, in voice rooms, which table rooms are talking (server widget via the backend) */
+const DW = { data: null, at: 0, busy: false, err: null };
+async function loadWidget(force) {
+  if (!apiBase() || DW.busy || (!force && Date.now() - DW.at < 30000)) return; DW.busy = true;
+  try { const d = await api('/api/discord/widget', null, { method: 'GET' }); DW.at = Date.now(); if (d && d.ok) { DW.data = d; DW.err = null; } else DW.err = (d && d.error) || 'network'; }
+  finally { DW.busy = false; if (S.screen === 'tables') keepFocus(render); }
+}
+function dcWidgetHTML() {
+  if (!apiBase()) return ''; if (!DW.data && !DW.busy && Date.now() - DW.at > 30000) setTimeout(() => loadWidget(false), 0);
+  const w = DW.data; if (!w) return ''; const u = U(); // no server / widget off: nothing to show
+  const tables = (w.rooms || []).filter(r => r.table).length;
+  const rooms = (w.rooms || []).map(r => `<div class="dcw-room"><span class="grow">🔊 ${esc(r.name)}</span><b>${r.n}</b></div>`).join('');
+  const av = (w.avatars || []).slice(0, 10).map(a => `<span class="dcw-av ${a.voice ? 'v' : ''}" title="${esc(a.name)}">${esc((a.name || '?').slice(0, 1).toUpperCase())}${a.avatar ? `<img src="${esc(a.avatar)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`).join('');
+  const more = Math.max(0, (w.online || 0) - (w.avatars || []).slice(0, 10).length);
+  const join = TG.app && discordOn() ? `data-a="dc-server"` : w.invite ? `data-a="dc-join" data-url="${esc(w.invite)}"` : '';
+  return `<div class="panel dc-widget"><div class="row"><div class="eyebrow grow" style="margin:0">🎧 ${u.dcwTitle}</div><span class="dcw-live"><i></i>${tt(u.dcwOnline, { n: w.online || 0 })}</span></div>
+    <div class="dcw-stats"><div><b>${w.inVoice || 0}</b><span>${u.dcwVoice}</span></div><div><b>${tables}</b><span>${u.dcwTables}</span></div></div>
+    ${rooms ? `<div class="stack-s" style="margin-top:8px">${rooms}</div>` : `<div class="hint" style="margin:8px 0 0">${u.dcwNobody}</div>`}
+    ${av ? `<div class="dcw-avs">${av}${more ? `<span class="dcw-more">+${more}</span>` : ''}</div>` : ''}
+    ${join ? `<button class="btn hl-discord" style="margin-top:10px" ${join}>${ICON_HEADSET} ${u.dcwJoin}</button>` : ''}</div>`;
+}
 (function () {
   // the room sits right under the format chooser on the setup screen
   const origSetup = setupScreen;
@@ -104,6 +125,8 @@ Object.assign(ACT, {
   };
   // the Discord / Telegram channel buttons on the home banner, under the tagline
   const origHome = homeScreen; homeScreen = function () { const html = origHome(); let l = ''; try { l = heroLinksHTML(); } catch (e) { l = ''; } const i = html.indexOf('<div class="skyline">'); return i < 0 || !l ? html : html.slice(0, i) + l + html.slice(i); };
+  // «Find a table»: the Discord panel on top, refreshed every 30 s while the screen is open
+  const origTables = tablesScreen; tablesScreen = function () { const html = origTables(); let w = ''; try { w = dcWidgetHTML(); if (Date.now() - DW.at > 30000) setTimeout(() => loadWidget(false), 0); } catch (e) { w = ''; } const i = html.indexOf('<div class="stack">'); return !w || i < 0 ? html : html.slice(0, i + 19) + w + html.slice(i + 19); };
   // offline format: the room goes (the server deletes it too)
   const origMode = ACT['on-mode']; ACT['on-mode'] = function (el) { const r = origMode.call(this, el); if (!S.setup.online && S.lobby && S.lobby.voice) { S.lobby.voice = null; DC.ask = false; save(); render(); } return r; };
   // the host's game strip carries the room link

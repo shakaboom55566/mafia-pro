@@ -513,6 +513,23 @@ p { margin: 0; }
 .hero-links .hl-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
 .hero-links .hl-tg { background: #2aabee; border-color: #2aabee; color: #fff; }
 .hero-links svg { flex: none; }
+.dc-widget { border-color: rgba(88,101,242,.5); background: linear-gradient(160deg, rgba(88,101,242,.16), transparent 60%), var(--bg-2); }
+.dcw-live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #9fe0ab; }
+.dcw-live i { width: 8px; height: 8px; border-radius: 50%; background: #3ba55d; box-shadow: 0 0 0 3px rgba(59,165,93,.25); }
+.dcw-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.dcw-stats > div { background: rgba(0,0,0,.22); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; min-width: 0; }
+.dcw-stats b { font-family: var(--font-display); font-size: 22px; color: var(--fg); line-height: 1.1; }
+.dcw-stats span { font-size: 12px; color: var(--muted); }
+.dcw-room { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.18); min-width: 0; }
+.dcw-room .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dcw-room b { color: #9fe0ab; }
+.dcw-avs { display: flex; align-items: center; margin-top: 10px; padding-left: 6px; flex-wrap: wrap; row-gap: 4px; }
+.dcw-av { width: 28px; height: 28px; border-radius: 50%; margin-left: -6px; border: 2px solid var(--bg-2); background: var(--bg-3); color: var(--gold-2); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
+.dcw-av { position: relative; }
+.dcw-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.dcw-av.v { border-color: #3ba55d; }
+.dcw-more { margin-left: 6px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.dc-widget .hl-discord { background: #5865f2; border-color: #5865f2; color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .switch.on::after { transform: translateX(20px); background: #1a1206; }
 
 /* Scenario list */
@@ -3511,6 +3528,7 @@ Object.assign(I18N.pl.ui, { lbWebHint: 'Miejsce zajmuje się w Telegramie: przyc
 Object.assign(I18N.hy.ui, { lbWebHint: 'Սեղանի մոտ կարելի է նստել Telegram-ում․ կոճակը կբացի Mafia Pro բոտը։' });
 /* ---------------- Discord voice room of an online table (v33), all languages ---------------- */
 Object.assign(I18N.ru.ui, {
+  dcwTitle: 'Discord сейчас', dcwOnline: '{n} онлайн', dcwVoice: 'в голосовых', dcwTables: 'столов в голосе', dcwNobody: 'В голосовых пока пусто — зайдите первым', dcwJoin: 'Войти в Discord',
   dcServer: 'Наш Discord', tgChannel: 'Наш канал',
   dcTitle: 'Голос в Discord', dcSwitch: 'Игра с Discord', dcSwitchD: 'Бот создаст голосовой канал на {n} мест: игроки + ведущий. Раздать карты можно, когда вы подтвердите, что все на связи.',
   dcCreating: 'Создаю голосовой канал…', dcCreated: 'Голосовой канал создан', dcRemoved: 'Голосовой канал удалён', dcJoin: 'Войти в голосовой',
@@ -3522,6 +3540,7 @@ Object.assign(I18N.ru.ui, {
   dcImOn: 'Я на связи', dcImOnDone: '✓ Я на связи', dcOnMark: 'на связи', dcTag: 'Discord', dcGame: 'Голосовой', dcTableLang: 'Язык стола'
 });
 Object.assign(I18N.uk.ui, {
+  dcwTitle: 'Discord зараз', dcwOnline: '{n} онлайн', dcwVoice: 'у голосових', dcwTables: 'столів у голосі', dcwNobody: 'У голосових поки порожньо — зайдіть першим', dcwJoin: 'Увійти в Discord',
   dcServer: 'Наш Discord', tgChannel: 'Наш канал',
   dcTitle: 'Голос у Discord', dcSwitch: 'Гра з Discord', dcSwitchD: 'Бот створить голосовий канал на {n} місць: гравці + ведучий. Роздати карти можна, коли ви підтвердите, що всі на зв’язку.',
   dcCreating: 'Створюю голосовий канал…', dcCreated: 'Голосовий канал створено', dcRemoved: 'Голосовий канал видалено', dcJoin: 'Увійти в голосовий',
@@ -3533,6 +3552,7 @@ Object.assign(I18N.uk.ui, {
   dcImOn: 'Я на зв’язку', dcImOnDone: '✓ Я на зв’язку', dcOnMark: 'на зв’язку', dcTag: 'Discord', dcGame: 'Голосовий', dcTableLang: 'Мова столу'
 });
 Object.assign(I18N.en.ui, {
+  dcwTitle: 'Discord now', dcwOnline: '{n} online', dcwVoice: 'in voice', dcwTables: 'tables on voice', dcwNobody: 'Voice rooms are empty — be the first', dcwJoin: 'Join Discord',
   dcServer: 'Our Discord', tgChannel: 'Our channel',
   dcTitle: 'Voice on Discord', dcSwitch: 'Play with Discord', dcSwitchD: 'The bot creates a voice channel for {n} people: the players + the host. Cards can be dealt once you confirm everyone is on voice.',
   dcCreating: 'Creating the voice channel…', dcCreated: 'Voice channel created', dcRemoved: 'Voice channel removed', dcJoin: 'Join voice',
@@ -3544,6 +3564,7 @@ Object.assign(I18N.en.ui, {
   dcImOn: 'I’m on voice', dcImOnDone: '✓ I’m on voice', dcOnMark: 'on voice', dcTag: 'Discord', dcGame: 'Voice', dcTableLang: 'Table language'
 });
 Object.assign(I18N.pl.ui, {
+  dcwTitle: 'Discord teraz', dcwOnline: '{n} online', dcwVoice: 'na głosowych', dcwTables: 'stołów na głosie', dcwNobody: 'Kanały głosowe są puste — wejdź pierwszy', dcwJoin: 'Wejdź na Discord',
   dcServer: 'Nasz Discord', tgChannel: 'Nasz kanał',
   dcTitle: 'Głos na Discordzie', dcSwitch: 'Gra z Discordem', dcSwitchD: 'Bot utworzy kanał głosowy dla {n} osób: gracze + prowadzący. Karty można rozdać, gdy potwierdzisz, że wszyscy są na łączach.',
   dcCreating: 'Tworzę kanał głosowy…', dcCreated: 'Kanał głosowy utworzony', dcRemoved: 'Kanał głosowy usunięty', dcJoin: 'Wejdź na kanał głosowy',
@@ -3555,6 +3576,7 @@ Object.assign(I18N.pl.ui, {
   dcImOn: 'Jestem na łączach', dcImOnDone: '✓ Jestem na łączach', dcOnMark: 'na łączach', dcTag: 'Discord', dcGame: 'Głos', dcTableLang: 'Język stołu'
 });
 Object.assign(I18N.hy.ui, {
+  dcwTitle: 'Discord-ը հիմա', dcwOnline: '{n} առցանց', dcwVoice: 'ձայնային ալիքներում', dcwTables: 'սեղան ձայնով', dcwNobody: 'Ձայնային ալիքները դատարկ են — մտեք առաջինը', dcwJoin: 'Մտնել Discord',
   dcServer: 'Մեր Discord-ը', tgChannel: 'Մեր ալիքը',
   dcTitle: 'Ձայն Discord-ում', dcSwitch: 'Խաղ Discord-ով', dcSwitchD: 'Բոտը կստեղծի ձայնային ալիք {n} հոգու համար՝ խաղացողներ + վարող։ Քարտերը կարելի է բաժանել, երբ հաստատեք, որ բոլորը կապի մեջ են։',
   dcCreating: 'Ստեղծում եմ ձայնային ալիքը…', dcCreated: 'Ձայնային ալիքը ստեղծված է', dcRemoved: 'Ձայնային ալիքը ջնջված է', dcJoin: 'Մտնել ձայնային ալիք',
@@ -7576,6 +7598,27 @@ Object.assign(ACT, {
   },
   'tg-channel'() { const url = channelUrl(); try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} tgHaptic('light'); }
 });
+/* «Find a table»: the Discord server right now — online, in voice rooms, which table rooms are talking (server widget via the backend) */
+const DW = { data: null, at: 0, busy: false, err: null };
+async function loadWidget(force) {
+  if (!apiBase() || DW.busy || (!force && Date.now() - DW.at < 30000)) return; DW.busy = true;
+  try { const d = await api('/api/discord/widget', null, { method: 'GET' }); DW.at = Date.now(); if (d && d.ok) { DW.data = d; DW.err = null; } else DW.err = (d && d.error) || 'network'; }
+  finally { DW.busy = false; if (S.screen === 'tables') keepFocus(render); }
+}
+function dcWidgetHTML() {
+  if (!apiBase()) return ''; if (!DW.data && !DW.busy && Date.now() - DW.at > 30000) setTimeout(() => loadWidget(false), 0);
+  const w = DW.data; if (!w) return ''; const u = U(); // no server / widget off: nothing to show
+  const tables = (w.rooms || []).filter(r => r.table).length;
+  const rooms = (w.rooms || []).map(r => `<div class="dcw-room"><span class="grow">🔊 ${esc(r.name)}</span><b>${r.n}</b></div>`).join('');
+  const av = (w.avatars || []).slice(0, 10).map(a => `<span class="dcw-av ${a.voice ? 'v' : ''}" title="${esc(a.name)}">${esc((a.name || '?').slice(0, 1).toUpperCase())}${a.avatar ? `<img src="${esc(a.avatar)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`).join('');
+  const more = Math.max(0, (w.online || 0) - (w.avatars || []).slice(0, 10).length);
+  const join = TG.app && discordOn() ? `data-a="dc-server"` : w.invite ? `data-a="dc-join" data-url="${esc(w.invite)}"` : '';
+  return `<div class="panel dc-widget"><div class="row"><div class="eyebrow grow" style="margin:0">🎧 ${u.dcwTitle}</div><span class="dcw-live"><i></i>${tt(u.dcwOnline, { n: w.online || 0 })}</span></div>
+    <div class="dcw-stats"><div><b>${w.inVoice || 0}</b><span>${u.dcwVoice}</span></div><div><b>${tables}</b><span>${u.dcwTables}</span></div></div>
+    ${rooms ? `<div class="stack-s" style="margin-top:8px">${rooms}</div>` : `<div class="hint" style="margin:8px 0 0">${u.dcwNobody}</div>`}
+    ${av ? `<div class="dcw-avs">${av}${more ? `<span class="dcw-more">+${more}</span>` : ''}</div>` : ''}
+    ${join ? `<button class="btn hl-discord" style="margin-top:10px" ${join}>${ICON_HEADSET} ${u.dcwJoin}</button>` : ''}</div>`;
+}
 (function () {
   // the room sits right under the format chooser on the setup screen
   const origSetup = setupScreen;
@@ -7588,6 +7631,8 @@ Object.assign(ACT, {
   };
   // the Discord / Telegram channel buttons on the home banner, under the tagline
   const origHome = homeScreen; homeScreen = function () { const html = origHome(); let l = ''; try { l = heroLinksHTML(); } catch (e) { l = ''; } const i = html.indexOf('<div class="skyline">'); return i < 0 || !l ? html : html.slice(0, i) + l + html.slice(i); };
+  // «Find a table»: the Discord panel on top, refreshed every 30 s while the screen is open
+  const origTables = tablesScreen; tablesScreen = function () { const html = origTables(); let w = ''; try { w = dcWidgetHTML(); if (Date.now() - DW.at > 30000) setTimeout(() => loadWidget(false), 0); } catch (e) { w = ''; } const i = html.indexOf('<div class="stack">'); return !w || i < 0 ? html : html.slice(0, i + 19) + w + html.slice(i + 19); };
   // offline format: the room goes (the server deletes it too)
   const origMode = ACT['on-mode']; ACT['on-mode'] = function (el) { const r = origMode.call(this, el); if (!S.setup.online && S.lobby && S.lobby.voice) { S.lobby.voice = null; DC.ask = false; save(); render(); } return r; };
   // the host's game strip carries the room link

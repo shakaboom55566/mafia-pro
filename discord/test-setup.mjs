@@ -79,6 +79,7 @@ ok(['welcome', 'language', 'news'].every(k => BigInt(ow(k, G).deny) & SEND && !(
 const hooks = [...dc.webhooks.values()]; const hk = (name, key) => hooks.some(w => w.name === name && w.channel_id === s1.channels[key]);
 ok(hk('Mafia Pro · Столы', 'lfg') && hk('Mafia Pro · Итоги', 'results') && hk('Mafia Pro · Stoły', 'lfg_pl') && hk('Mafia Pro · Підсумки', 'results_uk') && hk('Mafia Pro · Սեղաններ', 'lfg_hy') && hk('Mafia Pro · Новости', 'news'), 'webhooks per language + news');
 ok(hooks.filter(w => w.name === 'Mafia Pro · Столы').length === 1 && hooks.some(w => w.id === oldHook.id), 'the v33 webhook is reused');
+ok(dc.widget.enabled === true && dc.widget.channel_id === s1.channels.welcome, 'server widget on, its invite leads to the welcome channel');
 ok(dc.guild.system_channel_id === s1.channels.welcome && dc.guild.default_message_notifications === 1, 'welcome = system channel, notifications = mentions');
 const msgs = k => dc.messages.get(s1.channels[k]) || [];
 const lang = msgs('language'); ok(lang.length === 1 && lang[0].components[0].components.length === 5 && lang[0].components[0].components[1].custom_id === `mp:l:uk:${s1.roles.lang_uk}` && lang[0].components[1].components[0].custom_id === `mp:p:host:${s1.roles.host}`, 'the 🌐 channel: language and role buttons with the real role ids');
