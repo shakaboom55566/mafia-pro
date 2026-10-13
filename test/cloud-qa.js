@@ -642,6 +642,59 @@ const path = require('path'); const http = require('http');
   await S(() => go('settings')); await p.waitForTimeout(300);
   const swBox = await p.evaluate(() => { const sw = document.querySelector('.switch'); const row = sw.closest('.setting'); const a = sw.getBoundingClientRect(), b = row.getBoundingClientRect(); return { w: Math.round(a.width), h: Math.round(a.height), inside: a.right <= b.right + 0.5 && a.left >= b.left, vw: window.innerWidth, right: Math.round(a.right) }; });
   ok(swBox.w >= 50 && swBox.h >= 30 && swBox.inside && swBox.right <= swBox.vw, 'settings switch is full-size and stays inside its row: ' + JSON.stringify(swBox));
+  console.log('Discord voice room: online only, seats + 1, creator flag, player "on voice", host confirmation gates the deal, cleanup');
+  { const { startMockDiscord } = await import('../backend/test/mock-discord.js'); const dc = await startMockDiscord(8793);
+    Object.assign(env, { DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base });
+    await S(async () => { CLOUD.busy = false; await cloudSync(); }); await Q(async () => { CLOUD.busy = false; await cloudSync(); });
+    ok(await S(() => S.cloud.discord === true), 'the app learns that Discord is available');
+    await S(() => { S.game = null; S.lobby = null; S.ui.sheet = null; S.setup.hostRole = 'host'; S.setup.online = false; ACT.new({ dataset: {} }); }); await p.waitForTimeout(300);
+    ok(!(await p.$('[data-a="dc-toggle"]')), 'offline format: no Discord switch');
+    await p.click('[data-a="on-mode"][data-id="online"]'); await p.waitForTimeout(900);
+    const dcode = await S(() => S.lobby && S.lobby.code);
+    ok(!!dcode && !!(await p.$('[data-a="dc-toggle"]')), 'online format: the "Play with Discord" switch shows');
+    ok(await S(() => { const sw = document.querySelector('[data-a="dc-toggle"]'); const mode = document.querySelector('[data-a="on-mode"]'); return !!(sw && mode && (mode.compareDocumentPosition(sw) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'the switch sits right under the format chooser');
+    await S(() => { setN(8); S.setup.names = ['Анна', 'Богдан', 'Нина', 'Гена', 'Дима', 'Ева', 'Женя', 'Зоя']; render(); }); await p.waitForTimeout(200);
+    await p.click('[data-a="dc-toggle"]'); await p.waitForTimeout(900);
+    const ch1 = dc.channels.get(dc.lastId());
+    ok(await S(() => !!(S.lobby.voice && S.lobby.voice.on && /^https:\/\/discord\.gg\//.test(S.lobby.voice.invite))) && ch1 && ch1.name === '🇺🇦 Mafia · ' + dcode && ch1.user_limit === 9, 'room created: ' + JSON.stringify(ch1));
+    const hostTxt = await p.$eval('#app', el => el.textContent);
+    ok(hostTxt.includes(await S(() => U().dcJoin)) && hostTxt.includes(await S(() => tt(U().dcCount, { k: 0, n: 0 }))) && hostTxt.includes('🇺🇦'), 'host sees the join button, the voice count and the flag');
+    ok(await S(() => document.querySelector('[data-a="deal"]').disabled && document.querySelector('#app').textContent.includes(U().dcNeedConfirm)), 'deal button locked with the "confirm voice" hint');
+    await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'discord-host.png') }).catch(() => {});
+    await p.click('[data-a="dc-join"]'); await p.waitForTimeout(100); ok(await S(() => window.__tg.links.some(l => /^https:\/\/discord\.gg\//.test(l))), 'host opens the Discord invite');
+    // offline → room gone; back online → switch off
+    await p.click('[data-a="on-mode"][data-id="offline"]'); await p.waitForTimeout(700);
+    ok(!dc.channels.has(ch1.id) && !(await p.$('[data-a="dc-toggle"]')) && await S(() => !S.lobby.voice), 'offline → room deleted, no switch');
+    await p.click('[data-a="on-mode"][data-id="online"]'); await p.waitForTimeout(700);
+    ok(!!(await p.$('[data-a="dc-toggle"]:not(.on)')), 'back online: Discord is off until switched on again');
+    await p.click('[data-a="dc-toggle"]'); await p.waitForTimeout(900);
+    // the player finds the table (flag + 🎧), sits down, joins the room, marks "on voice"
+    await Q(() => { S.ui.sheet = null; LB.at = 0; go('tables'); }); await q.waitForTimeout(1000);
+    ok(await q.evaluate(c => (LB.list || []).some(l => l.code === c && l.flag === '🇺🇦' && l.discord === true), dcode) && (await q.$eval('#app', el => el.textContent)).includes('🎧'), 'finder: the table with its flag and the Discord mark');
+    await q.evaluate(async c => { await api('/api/table/join', { code: c }); tableOpen(c); }, dcode); await q.waitForTimeout(1200);
+    ok(!!(await q.$('[data-a="dc-join"]')) && !!(await q.$('[data-a="dc-im-on"]')) && (await q.$eval('#app', el => el.textContent)).includes('🇺🇦'), 'player’s waiting room: join button, "I am on voice", flag');
+    await q.click('[data-a="dc-join"]'); await q.waitForTimeout(100); ok(await Q(() => window.__tg.links.some(l => /^https:\/\/discord\.gg\//.test(l))), 'player opens the invite');
+    await q.click('[data-a="dc-im-on"]'); await q.waitForTimeout(600);
+    ok(await Q(() => TB.data.voice.mine === true) && (await q.$eval('[data-a="dc-im-on"]', el => el.textContent)).includes('✓'), 'player marked "on voice"');
+    await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'discord-player.png') }).catch(() => {});
+    await S(() => refreshTable()); await p.waitForTimeout(600);
+    ok(await S(() => S.lobby.voice.ok.includes(601) && !!document.querySelector('.dc-chip.on')) && (await p.$eval('#app', el => el.textContent)).includes(await S(() => tt(U().dcCount, { k: 1, n: 1 }))), 'host sees Нина on voice: 1 of 1');
+    await S(() => ACT.deal({ dataset: {} })); await p.waitForTimeout(200); ok(await S(() => !S.game), 'deal refused before the confirmation');
+    // seats change → the room follows (seats + 1)
+    await S(() => { setN(9); render(); }); await S(() => refreshTable()); await p.waitForTimeout(700); await S(() => refreshTable()); await p.waitForTimeout(400);
+    ok(dc.channels.get(dc.lastId()).user_limit === 10, '9 seats → channel limit 10: ' + dc.channels.get(dc.lastId()).user_limit);
+    await p.click('[data-a="dc-confirm"]'); await p.waitForTimeout(150);
+    ok(await S(() => DC.ask === true && !S.lobby.voice.confirmed), 'first tap asks "sure?"');
+    await p.click('[data-a="dc-confirm"]'); await p.waitForTimeout(600);
+    ok(await S(() => S.lobby.voice.confirmed === true && !document.querySelector('[data-a="deal"]').disabled), 'confirmed → deal button unlocked');
+    await q.waitForTimeout(3200); ok((await q.$eval('#app', el => el.textContent)).includes(await Q(() => U().dcConfirmedP)), 'the player sees that the host confirmed voice');
+    await S(() => { S.setup.names = ['Анна', 'Богдан', 'Нина', 'Гена', 'Дима', 'Ева', 'Женя', 'Зоя', 'Иван']; }); await S(() => ACT.deal({ dataset: {} })); await p.waitForTimeout(800);
+    ok(await S(() => !!(S.game && S.game.online && S.game.tg && S.game.tg.code))
+      && (await (await fetch('http://127.0.0.1:8791/api/table/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: pInit, code: dcode }) })).json()).pub.phase !== 'lobby', 'deal after the confirmation: the online game is published');
+    const live = dc.lastId(); await p.evaluate(c => api('/api/lobby/close', { code: c }), dcode); ok(!dc.channels.has(live), 'table closed → room deleted');
+    await S(() => { S.game = null; S.lobby = null; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300); ok(!(await p.$('[data-a="dc-toggle"]')), 'classic (offline only): no Discord switch');
+    await S(() => ACT.new({ dataset: {} })); await Q(() => { TB.code = null; TB.data = null; go('home'); });
+    for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API']) delete env[k]; await dc.close(); }
   ok(errs2.length === 0, 'no page errors on the player’s phone: ' + errs2.join(' | ').slice(0, 300));
   await ctx2.close();
 

@@ -242,3 +242,30 @@ CREATE TABLE IF NOT EXISTS lobby_opts (
   online     INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL
 );
+
+-- per-table metadata (v33): the creator's app language gives the table its flag (finder, waiting room, Discord channel)
+CREATE TABLE IF NOT EXISTS lobby_meta (
+  code       TEXT PRIMARY KEY,
+  creator_id INTEGER NOT NULL,
+  lang       TEXT NOT NULL DEFAULT 'ru',
+  updated_at INTEGER NOT NULL
+);
+-- Discord voice room of an online table (v33): seats + 1 (the host), an 8-hour invite, the host's "everyone has voice" confirmation
+CREATE TABLE IF NOT EXISTS table_voice (
+  code       TEXT PRIMARY KEY,
+  channel_id TEXT,
+  invite     TEXT,
+  seats      INTEGER NOT NULL DEFAULT 0,
+  confirmed  INTEGER NOT NULL DEFAULT 0,
+  status     TEXT NOT NULL,          -- on | error | deleted
+  error      TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+-- players who marked "I'm on voice"
+CREATE TABLE IF NOT EXISTS table_voice_ok (
+  code       TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  at         INTEGER NOT NULL,
+  PRIMARY KEY (code, tg_id)
+);

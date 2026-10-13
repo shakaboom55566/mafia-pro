@@ -82,7 +82,7 @@ async function cloudSync() {
     const o = d.owned || {}; let added = 0;
     S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
     [['roles', o.roles], ['scenarios', o.scenarios], ['packs', o.packs]].forEach(([k, arr]) => (arr || []).forEach(id => { if (!S.owned[k].includes(id)) { S.owned[k].push(id); added++; } }));
-    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null;
+    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord;
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -154,8 +154,8 @@ function lobbyIsOpen() { const l = currentLobby(); const g = S.game && !S.game.w
 async function openTable(fresh) {
   const live = S.game && !S.game.winner && S.game.tg && S.game.tg.code ? S.game : null;
   if (live && live.dealIdx >= live.players.length) { toast(U().frGameRunning); return null; } // a running game keeps its table: no second table, nobody kicked out
-  const d = await api('/api/lobby', { fresh: !!fresh }); if (!d.ok) { toast(U().tgOffline); return null; }
-  const l = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [], seats: {} };
+  const d = await api('/api/lobby', { fresh: !!fresh, lang: L.code }); if (!d.ok) { toast(U().tgOffline); return null; } // the creator's app language gives the table its flag
+  const l = { code: d.code, link: d.link, players: d.players || [], map: {}, sent: [], seats: {}, flag: d.flag || '' };
   if (S.game && !S.game.winner) { S.game.tg = l; lobbyAutoSeat(S.game); } else { S.lobby = l; setupAutoSeat(); }
   save(); render();
   if (!(S.game && !S.game.winner)) api('/api/lobby/role', { code: l.code, online: !!S.setup.online, plays: creatorPlays() }).then(r => { if (r.ok && creatorPlays()) refreshTable(); }).catch(() => {});
@@ -179,14 +179,15 @@ async function refreshTable() {
     }
     if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
   if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; }
-  l.hostInvite = d.hostInvite || null; l.hostPlays = !!d.hostPlays;
+  l.hostInvite = d.hostInvite || null; l.hostPlays = !!d.hostPlays; l.flag = d.flag || l.flag || '';
+  const voiceBefore = JSON.stringify(l.voice || null); l.voice = d.voice || null; if (typeof voiceSync === 'function') voiceSync(l);
   const beforeIds = l.players.map(p => p.tgId); const beforeJson = JSON.stringify(l.players);
   l.players = (d.players || []).filter(pl => !isMeTg(pl.tgId) || (l.hostPlays && l === S.lobby)); // the host never sits as a player — unless the creator chose to play and is still looking for a host
   if (S.game && S.game.tg === l) lobbyAutoSeat(S.game); else setupAutoSeat();
   const fresh = l.players.filter(pl => !beforeIds.includes(pl.tgId));
   const gone = JSON.parse(beforeJson).filter(pl => !l.players.some(x => x.tgId === pl.tgId));
   if (gone.length && !(S.game && S.game.tg === l)) gone.forEach(pl => { const i = l.seats ? l.seats[pl.tgId] : undefined; if (i !== undefined) { if (String(S.setup.names[i] || '').trim() === String(pl.name || '').trim()) S.setup.names[i] = ''; delete l.seats[pl.tgId]; } }); // a player who stood up frees his seat before the deal
-  const changed = JSON.stringify(l.players) !== beforeJson || JSON.stringify(l.hostInvite) !== JSON.stringify(d.hostInvite || null);
+  const changed = JSON.stringify(l.players) !== beforeJson || JSON.stringify(l.hostInvite) !== JSON.stringify(d.hostInvite || null) || JSON.stringify(l.voice) !== voiceBefore;
   if (changed) { save(); if (!selectOpen()) keepFocus(render); } // an open seat picker is not torn down under the host's finger
   if (fresh.length) { toast(tt(U().tgNewPlayer || '{name}', { name: fresh.map(x => x.name).join(', ') })); tgHaptic('light'); }
   if (gone.length) toast(tt(U().tgPlayerLeft || '{name}', { name: gone.map(x => x.name).join(', ') }));
@@ -218,7 +219,7 @@ function setupLobbyHTML(st) {
   const rolePanel = `<div class="eyebrow" style="margin-top:10px">${u.hostRoleTitle}</div><div class="segment n2" style="margin-top:6px"><button class="${plays ? '' : 'active'}" data-a="host-role" data-id="host">${u.hostRoleHost}</button><button class="${plays ? 'active' : ''}" data-a="host-role" data-id="player">${u.hostRolePlayer}</button></div>
     <div class="hint" style="margin:6px 0 0">${plays ? u.hostRolePlayerHint : u.hostRoleHostHint}</div>
     ${plays ? `<div class="row" style="margin-top:8px"><button class="btn sm primary grow" data-a="fr-go-host">🎩 ${u.inviteHost}</button></div>${hi ? `<div class="hint" style="margin:6px 0 0">${hi.status === 'pending' ? tt(u.hostInvitePending, { name: esc(hi.name) }) : hi.status === 'declined' ? tt(u.hostInviteDeclined, { name: esc(hi.name) }) : ''}</div>` : ''}` : ''}`;
-  return `<div class="panel"><div class="row"><div class="eyebrow grow">${tt(u.tgTable, { code: l.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: l.players.length })}</div></div>
+  return `<div class="panel"><div class="row"><div class="eyebrow grow">${l.flag ? l.flag + ' ' : ''}${tt(u.tgTable, { code: l.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: l.players.length })}</div></div>
     <div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="tg-share">${u.tgShare}</button><button class="btn sm grow" data-a="fr-go">${u.frInviteFriends}</button><button class="btn sm ghost" data-a="tg-lobby-refresh">${u.tgRefresh}</button></div>
     ${rolePanel}
     ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div><div class="hint" style="margin:6px 0 0">${u.tgSeatsHint}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}

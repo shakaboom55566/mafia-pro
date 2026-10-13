@@ -309,7 +309,8 @@ function setupScreen() {
     ${chips}
     <div class="names">${names}</div>
     ${typeof creatorPlays === 'function' && creatorPlays() ? `<div class="hint" style="text-align:center">${u.dealNeedsHost}</div>` : ''}
-    <div class="sticky-bottom"><button class="btn primary" data-a="deal" ${ok && !(typeof creatorPlays === 'function' && creatorPlays()) ? '' : 'disabled'}>${u.dealCards}</button></div>
+    ${typeof voiceBlocksDeal === 'function' && voiceBlocksDeal() ? `<div class="hint dc-need" style="text-align:center">🎧 ${u.dcNeedConfirm}</div>` : ''}
+    <div class="sticky-bottom"><button class="btn primary" data-a="deal" ${ok && !(typeof creatorPlays === 'function' && creatorPlays()) && !(typeof voiceBlocksDeal === 'function' && voiceBlocksDeal()) ? '' : 'disabled'}>${u.dealCards}</button></div>
   </div>`;
 }
 
@@ -856,6 +857,7 @@ const ACT = {
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
     if (typeof creatorPlays === 'function' && creatorPlays()) { toast(U().dealNeedsHost); return; }
+    if (typeof voiceBlocksDeal === 'function' && voiceBlocksDeal()) { toast(U().dcNeedConfirm); return; } // Discord table: everyone on voice first
     const sp = hostOffSeats();
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));
     S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.game.openRoles = revealDeadIn(null); S.ui.showAll = false; go('deal');

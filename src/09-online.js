@@ -194,7 +194,7 @@ async function tableFetch() {
   try {
     const d = await api('/api/table/state', { code: TB.code, since: TB.lastChat }); if (!d.ok) { TB.err = d.error || 'network'; if (d.error === 'not_seated' || d.error === 'not_found') { TB.data = null; if (S.cloud && S.cloud.table && S.cloud.table.code === TB.code) S.cloud.table = null; } if (S.screen === 'table') render(); return; } // kicked or the table is gone: say so instead of showing a stale room
     const prevKey = TB.data && TB.data.me && TB.data.me.ask ? TB.data.me.ask.key : null; const prevPhase = TB.data && TB.data.pub ? TB.data.pub.phase + (TB.data.pub.day || '') : '';
-    const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + TB.data.hostPlays + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
+    const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + TB.data.hostPlays + '|' + JSON.stringify(TB.data.voice || null) + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
     const first = !TB.data; TB.data = d; TB.err = null; TB.at = Date.now();
     const newChat = !!(d.chat && d.chat.length);
     if (newChat) { TB.chat = TB.chat.concat(d.chat).slice(-300); TB.lastChat = TB.chat[TB.chat.length - 1].id; }
@@ -204,7 +204,7 @@ async function tableFetch() {
     if (d.pub && d.pub.phase + (d.pub.day || '') !== prevPhase) TB.pick = [];
     if (Array.isArray(d.invites)) { S.cloud = S.cloud || {}; S.cloud.invites = d.invites; }
     if (d.pub && d.pub.phase === 'end' && !TB.endSynced) { TB.endSynced = true; setTimeout(() => { try { cloudSync(); } catch (e) {} }, 500); } // my rating is updated after the game
-    const sig = d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
+    const sig = d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.voice || null) + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
     if (S.screen === 'table' && (first || newChat || sig !== prevSig)) { keepFocus(render); if (newChat) scrollTbChat(); }
   } finally { TB.busy = false; }
 }
@@ -327,10 +327,11 @@ function tableScreen() {
   if (pub.phase === 'lobby' || pub.phase === 'deal') {
     const card = me && me.roleId ? tbRoleRow(me.roleId, true) : `<div class="panel" style="text-align:center"><div class="hint">${u.tbWaitHost}</div></div>`;
     const mates = me && me.mates && me.mates.length ? `<div class="panel"><div class="eyebrow">${u.tbMates}</div><div class="stack-s" style="margin-top:6px">${me.mates.map(m => `<div class="row"><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${m.seat}</span>${ROLE[m.roleId] ? sealHTML(ROLE[m.roleId]) : ''}<div class="grow"><b>${esc(m.name)}</b><div class="hint" style="margin:0">${ROLE[m.roleId] ? ROLE[m.roleId].name : ''}</div></div></div>`).join('')}</div></div>` : '';
-    return `${topbar(tt(u.tbTitle, { code: TB.code }), pub.online ? `${u.tbLobby} · ${u.tbOnlineTag}` : u.tbLobby)}<div class="stack">
+    return `${topbar(tt(u.tbTitle, { code: TB.code }), `${d.flag ? d.flag + ' ' : ''}${pub.online ? `${u.tbLobby} · ${u.tbOnlineTag}` : u.tbLobby}`)}<div class="stack">
       ${hostChipHTML(d)}
       ${roundTableHTML(seats, profiles, hostLine, marks)}
       <div class="hint" style="text-align:center">${mySeat ? tt(u.tgSeated, { seat: mySeat }) : u.tbNoSeat}</div>
+      ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, false) : ''}
       ${card}${mates}
       ${me && me.contract ? `<div class="quiet">${tt(u.tbContract, { seat: me.contract })}</div>` : ''}
       <div class="btn-row" style="justify-content:center">${d.isHost ? '' : `<button class="btn ghost sm" data-a="tb-leave" data-code="${esc(TB.code)}">${u.tbLeaveTable}</button>`}<button class="btn ghost sm" data-a="go" data-to="home">${u.tbLeaveBtn}</button></div></div>`;
@@ -363,6 +364,7 @@ function tableScreen() {
     ${body}
     ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}
     ${results}
+    ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, true) : ''}
     ${pub.online ? tbChatHTML(pub, me) : ''}
   </div>`;
 }
@@ -395,7 +397,7 @@ function lobbiesHTML() {
   if ((!LB.list || Date.now() - LB.at > 10000) && !LB.busy) setTimeout(() => loadLobbies(false), 0);
   const myId = S.cloud && S.cloud.user ? S.cloud.user.id : 0;
   const list = (LB.list || []).filter(l => l.host.tgId !== myId);
-  const rows = list.map(l => { const live = l.status === 'live'; const n = live && typeof l.alive === 'number' ? tt(u.lbAlive, { alive: l.alive, n: l.seats || l.players }) : (l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })); return `<div class="fr-row" style="padding:8px 10px;${live ? 'opacity:.75' : ''}"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.host.name)} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${n} · ${live ? `<span style="color:var(--gold-2)">${u.lbLive}</span>` : u.tbLobby}${l.via && u.lbVia[l.via] ? ` · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${u.lbVia[l.via]}</span>` : ''}${l.hostPlays ? ` · ${u.tbHostPlaysNote}` : ''}</div></div>${live ? (l.via === 'seated' ? `<button class="btn xs" data-a="lb-join" data-code="${esc(l.code)}">${u.lbOpenMine}</button>` : '') : `<button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button>`}</div>`; }).join('');
+  const rows = list.map(l => { const live = l.status === 'live'; const n = live && typeof l.alive === 'number' ? tt(u.lbAlive, { alive: l.alive, n: l.seats || l.players }) : (l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })); return `<div class="fr-row" style="padding:8px 10px;${live ? 'opacity:.75' : ''}"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.flag ? `<span title="${u.dcTableLang}">${l.flag}</span> ` : ''}${esc(l.host.name)} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${n}${l.discord ? ` · <span class="dc-tag">🎧 ${u.dcTag}</span>` : ''} · ${live ? `<span style="color:var(--gold-2)">${u.lbLive}</span>` : u.tbLobby}${l.via && u.lbVia[l.via] ? ` · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${u.lbVia[l.via]}</span>` : ''}${l.hostPlays ? ` · ${u.tbHostPlaysNote}` : ''}</div></div>${live ? (l.via === 'seated' ? `<button class="btn xs" data-a="lb-join" data-code="${esc(l.code)}">${u.lbOpenMine}</button>` : '') : `<button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button>`}</div>`; }).join('');
   return `<div class="panel" style="margin-bottom:14px"><div class="row"><div class="eyebrow grow">${u.lbTitle}${LB.list ? ` · ${list.length}` : ''}</div><button class="btn xs ghost" data-a="lb-refresh">${LB.busy ? '…' : u.tgRefresh}</button></div><div class="hint" style="margin:4px 0 8px">${u.lbHint}</div>
     ${rows ? `<div class="stack-s">${rows}</div>` : `<div class="hint">${LB.list ? u.lbEmpty : u.frLoading}</div>`}
     <div class="row" style="margin-top:10px"><input class="input grow" id="lb-code" data-a="lb-code" placeholder="${u.lbCodePh}" value="${esc(LB.code)}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8"><button class="btn sm" data-a="lb-join" data-code="" style="flex:0 0 auto">${u.lbJoinCode}</button></div></div>`;

@@ -1,5 +1,5 @@
 # Mafia Pro backend — Cloudflare Worker + D1.
-# Secrets (set by the deploy workflow, never committed): BOT_TOKEN, WEBHOOK_SECRET.
+# Secrets (set by the deploy workflow, never committed): BOT_TOKEN, WEBHOOK_SECRET, DISCORD_BOT_TOKEN (optional).
 name = "mafia-pro-api"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
@@ -16,6 +16,11 @@ STARS_PACK = "1750"
 ADMIN_IDS = "6462266188"
 # Telegram @username shown to partners for payout requests (empty = the bot itself; partners' messages to the bot are forwarded to admins)
 SUPPORT_USERNAME = ""
+# Discord voice rooms for online tables: server (guild) id and, optionally, the category for the rooms.
+# The bot token is the GitHub secret DISCORD_BOT_TOKEN; ids may also come from GitHub secrets DISCORD_GUILD_ID / DISCORD_CATEGORY_ID.
+# Empty guild id or no token = the "Play with Discord" switch is hidden in the app.
+DISCORD_GUILD_ID = ""
+DISCORD_CATEGORY_ID = ""
 
 [[d1_databases]]
 binding = "DB"

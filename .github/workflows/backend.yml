@@ -2,6 +2,7 @@ name: Deploy backend (Cloudflare Worker)
 
 # Deploys backend/ to Cloudflare Workers + D1 and points the Telegram bot's webhook at it.
 # Secrets (Settings → Secrets and variables → Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, BOT_TOKEN.
+# Optional (Discord voice rooms for online tables): DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_CATEGORY_ID.
 # Runs on every push that touches backend/, or manually: Actions → "Deploy backend" → Run workflow.
 # The (sanitized) log of the deploy steps is posted as a comment on the commit, so it can be read without opening the run.
 on:
@@ -25,6 +26,9 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+      DISCORD_CATEGORY_ID: ${{ secrets.DISCORD_CATEGORY_ID }}
       WRANGLER_SEND_METRICS: 'false'
       LOG: /tmp/mafia-deploy.log
     defaults:
@@ -79,6 +83,18 @@ jobs:
           npx wrangler d1 execute mafia-pro --remote --file=schema.sql
           } 2>&1 | tee -a "$LOG"
 
+      - name: Discord ids from secrets (optional)
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set -eo pipefail
+          { echo "## discord"
+          G=$(printf '%s' "$DISCORD_GUILD_ID" | tr -cd '0-9'); C=$(printf '%s' "$DISCORD_CATEGORY_ID" | tr -cd '0-9')
+          [ -n "$G" ] && sed -i "s/^DISCORD_GUILD_ID = \".*\"/DISCORD_GUILD_ID = \"$G\"/" wrangler.toml
+          [ -n "$C" ] && sed -i "s/^DISCORD_CATEGORY_ID = \".*\"/DISCORD_CATEGORY_ID = \"$C\"/" wrangler.toml
+          grep -q '^DISCORD_GUILD_ID = "[0-9]' wrangler.toml && echo "guild id: set" || echo "guild id: not set (Discord switch hidden)"
+          [ -n "$DISCORD_BOT_TOKEN" ] && echo "bot token: set" || echo "bot token: not set (Discord switch hidden)"
+          } 2>&1 | tee -a "$LOG"
+
       - name: Deploy worker
         if: steps.check.outputs.ready == 'true'
         id: deploy
@@ -100,6 +116,7 @@ jobs:
           { echo "## secrets"
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
           printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
+          if [ -n "$DISCORD_BOT_TOKEN" ]; then printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN; fi
           } 2>&1 | tee -a "$LOG"
           echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$GITHUB_ENV"
 
@@ -172,7 +189,7 @@ jobs:
           # never leak secrets into the comment
           node -e '
             const fs = require("fs"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
-            for (const k of ["BOT_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "WEBHOOK_SECRET"]) { const v = process.env[k]; if (v && v.length > 3) s = s.split(v).join("<" + k + ">"); }
+            for (const k of ["BOT_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "WEBHOOK_SECRET", "DISCORD_BOT_TOKEN"]) { const v = process.env[k]; if (v && v.length > 3) s = s.split(v).join("<" + k + ">"); }
             s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>");
             if (s.length > 12000) s = s.slice(0, 4000) + "\n…\n" + s.slice(-8000);
             const body = "**Deploy backend** run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s + "\n```";
