@@ -1,0 +1,165 @@
+{
+ "date": "2026-10-13",
+ "site": "https://shakaboom55566.github.io/mafia-pro/",
+ "notes": [
+  "Search Console: не подключён (нет секрета GSC_SA_KEY) — позиций и показов Google нет",
+  "Bing Webmaster: не подключён (нет секрета BING_API_KEY)"
+ ],
+ "gsc": null,
+ "summary": null,
+ "bing": null,
+ "psi": [
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/ru/",
+   "error": "429 Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'."
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/en/",
+   "error": "429 Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'."
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/ru/roles/don/",
+   "error": "429 Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'."
+  }
+ ],
+ "live": [
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/",
+   "status": 200,
+   "title": "Mafia Pro — мафия в Telegram: онлайн и за живым столом",
+   "titleLen": 54,
+   "descLen": 143,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/ru/",
+   "status": 200,
+   "title": "Мафия в Telegram — онлайн и за живым столом | Mafia Pro",
+   "titleLen": 55,
+   "descLen": 159,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/uk/",
+   "status": 200,
+   "title": "Мафія в Telegram — онлайн і за живим столом | Mafia Pro",
+   "titleLen": 55,
+   "descLen": 157,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/en/",
+   "status": 200,
+   "title": "Mafia party game on Telegram — online &amp; in person | Mafia Pro",
+   "titleLen": 65,
+   "descLen": 170,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/pl/",
+   "status": 200,
+   "title": "Mafia w Telegramie — online i przy stole | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 166,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/hy/",
+   "status": 200,
+   "title": "Մաֆիա Telegram-ում — առցանց և սեղանի շուրջ | Mafia Pro",
+   "titleLen": 54,
+   "descLen": 160,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/ru/roles/",
+   "status": 200,
+   "title": "Роли в мафии: все 55 карт с описанием | Mafia Pro",
+   "titleLen": 49,
+   "descLen": 151,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/uk/roles/",
+   "status": 200,
+   "title": "Ролі в мафії: усі 55 карт з описом | Mafia Pro",
+   "titleLen": 46,
+   "descLen": 150,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/en/roles/",
+   "status": 200,
+   "title": "Mafia game roles: all 55 cards explained | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 158,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/pl/roles/",
+   "status": 200,
+   "title": "Role w Mafii: wszystkie 55 kart z opisem | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 151,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/hy/roles/",
+   "status": 200,
+   "title": "Մաֆիայի դերերը. բոլոր 55 քարտերը նկարագրությամբ | Mafia Pro",
+   "titleLen": 59,
+   "descLen": 147,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/ru/rules/",
+   "status": 200,
+   "title": "Правила игры в мафию: классика и ролевая | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 154,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/uk/rules/",
+   "status": 200,
+   "title": "Правила гри в мафію: класика та рольова | Mafia Pro",
+   "titleLen": 51,
+   "descLen": 150,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/ru/roles/don/",
+   "status": 200,
+   "title": "Дон мафии — роль в игре Мафия | Mafia Pro",
+   "titleLen": 41,
+   "descLen": 108,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/sitemap.xml",
+   "name": "sitemap",
+   "status": 200,
+   "urls": 296
+  },
+  {
+   "url": "https://shakaboom55566.github.io/mafia-pro/841529e6217fa4547df2728c73c18141.txt",
+   "name": "indexnow-key",
+   "status": 404
+  }
+ ],
+ "rows": 0
+}
