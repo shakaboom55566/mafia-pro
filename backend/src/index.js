@@ -32,6 +32,7 @@
    - POST /api/table/invite/respond  accept / decline an in-app table invitation
    - POST /api/lobbies         open tables I can see (friends, club mates, invitations, my seats)
    - POST /api/table/join      sit down at an open table by code
+   - POST /posts/draft         channel post draft from the "Channel posts" workflow (X-Posts-Key); admins approve it in the bot, cron publishes (posts.js)
    - POST /api/lobby/discord   host: Discord voice room of an online table on / off / resize (seats + 1)
    - POST /api/lobby/voice-confirm  host: everyone is on voice → the deal opens
    - POST /api/table/voice     player: "I'm on voice"
@@ -39,6 +40,7 @@
    - GET  /                   health
    ============================================================ */
 import { Bot, verifyInitData, esc } from './tg.js';
+import { apiPostDraft, onPostCallback, onPostReply, listPosts, runPostsCron } from './posts.js';
 import { t, pickLang } from './texts.js';
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend } from './discord.js';
 
@@ -411,6 +413,7 @@ async function handleUpdate(env, bot, upd) {
 }
 async function onCallback(env, bot, q) {
   const u = q.from || {}; const lang = pickLang(u.language_code);
+  if (/^cp_/.test(q.data || '') && await onPostCallback(env, bot, q, id => isAdmin(env, id))) return;
   const cm = /^cl_(acc|dec)_(\d+)$/.exec(q.data || '');
   if (cm) {
     const r = await respondClubInvite(env, bot, u, Number(cm[2]), cm[1] === 'acc');
@@ -495,6 +498,8 @@ async function onText(env, bot, msg) {
   }
   if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') : t(lang, 'help'), play);
   if (isAdmin(env, u.id)) {
+    if (msg.reply_to_message && await onPostReply(env, bot, msg)) return;
+    if (/^\/posts(?:@\w+)?$/.test(text)) return bot.send(chat, await listPosts(env));
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
       const target = await findUser(env, g[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(g[2]) }));
@@ -1340,6 +1345,7 @@ export default {
         try { await handleUpdate(env, bot, upd); } catch (e) { console.error('update failed', e && e.stack || e); }
         return new Response('ok'); // always 200 so Telegram does not retry forever
       }
+      if (path === '/posts/draft' && req.method === 'POST') { const r = await apiPostDraft(env, bot, req); return json(r.body, r.status); }
       if (path.startsWith('/api/')) {
         const cors = corsHeaders(env, req);
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
@@ -1413,5 +1419,9 @@ export default {
       console.error(e && e.stack || e);
       return json({ ok: false, error: 'internal' }, 500);
     }
+  },
+  /* cron (wrangler.toml [triggers]): channel posts whose time has come */
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
   }
 };

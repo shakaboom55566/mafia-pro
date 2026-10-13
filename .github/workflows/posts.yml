@@ -1,0 +1,114 @@
+name: Channel posts
+
+# Sends every new or changed post file (posts/YYYY-MM-DD-HH.md) to the backend as a draft:
+# the bot DMs it to the admins with "publish at the slot / now / skip" buttons, the worker's cron publishes approved posts to @mafiaprof.
+# Rules and content plan: posts/PLAN.md. Secret: BOT_TOKEN (the request key is derived from it, nothing new to set).
+# Manual: Actions → "Channel posts" → Run workflow (file = posts/2026-10-14-12.md, or empty for all upcoming posts).
+on:
+  push:
+    branches: [main]
+    paths: ['posts/**.md', '.github/workflows/posts.yml']
+  workflow_dispatch:
+    inputs:
+      file:
+        description: 'Post file (empty = all posts with a future slot)'
+        required: false
+      force:
+        description: 'Re-send even if unchanged'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: posts
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      TZ: Europe/Kiev
+      LOG: /tmp/posts.log
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Which posts
+        id: files
+        env:
+          BEFORE: ${{ github.event.before }}
+          INPUT_FILE: ${{ inputs.file }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "$INPUT_FILE" ]; then echo "$INPUT_FILE" > files.txt; else ls posts/*.md | grep -v '/PLAN.md$' > files.txt || true; fi
+          elif [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            ls posts/*.md | grep -v '/PLAN.md$' > files.txt || true
+          else
+            git diff --name-only --diff-filter=AM "$BEFORE" "$GITHUB_SHA" -- 'posts/*.md' | grep -v '/PLAN.md$' > files.txt || true
+          fi
+          echo "## posts" | tee -a "$LOG"; cat files.txt | tee -a "$LOG"
+          echo "count=$(grep -c . files.txt || true)" >> "$GITHUB_OUTPUT"
+
+      - name: Send drafts to the bot
+        if: steps.files.outputs.count != '0'
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          [ -n "$BOT_TOKEN" ] || { echo "::error::BOT_TOKEN secret is not set"; exit 1; }
+          API=$(cat .mafia-api-url 2>/dev/null | tr -d '[:space:]')
+          [ -n "$API" ] || { echo "::error::.mafia-api-url is empty"; exit 1; }
+          export API
+          node -e '
+            const fs = require("fs"), crypto = require("crypto");
+            const key = crypto.createHash("sha256").update(process.env.BOT_TOKEN + ":mafia-pro-posts").digest("hex").slice(0, 48);
+            const api = process.env.API; const files = fs.readFileSync("files.txt", "utf8").split("\n").map(s => s.trim()).filter(Boolean);
+            const log = s => { console.log(s); fs.appendFileSync(process.env.LOG, s + "\n"); };
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+            (async () => {
+              let bad = 0;
+              for (const f of files) {
+                if (!fs.existsSync(f)) { log(`${f}: file not found`); bad++; continue; }
+                const src = fs.readFileSync(f, "utf8").replace(/\r/g, "");
+                const m = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(src);
+                if (!m) { log(`${f}: no front matter`); bad++; continue; }
+                const meta = {}; for (const line of m[1].split("\n")) { const kv = /^(\w+):\s*(.*)$/.exec(line); if (kv) meta[kv[1]] = kv[2].trim(); }
+                const sm = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/.exec(meta.slot || "");
+                if (!sm) { log(`${f}: bad slot "${meta.slot}"`); bad++; continue; }
+                const slotAt = Math.floor(new Date(`${sm[1]}T${sm[2]}:00`).getTime() / 1000); // TZ=Europe/Kiev
+                if (slotAt < Date.now() / 1000 - 6 * 3600) { log(`${f}: slot ${meta.slot} is in the past — skipped`); continue; }
+                const text = m[2].trim();
+                if (/\*\*|^#{1,6} /m.test(text)) log(`${f}: warning — markdown found, Telegram HTML expected`);
+                const body = { id: f.replace(/^posts\//, "").replace(/\.md$/, ""), slot_at: slotAt, lang: meta.lang || "uk", rubric: meta.rubric || "", text, force: process.env.FORCE === "true" };
+                let res = null, out = "";
+                for (let i = 1; i <= 10; i++) { // the backend may still be deploying in a parallel run
+                  try { res = await fetch(api + "/posts/draft", { method: "POST", headers: { "Content-Type": "application/json", "X-Posts-Key": key }, body: JSON.stringify(body) }); out = await res.text(); } catch (e) { out = String(e); res = null; }
+                  if (res && res.status !== 404 && res.status < 500) break;
+                  log(`${f}: attempt ${i} → ${res ? res.status : "network"}; retrying in 30 s`); await sleep(30000);
+                }
+                log(`${f} (${meta.slot}, ${body.lang}, ${body.rubric}): HTTP ${res ? res.status : "—"} ${out}`);
+                let d = null; try { d = JSON.parse(out); } catch (e) {}
+                if (!d || !d.ok) bad++;
+                else if (d.channelProblem) log(`::warning::${d.channelProblem}`);
+              }
+              if (bad) { log(`${bad} post(s) failed`); process.exit(1); }
+            })();
+          '
+
+      - name: Post the log as a commit comment
+        if: always() && steps.files.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          node -e '
+            const fs = require("fs"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
+            const v = process.env.BOT_TOKEN; if (v && v.length > 3) s = s.split(v).join("<BOT_TOKEN>");
+            s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>");
+            const body = "**Channel posts** run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s.slice(-12000) + "\n```";
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/comment.json", JSON.stringify({ body }));
+          '
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input "$RUNNER_TEMP/comment.json" > /dev/null && echo "log posted"

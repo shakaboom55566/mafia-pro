@@ -285,3 +285,18 @@ CREATE TABLE IF NOT EXISTS discord_posts (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (code, kind)
 );
+-- Telegram channel posts (v34): drafts from posts/ in the repository, approved by an admin in the bot, published at slot_at by the cron
+CREATE TABLE IF NOT EXISTS channel_posts (
+  id          TEXT PRIMARY KEY,      -- file name, e.g. 2026-10-14-12
+  slot_at     INTEGER NOT NULL,      -- unix time to publish
+  lang        TEXT NOT NULL,
+  rubric      TEXT,
+  text        TEXT NOT NULL,         -- Telegram HTML
+  status      TEXT NOT NULL,         -- draft | approved | posting | posted | skipped | failed
+  admin_msgs  TEXT,                  -- JSON [{chat, msg}] of the draft cards
+  channel_msg INTEGER,
+  error       TEXT,
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS channel_posts_due ON channel_posts (status, slot_at);

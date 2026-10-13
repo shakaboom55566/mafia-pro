@@ -6,6 +6,7 @@ import { makeD1 } from './d1-shim.js';
 import { startMockTelegram } from './mock-telegram.js';
 import { startMockDiscord } from './mock-discord.js';
 import { signInitData } from '../src/tg.js';
+import { postsKey, entitiesToHtml } from '../src/posts.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const worker = (await import('../src/index.js')).default;
@@ -713,6 +714,69 @@ console.log('discord server webhooks: the #ищу-игру card follows an onlin
   ok(rr.status === 200 && card().length === n0, 'no webhook → the table works, nothing posted');
   for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API']) delete env[k];
   await dc.close(); }
+console.log('channel posts (drafts → admin approval → channel)');
+{ env.CHANNEL_ID = '@mafiaprof';
+  const key = await postsKey('test-token');
+  const draft = (b, k = key) => post('/posts/draft', b, { 'X-Posts-Key': k });
+  const cb = (from, data, mid = 1) => hook({ update_id: 500, callback_query: { id: 'q' + data, from, data, message: { message_id: mid, chat: { id: from.id } } } });
+  const st = id => env.DB.prepare('SELECT * FROM channel_posts WHERE id = ?1').bind(id).first();
+  const adm = user(777, 'ru'); const stranger = user(778, 'ru');
+  const toChannel = () => tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === '@mafiaprof');
+  const future = now() + 3600, past = now() - 60;
+  eq((await draft({ id: '2026-10-14-12', slot_at: future, lang: 'uk', text: 'x' }, 'wrong')).status, 403, 'wrong key → 403');
+  eq((await draft({ id: 'bad id!', slot_at: future, text: 'x' })).status, 400, 'bad id → 400');
+  eq((await draft({ id: 'p-long', slot_at: future, text: 'x'.repeat(3600) })).status, 400, 'too long → 400');
+  let r = await draft({ id: 'p-12', slot_at: future, lang: 'uk', rubric: 'Роль дня', text: '<b>Шериф</b> перевіряє вночі' }); let d = await r.json();
+  ok(r.status === 200 && d.ok && d.sentTo === 1 && d.channelProblem === null, 'draft accepted, sent to the admin');
+  let card = lastTo(777); ok(card.params.text.includes('<b>Шериф</b>') && card.params.text.includes('🇺🇦') && card.params.text.includes('Роль дня'), 'card shows the text, flag and rubric');
+  const kb = card.params.reply_markup.inline_keyboard; ok(kb[0][0].callback_data === 'cp_ok_p-12' && kb[0][1].callback_data === 'cp_now_p-12' && kb[1][0].callback_data === 'cp_skip_p-12', 'approve / now / skip buttons');
+  d = await (await draft({ id: 'p-12', slot_at: future, lang: 'uk', rubric: 'Роль дня', text: '<b>Шериф</b> перевіряє вночі' })).json(); ok(d.unchanged, 'same draft again → unchanged, no second card');
+  await cb(stranger, 'cp_ok_p-12'); eq((await st('p-12')).status, 'draft', 'a non-admin cannot approve');
+  await cb(adm, 'cp_ok_p-12'); eq((await st('p-12')).status, 'approved', 'approved for the slot');
+  ok(lastCall('editMessageText').params.reply_markup.inline_keyboard[0][1].callback_data === 'cp_undo_p-12', 'card now offers undo');
+  await worker.scheduled({}, env, { waitUntil: p => p }); await new Promise(res => setTimeout(res, 50));
+  eq(toChannel().length, 0, 'cron: not yet time → nothing posted');
+  await env.DB.prepare('UPDATE channel_posts SET slot_at = ?1 WHERE id = ?2').bind(past, 'p-12').run();
+  let waits = []; await worker.scheduled({}, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
+  eq(toChannel().length, 1, 'cron: due → posted to the channel');
+  const cm = toChannel()[0]; ok(cm.params.text === '<b>Шериф</b> перевіряє вночі' && cm.params.parse_mode === 'HTML', 'channel gets the exact text');
+  ok(cm.params.reply_markup.inline_keyboard[0][0].text === '🎲 Грати' && cm.params.reply_markup.inline_keyboard[0][0].url === 'https://t.me/mafiapro_test_bot?start=channel', 'play button in the post language');
+  eq((await st('p-12')).status, 'posted', 'status posted');
+  waits = []; await worker.scheduled({}, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits); eq(toChannel().length, 1, 'never posted twice');
+  d = await (await draft({ id: 'p-12', slot_at: future, lang: 'uk', text: 'changed' })).json(); ok(d.unchanged && d.status === 'posted', 'a posted post is not overwritten by the repo');
+  // skip, undo, publish now
+  await draft({ id: 'p-18', slot_at: future, lang: 'ru', rubric: 'Анонс', text: 'Вечером играем' });
+  await cb(adm, 'cp_skip_p-18'); eq((await st('p-18')).status, 'skipped', 'skipped');
+  await cb(adm, 'cp_undo_p-18'); eq((await st('p-18')).status, 'draft', 'back to draft');
+  await cb(adm, 'cp_now_p-18'); eq((await st('p-18')).status, 'posted', 'publish now');
+  ok(toChannel().pop().params.reply_markup.inline_keyboard[0][0].text === '🎲 Играть', 'ru button');
+  // approve after the slot passed → goes out at once
+  await draft({ id: 'p-late', slot_at: past, lang: 'uk', text: 'Пізно' }); await cb(adm, 'cp_ok_p-late'); eq((await st('p-late')).status, 'posted', 'late approval publishes immediately');
+  // edit by reply, formatting kept
+  await draft({ id: 'p-edit', slot_at: future, lang: 'ru', text: 'Старый текст' });
+  const mid = JSON.parse((await st('p-edit')).admin_msgs)[0].msg;
+  await hook({ update_id: 501, message: { message_id: 900, from: adm, chat: { id: 777, type: 'private' }, text: 'Новый текст со ссылкой', entities: [{ type: 'bold', offset: 0, length: 5 }, { type: 'text_link', offset: 15, length: 7, url: 'https://t.me/mafiaprof' }], reply_to_message: { message_id: mid } } });
+  const ed = await st('p-edit'); eq(ed.text, '<b>Новый</b> текст со <a href="https://t.me/mafiaprof">ссылкой</a>', 'reply replaces the text with HTML');
+  ok(tg.calls.some(c => c.method === 'deleteMessage' && c.params.message_id === mid), 'old card removed');
+  ok(lastTo(777).params.text.includes('<b>Новый</b>'), 'new card sent');
+  ok(JSON.parse(ed.admin_msgs)[0].msg !== mid, 'new card id remembered');
+  await hook({ update_id: 502, message: { message_id: 901, from: stranger, chat: { id: 778, type: 'private' }, text: 'hack', reply_to_message: { message_id: JSON.parse(ed.admin_msgs)[0].msg } } }); eq((await st('p-edit')).text, ed.text, 'a non-admin reply changes nothing');
+  eq(entitiesToHtml('a<b', []), 'a&lt;b', 'plain text escaped');
+  eq(entitiesToHtml('abc', [{ type: 'bold', offset: 0, length: 3 }, { type: 'italic', offset: 1, length: 1 }]), '<b>a<i>b</i>c</b>', 'nested entities');
+  // channel problems: not an admin → warning on the card; failed send → failed + retry button
+  env.BOT_ID = '1'; tg.state.member = { status: 'member' };
+  d = await (await draft({ id: 'p-warn', slot_at: future, lang: 'ru', text: 'Проверка' })).json();
+  ok(d.channelProblem && d.channelProblem.includes('не администратор'), 'not an admin → reported to the workflow');
+  ok(lastTo(777).params.text.includes('⚠️ бот не администратор'), 'warning on the card');
+  tg.state.failChats.add('@mafiaprof');
+  await cb(adm, 'cp_now_p-warn'); const fw = await st('p-warn'); ok(fw.status === 'failed' && fw.error.includes('не администратор'), 'failed with the reason');
+  ok(lastCall('editMessageText').params.reply_markup.inline_keyboard[0][0].callback_data === 'cp_now_p-warn', 'retry button');
+  tg.state.failChats.clear(); tg.state.member = { status: 'administrator', can_post_messages: true };
+  await cb(adm, 'cp_now_p-warn'); eq((await st('p-warn')).status, 'posted', 'retry publishes');
+  delete env.BOT_ID;
+  await hook(msg(adm, '/posts')); const lp = lastTo(777).params.text; ok(lp.includes('@mafiaprof') && lp.includes('опубликован'), '/posts lists posts');
+  await hook(msg(stranger, '/posts')); ok(!lastTo(778).params.text.includes('@mafiaprof'), '/posts is admin-only');
+  delete env.CHANNEL_ID; }
 
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
