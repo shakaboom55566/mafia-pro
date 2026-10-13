@@ -11,15 +11,41 @@
  "psi": [
   {
    "url": "https://shakaboom55566.github.io/mafia-pro/ru/",
-   "error": "429 Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'."
+   "performance": 99,
+   "seo": 100,
+   "accessibility": 100,
+   "lcp": "1.7 s",
+   "cls": "0.041",
+   "tbt": "0 ms",
+   "fails": [],
+   "field": null,
+   "source": "lighthouse"
   },
   {
    "url": "https://shakaboom55566.github.io/mafia-pro/en/",
-   "error": "429 Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'."
+   "performance": 99,
+   "seo": 100,
+   "accessibility": 100,
+   "lcp": "1.6 s",
+   "cls": "0.003",
+   "tbt": "0 ms",
+   "fails": [],
+   "field": null,
+   "source": "lighthouse"
   },
   {
    "url": "https://shakaboom55566.github.io/mafia-pro/ru/roles/don/",
-   "error": "429 Quota exceeded for quota metric 'Queries' and limit 'Queries per day' of service 'pagespeedonline.googleapis.com' for consumer 'project_number:583797351490'."
+   "performance": 89,
+   "seo": 100,
+   "accessibility": 100,
+   "lcp": "3.7 s",
+   "cls": "0.003",
+   "tbt": "0 ms",
+   "fails": [
+    "Largest Contentful Paint"
+   ],
+   "field": null,
+   "source": "lighthouse"
   }
  ],
  "live": [
@@ -158,7 +184,7 @@
   {
    "url": "https://shakaboom55566.github.io/mafia-pro/841529e6217fa4547df2728c73c18141.txt",
    "name": "indexnow-key",
-   "status": 404
+   "status": 200
   }
  ],
  "rows": 0
