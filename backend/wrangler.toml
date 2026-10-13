@@ -20,7 +20,7 @@ SUPPORT_USERNAME = ""
 # The bot token is the GitHub secret DISCORD_BOT_TOKEN; ids may also come from GitHub secrets DISCORD_GUILD_ID / DISCORD_CATEGORY_ID.
 # Empty guild id or no token = the "Play with Discord" switch is hidden in the app.
 DISCORD_GUILD_ID = ""
-DISCORD_CATEGORY_ID = ""
+DISCORD_CATEGORY_ID = "1559482164825952332"
 
 [[d1_databases]]
 binding = "DB"
