@@ -819,6 +819,60 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .shop-grid .buy { margin-top: 6px; width: 100%; }
 .premium-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: #f0cd7a; color: #1a1206; font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 @media (prefers-reduced-motion: reduce) { .art-svg .fx-rise, .art-svg .fx-swing, .art-svg .fx-pulse, .art-svg .fx-rain, .art-svg .fx-drift, .card.premium .shine::before, .cardback .back-shine, .cardback .back-ring, .card.premium .gem { animation: none; } }
+
+/* ---------- Classic online: hands (the Don's signs, the family's shot), the hand vote ---------- */
+.hand { display: inline-block; vertical-align: middle; overflow: visible; }
+.hand .pm { fill: #e8c4a0; stroke: #8a5a3a; stroke-width: 2.5; stroke-linejoin: round; }
+.hand .fg { fill: #e8c4a0; stroke: #8a5a3a; stroke-width: 2.5; stroke-linejoin: round; transform-box: fill-box; transform-origin: 50% 100%; }
+.hand .kn { fill: #d9ac86; stroke: #8a5a3a; stroke-width: 2.5; }
+.hand .th { fill: #e8c4a0; stroke: #8a5a3a; stroke-width: 2.5; stroke-linejoin: round; }
+.hand.gold .pm, .hand.gold .fg, .hand.gold .kn, .hand.gold .th { fill: var(--gold-2); stroke: #6b4d17; }
+.hand.dim { opacity: .45; }
+.hand.fire .fg.up { animation: handBend .5s cubic-bezier(.3,.9,.3,1.2) both; }
+.hand.fire { animation: handKick .5s ease-out both; }
+@keyframes handBend { 0% { transform: scaleY(1); } 35% { transform: scaleY(.42); } 100% { transform: scaleY(1); } }
+@keyframes handKick { 0% { transform: translateY(0); } 30% { transform: translateY(-8px) rotate(-4deg); } 100% { transform: translateY(0); } }
+.dl-seq { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: flex-end; min-height: 96px; padding: 8px 4px; }
+.dl-seq.big { min-height: 120px; }
+.dl-seq .dl-empty { color: var(--muted); font-size: 13px; align-self: center; }
+.dl-tok { display: inline-flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-width: 64px; min-height: 84px; padding: 6px 8px; border-radius: 14px; background: var(--bg-3); border: 1px solid var(--line-2); }
+.dl-tok.new { animation: pop .3s cubic-bezier(.2,.9,.3,1.3); }
+.dl-seq.big .dl-tok { min-width: 84px; min-height: 108px; padding: 8px 10px; }
+.dl-tok .cap { font-size: 11px; color: var(--fg-2); font-weight: 700; text-align: center; line-height: 1.15; max-width: 110px; }
+.dl-tok .word { font-family: var(--font-display); font-weight: 900; font-size: 18px; line-height: 1.05; text-align: center; color: var(--gold-2); max-width: 110px; overflow-wrap: anywhere; hyphens: auto; }
+.dl-seq.big .dl-tok .word { font-size: 22px; }
+.dl-tok .mk { font-family: var(--font-display); font-weight: 900; font-size: 30px; line-height: 1; color: var(--fg); display: flex; align-items: center; gap: 6px; }
+.dl-seq.big .dl-tok .mk { font-size: 40px; }
+.dl-tok .mk svg { width: 26px; height: 26px; } .dl-seq.big .dl-tok .mk svg { width: 34px; height: 34px; }
+.dl-tok.link { background: var(--bg-2); border-style: dashed; } .dl-tok.link .word { color: var(--fg-2); }
+.dl-tok.who .word { color: var(--steel-2); } .dl-tok.no .word { color: var(--crimson-2); } .dl-tok.yes .word { color: #9fe0ab; }
+.dl-pal { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; } .dl-pal.c3 { grid-template-columns: repeat(3, 1fr); }
+.dl-pal .pk { padding: 6px 2px 5px; min-height: 64px; justify-content: flex-end; }
+.dl-pal .pk .cap { font-size: 10px; font-weight: 700; color: var(--fg-2); line-height: 1.1; text-align: center; max-width: 100%; }
+.dl-pal .pk .word { font-family: var(--font-display); font-weight: 900; font-size: 12.5px; line-height: 1.1; color: var(--gold-2); text-align: center; max-width: 100%; overflow-wrap: anywhere; hyphens: auto; padding: 0 2px; }
+.dl-pal .pk .mk { font-family: var(--font-display); font-weight: 900; font-size: 16px; display: flex; align-items: center; gap: 3px; } .dl-pal .pk .mk svg { width: 16px; height: 16px; }
+.dl-cat { margin: 10px 0 4px; }
+.hs { text-align: center; }
+.hs .hs-num { font-family: var(--font-display); font-weight: 900; font-size: 72px; line-height: 1; min-height: 76px; color: var(--fg); letter-spacing: -.02em; }
+.hs .hs-num.lead { font-size: 18px; color: var(--gold-2); display: flex; align-items: center; justify-content: center; }
+.hs .hs-num.over { color: var(--muted); font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.hs-hands { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.hs-hand { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 86px; padding: 8px 6px; border-radius: 14px; background: var(--bg-3); border: 1px solid var(--line-2); transition: border-color .2s; }
+.hs-hand.me { border-color: var(--gold-dim); } .hs-hand.fired { border-color: var(--crimson); background: rgba(199,66,58,.12); }
+.hs-hand .lb { font-size: 11px; color: var(--muted); font-weight: 700; } .hs-hand .lb b { color: var(--fg); }
+.hs-hand .at { font-family: var(--font-mono); font-size: 12px; color: var(--fg-2); min-height: 16px; } .hs-hand.fired .at { color: var(--crimson-2); font-weight: 700; }
+.hs-fire { width: 100%; margin-top: 12px; padding: 16px; font-size: 18px; border-radius: 16px; }
+.hs-res { margin-top: 10px; font-weight: 800; font-size: 15px; } .hs-res.hit { color: var(--crimson-2); } .hs-res.miss { color: var(--muted); }
+.pl-bar { height: 6px; border-radius: 3px; background: var(--bg-3); border: 1px solid var(--line); overflow: hidden; margin-top: 8px; }
+.pl-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--gold-2), var(--gold)); transition: width .25s linear; }
+.pl-bar.over i { background: var(--muted); }
+.pl-for { font-family: var(--font-display); font-weight: 900; font-size: 24px; line-height: 1.1; text-align: center; margin-top: 4px; }
+.pl-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.pl-btns .btn { padding: 16px 8px; font-size: 16px; border-radius: 16px; }
+.pl-btns .btn.sel { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pl-cands { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+.pl-cands span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-weight: 700; font-size: 13px; background: var(--bg-3); border: 1px solid var(--line-2); color: var(--fg-2); }
+.pl-cands span.cur { background: var(--gold); color: #1a1206; border-color: transparent; } .pl-cands span.done { opacity: .5; }
 </style>
 </head><body>
 <div id="app"></div>
@@ -3526,6 +3580,68 @@ Object.assign(I18N.uk.ui, { lbWebHint: 'Сісти за стіл можна в T
 Object.assign(I18N.en.ui, { lbWebHint: 'Seats are taken in Telegram: the button opens the Mafia Pro bot.' });
 Object.assign(I18N.pl.ui, { lbWebHint: 'Miejsce zajmuje się w Telegramie: przycisk otworzy bota Mafia Pro.' });
 Object.assign(I18N.hy.ui, { lbWebHint: 'Սեղանի մոտ կարելի է նստել Telegram-ում․ կոճակը կբացի Mafia Pro բոտը։' });
+
+/* ---------------- Classic online: the Don's finger signs at night 0, the family's hands at night, the hand vote by day ---------------- */
+Object.assign(I18N.ru.ui, {
+  onOnlineClassicD: 'Как за столом: в нулевую ночь Дон показывает распальцовку жестами, ночью мафия стреляет руками на счёт ведущего, днём все голосуют одновременно по каждому кандидату.',
+  dlTitle: 'Договорка', dlHint: 'Нажимайте жесты — семья видит их сразу. Как только мафия уснёт, они пропадут с экранов.', dlWatch: 'Дон показывает', dlEmpty: 'Дон ещё ничего не показал', dlUndo: 'Стереть', dlClear: 'Очистить', dlSec: '{n} с',
+  dlCat: { num: 'Номера', mark: 'Ночь · день', who: 'В кого', what: 'Что делаем', link: 'Связки' },
+  dlTok: { night: 'Ночь {n}', day: 'День {n}', prev: '№−1', next: '№+1', nomBy: 'Кто выставил', nomFirst: 'Первый выставленный', nomLast: 'Последний выставленный', voteFirst: 'Первый голос', sheriff: 'Шериф', checked: 'Проверенный', leader: 'Лидер', victim: 'От убитого', gone: 'От ушедшего', us: 'Наш',
+    repeat: 'Повтор', miss: 'Промах', free: 'По ситуации', follow: 'За мной', answer: 'Ответка', fakeMe: 'Я — шериф', fakeYou: 'Ты — шериф', nominate: 'Выставляем', vote: 'Голосуем', spare: 'Не трогаем', split: 'Врозь',
+    if: 'Если', else: 'Иначе', then: 'Потом', yes: 'Да', no: 'Нет' },
+  hsTitle: 'Мафия стреляет', hsWake: 'Мафия просыпается…', hsCount: 'Ведущий считает', hsFire: 'Выстрел', hsShotAt: 'выстрел на «{n}»', hsOnTable: 'рука на столе', hsHit: 'Все руки на «{n}»', hsMiss: 'Руки разошлись — промах', hsMissNone: 'Никто не выстрелил — промах', hsMissDead: 'Выстрел в выбывшего — промах', hsOver: 'Счёт окончен', hsWait: 'ждём руки: {list}',
+  hsHostHint: 'Мафия стреляет со своих телефонов на счёт 1–10: кулак → два пальца → выстрел. Все на одном номере — убит, иначе промах. Номер можно выбрать и вручную.', hsAuto: 'Руки семьи', hsStrip: 'руки: {list}',
+  plTitle: 'Голосование', plFor: 'Голосуем за №{seat}', plYes: 'Голосую', plNo: 'Не голосую', plStart: 'Начать голосование', plStop: 'Вручную', plLast: 'Остальные голоса — за №{seat}', plVoted: 'Вы проголосовали за №{seat}', plSent: 'Принято', plOver: 'Окно закрыто', plCant: 'В этом туре вы не голосуете', plWait: 'Ждём ведущего', plOf: '{k} из {n}',
+  plHostHint: 'Кандидаты по очереди, по {s} с на каждого: игроки жмут «Голосую» или «Не голосую» одновременно, ответы скрыты до конца окна. Кто не проголосовал — уходит в последнего.', plRunning: 'Идёт голосование', plManualHint: 'Автоголосование выключено: игроки выбирают кандидата сами, ведущий закрывает голосование.' });
+Object.assign(I18N.ru.e, { logDeal: 'Договорка Дона: {list}', logHandsHit: 'Мафия стреляет руками: {list} → {target}', logHandsMiss: 'Промах: руки разошлись ({list})', logPollStart: 'Голосование по кандидатам: {list}', logPollCand: 'За {seat}: {list}' });
+Object.assign(I18N.uk.ui, {
+  onOnlineClassicD: 'Як за столом: у нульову ніч Дон показує розпальцовку жестами, вночі мафія стріляє руками на рахунок ведучого, вдень усі голосують одночасно за кожного кандидата.',
+  dlTitle: 'Домовленість', dlHint: 'Натискайте жести — сім’я бачить їх одразу. Щойно мафія засне, вони зникнуть з екранів.', dlWatch: 'Дон показує', dlEmpty: 'Дон ще нічого не показав', dlUndo: 'Стерти', dlClear: 'Очистити', dlSec: '{n} с',
+  dlCat: { num: 'Номери', mark: 'Ніч · день', who: 'У кого', what: 'Що робимо', link: 'Зв’язки' },
+  dlTok: { night: 'Ніч {n}', day: 'День {n}', prev: '№−1', next: '№+1', nomBy: 'Хто виставив', nomFirst: 'Перший виставлений', nomLast: 'Останній виставлений', voteFirst: 'Перший голос', sheriff: 'Шериф', checked: 'Перевірений', leader: 'Лідер', victim: 'Від убитого', gone: 'Від того, хто пішов', us: 'Наш',
+    repeat: 'Повтор', miss: 'Промах', free: 'За ситуацією', follow: 'За мною', answer: 'Відповідь', fakeMe: 'Я — шериф', fakeYou: 'Ти — шериф', nominate: 'Виставляємо', vote: 'Голосуємо', spare: 'Не чіпаємо', split: 'Нарізно',
+    if: 'Якщо', else: 'Інакше', then: 'Потім', yes: 'Так', no: 'Ні' },
+  hsTitle: 'Мафія стріляє', hsWake: 'Мафія прокидається…', hsCount: 'Ведучий рахує', hsFire: 'Постріл', hsShotAt: 'постріл на «{n}»', hsOnTable: 'рука на столі', hsHit: 'Усі руки на «{n}»', hsMiss: 'Руки розійшлися — промах', hsMissNone: 'Ніхто не вистрілив — промах', hsMissDead: 'Постріл у вибулого — промах', hsOver: 'Рахунок закінчено', hsWait: 'чекаємо руки: {list}',
+  hsHostHint: 'Мафія стріляє зі своїх телефонів на рахунок 1–10: кулак → два пальці → постріл. Усі на одному номері — вбитий, інакше промах. Номер можна обрати і вручну.', hsAuto: 'Руки сім’ї', hsStrip: 'руки: {list}',
+  plTitle: 'Голосування', plFor: 'Голосуємо за №{seat}', plYes: 'Голосую', plNo: 'Не голосую', plStart: 'Почати голосування', plStop: 'Вручну', plLast: 'Решта голосів — за №{seat}', plVoted: 'Ви проголосували за №{seat}', plSent: 'Прийнято', plOver: 'Вікно закрито', plCant: 'У цьому турі ви не голосуєте', plWait: 'Чекаємо ведучого', plOf: '{k} з {n}',
+  plHostHint: 'Кандидати по черзі, по {s} с на кожного: гравці тиснуть «Голосую» або «Не голосую» одночасно, відповіді приховані до кінця вікна. Хто не проголосував — іде в останнього.', plRunning: 'Триває голосування', plManualHint: 'Автоголосування вимкнено: гравці обирають кандидата самі, ведучий закриває голосування.' });
+Object.assign(I18N.uk.e, { logDeal: 'Домовленість Дона: {list}', logHandsHit: 'Мафія стріляє руками: {list} → {target}', logHandsMiss: 'Промах: руки розійшлися ({list})', logPollStart: 'Голосування за кандидатами: {list}', logPollCand: 'За {seat}: {list}' });
+Object.assign(I18N.en.ui, {
+  onOnlineClassicD: 'Just like at the table: on night zero the Don gives the finger signs, at night the mafia shoots with their hands on the host’s count, by day everyone votes at once on each candidate.',
+  dlTitle: 'The plan', dlHint: 'Tap the signs — the family sees them at once. As soon as the mafia falls asleep they vanish from every screen.', dlWatch: 'The Don shows', dlEmpty: 'The Don has shown nothing yet', dlUndo: 'Erase', dlClear: 'Clear', dlSec: '{n} s',
+  dlCat: { num: 'Numbers', mark: 'Night · day', who: 'Whom', what: 'What we do', link: 'Links' },
+  dlTok: { night: 'Night {n}', day: 'Day {n}', prev: 'No. −1', next: 'No. +1', nomBy: 'Who nominated', nomFirst: 'First nominated', nomLast: 'Last nominated', voteFirst: 'First vote', sheriff: 'Sheriff', checked: 'Checked one', leader: 'Leader', victim: 'From the victim', gone: 'From the one voted out', us: 'Ours',
+    repeat: 'Repeat', miss: 'Miss', free: 'Play it by ear', follow: 'Follow me', answer: 'Payback', fakeMe: 'I’m the Sheriff', fakeYou: 'You’re the Sheriff', nominate: 'Nominate', vote: 'Vote', spare: 'Leave alone', split: 'Split up',
+    if: 'If', else: 'Else', then: 'Then', yes: 'Yes', no: 'No' },
+  hsTitle: 'The mafia shoots', hsWake: 'The mafia wakes up…', hsCount: 'The host counts', hsFire: 'Shoot', hsShotAt: 'shot at “{n}”', hsOnTable: 'hand on the table', hsHit: 'All hands on “{n}”', hsMiss: 'Hands differ — a miss', hsMissNone: 'Nobody shot — a miss', hsMissDead: 'Shot at an eliminated seat — a miss', hsOver: 'Count over', hsWait: 'waiting for hands: {list}',
+  hsHostHint: 'The mafia shoots from their phones on the count of 1–10: fist → two fingers → shot. All on one number — a kill, otherwise a miss. You can still pick the number by hand.', hsAuto: 'The family’s hands', hsStrip: 'hands: {list}',
+  plTitle: 'Vote', plFor: 'Voting for No. {seat}', plYes: 'I vote', plNo: 'I don’t', plStart: 'Start the vote', plStop: 'By hand', plLast: 'The remaining votes go to No. {seat}', plVoted: 'You voted for No. {seat}', plSent: 'Received', plOver: 'Window closed', plCant: 'You don’t vote in this round', plWait: 'Waiting for the host', plOf: '{k} of {n}',
+  plHostHint: 'Candidates one by one, {s} s each: players press “I vote” or “I don’t” at the same time, answers stay hidden until the window closes. Whoever hasn’t voted goes to the last candidate.', plRunning: 'Vote in progress', plManualHint: 'Automatic vote is off: players pick a candidate themselves, the host closes the vote.' });
+Object.assign(I18N.en.e, { logDeal: 'The Don’s plan: {list}', logHandsHit: 'The mafia shoots by hand: {list} → {target}', logHandsMiss: 'Miss: hands differ ({list})', logPollStart: 'Vote on the candidates: {list}', logPollCand: 'For {seat}: {list}' });
+Object.assign(I18N.pl.ui, {
+  onOnlineClassicD: 'Jak przy stole: w zerową noc Don pokazuje znaki palcami, nocą mafia strzela rękami na odliczanie prowadzącego, w dzień wszyscy głosują jednocześnie na każdego kandydata.',
+  dlTitle: 'Umowa', dlHint: 'Dotykaj znaków — rodzina widzi je od razu. Gdy tylko mafia zaśnie, znikną z ekranów.', dlWatch: 'Don pokazuje', dlEmpty: 'Don jeszcze nic nie pokazał', dlUndo: 'Cofnij', dlClear: 'Wyczyść', dlSec: '{n} s',
+  dlCat: { num: 'Numery', mark: 'Noc · dzień', who: 'W kogo', what: 'Co robimy', link: 'Łączniki' },
+  dlTok: { night: 'Noc {n}', day: 'Dzień {n}', prev: 'Nr −1', next: 'Nr +1', nomBy: 'Kto wystawił', nomFirst: 'Pierwszy wystawiony', nomLast: 'Ostatni wystawiony', voteFirst: 'Pierwszy głos', sheriff: 'Szeryf', checked: 'Sprawdzony', leader: 'Lider', victim: 'Od ofiary', gone: 'Od wygłosowanego', us: 'Nasz',
+    repeat: 'Powtórka', miss: 'Pudło', free: 'Według sytuacji', follow: 'Za mną', answer: 'Odwet', fakeMe: 'Ja — szeryf', fakeYou: 'Ty — szeryf', nominate: 'Wystawiamy', vote: 'Głosujemy', spare: 'Nie ruszamy', split: 'Osobno',
+    if: 'Jeśli', else: 'Inaczej', then: 'Potem', yes: 'Tak', no: 'Nie' },
+  hsTitle: 'Mafia strzela', hsWake: 'Mafia się budzi…', hsCount: 'Prowadzący liczy', hsFire: 'Strzał', hsShotAt: 'strzał na „{n}”', hsOnTable: 'ręka na stole', hsHit: 'Wszystkie ręce na „{n}”', hsMiss: 'Ręce się rozeszły — pudło', hsMissNone: 'Nikt nie strzelił — pudło', hsMissDead: 'Strzał w wyeliminowanego — pudło', hsOver: 'Koniec odliczania', hsWait: 'czekamy na ręce: {list}',
+  hsHostHint: 'Mafia strzela ze swoich telefonów na odliczanie 1–10: pięść → dwa palce → strzał. Wszyscy na jednym numerze — zabity, inaczej pudło. Numer można też wybrać ręcznie.', hsAuto: 'Ręce rodziny', hsStrip: 'ręce: {list}',
+  plTitle: 'Głosowanie', plFor: 'Głosujemy na nr {seat}', plYes: 'Głosuję', plNo: 'Nie głosuję', plStart: 'Rozpocznij głosowanie', plStop: 'Ręcznie', plLast: 'Pozostałe głosy — na nr {seat}', plVoted: 'Zagłosowałeś na nr {seat}', plSent: 'Przyjęto', plOver: 'Okno zamknięte', plCant: 'W tej turze nie głosujesz', plWait: 'Czekamy na prowadzącego', plOf: '{k} z {n}',
+  plHostHint: 'Kandydaci po kolei, po {s} s na każdego: gracze naciskają „Głosuję” lub „Nie głosuję” jednocześnie, odpowiedzi są ukryte do końca okna. Kto nie zagłosował — idzie na ostatniego.', plRunning: 'Trwa głosowanie', plManualHint: 'Automatyczne głosowanie wyłączone: gracze sami wybierają kandydata, prowadzący zamyka głosowanie.' });
+Object.assign(I18N.pl.e, { logDeal: 'Umowa Dona: {list}', logHandsHit: 'Mafia strzela rękami: {list} → {target}', logHandsMiss: 'Pudło: ręce się rozeszły ({list})', logPollStart: 'Głosowanie na kandydatów: {list}', logPollCand: 'Na {seat}: {list}' });
+Object.assign(I18N.hy.ui, {
+  onOnlineClassicD: 'Ինչպես սեղանի շուրջ. զրոյական գիշերը Դոնը մատներով ցույց է տալիս պայմանավորվածությունը, գիշերը մաֆիան կրակում է ձեռքերով վարողի հաշվի տակ, ցերեկը բոլորը միաժամանակ քվեարկում են յուրաքանչյուր թեկնածուի համար։',
+  dlTitle: 'Պայմանավորվածություն', dlHint: 'Սեղմեք ժեստերը՝ ընտանիքը տեսնում է դրանք անմիջապես։ Հենց մաֆիան քնի, դրանք կանհետանան էկրաններից։', dlWatch: 'Դոնը ցույց է տալիս', dlEmpty: 'Դոնը դեռ ոչինչ ցույց չի տվել', dlUndo: 'Ջնջել', dlClear: 'Մաքրել', dlSec: '{n} վ',
+  dlCat: { num: 'Համարներ', mark: 'Գիշեր · օր', who: 'Ում', what: 'Ինչ ենք անում', link: 'Կապեր' },
+  dlTok: { night: 'Գիշեր {n}', day: 'Օր {n}', prev: '№−1', next: '№+1', nomBy: 'Ով առաջադրեց', nomFirst: 'Առաջին առաջադրվածը', nomLast: 'Վերջին առաջադրվածը', voteFirst: 'Առաջին ձայնը', sheriff: 'Շերիֆ', checked: 'Ստուգվածը', leader: 'Առաջնորդ', victim: 'Սպանվածից', gone: 'Հեռացվածից', us: 'Մերը',
+    repeat: 'Կրկնել', miss: 'Վրիպում', free: 'Ըստ իրավիճակի', follow: 'Իմ հետևից', answer: 'Պատասխան', fakeMe: 'Ես շերիֆն եմ', fakeYou: 'Դու շերիֆն ես', nominate: 'Առաջադրում ենք', vote: 'Քվեարկում ենք', spare: 'Չենք դիպչում', split: 'Առանձին',
+    if: 'Եթե', else: 'Այլապես', then: 'Հետո', yes: 'Այո', no: 'Ոչ' },
+  hsTitle: 'Մաֆիան կրակում է', hsWake: 'Մաֆիան արթնանում է…', hsCount: 'Վարողը հաշվում է', hsFire: 'Կրակոց', hsShotAt: 'կրակոց «{n}»-ի վրա', hsOnTable: 'ձեռքը սեղանին', hsHit: 'Բոլոր ձեռքերը «{n}»-ի վրա', hsMiss: 'Ձեռքերը չհամընկան՝ վրիպում', hsMissNone: 'Ոչ ոք չկրակեց՝ վրիպում', hsMissDead: 'Կրակոց դուրս եկածի վրա՝ վրիպում', hsOver: 'Հաշիվն ավարտված է', hsWait: 'սպասում ենք ձեռքերին՝ {list}',
+  hsHostHint: 'Մաֆիան կրակում է իր հեռախոսներից 1–10 հաշվի տակ. բռունցք → երկու մատ → կրակոց։ Բոլորը մեկ համարի վրա՝ սպանված, այլապես վրիպում։ Համարը կարելի է ընտրել նաև ձեռքով։', hsAuto: 'Ընտանիքի ձեռքերը', hsStrip: 'ձեռքեր՝ {list}',
+  plTitle: 'Քվեարկություն', plFor: 'Քվեարկում ենք №{seat}-ի համար', plYes: 'Քվեարկում եմ', plNo: 'Չեմ քվեարկում', plStart: 'Սկսել քվեարկությունը', plStop: 'Ձեռքով', plLast: 'Մնացած ձայները՝ №{seat}-ին', plVoted: 'Դուք քվեարկեցիք №{seat}-ի համար', plSent: 'Ընդունված է', plOver: 'Պատուհանը փակ է', plCant: 'Այս փուլում դուք չեք քվեարկում', plWait: 'Սպասում ենք վարողին', plOf: '{k} / {n}',
+  plHostHint: 'Թեկնածուները հերթով, յուրաքանչյուրին {s} վ. խաղացողները միաժամանակ սեղմում են «Քվեարկում եմ» կամ «Չեմ քվեարկում», պատասխանները թաքնված են մինչև պատուհանի փակվելը։ Ով չի քվեարկել՝ գնում է վերջինին։', plRunning: 'Քվեարկությունն ընթանում է', plManualHint: 'Ավտոքվեարկությունն անջատված է. խաղացողներն իրենք են ընտրում թեկնածուին, վարողը փակում է քվեարկությունը։' });
+Object.assign(I18N.hy.e, { logDeal: 'Դոնի պայմանավորվածությունը՝ {list}', logHandsHit: 'Մաֆիան կրակում է ձեռքերով՝ {list} → {target}', logHandsMiss: 'Վրիպում. ձեռքերը չհամընկան ({list})', logPollStart: 'Քվեարկություն թեկնածուների համար՝ {list}', logPollCand: '{seat}-ի համար՝ {list}' });
 /* ---------------- Discord voice room of an online table (v33), all languages ---------------- */
 Object.assign(I18N.ru.ui, {
   dcwTitle: 'Discord сейчас', dcwOnline: '{n} онлайн', dcwVoice: 'в голосовых', dcwTables: 'столов в голосе', dcwNobody: 'В голосовых пока пусто — зайдите первым', dcwJoin: 'Войти в Discord',
@@ -7154,9 +7270,9 @@ function onlineStripHTML(g) {
 }
 /* host: the game format chooser above the table panel on the setup screen */
 function modeSegmentHTML() {
-  if (!TG.app || !apiBase()) return ''; if (S.setup.scenario === 'classic') return ''; // classic is offered at a live table only (chosen via scen-use)
-  const u = U(); const on = !!S.setup.online;
-  return `<div class="panel"><div class="eyebrow">${u.onMode}</div><div class="segment n2" style="margin-top:8px"><button class="${on ? '' : 'active'}" data-a="on-mode" data-id="offline">${u.onOffline}</button><button class="${on ? 'active' : ''}" data-a="on-mode" data-id="online">${u.onOnline}</button></div><div class="hint" style="margin-top:8px">${on ? u.onOnlineD : u.onOfflineD}</div>${on ? `<div class="hint" style="margin-top:4px">${u.onNeedSeats}</div>` : ''}</div>`;
+  if (!TG.app || !apiBase()) return '';
+  const u = U(); const on = !!S.setup.online; const classic = S.setup.scenario === 'classic';
+  return `<div class="panel"><div class="eyebrow">${u.onMode}</div><div class="segment n2" style="margin-top:8px"><button class="${on ? '' : 'active'}" data-a="on-mode" data-id="offline">${u.onOffline}</button><button class="${on ? 'active' : ''}" data-a="on-mode" data-id="online">${u.onOnline}</button></div><div class="hint" style="margin-top:8px">${on ? (classic ? u.onOnlineClassicD : u.onOnlineD) : u.onOfflineD}</div>${on ? `<div class="hint" style="margin-top:4px">${u.onNeedSeats}</div>` : ''}</div>`;
 }
 
 /* host: the same round table the players see, plus who is in the list already */
@@ -7178,7 +7294,7 @@ async function tableFetch() {
   try {
     const d = await api('/api/table/state', { code: TB.code, since: TB.lastChat }); if (!d.ok) { TB.err = d.error || 'network'; if (d.error === 'not_seated' || d.error === 'not_found') { TB.data = null; if (S.cloud && S.cloud.table && S.cloud.table.code === TB.code) S.cloud.table = null; } if (S.screen === 'table') render(); return; } // kicked or the table is gone: say so instead of showing a stale room
     const prevKey = TB.data && TB.data.me && TB.data.me.ask ? TB.data.me.ask.key : null; const prevPhase = TB.data && TB.data.pub ? TB.data.pub.phase + (TB.data.pub.day || '') : '';
-    const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + TB.data.hostPlays + '|' + JSON.stringify(TB.data.voice || null) + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
+    const prevSig = TB.data ? tbStateSig(TB.data) : '';
     const first = !TB.data; TB.data = d; TB.err = null; TB.at = Date.now();
     const newChat = !!(d.chat && d.chat.length);
     if (newChat) { TB.chat = TB.chat.concat(d.chat).slice(-300); TB.lastChat = TB.chat[TB.chat.length - 1].id; }
@@ -7188,10 +7304,12 @@ async function tableFetch() {
     if (d.pub && d.pub.phase + (d.pub.day || '') !== prevPhase) TB.pick = [];
     if (Array.isArray(d.invites)) { S.cloud = S.cloud || {}; S.cloud.invites = d.invites; }
     if (d.pub && d.pub.phase === 'end' && !TB.endSynced) { TB.endSynced = true; setTimeout(() => { try { cloudSync(); } catch (e) {} }, 500); } // my rating is updated after the game
-    const sig = d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.voice || null) + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
+    const sig = tbStateSig(d);
     if (S.screen === 'table' && (first || newChat || sig !== prevSig)) { keepFocus(render); if (newChat) scrollTbChat(); }
   } finally { TB.busy = false; }
 }
+/* what a re-render depends on: the table itself, my private state (without a prompt the app made up for itself), teammates' live answers */
+function tbStateSig(d) { const me = d.me && d.me.synth ? Object.assign({}, d.me, { ask: null, synth: false }) : d.me; return d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.voice || null) + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points])) + '|' + JSON.stringify(d.peers || null); }
 function scrollTbChat() { try { const c = document.querySelector('#tb-chat'); if (c) c.scrollTop = c.scrollHeight; } catch (e) {} }
 function tablePoll() {
   const want = S.screen === 'table' && TB.code && TG.app && apiBase();
@@ -7505,6 +7623,276 @@ function podiumHTML(rows, keyPrefix = 'pod') {
   try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'tb-msg') { e.preventDefault(); ACT['tb-send'](); } if (e.key === 'Enter' && e.target && e.target.id === 'lb-code') { e.preventDefault(); ACT['lb-join']({ dataset: { code: '' } }); } }); document.addEventListener('input', e => { const el = e.target.closest && e.target.closest('[data-a="tb-msg"],[data-a="lb-code"]'); if (el) ACT[el.dataset.a](el); }); } catch (e) {}
 })();
 /* ============================================================
+   CLASSIC ONLINE — the sport table on the players' phones:
+   · night 0: the Don gives the finger signs (numbers, nights, dynamic and professional signs) from a palette; the family
+     sees them big and bare, straight from the queue; the moment the mafia falls asleep they are gone from every screen
+   · night: the host counts 1–10 on server time; every mafioso raises a fist, then two fingers, and "fires" (the fingers bend
+     and straighten) on a number; the family sees each other's hands; all on one number — a kill, otherwise a miss
+   · day: candidates one by one, a 4-second window each; everyone presses "I vote / I don't" at the same time, answers stay
+     hidden until the window closes; whoever has not voted goes to the last candidate
+   ============================================================ */
+const HS = { LEAD: 3000, STEP: 1000, N: 10, GRACE: 2000, SHOW: 2600, ANIM: 700 }; // the shot: lead-in, a second per number, ten numbers, late hands, how long the outcome stays
+const PLC = { DUR: 4000, GAP: 900, GRACE: 1800, LAST: 2500 }; // the vote: the window, the pause between candidates, late answers, the "rest to the last" pause
+const classicOnline = g => !!(g && typeof isClassic === 'function' && isClassic(g) && onlineActive(g));
+const srvNow = () => Date.now() + (ONL.skew || 0); // the host's estimate of server time
+const tbNow = () => Date.now() + (TB.skew || 0); // the player's estimate of server time
+ONL.skew = ONL.skew || 0; TB.skew = TB.skew || 0; TB.seen = TB.seen || {}; TB.dl = TB.dl || null; TB.dlKey = TB.dlKey || null;
+
+/* ---------- hands: a procedural pictogram (palm, four fingers, thumb) ----------
+   f: [index, middle, ring, pinky] 1 = up, t: 1 = thumb out; opts: size, cls, flip (left hand), rot (degrees), fire (bend animation) */
+function handSVG(f, t, opts) {
+  opts = opts || {}; const size = opts.size || 72; const cls = ['hand', opts.cls || '', opts.fire ? 'fire' : ''].filter(Boolean).join(' ');
+  const cx = [30.5, 43.5, 56.5, 69.5], hs = [46, 52, 48, 38]; let body = '';
+  for (let i = 0; i < 4; i++) body += f[i] ? `<rect class="fg up" x="${cx[i] - 5.5}" y="${60 - hs[i]}" width="11" height="${hs[i] + 6}" rx="5.5"/>` : `<rect class="kn" x="${cx[i] - 5.5}" y="50" width="11" height="16" rx="5.5"/>`;
+  if (t) body += `<rect class="th" x="10" y="58" width="13" height="38" rx="6.5" transform="rotate(-32 22 92)"/>`;
+  body += `<rect class="pm" x="23" y="56" width="54" height="50" rx="16"/>`;
+  if (!t) body += `<rect class="kn" x="19" y="72" width="13" height="26" rx="6.5" transform="rotate(-14 25 85)"/>`;
+  const tf = [opts.rot ? `rotate(${opts.rot} 50 80)` : '', opts.flip ? 'translate(100 0) scale(-1 1)' : ''].filter(Boolean).join(' ');
+  return `<svg class="${cls}" viewBox="0 0 100 120" width="${Math.round(size * 100 / 120)}" height="${size}" aria-hidden="true">${tf ? `<g transform="${tf}">${body}</g>` : body}</svg>`;
+}
+const HAND_FIST = [0, 0, 0, 0], HAND_GUN = [1, 1, 0, 0];
+const HAND_NUM = { 1: [[1, 0, 0, 0], 0], 2: [[1, 1, 0, 0], 0], 3: [[1, 1, 1, 0], 0], 4: [[1, 1, 1, 1], 0], 5: [[1, 1, 1, 1], 1] };
+/* a seat number as hands: 1–5 on one hand, 6–10 as an open hand plus the rest */
+function numHandsHTML(n, size, cls) {
+  n = Number(n); if (!(n >= 1 && n <= 10)) return '';
+  if (n <= 5) { const h = HAND_NUM[n]; return handSVG(h[0], h[1], { size, cls }); }
+  const h = HAND_NUM[n - 5] || HAND_NUM[5];
+  return `<span style="display:inline-flex;gap:0">${handSVG(HAND_NUM[5][0], 1, { size, cls, flip: true })}${n === 10 ? handSVG(HAND_NUM[5][0], 1, { size, cls }) : handSVG(h[0], h[1], { size, cls })}</span>`;
+}
+const moonSVG = () => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.2A8.6 8.6 0 0 1 8.8 3.5a8.6 8.6 0 1 0 11.7 11.7z" fill="currentColor"/></svg>`;
+const sunSVG = () => `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.6" fill="currentColor"/><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8l2.1 2.1M17.1 17.1l2.1 2.1M4.8 19.2l2.1-2.1M17.1 6.9l2.1-2.1"/></g></svg>`;
+
+/* ---------- the Don's palette: every sign he may give at night 0 ---------- */
+const DL_TOKENS = [];
+for (let i = 1; i <= 10; i++) DL_TOKENS.push({ id: 'n' + i, cat: 'num', num: i });
+for (let i = 1; i <= 5; i++) DL_TOKENS.push({ id: 'night' + i, cat: 'mark', mark: 'night', n: i });
+for (let i = 1; i <= 4; i++) DL_TOKENS.push({ id: 'day' + i, cat: 'mark', mark: 'day', n: i });
+[['prev', 'hand'], ['next', 'hand'], 'nomBy', 'nomFirst', 'nomLast', 'voteFirst', 'sheriff', 'checked', 'leader', 'victim', 'gone', 'us'].forEach(x => DL_TOKENS.push(Array.isArray(x) ? { id: x[0], cat: 'who', hand: x[0] } : { id: x, cat: 'who' }));
+['repeat', 'miss', 'free', 'follow', 'answer', 'fakeMe', 'fakeYou', 'nominate', 'vote', 'spare', 'split'].forEach(id => DL_TOKENS.push({ id, cat: 'what' }));
+['if', 'else', 'then', 'yes', 'no'].forEach(id => DL_TOKENS.push({ id, cat: 'link', hand: id === 'yes' ? 'yes' : null }));
+const DL_BY_ID = Object.fromEntries(DL_TOKENS.map(t => [t.id, t]));
+const DL_CATS = ['num', 'mark', 'who', 'what', 'link'];
+function dlLabel(id) { const u = U(); const t = DL_BY_ID[id]; if (!t) return id; if (t.num) return String(t.num); if (t.mark) return tt(u.dlTok[t.mark], { n: t.n }); return u.dlTok[id] || id; }
+/* one sign: big (the family's screen), normal (the Don's own sequence) or small (the palette button / the host's journal) */
+function dlTokenHTML(id, mode, fresh) {
+  const t = DL_BY_ID[id]; if (!t) return ''; const big = mode === 'big', small = mode === 'small'; const hsz = big ? 72 : small ? 30 : 52;
+  let inner = ''; const cls = ['dl-tok', t.cat, t.id === 'no' ? 'no' : '', t.id === 'yes' ? 'yes' : '', fresh ? 'new' : ''].filter(Boolean).join(' ');
+  if (t.num) inner = `${numHandsHTML(t.num, hsz)}<span class="cap">${t.num}</span>`;
+  else if (t.mark) inner = `<span class="mk" style="color:${t.mark === 'night' ? 'var(--steel-2)' : 'var(--gold-2)'}">${t.mark === 'night' ? moonSVG() : sunSVG()}${t.n}</span><span class="cap">${esc(dlLabel(id))}</span>`;
+  else if (t.hand === 'prev') inner = `${handSVG(HAND_FIST, 1, { size: hsz, rot: -58 })}<span class="cap">${esc(dlLabel(id))}</span>`;
+  else if (t.hand === 'next') inner = `${handSVG(HAND_FIST, 1, { size: hsz, rot: -58, flip: true })}<span class="cap">${esc(dlLabel(id))}</span>`;
+  else if (t.hand === 'yes') inner = `${handSVG(HAND_FIST, 1, { size: hsz, rot: -12 })}<span class="cap">${esc(dlLabel(id))}</span>`;
+  else inner = `<span class="word">${esc(dlLabel(id))}</span>`;
+  if (small) return `<button class="pk" data-a="dl-add" data-id="${t.id}">${inner}</button>`;
+  return `<div class="${cls}">${inner}</div>`;
+}
+function dlSeqHTML(seq, big, grew) { const u = U(); seq = Array.isArray(seq) ? seq : []; return `<div class="dl-seq ${big ? 'big' : ''}">${seq.length ? seq.map((id, i) => dlTokenHTML(id, big ? 'big' : 'mid', grew && i === seq.length - 1)).join('') : `<span class="dl-empty">${u.dlEmpty}</span>`}</div>`; }
+function dlPaletteHTML() { const u = U(); return DL_CATS.map(c => `<div class="eyebrow dl-cat">${u.dlCat[c]}</div><div class="dl-pal ${c === 'num' || c === 'mark' ? 'c5' : 'c3'}">${DL_TOKENS.filter(t => t.cat === c).map(t => dlTokenHTML(t.id, 'small')).join('')}</div>`).join(''); }
+const dlClean = seq => (Array.isArray(seq) ? seq : []).map(String).filter(id => DL_BY_ID[id]).slice(0, 40);
+
+/* ---------- host: state of the classic game online ---------- */
+const famStep = g => { const s = g.steps[g.stepIdx]; return s && s.type === 'act' && s.ability === 'shoot' && s.members ? s : null; };
+const dealStep = g => { const s = g.steps[g.stepIdx]; return g.phase === 'night0' && s && s.type === 'meet' && s.roleId === 'don' ? s : null; };
+const dealKey = g => `night0:deal:${String(g.id || '').slice(-6)}`;
+/* the family's shooters tonight: every living black player, and only if each of them sits in the app (otherwise the host plays the step as before) */
+function handsMembers(g, step) { const m = step.members.filter(p => p.alive && isBlack(p)); return m.length && m.every(p => seatTg(g, p.seat)) ? m : null; }
+function ensureShot(g, step) { const onl = onlState(g); const key = `${phaseTag(g)}:hands:${step.id}`; if (!onl.shot || onl.shot.key !== key) onl.shot = { key, stepId: step.id, at: srvNow() + HS.LEAD, result: null, doneAt: 0 }; onl.shots = onl.shots || {}; onl.shots[key] = onl.shots[key] || {}; return onl.shot; }
+const shotKeyOf = g => { const s = famStep(g); return s ? `${phaseTag(g)}:hands:${s.id}` : null; };
+function classicAsks(g, asks) {
+  const onl = onlState(g); const tgOf = p => seatTg(g, p.seat);
+  if (g.phase === 'night0') { const st = dealStep(g); if (!st) return; const don = st.members.find(p => p.roleId === 'don' && p.alive); const id = don && tgOf(don); if (id) asks[id] = { key: dealKey(g), kind: 'deal', seq: dlClean(onl.deal), done: false }; return; }
+  if (g.phase === 'night') {
+    const step = famStep(g); if (!step) return; const members = handsMembers(g, step); if (!members) return;
+    if (g.actions.find(a => a.stepId === step.id)) { step.members.forEach(m => { const id = tgOf(m); if (id) delete asks[id]; }); return; } // resolved: nothing more to ask
+    const shot = ensureShot(g, step); const shots = onl.shots[shot.key];
+    step.members.forEach(m => { const id = tgOf(m); if (id) delete asks[id]; });
+    members.forEach(m => { const id = tgOf(m); asks[id] = { key: shot.key, kind: 'hands', at: shot.at, n: HS.N, step: HS.STEP, done: shots[id] !== undefined, picked: shots[id] !== undefined ? [shots[id]] : null, blocked: false }; });
+    return;
+  }
+  if (g.phase === 'day' && g.dayStage === 'vote') {
+    const b = g.ballot || {}; const pl = onl.poll;
+    alive(g).forEach(v => { const id = tgOf(v); if (id && asks[id] && asks[id].kind === 'vote') delete asks[id]; });
+    if (onl.pollManual) { if (voteOutcome(g).kind === 'skip1') return; alive(g).forEach(v => { const id = tgOf(v); if (!id || !canVoteNow(g, v.id)) return; const cands = (b.candidates || []).filter(c => c !== v.id); if (!cands.length) return; asks[id] = { key: `${phaseTag(g)}:vote:r${b.round || 1}`, kind: 'vote', need: 1, targets: cands.map(c => ({ seat: P(g, c).seat, ok: true })), done: !!b.votes[v.id], picked: b.votes[v.id] ? [P(g, b.votes[v.id]).seat] : null, round: b.round || 1 }; }); return; }
+    if (!pl || pl.done || pl.last || pl.round !== (b.round || 1)) return;
+    const cand = pl.cands[pl.idx]; if (!cand) return; const key = `${pl.key}:c${cand}`; const ans = (onl.pollAns || {})[key] || {};
+    alive(g).filter(v => v.id !== cand && canVoteNow(g, v.id) && !b.votes[v.id]).forEach(v => { const id = tgOf(v); if (!id) return; asks[id] = { key, kind: 'poll', cand: P(g, cand).seat, at: pl.at, dur: pl.dur, done: ans[id] !== undefined, yes: ans[id] === true, blocked: false }; });
+  }
+}
+function classicApply(g, a) {
+  const tgId = Number(a.tgId); const ask = buildAsks(g)[tgId]; if (!ask || ask.key !== a.key) return undefined;
+  const onl = onlState(g); const pl = a.payload || {};
+  if (ask.kind === 'deal') { onl.deal = dlClean(pl.seq); return true; }
+  if (ask.kind === 'hands') { const n = Number(pl.n); if (!(n >= 1 && n <= HS.N) || ask.done) return false; onl.shots[ask.key][tgId] = n; return true; }
+  if (ask.kind === 'poll') { onl.pollAns = onl.pollAns || {}; onl.pollAns[ask.key] = onl.pollAns[ask.key] || {}; onl.pollAns[ask.key][tgId] = !!pl.yes; return true; }
+  return undefined;
+}
+/* the family's hands are in: all on one living seat — the shot is recorded, otherwise a miss; the outcome stays on the screens for a moment, then the night goes on */
+function resolveHands(g, step, shot) {
+  const onl = onlState(g); const members = handsMembers(g, step) || []; const shots = onl.shots[shot.key] || {};
+  const ns = members.map(m => shots[seatTg(g, m.seat)]); const list = members.map((m, i) => `${m.seat} → ${ns[i] === undefined ? '—' : ns[i]}`).join(', ');
+  const same = ns.length && ns.every(n => n !== undefined && n === ns[0]); const target = same ? g.players.find(p => p.seat === ns[0]) : null;
+  if (target && target.alive && !step.disabled) {
+    S.ui.pick = [target.id]; S.ui.mode = null; const res = recordAction(g, step, [target.id], null); S.ui.pick = []; S.ui.result = res || null;
+    shot.result = { hit: true, seat: target.seat }; addLog(g, tt(L.e.logHandsHit, { list, target: label(target) }), true);
+  } else { shot.result = { hit: false, seat: same ? ns[0] : null, none: ns.every(n => n === undefined), dead: !!(target && !target.alive) }; addLog(g, tt(L.e.logHandsMiss, { list }), true); }
+  shot.doneAt = srvNow();
+}
+function startPoll(g) {
+  const onl = onlState(g); const b = g.ballot; const cands = (b.candidates || []).slice(); if (!cands.length) return false;
+  const o = voteOutcome(g); if (o.kind === 'skip1' || o.kind === 'empty') return false;
+  onl.poll = { key: `${phaseTag(g)}:poll:r${b.round || 1}`, round: b.round || 1, cands, idx: 0, at: srvNow() + PLC.GAP, dur: PLC.DUR, last: cands.length === 1, done: false }; onl.pollAns = {}; onl.pollManual = false;
+  addLog(g, tt(L.e.logPollStart, { list: cands.map(id => P(g, id).seat).join(', ') }));
+  return true;
+}
+function pollActive(g) { const onl = g.onl || {}; const pl = onl.poll; return !!(pl && !pl.done && g.phase === 'day' && g.dayStage === 'vote' && pl.round === ((g.ballot || {}).round || 1)); }
+function pollWindowClose(g) {
+  const onl = onlState(g); const pl = onl.poll; const b = g.ballot; const cand = pl.cands[pl.idx]; const key = `${pl.key}:c${cand}`; const ans = (onl.pollAns || {})[key] || {}; const who = [];
+  alive(g).filter(v => v.id !== cand && canVoteNow(g, v.id) && !b.votes[v.id]).forEach(v => { const id = seatTg(g, v.seat); if (id && ans[id] === true) { b.votes[v.id] = cand; who.push(v.seat); } });
+  addLog(g, tt(L.e.logPollCand, { seat: P(g, cand).seat, list: who.length ? who.join(', ') : '—' }));
+  pl.idx += 1; const now = srvNow();
+  if (pl.idx >= pl.cands.length - 1) { pl.idx = pl.cands.length - 1; pl.last = true; pl.at = now; } else pl.at = now + PLC.GAP;
+}
+function pollFinish(g) { const onl = onlState(g); onl.poll.done = true; voteRestToLast(g); resolveVoteAuto(g); S.ui.pick = []; }
+/* the host's clock: every 1.2 s with the answers poll — closes the count and the vote windows */
+function classicTick(g) {
+  if (!classicOnline(g) || !g.dealt || g.winner) return; const onl = onlState(g); const now = srvNow(); let changed = false;
+  if (g.phase === 'night') {
+    const step = famStep(g); const shot = onl.shot;
+    if (step && shot && shot.stepId === step.id && handsMembers(g, step)) {
+      if (g.actions.find(a => a.stepId === step.id) && !shot.result) { /* the host picked the target by hand: the night goes on at the host's pace */ }
+      else if (!shot.result) { const members = handsMembers(g, step); const shots = onl.shots[shot.key] || {}; const all = members.every(m => shots[seatTg(g, m.seat)] !== undefined); if (all || now > shot.at + HS.N * HS.STEP + HS.GRACE) { resolveHands(g, step, shot); changed = true; } }
+      else if (now > shot.doneAt + HS.SHOW) { g.stepIdx += 1; S.ui.pick = []; S.ui.result = null; changed = true; }
+    }
+  }
+  if (pollActive(g)) { const pl = onl.poll; if (pl.last) { if (now > pl.at + PLC.LAST) { pollFinish(g); changed = true; } } else if (now > pl.at + pl.dur + PLC.GRACE) { pollWindowClose(g); changed = true; } }
+  if (changed) { save(); if (typeof window !== 'undefined') window.scrollTo(0, 0); render(); }
+}
+
+/* ---------- host: screens ---------- */
+function hsHandsHTML(g, step, shot, mine) {
+  const u = U(); const onl = onlState(g); const members = handsMembers(g, step) || []; const shots = onl.shots[shot.key] || {}; const now = srvNow();
+  const lead = now < shot.at, over = now >= shot.at + HS.N * HS.STEP; const cur = lead ? 0 : Math.min(HS.N, Math.floor((now - shot.at) / HS.STEP) + 1);
+  const hands = members.map(m => { const n = shots[seatTg(g, m.seat)]; const fired = n !== undefined; return `<div class="hs-hand ${fired ? 'fired' : ''}"><div class="lb"><b>${m.seat}</b> · ${esc(m.name)}</div>${handSVG(lead && !fired ? HAND_FIST : HAND_GUN, 0, { size: 60 })}<div class="at">${fired ? tt(u.hsShotAt, { n }) : u.hsOnTable}</div></div>`; }).join('');
+  const res = shot.result ? `<div class="hs-res ${shot.result.hit ? 'hit' : 'miss'}">${shot.result.hit ? tt(u.hsHit, { n: shot.result.seat }) : shot.result.none ? u.hsMissNone : shot.result.dead ? u.hsMissDead : u.hsMiss}</div>` : '';
+  return `<div class="panel hs"><div class="eyebrow gold">${u.hsAuto}</div><div class="hs-num ${lead ? 'lead' : over ? 'over' : ''}" id="hs-num" data-at="${shot.at}">${lead ? u.hsWake : over ? u.hsOver : cur}</div><div class="hs-hands">${hands}</div>${res}${mine ? '' : `<div class="hint" style="margin-top:8px">${u.hsHostHint}</div>`}</div>`;
+}
+function plHostHTML(g) {
+  const u = U(); const onl = onlState(g); const b = g.ballot; const pl = onl.poll; const active = pollActive(g); const o = voteOutcome(g);
+  const cands = active ? pl.cands : (b.candidates || []);
+  const row = cands.length ? `<div class="pl-cands">${cands.map((id, i) => `<span class="${active && i === pl.idx ? 'cur' : active && i < pl.idx ? 'done' : ''}">${P(g, id).seat}</span>`).join('')}</div>` : '';
+  if (active) { const cand = P(g, pl.cands[pl.idx]); const now = srvNow(); const left = pl.last ? 0 : Math.max(0, pl.at + pl.dur - now); return `<div class="panel raised"><div class="eyebrow gold">${u.plRunning}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: cand.seat }) : tt(u.plFor, { seat: cand.seat })}</div><div class="pl-bar ${left ? '' : 'over'}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${pl.last ? 100 : Math.round(100 * (1 - left / pl.dur))}%"></i></div><div class="hint" style="margin-top:6px">${tt(u.plOf, { k: pl.idx + 1, n: pl.cands.length })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button></div></div>`; }
+  if (onl.pollManual) return `<div class="panel"><div class="hint">${u.plManualHint}</div><div class="btn-row" style="margin-top:8px"><button class="btn primary sm" data-a="poll-start" ${o.kind === 'skip1' || o.kind === 'empty' ? 'disabled' : ''}>${u.plStart}</button></div></div>`;
+  return `<div class="panel raised"><div class="eyebrow gold">${u.plTitle}</div>${row}<div class="hint" style="margin-top:6px">${tt(u.plHostHint, { s: Math.round(PLC.DUR / 1000) })}</div><div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="poll-stop">${u.plStop}</button><button class="btn primary grow" data-a="poll-start" ${o.kind === 'skip1' || o.kind === 'empty' ? 'disabled' : ''}>${u.plStart}</button></div></div>`;
+}
+function hostLiveTick() { // the host's own screen: the count and the vote bar move without a full render
+  const g = S.game; if (!classicOnline(g) || S.screen !== 'game') return; const u = U(); const now = srvNow();
+  const el = document.querySelector('#hs-num'); if (el && !el.dataset.done) { const at = Number(el.dataset.at); const lead = now < at, over = now >= at + HS.N * HS.STEP; const cur = Math.min(HS.N, Math.floor((now - at) / HS.STEP) + 1); const txt = lead ? u.hsWake : over ? u.hsOver : String(cur); if (el.textContent !== txt) { el.textContent = txt; el.className = `hs-num ${lead ? 'lead' : over ? 'over' : ''}`; if (!lead && !over && cur === 1) render(); } }
+  const bar = document.querySelector('#pl-bar'); if (bar && bar.dataset.last !== '1') { const at = Number(bar.dataset.at), dur = Number(bar.dataset.dur); const w = Math.max(0, Math.min(100, Math.round(100 * (now - at) / dur))); bar.firstElementChild.style.width = w + '%'; bar.classList.toggle('over', now >= at + dur); }
+}
+
+/* ---------- player: screens ---------- */
+function tbPeerRows(key) { const d = TB.data; if (!d || !Array.isArray(d.peers)) return []; const seats = (d.pub && d.pub.seats) || []; return d.peers.filter(r => r.key === key).map(r => { const s = seats.find(x => x.tgId === r.tgId); return { tgId: r.tgId, seat: s ? s.seat : null, payload: r.payload || {}, at: r.at }; }); }
+function tbDealHTML(ask, me) {
+  const u = U(); const mine = ask.kind === 'deal';
+  let seq; if (mine) { if (TB.dlKey !== ask.key) { TB.dlKey = ask.key; TB.dl = null; } seq = TB.dl || ask.seq || []; }
+  else { const donSeat = ((me.mates || []).find(m => m.roleId === 'don') || {}).seat; const don = tbPeerRows((me.peerKeys || [])[0] || '').filter(r => r.seat === donSeat && Array.isArray(r.payload.seq)).sort((a, b) => b.at - a.at)[0]; seq = don ? dlClean(don.payload.seq) : dlClean(me.deal); }
+  const k = 'dl:' + (mine ? ask.key : 'w'); const grew = (TB.seen[k] || 0) < seq.length; TB.seen[k] = seq.length;
+  const show = `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${mine ? u.dlTitle : u.dlWatch}</div>${dlSeqHTML(seq, !mine, grew)}${mine ? `<div class="btn-row"><button class="btn ghost sm" data-a="dl-undo" ${seq.length ? '' : 'disabled'}>${u.dlUndo}</button><button class="btn ghost sm" data-a="dl-clear" ${seq.length ? '' : 'disabled'}>${u.dlClear}</button></div><div class="hint" style="margin-top:6px">${u.dlHint}</div>` : ''}</div>`;
+  return mine ? `${show}<div class="panel">${dlPaletteHTML()}</div>` : show;
+}
+function tbHandsHTML(ask, me, pub) {
+  const u = U(); const now = tbNow(); const at = ask.at; const lead = now < at, over = now >= at + ask.n * ask.step; const cur = Math.min(ask.n, Math.max(1, Math.floor((now - at) / ask.step) + 1));
+  const mineSent = TB.sent[ask.key]; const myN = mineSent ? mineSent.n : (ask.picked ? ask.picked[0] : undefined); const myAt = mineSent ? mineSent.at : 0;
+  const mateSeats = (me.mates || []).map(m => m.seat); const peers = tbPeerRows(ask.key).filter(r => mateSeats.includes(r.seat)); const seats = pub.seats || [];
+  const row = s => { const seat = seats.find(x => x.seat === s.seat) || s; const isMe = s.seat === me.seat; let n, firedAt = 0;
+    if (isMe) { n = myN; firedAt = myAt; } else { const pr = peers.find(r => r.seat === s.seat); const hn = (me.hands || []).find(h => h.seat === s.seat); n = pr ? Number(pr.payload.n) : hn ? hn.n : undefined; if (n !== undefined) { const k = ask.key + ':' + s.seat; if (!TB.seen[k]) TB.seen[k] = Date.now(); firedAt = TB.seen[k]; } }
+    const fired = n !== undefined; const anim = fired && Date.now() - firedAt < HS.ANIM;
+    return `<div class="hs-hand ${isMe ? 'me' : ''} ${fired ? 'fired' : ''}"><div class="lb"><b>${s.seat}</b> · ${esc(isMe ? u.tbYou : seat.name || '')}</div>${handSVG(lead && !fired ? HAND_FIST : HAND_GUN, 0, { size: 64, fire: anim })}<div class="at">${fired ? tt(u.hsShotAt, { n }) : u.hsOnTable}</div></div>`; };
+  const members = [{ seat: me.seat, name: '' }].concat(me.mates || []).sort((a, b) => a.seat - b.seat);
+  const res = me.shotResult ? `<div class="hs-res ${me.shotResult.hit ? 'hit' : 'miss'}">${me.shotResult.hit ? tt(u.hsHit, { n: me.shotResult.seat }) : me.shotResult.none ? u.hsMissNone : me.shotResult.dead ? u.hsMissDead : u.hsMiss}</div>` : '';
+  const canFire = !lead && !over && myN === undefined && ask.kind === 'hands';
+  return `<div class="panel raised hs"><div class="eyebrow gold">${u.hsTitle}</div><div class="hs-num ${lead ? 'lead' : over ? 'over' : ''}" id="hs-num" data-key="${esc(ask.key)}" data-at="${at}" data-n="${ask.n}" data-step="${ask.step}">${lead ? u.hsWake : over ? u.hsOver : cur}</div><div class="hs-hands">${members.map(row).join('')}</div>${res}${ask.kind === 'hands' && myN === undefined && !me.shotResult ? `<button class="btn danger hs-fire" data-a="hs-fire" ${canFire ? '' : 'disabled'}>${u.hsFire}</button>` : ''}</div>`;
+}
+function tbCountHTML(shot) { const u = U(); const now = tbNow(); const lead = now < shot.at, over = now >= shot.at + shot.n * shot.step; const cur = Math.min(shot.n, Math.max(1, Math.floor((now - shot.at) / shot.step) + 1)); return `<div class="panel hs"><div class="eyebrow">${u.hsCount}</div><div class="hs-num ${lead ? 'lead' : over ? 'over' : ''}" id="hs-num" data-at="${shot.at}" data-n="${shot.n}" data-step="${shot.step}">${lead ? u.hsWake : over ? u.hsOver : cur}</div></div>`; }
+function tbPollHTML(ask, me, pub) {
+  const u = U(); const pl = pub.poll; const now = tbNow(); const mine = ask.kind === 'poll'; const over = pl.last || now >= pl.at + pl.dur; const w = pl.last ? 100 : Math.max(0, Math.min(100, Math.round(100 * (now - pl.at) / pl.dur)));
+  const sent = TB.sent[ask.key]; const yes = sent ? !!sent.yes : ask.yes; const answered = mine && (!!sent || ask.done);
+  const row = `<div class="pl-cands">${(pl.cands || []).map((s, i) => `<span class="${i === pl.idx ? 'cur' : i < pl.idx ? 'done' : ''}">${s}</span>`).join('')}</div>`;
+  const myVote = (pub.dayInfo && pub.dayInfo.votes && pub.dayInfo.votes[me.seat]) || null;
+  const line = mine ? (over ? u.plOver : answered ? u.plSent : '') : myVote ? tt(u.plVoted, { seat: myVote }) : pl.cand === me.seat ? '' : u.plCant;
+  const btns = mine ? `<div class="pl-btns"><button class="btn ${answered && yes ? 'danger sel' : 'ghost'}" data-a="pl-ans" data-yes="1" ${over ? 'disabled' : ''}>${u.plYes}${answered && yes ? ' ✓' : ''}</button><button class="btn ${answered && !yes ? 'primary sel' : 'ghost'}" data-a="pl-ans" data-yes="0" ${over ? 'disabled' : ''}>${u.plNo}${answered && !yes ? ' ✓' : ''}</button></div>` : '';
+  return `<div class="panel raised"><div class="eyebrow gold" style="text-align:center">${u.plTitle} · ${tt(u.plOf, { k: pl.idx + 1, n: pl.n })}</div>${row}<div class="pl-for">${pl.last ? tt(u.plLast, { seat: pl.cand }) : tt(u.plFor, { seat: pl.cand })}</div><div class="pl-bar ${over ? 'over' : ''}" id="pl-bar" data-at="${pl.at}" data-dur="${pl.dur}" data-last="${pl.last ? 1 : 0}"><i style="width:${w}%"></i></div>${btns}${line ? `<div class="hint" style="margin-top:8px;text-align:center">${line}</div>` : ''}</div>`;
+}
+/* what my screen needs beyond the host's prompt: the family watching the Don, the count for everyone, the vote for those who only watch it */
+function tbSynthAsk(d) {
+  const pub = d.pub || {}; const me = d.me; if (!me || me.alive === false || pub.mode !== 'classic') return null;
+  if (pub.phase === 'night0' && me.deal !== undefined && !(me.ask && me.ask.kind === 'deal')) return { key: 'night0:deal:w', kind: 'dealWatch', done: true };
+  if (pub.phase === 'night' && pub.shot && !(me.ask && me.ask.kind === 'hands')) return { key: pub.shot.key + ':w', kind: me.mates !== undefined && (me.hands || me.shotResult || (me.peerKeys || []).includes(pub.shot.key)) ? 'handsWatch' : 'count', at: pub.shot.at, n: pub.shot.n, step: pub.shot.step, done: true };
+  if (pub.phase === 'day' && pub.poll && !pub.poll.done && !(me.ask && me.ask.kind === 'poll')) return { key: pub.poll.key + ':w', kind: 'pollWatch', done: true };
+  return null;
+}
+function tbLiveTick() { // every 100 ms on the table screen: the count and the vote bar move; a full render at the turning points
+  const d = TB.data; if (S.screen !== 'table' || !d || !d.pub) return; const u = U(); const now = tbNow(); let stage = '';
+  const el = document.querySelector('#hs-num'); if (el) { const at = Number(el.dataset.at), n = Number(el.dataset.n), step = Number(el.dataset.step); const lead = now < at, over = now >= at + n * step; const cur = Math.min(n, Math.max(1, Math.floor((now - at) / step) + 1)); stage = 'hs:' + (lead ? 'lead' : over ? 'over' : 'count'); const txt = lead ? u.hsWake : over ? u.hsOver : String(cur); if (el.textContent !== txt) { el.textContent = txt; el.className = `hs-num ${lead ? 'lead' : over ? 'over' : ''}`; } TB.hsCur = { key: el.dataset.key || '', n: cur, lead, over }; }
+  const bar = document.querySelector('#pl-bar'); if (bar) { const at = Number(bar.dataset.at), dur = Number(bar.dataset.dur); const over = bar.dataset.last === '1' || now >= at + dur; stage += '|pl:' + (over ? 'over' : now < at ? 'wait' : 'open'); if (bar.dataset.last !== '1') { bar.firstElementChild.style.width = Math.max(0, Math.min(100, Math.round(100 * (now - at) / dur))) + '%'; bar.classList.toggle('over', over); } }
+  if (stage !== (TB.liveStage || '')) { const prev = TB.liveStage || ''; TB.liveStage = stage; if (prev) keepFocus(render); }
+}
+
+/* ---------- wiring into the host's and the player's screens ---------- */
+(function () {
+  if (typeof buildAsks !== 'function') return;
+  // every API answer carries the server clock: both sides keep their clock skew (half the round trip is taken off)
+  const origApi = api; api = async function (path, body, opts) { const t0 = Date.now(); const d = await origApi(path, body, opts); if (d && d.ok && typeof d.now === 'number') { const t1 = Date.now(); const sk = d.now - (t0 + (t1 - t0) / 2); ONL.skew = sk; TB.skew = sk; } return d; };
+  const origAsks = buildAsks; buildAsks = function (g) { const asks = origAsks(g); if (classicOnline(g) && g.dealt && !g.winner) { try { classicAsks(g, asks); } catch (e) {} } return asks; };
+  const origApply = applyTableAction; applyTableAction = function (a) { const g = S.game; if (classicOnline(g) && g.dealt && !g.winner) { const r = classicApply(g, a); if (r !== undefined) return r; } return origApply(a); };
+  const origPollActions = pollActions; pollActions = async function () { await origPollActions(); try { classicTick(S.game); } catch (e) {} };
+  // the published state: the count and the vote window for everyone; the Don's signs, the hands and the outcome for the family only
+  const origPub = tablePub; tablePub = function (g) { const pub = origPub(g); if (!classicOnline(g) || !g.dealt || g.winner) return pub; const onl = onlState(g);
+    if (g.phase === 'night') { const step = famStep(g); if (step && handsMembers(g, step) && !g.actions.find(a => a.stepId === step.id)) { const shot = ensureShot(g, step); pub.shot = { key: shot.key, at: shot.at, n: HS.N, step: HS.STEP }; } else if (step && onl.shot && onl.shot.stepId === step.id && onl.shot.result) pub.shot = { key: onl.shot.key, at: onl.shot.at, n: HS.N, step: HS.STEP, over: true }; }
+    if (pollActive(g)) { const pl = onl.poll; pub.poll = { key: pl.key, idx: pl.idx, n: pl.cands.length, cand: P(g, pl.cands[pl.idx]).seat, cands: pl.cands.map(id => P(g, id).seat), at: pl.at, dur: pl.dur, last: pl.last, done: false }; if (pub.dayInfo) pub.dayInfo.poll = true; }
+    return pub; };
+  const origPriv = tablePriv; tablePriv = function (g) { const priv = origPriv(g); if (!classicOnline(g) || !g.dealt || g.winner) return priv; const onl = onlState(g);
+    const st = dealStep(g); const step = g.phase === 'night' ? famStep(g) : null; const shot = step && onl.shot && onl.shot.stepId === step.id ? onl.shot : null;
+    g.players.forEach(p => { const id = seatTg(g, p.seat); const me = id && priv[id]; if (!me || !p.alive || !isBlack(p)) return;
+      if (st) { me.deal = dlClean(onl.deal); me.peerKeys = [dealKey(g)]; }
+      if (shot) { me.peerKeys = [shot.key]; const shots = onl.shots[shot.key] || {}; me.hands = Object.entries(shots).map(([tg, n]) => ({ seat: Number(g.tg.map[tg]) || 0, n })).filter(h => h.seat); if (shot.result) me.shotResult = shot.result; } });
+    return priv; };
+  // the host's night screen: the Don's signs during the family meeting, the family's hands on the shot
+  const origNight = nightBody; nightBody = function (g) { let html = origNight(g); if (!classicOnline(g)) return html; const u = U(); const onl = onlState(g); const i = html.lastIndexOf('<div class="btn-row">'); if (i < 0) return html; let extra = '';
+    if (dealStep(g)) extra = `<div class="panel"><div class="eyebrow gold">${u.dlTitle}</div>${dlSeqHTML(onl.deal, false)}</div>${timerHTML(60, `deal-${g.night}`)}`;
+    const step = famStep(g); if (step && handsMembers(g, step)) { const byHost = g.actions.find(a => a.stepId === step.id) && !(onl.shot && onl.shot.stepId === step.id); if (!byHost) extra = hsHandsHTML(g, step, ensureShot(g, step), false); }
+    return extra ? html.slice(0, i) + extra + html.slice(i) : html; };
+  const origStrip = onlineStripHTML; onlineStripHTML = function (g) { const h = origStrip(g); if (!h || !classicOnline(g) || g.phase !== 'night') return h; const step = famStep(g); const members = step && handsMembers(g, step); if (!members) return h; const u = U(); const shots = (onlState(g).shots || {})[`${phaseTag(g)}:hands:${step.id}`] || {}; return h.replace(' · ' + u.onNoProposals, ' · ' + tt(u.hsStrip, { list: members.map(m => { const n = shots[seatTg(g, m.seat)]; return `${m.seat} → ${n === undefined ? '—' : n}`; }).join(', ') })); };
+  const origVote = voteBody; voteBody = function (g) { const html = origVote(g); if (!classicOnline(g) || g.dayStage !== 'vote') return html; const i = html.indexOf('<div class="panel"><div class="eyebrow">'); const extra = plHostHTML(g); return i < 0 ? html + extra : html.slice(0, i) + extra + html.slice(i); };
+  const origNext = ACT.next; ACT.next = function (el) { const g = S.game; if (classicOnline(g) && dealStep(g)) { const seq = dlClean(onlState(g).deal); if (seq.length) addLog(g, tt(L.e.logDeal, { list: seq.map(dlLabel).join(' · ') }), true); } return origNext.call(this, el); };
+  const origStage = ACT.stage; ACT.stage = function (el) { const r = origStage.call(this, el); const g = S.game; if (classicOnline(g) && g.dayStage === 'vote') { const onl = onlState(g); onl.poll = null; onl.pollManual = false; render(); } return r; };
+  const origSpeech = ACT.speech; ACT.speech = function (el) { const g = S.game; const before = g && g.dayStage; const r = origSpeech.call(this, el); if (classicOnline(g) && before !== 'vote' && g.dayStage === 'vote') { const onl = onlState(g); onl.poll = null; onl.pollManual = false; render(); } return r; };
+  const origRevote = ACT.revote; ACT.revote = function (el) { const r = origRevote.call(this, el); const g = S.game; if (classicOnline(g) && g.dayStage === 'vote') { startPoll(g); save(); render(); } return r; };
+  Object.assign(ACT, {
+    'poll-start'() { const g = S.game; if (!classicOnline(g) || g.dayStage !== 'vote') return; if (startPoll(g)) { save(); render(); } },
+    'poll-stop'() { const g = S.game; if (!classicOnline(g)) return; const onl = onlState(g); onl.poll = null; onl.pollManual = true; save(); render(); },
+    // the Don's palette
+    'dl-add'(el) { const ask = TB.data && TB.data.me && TB.data.me.ask; if (!ask || ask.kind !== 'deal') return; const seq = (TB.dl || ask.seq || []).slice(); if (seq.length >= 40) return; seq.push(el.dataset.id); TB.dl = seq; tgHaptic('light'); render(); dlSend(ask.key); },
+    'dl-undo'() { const ask = TB.data && TB.data.me && TB.data.me.ask; if (!ask || ask.kind !== 'deal') return; const seq = (TB.dl || ask.seq || []).slice(); seq.pop(); TB.dl = seq; render(); dlSend(ask.key); },
+    'dl-clear'() { const ask = TB.data && TB.data.me && TB.data.me.ask; if (!ask || ask.kind !== 'deal') return; TB.dl = []; render(); dlSend(ask.key); },
+    // the shot: the number on my screen at the moment of the tap
+    async 'hs-fire'() { const ask = TB.data && TB.data.me && TB.data.me.ask; if (!ask || ask.kind !== 'hands' || TB.sent[ask.key]) return; const now = tbNow(); const seen = TB.hsCur && TB.hsCur.key === ask.key ? TB.hsCur : null; if (seen ? (seen.lead || seen.over) : (now < ask.at || now >= ask.at + ask.n * ask.step)) return; const n = seen ? seen.n : Math.min(ask.n, Math.max(1, Math.floor((now - ask.at) / ask.step) + 1)); /* the number the player saw on the screen at the tap */ TB.sent[ask.key] = { n, at: Date.now() }; tgHaptic('impact'); render(); const d = await api('/api/table/act', { code: TB.code, key: ask.key, payload: { n } }); if (!d.ok) { delete TB.sent[ask.key]; toast(U().tgOffline); render(); return; } setTimeout(tableFetch, 400); },
+    // the vote: yes / no inside the window, may be changed until it closes
+    async 'pl-ans'(el) { const ask = TB.data && TB.data.me && TB.data.me.ask; if (!ask || ask.kind !== 'poll') return; const yes = el.dataset.yes === '1'; const prev = TB.sent[ask.key]; TB.sent[ask.key] = { yes }; tgHaptic('light'); render(); const d = await api('/api/table/act', { code: TB.code, key: ask.key, payload: { yes } }); if (!d.ok) { if (prev) TB.sent[ask.key] = prev; else delete TB.sent[ask.key]; toast(U().tgOffline); render(); } }
+  });
+  let dlTimer = null; function dlSend(key) { clearTimeout(dlTimer); dlTimer = setTimeout(async () => { const seq = TB.dl || []; const d = await api('/api/table/act', { code: TB.code, key, payload: { seq } }); if (!d.ok) toast(U().tgOffline); }, 250); }
+  // the player's prompt panel
+  const origAsk = tbAskHTML; tbAskHTML = function (ask, seats) { const d = TB.data; const me = d && d.me; const pub = d && d.pub; if (!ask || !me || !pub) return origAsk(ask, seats);
+    if (ask.kind === 'deal' || ask.kind === 'dealWatch') return tbDealHTML(ask, me);
+    if (ask.kind === 'hands' || ask.kind === 'handsWatch') return tbHandsHTML(ask, me, pub);
+    if (ask.kind === 'count') return tbCountHTML(pub.shot);
+    if ((ask.kind === 'poll' || ask.kind === 'pollWatch') && pub.poll) return tbPollHTML(ask, me, pub);
+    return origAsk(ask, seats); };
+  const origTable = tableScreen; tableScreen = function () { const d = TB.data; if (d && d.me && d.pub && !d.me.ask) { const s = tbSynthAsk(d); if (s) { d.me.ask = s; d.me.synth = true; } } else if (d && d.me && d.me.synth && d.me.ask && !tbSynthAsk(d)) { d.me.ask = null; d.me.synth = false; } return origTable(); };
+  const origTablePoll = tablePoll; tablePoll = function () { origTablePoll(); const want = S.screen === 'table' && TB.code && TG.app && apiBase(); if (want && !TB.live) TB.live = setInterval(() => { try { tbLiveTick(); } catch (e) {} }, 100); if (!want && TB.live) { clearInterval(TB.live); TB.live = null; TB.liveStage = ''; } };
+  const origActionsPoll = actionsPoll; actionsPoll = function () { origActionsPoll(); const g = S.game; const want = TG.app && apiBase() && classicOnline(g) && g.dealt && !g.winner && S.screen === 'game'; if (want && !ONL.live) ONL.live = setInterval(() => { try { hostLiveTick(); } catch (e) {} }, 200); if (!want && ONL.live) { clearInterval(ONL.live); ONL.live = null; } };
+})();
+/* ============================================================
    DISCORD VOICE ROOM (v33) — online game only.
    The host switches "Play with Discord" on: the server creates a voice channel "<flag> Mafia · <code>"
    for seats + 1 people (the flag = the creator's app language) with an 8-hour invite.
@@ -7525,7 +7913,7 @@ function voiceSync(l) {
 }
 /* host, setup screen: the switch, the room, who is on voice, the confirmation */
 function voicePanelHTML(st) {
-  if (!discordOn() || !S.setup.online || S.setup.scenario === 'classic') return '';
+  if (!discordOn() || !S.setup.online) return '';
   const l = voiceTable(); if (!l) return '';
   const u = U(); const v = voiceOf(l); const on = !!(v && v.on); const limit = st.n + 1;
   const sw = `<div class="setting" style="border-bottom:0;padding:8px 0 0"><div><div class="t">🎧 ${u.dcSwitch}</div><div class="d">${tt(u.dcSwitchD, { n: limit })}</div></div><div class="ctl"><button class="switch ${on || DC.busy ? 'on' : ''}" data-a="dc-toggle" role="switch" aria-checked="${on ? 'true' : 'false'}" aria-label="${u.dcSwitch}" ${DC.busy ? 'disabled' : ''}></button></div></div>`;
@@ -7768,7 +8156,7 @@ Object.assign(ACT, {
     else { if (!S.owned.scenarios.includes(id)) S.owned.scenarios.push(id); toast(tt(U().bought, { name: SCENARIO[id].name })); }
     S.ui.sheet = null; render();
   },
-  'scen-use'(el) { const classic = el.dataset.id === 'classic'; applyScenario(el.dataset.id, classic ? 10 : undefined); S.ui.showAll = false; if (classic) S.setup.online = false; go('setup'); },
+  'scen-use'(el) { const classic = el.dataset.id === 'classic'; applyScenario(el.dataset.id, classic ? 10 : undefined); S.ui.showAll = false; go('setup'); },
   'scen-clear'() { S.setup.scenario = null; S.setup.comp = presetFor(S.setup.n); render(); }
 });
 

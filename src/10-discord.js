@@ -19,7 +19,7 @@ function voiceSync(l) {
 }
 /* host, setup screen: the switch, the room, who is on voice, the confirmation */
 function voicePanelHTML(st) {
-  if (!discordOn() || !S.setup.online || S.setup.scenario === 'classic') return '';
+  if (!discordOn() || !S.setup.online) return '';
   const l = voiceTable(); if (!l) return '';
   const u = U(); const v = voiceOf(l); const on = !!(v && v.on); const limit = st.n + 1;
   const sw = `<div class="setting" style="border-bottom:0;padding:8px 0 0"><div><div class="t">🎧 ${u.dcSwitch}</div><div class="d">${tt(u.dcSwitchD, { n: limit })}</div></div><div class="ctl"><button class="switch ${on || DC.busy ? 'on' : ''}" data-a="dc-toggle" role="switch" aria-checked="${on ? 'true' : 'false'}" aria-label="${u.dcSwitch}" ${DC.busy ? 'disabled' : ''}></button></div></div>`;

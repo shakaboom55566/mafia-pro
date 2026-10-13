@@ -170,9 +170,9 @@ function onlineStripHTML(g) {
 }
 /* host: the game format chooser above the table panel on the setup screen */
 function modeSegmentHTML() {
-  if (!TG.app || !apiBase()) return ''; if (S.setup.scenario === 'classic') return ''; // classic is offered at a live table only (chosen via scen-use)
-  const u = U(); const on = !!S.setup.online;
-  return `<div class="panel"><div class="eyebrow">${u.onMode}</div><div class="segment n2" style="margin-top:8px"><button class="${on ? '' : 'active'}" data-a="on-mode" data-id="offline">${u.onOffline}</button><button class="${on ? 'active' : ''}" data-a="on-mode" data-id="online">${u.onOnline}</button></div><div class="hint" style="margin-top:8px">${on ? u.onOnlineD : u.onOfflineD}</div>${on ? `<div class="hint" style="margin-top:4px">${u.onNeedSeats}</div>` : ''}</div>`;
+  if (!TG.app || !apiBase()) return '';
+  const u = U(); const on = !!S.setup.online; const classic = S.setup.scenario === 'classic';
+  return `<div class="panel"><div class="eyebrow">${u.onMode}</div><div class="segment n2" style="margin-top:8px"><button class="${on ? '' : 'active'}" data-a="on-mode" data-id="offline">${u.onOffline}</button><button class="${on ? 'active' : ''}" data-a="on-mode" data-id="online">${u.onOnline}</button></div><div class="hint" style="margin-top:8px">${on ? (classic ? u.onOnlineClassicD : u.onOnlineD) : u.onOfflineD}</div>${on ? `<div class="hint" style="margin-top:4px">${u.onNeedSeats}</div>` : ''}</div>`;
 }
 
 /* host: the same round table the players see, plus who is in the list already */
@@ -194,7 +194,7 @@ async function tableFetch() {
   try {
     const d = await api('/api/table/state', { code: TB.code, since: TB.lastChat }); if (!d.ok) { TB.err = d.error || 'network'; if (d.error === 'not_seated' || d.error === 'not_found') { TB.data = null; if (S.cloud && S.cloud.table && S.cloud.table.code === TB.code) S.cloud.table = null; } if (S.screen === 'table') render(); return; } // kicked or the table is gone: say so instead of showing a stale room
     const prevKey = TB.data && TB.data.me && TB.data.me.ask ? TB.data.me.ask.key : null; const prevPhase = TB.data && TB.data.pub ? TB.data.pub.phase + (TB.data.pub.day || '') : '';
-    const prevSig = TB.data ? TB.data.version + '|' + TB.data.status + '|' + TB.data.hostPlays + '|' + JSON.stringify(TB.data.voice || null) + '|' + JSON.stringify(TB.data.players) + '|' + JSON.stringify(TB.data.me) + '|' + JSON.stringify(Object.values(TB.data.profiles || {}).map(x => [x.tgId, x.online, x.points])) : '';
+    const prevSig = TB.data ? tbStateSig(TB.data) : '';
     const first = !TB.data; TB.data = d; TB.err = null; TB.at = Date.now();
     const newChat = !!(d.chat && d.chat.length);
     if (newChat) { TB.chat = TB.chat.concat(d.chat).slice(-300); TB.lastChat = TB.chat[TB.chat.length - 1].id; }
@@ -204,10 +204,12 @@ async function tableFetch() {
     if (d.pub && d.pub.phase + (d.pub.day || '') !== prevPhase) TB.pick = [];
     if (Array.isArray(d.invites)) { S.cloud = S.cloud || {}; S.cloud.invites = d.invites; }
     if (d.pub && d.pub.phase === 'end' && !TB.endSynced) { TB.endSynced = true; setTimeout(() => { try { cloudSync(); } catch (e) {} }, 500); } // my rating is updated after the game
-    const sig = d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.voice || null) + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(d.me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points]));
+    const sig = tbStateSig(d);
     if (S.screen === 'table' && (first || newChat || sig !== prevSig)) { keepFocus(render); if (newChat) scrollTbChat(); }
   } finally { TB.busy = false; }
 }
+/* what a re-render depends on: the table itself, my private state (without a prompt the app made up for itself), teammates' live answers */
+function tbStateSig(d) { const me = d.me && d.me.synth ? Object.assign({}, d.me, { ask: null, synth: false }) : d.me; return d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.voice || null) + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points])) + '|' + JSON.stringify(d.peers || null); }
 function scrollTbChat() { try { const c = document.querySelector('#tb-chat'); if (c) c.scrollTop = c.scrollHeight; } catch (e) {} }
 function tablePoll() {
   const want = S.screen === 'table' && TB.code && TG.app && apiBase();

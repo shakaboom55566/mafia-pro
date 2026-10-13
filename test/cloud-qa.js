@@ -408,7 +408,7 @@ const path = require('path'); const http = require('http');
   // Нина becomes the host's friend; the host starts a classic game in the online format
   await fetch('http://127.0.0.1:8791/api/friends/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: pInit, code: frCode }) });
   await S(() => { S.game = null; S.lobby = null; S.ui.sheet = null; FR.at = 0; S.setup.online = true; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300);
-  ok(!(await p.$('[data-a="on-mode"]')) && await S(() => S.setup.online === false), 'classic has no format chooser: it is played at a live table only');
+  ok(!!(await p.$('[data-a="on-mode"]')) && await S(() => S.setup.online === true && S.setup.scenario === 'classic' && S.setup.n === 10), 'classic keeps the format chooser: it can be played online too (10 seats)');
   await S(() => ACT.new({ dataset: {} })); await p.waitForTimeout(300);
   ok(!!(await p.$('[data-a="on-mode"][data-id="online"]')) && !!(await p.$('[data-a="on-mode"][data-id="offline"]')), 'format chooser "offline / online" on the role-game setup screen');
   ok(await S(() => { const seg = document.querySelector('[data-a="on-mode"]'); const comp = document.querySelector('.stepper'); return !!(seg && comp && (seg.compareDocumentPosition(comp) & Node.DOCUMENT_POSITION_FOLLOWING)); }), 'the chooser sits at the top, above the player count');
@@ -475,8 +475,8 @@ const path = require('path'); const http = require('http');
   const tgBefore = tg.calls.length;
   await S(() => ACT.deal({ dataset: {} })); await p.waitForTimeout(1200);
   ok(await S(() => S.game && S.game.online === true && S.game.tg && S.game.tg.map[601] === 3 && S.game.tg.map[602] === 4 && S.game.tg.sent.includes(601) && S.game.tg.sent.includes(602)), 'online game created; both cards delivered to the app');
-  // fix the roles for a deterministic test: 3 = Don (Нина), 4 = mafia (Гена), 1 = mafia, 5 = sheriff, others citizens
-  await S(() => { const g = S.game; g.players.forEach(p => { p.roleId = p.seat === 3 ? 'don' : (p.seat === 4 || p.seat === 1) ? 'mafia' : p.seat === 5 ? 'sheriff' : 'citizen'; }); save(); render(); }); await p.waitForTimeout(700);
+  // fix the roles for a deterministic test: 3 = Don (Нина), 4 = mafia (Гена) — the whole family sits in the app; 5 = sheriff, others citizens
+  await S(() => { const g = S.game; g.players.forEach(p => { p.roleId = p.seat === 3 ? 'don' : p.seat === 4 ? 'mafia' : p.seat === 5 ? 'sheriff' : 'citizen'; }); save(); render(); }); await p.waitForTimeout(700);
   ok(await waitQ(() => TB.data && TB.data.me && TB.data.me.roleId === 'don' && TB.data.pub.phase === 'deal'), 'Нина sees her card (Don) in the app');
   ok(!tg.calls.slice(tgBefore).some(c => c.method === 'sendMessage' && /Дон|Don|мафия/i.test(c.params.text || '')), 'no role text went through Telegram');
   ok(!!(await q.$('.card3d-wrap')) && (await q.$eval('#app', el => el.textContent)).includes('Дон'), 'the card is shown big (3D) with its name');
@@ -484,29 +484,76 @@ const path = require('path'); const http = require('http');
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'role' && S.ui.sheet.id === 'don') && (await q.$eval('.sheet', el => el.textContent)).includes(await Q(() => U().howWorks)), 'tapping the card opens the full role sheet (rules, lore, tips)');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-card.png') }).catch(() => {});
   await Q(() => { S.ui.sheet = null; render(); });
-  ok(await waitQ(() => TB.data.me.mates && TB.data.me.mates.length === 2 && TB.data.me.mates.every(m => m.roleId === 'mafia')), 'the Don sees her family (seats 1 and 4)');
+  ok(await waitQ(() => TB.data.me.mates && TB.data.me.mates.length === 1 && TB.data.me.mates[0].seat === 4 && TB.data.me.mates[0].roleId === 'mafia'), 'the Don sees her family (seat 4)');
   // the host starts: night 0 (meetings), classic day 1 without candidates, then night 1
   await S(() => { ACT['tg-deal-done']({ dataset: {} }); ACT.start({ dataset: {} }); }); await p.waitForTimeout(300);
   ok(await waitQ(() => TB.data.pub.phase === 'night0' && TB.data.pub.step && TB.data.pub.step.roleId === 'don'), 'player sees night 0 with the family meeting');
+  // ----- night 0, the Don's signs: a palette on the Don's card only; the family sees them big, straight from the queue; gone once the mafia sleeps
+  const g602 = await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: 602, first_name: 'Гена', language_code: 'ru' } }, 'test-token');
+  const st602 = async () => (await (await fetch('http://127.0.0.1:8791/api/table/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: g602, code: oc }) })).json());
+  const act602 = async (key, payload) => (await (await fetch('http://127.0.0.1:8791/api/table/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: g602, code: oc, key, payload }) })).json());
+  ok(await waitQ(() => TB.data.me.ask && TB.data.me.ask.kind === 'deal' && TB.data.me.deal !== undefined), 'the Don is offered the sign palette at night 0');
+  const palette = await q.$$('[data-a="dl-add"]');
+  ok(palette.length === 47 && !!(await q.$('[data-a="dl-add"][data-id="n10"]')) && !!(await q.$('[data-a="dl-add"][data-id="night2"]')) && !!(await q.$('[data-a="dl-add"][data-id="answer"]')) && !!(await q.$('[data-a="dl-add"][data-id="sheriff"]')), 'palette: 47 signs — numbers 1–10, nights and days, dynamic targets, plans, links: ' + palette.length);
+  ok((await q.$$('[data-a="dl-add"][data-id="n7"] svg.hand')).length === 2 && (await q.$$('[data-a="dl-add"][data-id="n3"] svg.hand')).length === 1, 'numbers are drawn as hands: 3 on one hand, 7 on two');
+  const st0 = await st602(); ok(st0.me.roleId === 'mafia' && st0.me.ask === null && Array.isArray(st0.me.deal) && st0.me.deal.length === 0 && Array.isArray(st0.me.peerKeys) && st0.me.peerKeys.length === 1 && Array.isArray(st0.peers) && typeof st0.now === 'number', 'the mafioso has no palette, only the Don’s (empty) signs and the live key');
+  for (const id of ['night1', 'n5', 'night2', 'next', 'if', 'sheriff', 'then', 'answer']) { await q.click(`[data-a="dl-add"][data-id="${id}"]`); await q.waitForTimeout(120); }
+  ok(await Q(() => TB.dl && TB.dl.length === 8 && document.querySelectorAll('.dl-seq .dl-tok').length === 8), 'the Don tapped eight signs; they line up on her screen');
+  await q.waitForTimeout(700);
+  const st1 = await st602(); const donRow = (st1.peers || []).find(r => r.tgId === 601);
+  ok(donRow && Array.isArray(donRow.payload.seq) && donRow.payload.seq.join(',') === 'night1,n5,night2,next,if,sheriff,then,answer', 'the family reads the signs straight from the queue (no host round trip): ' + JSON.stringify(donRow && donRow.payload));
+  ok(await waitQ(async () => true) && (await st602()).me.deal.length === 8, 'the host echoes the signs into the family’s private state too');
+  await q.click('[data-a="dl-undo"]'); await q.waitForTimeout(500);
+  ok(await Q(() => TB.dl.length === 7) && (await st602()).peers.find(r => r.tgId === 601).payload.seq.length === 7, '«Erase» takes the last sign back for everyone');
+  await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-deal-don.png'), fullPage: true }).catch(() => {});
+  { // the family's screen: the signs big and bare, nothing else to press
+    const ctxM = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }); const m = await ctxM.newPage(); const errsM = []; m.on('pageerror', e => errsM.push(e.message));
+    await m.addInitScript(({ initData, user, api }) => { window.MAFIA_API = api; window.__tg = { invoices: [], links: [] }; const noop = () => {}; window.Telegram = { WebApp: { platform: 'android', version: '8.0', initData, initDataUnsafe: { user, auth_date: 1, hash: 'x' }, ready: noop, expand: noop, close: noop, setHeaderColor: noop, setBackgroundColor: noop, setBottomBarColor: noop, disableVerticalSwipes: noop, lockOrientation: noop, enableClosingConfirmation: noop, disableClosingConfirmation: noop, BackButton: { show: noop, hide: noop, onClick: noop }, HapticFeedback: { impactOccurred: noop, notificationOccurred: noop, selectionChanged: noop }, openInvoice: noop, openTelegramLink: noop, openLink: noop } }; }, { initData: g602, user: { id: 602, first_name: 'Гена', language_code: 'ru' }, api: 'http://127.0.0.1:8791' });
+    await m.goto('file://' + path.resolve(__dirname, '..', 'mafia-pro.html') + '?startapp=table_' + oc.toLowerCase()); await m.waitForTimeout(1500);
+    const M = fn => m.evaluate(fn); const waitM = (fn, ms = 10000) => m.waitForFunction(fn, null, { timeout: ms }).then(() => true).catch(() => false);
+    ok(await waitM(() => S.screen === 'table' && TB.data && TB.data.me && TB.data.me.ask && TB.data.me.ask.kind === 'dealWatch'), 'the mafioso’s app opens the table and shows the Don’s signs');
+    const big = await M(() => { const t = [...document.querySelectorAll('.dl-seq.big .dl-tok')]; return { n: t.length, h: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0, pal: document.querySelectorAll('[data-a="dl-add"]').length, txt: document.querySelector('.dl-seq.big').textContent }; });
+    ok(big.n === 7 && big.h >= 100 && big.pal === 0 && big.txt.includes('Ночь 1') && big.txt.includes('Шериф') && big.txt.includes('Если'), 'family view: seven big signs (≥100 px), no palette: ' + JSON.stringify(big));
+    await m.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-deal-family.png'), fullPage: true }).catch(() => {});
+    ok(!!(await p.$('#timer')) && (await p.innerText('#app')).includes('Ночь 1') && (await p.innerText('#app')).includes('Ответка') === false, 'host sees the signs under the family meeting with a 60-second clock');
+    await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-deal-host.png'), fullPage: true }).catch(() => {});
+    // the mafia falls asleep: the signs vanish from every screen and go to the host’s journal only
+    await S(() => ACT.next({ dataset: {} })); await p.waitForTimeout(300);
+    ok(await waitM(() => TB.data.me.deal === undefined && !TB.data.me.ask && !document.querySelector('.dl-seq')), 'mafioso: the signs are gone once the mafia sleeps');
+    ok(await waitQ(() => TB.data.me.deal === undefined && !TB.data.me.ask && !document.querySelector('.dl-seq')), 'Don: palette and signs gone too');
+    ok(await S(() => S.game.log.some(l => l.secret && l.text.includes('Договорка') && l.text.includes('Ночь 1') && l.text.includes('Шериф'))), 'the host’s journal keeps the Don’s plan as a secret line');
+    await m.close(); await ctxM.close();
+  }
   await S(() => { while (S.game.phase === 'night0' && S.game.stepIdx < S.game.steps.length) ACT.next({ dataset: {} }); ACT.day0({ dataset: {} }); }); await p.waitForTimeout(300);
   ok(await S(() => S.game.phase === 'day' && S.game.day === 1 && S.game.dayStage === 'speeches'), 'classic: day 1 speeches');
   ok(await waitQ(() => TB.data.pub.phase === 'day' && !!TB.data.pub.timer && !!document.querySelector('#tb-timer')), 'speech timer shown to the player during day 1 speeches');
   await S(() => { ACT.stage({ dataset: { id: 'vote' } }); ACT['vote-none']({ dataset: {} }); ACT.night({ dataset: {} }); }); await p.waitForTimeout(300);
   ok(await waitQ(() => TB.data.pub.phase === 'night' && !TB.data.pub.timer && !document.querySelector('#tb-timer')), 'no stale speech clock on the player’s screen at night');
   ok(await S(() => S.game.phase === 'night' && S.game.night === 1 && S.game.steps[0].ability === 'shoot'), 'night 1: the family shot is the first step');
-  ok(await waitQ(() => TB.data.pub.phase === 'night' && TB.data.me.ask && TB.data.me.ask.kind === 'shoot' && TB.data.me.ask.key.startsWith('night1:s0:')), 'the Don is asked to shoot');
-  // the mafioso (602, via API) proposes seat 5; the Don sees the proposal and shoots seat 5
-  const g602 = await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: 602, first_name: 'Гена', language_code: 'ru' } }, 'test-token');
-  const st602 = await (await fetch('http://127.0.0.1:8791/api/table/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: g602, code: oc }) })).json();
-  ok(st602.me.roleId === 'mafia' && st602.me.ask && st602.me.ask.kind === 'propose' && st602.me.ask.shooter === 3, 'the mafioso is asked to propose a target to the Don');
-  await fetch('http://127.0.0.1:8791/api/table/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: g602, code: oc, key: st602.me.ask.key, payload: { pick: [5] } }) });
-  ok(await waitQ(() => TB.data.me.ask && TB.data.me.ask.proposals && TB.data.me.ask.proposals.some(x => x.seat === 5 && x.by === 4)), 'the Don sees the family proposal "5 (by 4)"');
-  ok((await p.innerText('#app')).includes('5 (от 4)'), 'host strip shows the proposal too');
-  await q.click('.tb-ask .pk[data-seat="5"]'); await q.waitForTimeout(150); await q.click('[data-a="tb-confirm"]'); await q.waitForTimeout(2600);
-  ok(await S(() => S.game.actions.some(a => a.ability === 'shoot' && S.game.players.find(x => x.id === a.targets[0]).seat === 5)), 'the shot at seat 5 is recorded on the host');
-  await p.waitForTimeout(2800);
+  // ----- night 1, the shot by hands: the host counts 1–10 on server time; fist → two fingers → fire; all on one number — a kill
+  ok(await waitQ(() => TB.data.pub.phase === 'night' && TB.data.pub.shot && TB.data.me.ask && TB.data.me.ask.kind === 'hands' && TB.data.me.ask.key === TB.data.pub.shot.key && TB.data.me.peerKeys[0] === TB.data.pub.shot.key), 'the Don is asked to shoot by hand; the count is public, the hands key is the family’s');
+  ok(await S(() => { const onl = S.game.onl; return onl.shot && onl.shot.at > Date.now() + ONL.skew - 500 && !onl.proposals[Object.keys(onl.proposals)[0]]; }), 'host: the count is scheduled on server time, no "propose" flow for the family');
+  const hands0 = await Q(() => ({ n: document.querySelectorAll('.hs-hands .hs-hand').length, fists: document.querySelectorAll('.hs-hand .hand .kn').length, fire: !!document.querySelector('[data-a="hs-fire"]'), disabled: !!document.querySelector('[data-a="hs-fire"][disabled]'), num: document.querySelector('#hs-num').textContent }));
+  ok(hands0.n === 2 && hands0.fire && (hands0.disabled || hands0.num === 'Мафия просыпается…' || /^\d+$/.test(hands0.num)), 'two hands on the Don’s screen (hers and seat 4), the fire button: ' + JSON.stringify(hands0));
+  ok(await waitQ(() => /^\d+$/.test(document.querySelector('#hs-num').textContent), 6000), 'the lead-in ends, the count begins');
+  const pose = await Q(() => { const me = document.querySelector('.hs-hand.me'); return { up: me.querySelectorAll('.fg.up').length, kn: me.querySelectorAll('.kn').length, fist: me.querySelector('.hs-hand.fired') }; });
+  ok(pose.up === 2 && pose.kn === 3, 'during the count the hand shows two fingers (index and middle): ' + JSON.stringify(pose));
+  await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-hands-count.png') }).catch(() => {});
+  ok(await waitQ(() => document.querySelector('#hs-num').textContent === '5', 8000), 'the count reaches 5');
+  await q.click('[data-a="hs-fire"]'); await q.waitForTimeout(80);
+  const fired = await Q(() => { const me = document.querySelector('.hs-hand.me'); return { fired: me.classList.contains('fired'), anim: !!me.querySelector('svg.hand.fire'), at: me.querySelector('.at').textContent, sent: TB.sent[TB.data.me.ask.key] && TB.sent[TB.data.me.ask.key].n }; });
+  ok(fired.fired && fired.anim && fired.sent === 5 && fired.at.includes('5'), 'the Don fired on 5: the fingers bend (animation), the hand shows «5»: ' + JSON.stringify(fired));
+  await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-hands-fired.png') }).catch(() => {});
+  const st2 = await st602(); ok(st2.me.ask && st2.me.ask.kind === 'hands' && st2.me.ask.at === st2.pub.shot.at && (st2.peers || []).some(r => r.tgId === 601 && r.payload.n === 5), 'the mafioso sees the Don’s hand on 5 through the queue');
+  ok((await act602(st2.me.ask.key, { n: 5 })).ok, 'the mafioso fires on 5 too');
+  await p.waitForTimeout(2600);
+  ok(await S(() => S.game.actions.some(a => a.ability === 'shoot' && S.game.players.find(x => x.id === a.targets[0]).seat === 5) && S.game.onl.shot.result && S.game.onl.shot.result.hit && S.game.log.some(l => l.text.includes('руками') && l.text.includes('3 → 5, 4 → 5'))), 'both hands on 5 → the shot at seat 5 is recorded, the journal lists the hands');
+  ok((await p.innerText('#app')).includes('Все руки на «5»'), 'host screen: "all hands on 5"');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-hands-host.png'), fullPage: true }).catch(() => {});
+  ok(await waitQ(() => TB.data.me.shotResult && TB.data.me.shotResult.hit && TB.data.me.shotResult.seat === 5 && !document.querySelector('[data-a="hs-fire"]')), 'the family sees the outcome: all hands on 5');
+  await p.waitForTimeout(3200);
   ok(await S(() => S.game.stepIdx === 1 && S.game.steps[1].ability === 'findSheriff'), 'host advanced automatically to the Don’s check');
-  ok(await waitQ(() => TB.data.me.ask && TB.data.me.ask.kind === 'act' && TB.data.me.ask.ability === 'findSheriff'), 'the Don is asked to look for the Sheriff');
+  ok(await waitQ(() => TB.data.me.ask && TB.data.me.ask.kind === 'act' && TB.data.me.ask.ability === 'findSheriff' && !TB.data.pub.shot), 'the Don is asked to look for the Sheriff; the count is over');
   await q.click('.tb-ask .pk[data-seat="5"]'); await q.waitForTimeout(150); await q.click('[data-a="tb-confirm"]'); await q.waitForTimeout(2600);
   ok(await waitQ(() => TB.data.me.results && TB.data.me.results.some(r => r.kind === 'sheriff' && r.yes === true && r.seat === 5)), 'the Don gets the answer in the app: seat 5 is the Sheriff');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-night.png') }).catch(() => {});
@@ -530,23 +577,35 @@ const path = require('path'); const http = require('http');
   await q.click('.tb-ask .pk[data-seat="1"]'); await q.waitForTimeout(150); await q.click('[data-a="tb-confirm"]'); await q.waitForTimeout(2600);
   ok(await S(() => S.game.ballot.candidates.length === 1 && S.game.players.find(x => x.id === S.game.ballot.candidates[0]).seat === 1), 'nomination of seat 1 reached the host');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-day.png') }).catch(() => {});
-  // vote: the host adds seat 4; players vote from their phones; chat closes
+  // ----- the vote by hands: candidates one by one, everyone presses at once, answers hidden until the window closes, the rest go to the last
   await S(() => { ACT.stage({ dataset: { id: 'vote' } }); }); await p.waitForTimeout(300);
-  ok(await waitQ(() => TB.data.pub.dayInfo.stage === 'vote' && TB.data.pub.chat === false && TB.data.me.ask && TB.data.me.ask.kind === 'vote'), 'vote stage: chat closed, vote prompt');
+  ok(await waitQ(() => TB.data.pub.dayInfo.stage === 'vote' && TB.data.pub.chat === false && !TB.data.me.ask && !TB.data.pub.poll), 'vote stage: chat closed, nobody votes until the host starts');
   // the morning of day 2 was open to everyone; speeches of another seat are closed for Нина
   ok((await (await fetch('http://127.0.0.1:8791/api/table/chat/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: g602, code: oc, text: 'late' }) })).json()).error === 'chat_closed', 'server refuses chat during the vote');
   ok(!!(await q.$('#tb-msg[disabled]')), 'chat input disabled');
   await S(() => { ACT.cand({ dataset: { id: S.game.players.find(x => x.seat === 4).id } }); }); await p.waitForTimeout(300);
-  ok(await waitQ(() => TB.data.me.ask.targets.length === 2), 'two candidates offered');
-  await q.click('.tb-ask .pk[data-seat="4"]'); await q.waitForTimeout(150); await q.click('[data-a="tb-confirm"]'); await q.waitForTimeout(900);
-  const st602v = await (await fetch('http://127.0.0.1:8791/api/table/state', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: g602, code: oc }) })).json();
-  await fetch('http://127.0.0.1:8791/api/table/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: g602, code: oc, key: st602v.me.ask.key, payload: { pick: [1] } }) });
-  await p.waitForTimeout(2600);
-  ok(await S(() => { const g = S.game; const sid = s => g.players.find(x => x.seat === s).id; return g.ballot.votes[sid(3)] === sid(4) && g.ballot.votes[sid(4)] === sid(1); }), 'both votes registered on the host (3 → 4, 4 → 1)');
-  ok((await p.innerText('#app')).includes('2/'), 'host strip counts the votes');
-  ok(await waitQ(() => TB.data.pub.dayInfo.votes && TB.data.pub.dayInfo.votes[3] === 4 && TB.data.me.ask.done && TB.data.me.ask.picked[0] === 4), 'player sees the votes on the table');
+  ok(!!(await p.$('[data-a="poll-start"]:not([disabled])')) && (await p.innerText('#app')).includes('Начать голосование'), 'host: "Start the vote" with two candidates (1, 4)');
+  await p.click('[data-a="poll-start"]'); await p.waitForTimeout(300);
+  ok(await S(() => S.game.onl.poll && S.game.onl.poll.idx === 0 && S.game.onl.poll.cands.length === 2 && !S.game.onl.poll.last), 'poll started: candidate 1 first');
+  await p.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-poll-host.png'), fullPage: true }).catch(() => {});
+  ok(await waitQ(() => TB.data.pub.poll && TB.data.pub.poll.cand === 1 && TB.data.pub.poll.n === 2 && TB.data.me.ask && TB.data.me.ask.kind === 'poll' && TB.data.me.ask.cand === 1), 'Нина: "voting for No. 1" with yes / no');
+  ok((await q.$$('[data-a="pl-ans"]')).length === 2 && !!(await q.$('#pl-bar')) && !(await q.$('.tb-ask .pk')), 'two buttons and the window bar, no candidate list to pick from');
+  await q.click('[data-a="pl-ans"][data-yes="1"]'); await q.waitForTimeout(400);
+  const st3 = await st602(); ok(st3.me.ask && st3.me.ask.kind === 'poll' && st3.me.ask.cand === 1 && !(st3.pub.dayInfo.votes && st3.pub.dayInfo.votes[3]) && !st3.peers.length, 'the mafioso is asked the same; Нина’s answer stays hidden while the window is open');
+  ok((await act602(st3.me.ask.key, { yes: false })).ok, 'the mafioso answers "no"');
+  await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'classic-poll.png') }).catch(() => {});
+  ok(await S(() => { const g = S.game; return Object.keys(g.ballot.votes).length === 0; }), 'host: no votes recorded before the window closes');
+  ok(await waitQ(() => TB.data.pub.dayInfo.votes && TB.data.pub.dayInfo.votes[3] === 1, 12000), 'window closed: Нина’s vote for 1 is on the table');
+  ok(await S(() => { const g = S.game; const sid = s => g.players.find(x => x.seat === s).id; return g.ballot.votes[sid(3)] === sid(1) && g.ballot.votes[sid(4)] === undefined && g.onl.poll.last && g.onl.poll.idx === 1; }), 'host: 3 → 1, the mafioso’s "no" counts as nothing, the last candidate takes the rest');
+  { // the "rest to the last" pause: watch the player's state for a few seconds and keep every distinct snapshot
+    const seen = []; const t0 = Date.now();
+    while (Date.now() - t0 < 7000) { const snap = await Q(() => JSON.stringify({ v: TB.data.version, poll: TB.data.pub.poll || null, ask: TB.data.me.ask ? TB.data.me.ask.kind : null, stage: TB.data.pub.dayInfo && TB.data.pub.dayInfo.stage, txt: (document.querySelector('.pl-for') || {}).textContent || '' })); if (!seen.length || seen[seen.length - 1] !== snap) seen.push(snap); if (JSON.parse(snap).stage === 'result') break; await q.waitForTimeout(100); }
+    const lastSeen = seen.map(x => JSON.parse(x)).find(x => x.poll && x.poll.last && x.poll.cand === 4); const lastTxt = await Q(() => tt(U().plLast, { seat: 4 }));
+    ok(!!lastSeen && lastSeen.ask === 'pollWatch' && lastSeen.txt.includes(lastTxt) && lastTxt.includes('№4'), 'everyone sees "the remaining votes go to No. 4" (in the player’s own language): ' + seen.join(' → '));
+  }
+  ok(await waitQ(() => TB.data.pub.dayInfo && TB.data.pub.dayInfo.stage === 'result', 8000), 'the vote resolved by itself');
+  ok(await S(() => { const g = S.game; const sid = s => g.players.find(x => x.seat === s).id; return g.dayStage === 'result' && g.voteResult.eliminatedId === sid(4) && g.ballot.votes[sid(2)] === sid(4) && g.ballot.votes[sid(1)] === sid(4) && !g.players.find(x => x.seat === 4).alive; }), 'seat 4 is voted out: the silent majority went to the last candidate');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-vote.png') }).catch(() => {});
-  await S(() => { ACT['vote-close']({ dataset: {} }); }); await p.waitForTimeout(300);
   ok(await S(() => S.game.dayStage === 'result' || S.game.dayStage === 'tie'), 'vote closed by the host: ' + await S(() => S.game.dayStage));
   // the host removes Нина from the game: she sees only the remaining seats and nothing else
   await S(() => { S.ui.sheet = { type: 'players' }; ACT['toggle-alive']({ dataset: { id: S.game.players.find(x => x.seat === 3).id } }); S.ui.sheet = null; render(); }); await p.waitForTimeout(300);
@@ -648,9 +707,9 @@ const path = require('path'); const http = require('http');
   await p.click('[data-a="open-roles"][data-id="closed"]'); await p.waitForTimeout(200);
   ok(await S(() => S.setup.openRoles === false && revealDeadIn(null) === false) && !!(await p.$('[data-a="open-roles"][data-id="closed"].active')), 'closed game selected');
   await S(() => { S.setup.openRoles = true; });
-  // ----- classic: fixed table of 10, no online format
+  // ----- classic: fixed table of 10, offline or online (the format chooser stays, with the classic description)
   await S(() => { S.setup.online = true; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300);
-  ok(await S(() => S.setup.n === 10 && S.setup.online === false && !document.querySelector('[data-a="n"]') && !document.querySelector('#nrange') && !document.querySelector('[data-a="on-mode"]') && document.querySelector('#app').textContent.includes(U().classicTitle)), 'classic setup: 10 players fixed, no count chooser, no online switch');
+  ok(await S(() => S.setup.n === 10 && S.setup.online === true && !document.querySelector('[data-a="n"]') && !document.querySelector('#nrange') && !!document.querySelector('[data-a="on-mode"][data-id="online"].active') && document.querySelector('#app').textContent.includes(U().classicTitle) && document.querySelector('#app').textContent.includes(U().onOnlineClassicD)), 'classic setup: 10 players fixed, no count chooser, online format kept with the classic description');
   await S(() => { ACT.new({ dataset: {} }); }); await p.waitForTimeout(300);
   ok(await S(() => S.setup.scenario === null && !!document.querySelector('[data-a="n"]') && document.querySelector('.topbar, .tb, h1') && document.querySelector('#app').textContent.includes(U().roleGame)), 'role game setup is titled "Ролевая мафия" with the player-count chooser back');
   // ----- settings switches: full size, inside the row

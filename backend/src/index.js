@@ -25,7 +25,7 @@
    - POST /api/clubs, /api/club, /api/club/apply|update|join|leave|respond|invite|kick|approve|requests, /api/club/chat, /api/club/chat/send
    - POST /api/admin/clubs|club    list / approve / reject club applications
    - POST /api/table/publish   host: publish the table state (public + per-player private); cards live in the app
-   - POST /api/table/state     player: public state, my private state (card, prompt), chat, invites
+   - POST /api/table/state     player: public state, my private state (card, prompt), chat, invites, peers (teammates' live answers for the keys in me.peerKeys), server time
    - POST /api/table/act       player: answer a prompt (night pick, vote, roulette number …)
    - POST /api/table/actions   host: players' answers since an id
    - POST /api/table/chat/send player: table chat (open from the free discussion until the vote)
@@ -385,7 +385,7 @@ async function apiClubChatSend(env, bot, body) {
     const members = await clubMembers(env, mine.club_id);
     for (const m of members) { if (m.tgId === v.user.id || !m.online) continue; const ml = await userRow(env, m.tgId); if (!ml || await isAtTable(env, code, m.tgId)) continue; try { await inviteToTable(env, bot, v.user, ml, code, 'club'); } catch (e) {} }
   }
-  return json({ ok: true, id: ins.meta.last_row_id });
+  return json({ ok: true, id: ins.meta.last_row_id, now: Date.now() });
 }
 /* ---------- partners ---------- */
 async function partnerRow(env, tgId) { return env.DB.prepare('SELECT * FROM partners WHERE tg_id = ?1').bind(tgId).first(); }
@@ -1114,7 +1114,7 @@ async function apiTablePublish(env, bot, body) {
     if (ts - (seen.get(tgId) || 0) <= TABLE_SEEN_SEC) continue;
     const m = members.get(tgId); try { const r = await bot.send(tgId, t(m.lang, 'cardReady', { code: lobby.code }), tableButton(env, m.lang, lobby.code)); if (r && r.ok) notified.push(tgId); } catch (e) {}
   }
-  return json({ ok: true, version, delivered, notified });
+  return json({ ok: true, version, delivered, notified, now: Date.now() });
 }
 /* what a seated player (or the host) sees; eliminated players get only the seats still at the table */
 function spectatorPub(pub) {
@@ -1138,9 +1138,13 @@ async function apiTableState(env, bot, body) {
   const since = Number(body.since) || 0;
   const chat = dead || !row ? [] : ((await env.DB.prepare('SELECT id, tg_id, name, text, created_at FROM table_chat WHERE code = ?1 AND id > ?2 ORDER BY id LIMIT 100').bind(code, since).all()).results || []).map(m => ({ id: m.id, tgId: m.tg_id, name: m.name || '', text: m.text, at: m.created_at * 1000, me: m.tg_id === v.user.id }));
   const invites = await pendingInvites(env, v.user.id);
+  // peers: teammates' live answers for the keys the host opened to me (the Don's gestures, the family's hands at night) — straight from the queue, without the host's round trip
+  const peerKeys = me && Array.isArray(me.peerKeys) ? me.peerKeys.map(String).filter(k => /^[A-Za-z0-9:_.-]{1,64}$/.test(k)).slice(0, 4) : [];
+  let peers = [];
+  if (peerKeys.length && !dead) { const q = peerKeys.map((k, i) => '?' + (i + 2)).join(', '); peers = ((await env.DB.prepare(`SELECT tg_id, key, payload, created_at FROM table_actions WHERE code = ?1 AND key IN (${q}) ORDER BY id LIMIT 60`).bind(code, ...peerKeys).all()).results || []).map(r => ({ tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })); }
   const mySeat = me && me.seat ? me.seat : null; const opts = await lobbyOpts(env, code);
   const voice = await voiceInfo(env, code, v.user.id); const flag = flagOf(await lobbyLang(env, code));
-  return json({ ok: true, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
+  return json({ ok: true, now: Date.now(), peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
 }
 async function apiTableAct(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -1150,7 +1154,7 @@ async function apiTableAct(env, body) {
   const payload = JSON.stringify(body.payload && typeof body.payload === 'object' ? body.payload : {}).slice(0, 2000);
   await env.DB.prepare('DELETE FROM table_actions WHERE code = ?1 AND tg_id = ?2 AND key = ?3').bind(code, v.user.id, key).run();
   const ins = await env.DB.prepare('INSERT INTO table_actions (code, tg_id, key, payload, created_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(code, v.user.id, key, payload, now()).run();
-  return json({ ok: true, id: ins.meta.last_row_id });
+  return json({ ok: true, id: ins.meta.last_row_id, now: Date.now() });
 }
 async function apiTableActions(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -1159,7 +1163,7 @@ async function apiTableActions(env, bot, body) {
   const rows = (await env.DB.prepare('SELECT id, tg_id, key, payload, created_at FROM table_actions WHERE code = ?1 AND id > ?2 ORDER BY id LIMIT 200').bind(lobby.code, since).all()).results || [];
   try { await flushStaleInvites(env, bot, lobby.code); } catch (e) {}
   const seen = ((await env.DB.prepare('SELECT tg_id, seen_at FROM table_seen WHERE code = ?1 AND seen_at > ?2').bind(lobby.code, now() - TABLE_SEEN_SEC).all()).results || []).map(r => r.tg_id);
-  return json({ ok: true, actions: rows.map(r => ({ id: r.id, tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })), watching: seen });
+  return json({ ok: true, now: Date.now(), actions: rows.map(r => ({ id: r.id, tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })), watching: seen });
 }
 function timerLeft(tm) { if (!tm) return 0; const gone = tm.running ? Math.round((Date.now() - (tm.at || 0)) / 1000) : 0; return (tm.left || 0) - gone; }
 /* who may write: everyone (free discussion, morning), only the speaking seat while their speech timer runs, nobody from the vote on; the eliminated never */
@@ -1182,7 +1186,7 @@ async function apiTableChatSend(env, body) {
   const name = (me && me.seat ? me.seat + ' · ' : '') + displayName(v.user);
   const ins = await env.DB.prepare('INSERT INTO table_chat (code, tg_id, name, text, created_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(code, v.user.id, name, text, now()).run();
   await env.DB.prepare('DELETE FROM table_chat WHERE code = ?1 AND id < (SELECT MIN(id) FROM (SELECT id FROM table_chat WHERE code = ?1 ORDER BY id DESC LIMIT 500))').bind(code).run();
-  return json({ ok: true, id: ins.meta.last_row_id });
+  return json({ ok: true, id: ins.meta.last_row_id, now: Date.now() });
 }
 async function apiTableInviteRespond(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
