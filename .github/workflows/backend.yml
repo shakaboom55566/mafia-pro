@@ -3,6 +3,7 @@ name: Deploy backend (Cloudflare Worker)
 # Deploys backend/ to Cloudflare Workers + D1 and points the Telegram bot's webhook at it.
 # Secrets (Settings → Secrets and variables → Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, BOT_TOKEN.
 # Optional (Discord voice rooms for online tables): DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_CATEGORY_ID.
+# Optional (social media, /social in the bot): META_APP_ID, META_APP_SECRET, META_CONFIG_ID, TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET.
 # Runs on every push that touches backend/, or manually: Actions → "Deploy backend" → Run workflow.
 # The (sanitized) log of the deploy steps is posted as a comment on the commit, so it can be read without opening the run.
 # v44 security: the webhook secret is masked and never exported to later steps (this repository and its logs are public);
@@ -31,6 +32,12 @@ jobs:
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
       DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
       DISCORD_CATEGORY_ID: ${{ secrets.DISCORD_CATEGORY_ID }}
+      # social media (v45, /social in the bot): the Meta app (Facebook Login for Business) and the TikTok app — optional
+      META_APP_ID: ${{ secrets.META_APP_ID }}
+      META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+      META_CONFIG_ID: ${{ secrets.META_CONFIG_ID }}
+      TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+      TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
       WRANGLER_SEND_METRICS: 'false'
       LOG: /tmp/mafia-deploy.log
     defaults:
@@ -69,6 +76,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ''
           BOT_TOKEN: ''
           DISCORD_BOT_TOKEN: ''
+          META_APP_SECRET: ''
+          TIKTOK_CLIENT_SECRET: ''
         run: |
           if [ -f package-lock.json ]; then npm ci --no-audit --no-fund 2>&1 | tail -3; else npm install --no-audit --no-fund 2>&1 | tail -3; fi
           echo "wrangler $(node -p 'require("wrangler/package.json").version')" | tee -a "$LOG"
@@ -156,6 +165,9 @@ jobs:
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
           printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
           if [ -n "$DISCORD_BOT_TOKEN" ]; then printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN; fi
+          for k in META_APP_ID META_APP_SECRET META_CONFIG_ID TIKTOK_CLIENT_KEY TIKTOK_CLIENT_SECRET; do # social media apps (optional)
+            v="${!k}"; if [ -n "$v" ]; then printf '%s' "$v" | npx wrangler secret put "$k" > /dev/null && echo "$k: set"; else echo "$k: not set"; fi
+          done
           } 2>&1 | tee -a "$LOG"
 
       - name: Health check

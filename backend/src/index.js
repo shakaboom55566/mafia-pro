@@ -34,6 +34,8 @@
    - POST /api/table/join      sit down at an open table by code
    - POST /posts/draft         channel post draft from the "Channel posts" workflow (X-Posts-Key); admins approve it in the bot, cron publishes (posts.js)
    - POST /posts/stats         per channel post: people who came through its button, new players, played (X-Posts-Key; no personal data; growth.js)
+   - GET  /social/cb/meta|tiktok  OAuth return from Facebook Login / TikTok Login (state minted by /social in the bot; social.js)
+   - POST /social/creds|report|stats  the "Social" workflow: tokens for one run, what it published, visits from the profile links (X-Social-Key)
    - POST /api/lobby/discord   host: Discord voice room of an online table on / off / resize (seats + 1)
    - POST /api/lobby/voice-confirm  host: everyone is on voice → the deal opens
    - POST /api/table/voice     player: "I'm on voice"
@@ -47,6 +49,7 @@ import { apiPostDraft, onPostCallback, onPostReply, listPosts, runPostsCron, pos
 import { trackStart, trackApp, trackGameNames, runGrowthCron, onPlayersCommand, postStats } from './growth.js';
 import { t, pickLang } from './texts.js';
 import { onBroadcastCommand, onBroadcastCallback, runBroadcastCron } from './broadcast.js';
+import { onSocialCommand, onSocialCallback, socialCallback, socialCreds, socialReport, socialStats, runSocialCron, socialKey } from './social.js';
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 
@@ -437,12 +440,13 @@ async function onCallback(env, bot, q) {
   if (await bannedTg(env, u.id) || botFlood(env, u.id)) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
   if (/^sec_/.test(q.data || '') && await onSecurityCallback(env, bot, q, id => isAdmin(env, id))) return;
   if (/^pv_/.test(q.data || '') && await onPrivacyCallback(env, bot, q, lang)) return;
-  if (/^(cp|bc)_/.test(q.data || '') && isAdmin(env, u.id)) { // admin powers: audited, off in lockdown
-    secAudit(env, u.id, /^bc_go/.test(q.data) ? 'broadcast_send' : /^cp_/.test(q.data) ? 'post_' + String(q.data).split('_')[1] : 'broadcast', { detail: String(q.data).slice(0, 40) });
+  if (/^(cp|bc|sm)_/.test(q.data || '') && isAdmin(env, u.id)) { // admin powers: audited, off in lockdown
+    secAudit(env, u.id, /^bc_go/.test(q.data) ? 'broadcast_send' : /^cp_/.test(q.data) ? 'post_' + String(q.data).split('_')[1] : /^sm_/.test(q.data) ? 'social_' + String(q.data).split('_')[1] : 'broadcast', { detail: String(q.data).slice(0, 40) });
     if (await isLockdown(env)) return bot.call('answerCallbackQuery', { callback_query_id: q.id, text: '🔒 Режим блокировки: действие отключено', show_alert: true });
   }
   if (/^cp_/.test(q.data || '') && await onPostCallback(env, bot, q, id => isAdmin(env, id))) return;
   if (/^bc_/.test(q.data || '') && await onBroadcastCallback(env, bot, q, id => isAdmin(env, id))) return;
+  if (/^sm_/.test(q.data || '') && await onSocialCallback(env, bot, q, id => isAdmin(env, id))) return; // social media: pause, TikTok mode, delete a post
   const cm = /^cl_(acc|dec)_(\d+)$/.exec(q.data || '');
   if (cm) {
     const r = await respondClubInvite(env, bot, u, Number(cm[2]), cm[1] === 'acc');
@@ -531,10 +535,10 @@ async function onText(env, bot, msg) {
     return bot.send(chat, t(lang, 'welcome'), play);
   }
   if (await onPrivacyText(env, bot, msg, lang)) return; // /privacy /mydata /deletedata /unsubscribe /subscribe /support (privacy.js)
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n🛡 /security — безопасность: инциденты, блокировки, режим' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
   if (isAdmin(env, u.id)) {
     if (/^\/security(?:@\w+)?(?:\s|$)/.test(text)) return onSecurityCommand(env, bot, msg);
-    const power = /^\/(players|broadcast|grant|revoke|partner|partner_no|club_ok|club_no)(?:@\w+)?(?:\s|$)/.exec(text);
+    const power = /^\/(players|broadcast|social|grant|revoke|partner|partner_no|club_ok|club_no)(?:@\w+)?(?:\s|$)/.exec(text);
     if (power || (msg.reply_to_message && !text.startsWith('/'))) { // admin powers: every use is audited; all off in lockdown
       secAudit(env, u.id, power ? (power[1] === 'players' ? 'players_export' : power[1]) : 'post_reply', { detail: text.split(/\s+/).slice(0, 2).join(' ').slice(0, 60) });
       if (await isLockdown(env)) return bot.send(chat, LOCKED_TEXT);
@@ -544,6 +548,7 @@ async function onText(env, bot, msg) {
     if (/^\/posts(?:@\w+)?$/.test(text)) return bot.send(chat, await listPosts(env));
     if (/^\/players(?:@\w+)?(?:\s|$)/.test(text)) return onPlayersCommand(env, bot, msg);
     if (/^\/broadcast(?:@\w+)?(?:\s|$)/.test(text)) return onBroadcastCommand(env, bot, msg);
+    if (/^\/social(?:@\w+)?(?:\s|$)/.test(text)) return onSocialCommand(env, bot, msg); // Instagram, Facebook, TikTok (social.js)
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
       const target = await findUser(env, g[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(g[2]) }));
@@ -1621,6 +1626,15 @@ export default {
         let b = {}; try { b = JSON.parse(await readBody(req)); } catch (e) {}
         return json(await postStats(env, b && b.days));
       }
+      const scb = /^\/social\/cb\/(meta|tiktok)$/.exec(path);
+      if (scb && req.method === 'GET') return socialCallback(env, bot, url, scb[1], await isLockdown(env)); // OAuth return (one-use state from /social)
+      if ((path === '/social/creds' || path === '/social/report' || path === '/social/stats') && req.method === 'POST') { // the "Social" workflow
+        if (!env.BOT_TOKEN || !(await keyGate(env, g, req.headers.get('X-Social-Key'), await socialKey(env.BOT_TOKEN), 'social'))) return json({ ok: false, error: 'forbidden' }, 403);
+        let b = {}; try { b = JSON.parse(await readBody(req)); } catch (e) {}
+        if (path === '/social/creds') return json(await socialCreds(env, await isLockdown(env))); // lockdown: no tokens leave the vault
+        if (path === '/social/report') return json(await socialReport(env, b || {}));
+        return json(await socialStats(env, b && b.days));
+      }
       if ((path === '/sec/report' || path === '/sec/act') && req.method === 'POST') { // the "Security" workflow (on-call agent): no personal data in the report
         if (!env.BOT_TOKEN || !(await keyGate(env, g, req.headers.get('X-Sec-Key'), await secKey(env.BOT_TOKEN), 'security'))) return json({ ok: false, error: 'forbidden' }, 403);
         let b = {}; try { b = JSON.parse(await readBody(req)); } catch (e) {}
@@ -1719,6 +1733,7 @@ export default {
     const minute = !!(event && event.cron === '* * * * *'); // every minute: Discord members; every 5 minutes: channel posts
     if (!minute) ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
     if (!minute) ctx.waitUntil(runGrowthCron(env, new Bot(env)).catch(e => console.error('growth cron', e && e.stack || e))); // new players: notice to admins, daily digest with the table
+    if (!minute) ctx.waitUntil(runSocialCron(env, new Bot(env)).catch(e => console.error('social cron', e && e.stack || e))); // social media tokens: twice a day
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
     if (minute || !event || !event.cron) ctx.waitUntil(runBroadcastCron(env, new Bot(env)).catch(e => console.error('broadcast cron', e && e.stack || e))); // /broadcast: the next portion
     if (minute || !event || !event.cron) ctx.waitUntil(runSecurityWatch(env, new Bot(env)).catch(e => console.error('security watch', e && e.stack || e))); // incidents → response → alerts (security.js)

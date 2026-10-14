@@ -456,3 +456,30 @@ CREATE TABLE IF NOT EXISTS user_prefs (
   export_at    INTEGER,
   updated_at   INTEGER NOT NULL
 );
+-- Social media (v45): Instagram + a Facebook Page (platform 'meta') and TikTok, connected by an admin with /social in the bot.
+-- Tokens are sealed (AES-GCM, key derived from BOT_TOKEN); the "Social" workflow gets them per run through POST /social/creds.
+CREATE TABLE IF NOT EXISTS social_accounts (
+  platform     TEXT PRIMARY KEY,       -- meta | tiktok
+  account_id   TEXT,                   -- Facebook Page id | TikTok open_id
+  name         TEXT,                   -- Page name | TikTok display name
+  info         TEXT,                   -- JSON without tokens: linked Instagram account, pages, granted permissions / scope
+  secret       TEXT NOT NULL,          -- sealed JSON with the tokens
+  expires_at   INTEGER,                -- TikTok: end of the refresh token
+  connected_by INTEGER,                -- admin's Telegram id
+  updated_at   INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS social_states (   -- one-use consent links from /social (30 minutes)
+  state      TEXT PRIMARY KEY,
+  platform   TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS social_posts (    -- what the workflow published: social/posts/<id>.md
+  id          TEXT PRIMARY KEY,
+  rubric      TEXT,
+  ig_id       TEXT, ig_url TEXT, ig_status TEXT,   -- status: published | error | deleted
+  fb_id       TEXT, fb_url TEXT, fb_status TEXT,
+  tt_id       TEXT, tt_status TEXT,                -- PUBLISH_COMPLETE | SEND_TO_USER_INBOX | telegram (posted by hand) | error
+  video_bytes INTEGER,
+  created_at  INTEGER NOT NULL
+);

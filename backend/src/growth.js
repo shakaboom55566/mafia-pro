@@ -7,7 +7,8 @@
    - onPlayersCommand(env, bot, msg)    /players [days | all | live on | live off] — admins only
    - postStats(env, days)               per channel post: people who came through its button, how many were new, how many played
                                         (no personal data: for the "Channel posts" workflow and the posting agent)
-   Tracked links: t.me/<bot>?start=post_<post id> (button under a channel post), channel, ads_<tag>, site_<lang>, dc (Discord). */
+   Tracked links: t.me/<bot>?start=post_<post id> (button under a channel post), channel, ads_<tag>, site_<lang>, dc (Discord),
+   ig / fb / tt (+ _<tag>) — the links in the Instagram, Facebook and TikTok profiles (v45). */
 import { esc } from './tg.js';
 import { xlsx } from './xlsx.js';
 
@@ -46,10 +47,11 @@ export function classify(param) {
   if ((m = /^ads(?:_([A-Za-z0-9_-]{1,40}))?$/.exec(p))) return { source: 'ads', detail: m[1] || '' };
   if ((m = /^site(?:_([a-z]{2,3}))?$/.exec(p))) return { source: 'site', detail: m[1] || '' };
   if (/^(dc|discord)$/i.test(p) || /^dlink_/.test(p)) return { source: 'discord' };
+  if ((m = /^(ig|fb|tt)(?:_([A-Za-z0-9_-]{1,40}))?$/.exec(p))) return { source: { ig: 'instagram', fb: 'facebook', tt: 'tiktok' }[m[1]], detail: m[2] || '' }; // profile links (v45)
   return { source: 'other', detail: p.slice(0, 64) };
 }
-const HIT = new Set(['post', 'channel', 'ads', 'site', 'discord', 'other']); // links whose visitors are counted (not personal invites)
-const KIND = { ref: 'Реферальная ссылка', friend: 'Приглашение в друзья', table: 'Приглашение за стол', post: 'Пост в канале', channel: 'Канал (кнопка под постом)', ads: 'Реклама Telegram Ads', site: 'Сайт mafiapro.app', discord: 'Discord', app: 'Открыл приложение', bot: 'Нашёл бота сам', other: 'Другая ссылка', before: 'До начала учёта', unknown: 'Не определено' };
+const HIT = new Set(['post', 'channel', 'ads', 'site', 'discord', 'instagram', 'facebook', 'tiktok', 'other']); // links whose visitors are counted (not personal invites)
+const KIND = { ref: 'Реферальная ссылка', friend: 'Приглашение в друзья', table: 'Приглашение за стол', post: 'Пост в канале', channel: 'Канал (кнопка под постом)', ads: 'Реклама Telegram Ads', site: 'Сайт mafiapro.app', discord: 'Discord', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', app: 'Открыл приложение', bot: 'Нашёл бота сам', other: 'Другая ссылка', before: 'До начала учёта', unknown: 'Не определено' };
 
 async function record(env, tgId, c, param) {
   let detail = c.detail || '';
@@ -116,7 +118,7 @@ async function labeler(env, rows, since) {
     if (key === 'ref' || key === 'friend') detail = /^\d+$/.test(r.detail || '') ? who(Number(r.detail)) : (r.detail ? 'код ' + r.detail : '');
     else if (key === 'table') detail = `стол ${r.detail}${hostOf[r.detail] ? ' · ведущий ' + who(hostOf[r.detail]) : ''}`;
     else if (key === 'post') { const p = postOf[r.detail]; detail = p ? `${fmtShort(p.slot_at)} · ${p.rubric || ''} · ${p.lang}` : r.detail; }
-    else if (key === 'ads' || key === 'site' || key === 'other') detail = r.detail || '';
+    else if (key === 'ads' || key === 'site' || key === 'other' || key === 'instagram' || key === 'facebook' || key === 'tiktok') detail = r.detail || '';
     else if (key === 'app' && r.param) detail = r.param;
     return { key, kind: KIND[key] || key, detail };
   };
@@ -129,6 +131,7 @@ function linkLabel(param, posts) {
   if (c.source === 'ads') return 'Реклама' + (c.detail ? ' · ' + c.detail : '');
   if (c.source === 'site') return 'Сайт' + (c.detail ? ' · ' + c.detail : '');
   if (c.source === 'discord') return 'Discord';
+  if (c.source === 'instagram' || c.source === 'facebook' || c.source === 'tiktok') return KIND[c.source] + (c.detail ? ' · ' + c.detail : '');
   return 'Другая ссылка';
 }
 async function linkRows(env, from) {

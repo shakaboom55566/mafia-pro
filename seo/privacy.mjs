@@ -19,7 +19,7 @@ export const PRIVACY = {
         '**Друзья и клубы:** список друзей и заявки, ваш код приглашения и кого вы пригласили, клубы (название, город, описание, ссылка, логотип), членство и сообщения в чате клуба, заявка партнёра (имя, канал, аудитория).',
         '**Профиль:** город, если вы укажете его в профиле приложения.',
         '**Покупки:** что куплено за Telegram Stars, сумма, номер платежа Telegram. Данных карты мы не получаем — оплату проводит Telegram.',
-        '**Откуда вы пришли:** метка ссылки, по которой вы впервые открыли бота (пост в канале, реклама, сайт, Discord, приглашение), и время первого входа.',
+        '**Откуда вы пришли:** метка ссылки, по которой вы впервые открыли бота (пост в канале, реклама, сайт, Discord, Instagram, Facebook, TikTok, приглашение), и время первого входа.',
         '**Discord** (если вы на нашем сервере): id, имя пользователя и отображаемое имя, когда вошли и вышли, по какому приглашению пришли; привязка к Telegram — только если вы сами связали аккаунты командой /link или личным приглашением из приложения.',
         '**Безопасность:** ваш IP-адрес обрабатывает Cloudflare, чтобы доставлять запросы. Мы не храним IP-адрес — только его необратимый хэш с «солью», и только вместе с событиями безопасности (поддельные запросы, флуд, блокировки): тип события, страна, раздел, время. А также счётчики запросов без привязки к людям.',
         '**На вашем устройстве:** приложение хранит в памяти браузера настройки, локальные профили игроков (имена и аватары, которые вы добавили) и текущую партию. Это остаётся на устройстве; на сервер уходит только перечисленное выше (например, итог партии, который отправляет ведущий).'
@@ -81,7 +81,7 @@ export const PRIVACY = {
         '**Друзі й клуби:** список друзів і заявки, ваш код запрошення і кого ви запросили, клуби (назва, місто, опис, посилання, логотип), членство й повідомлення в чаті клубу, заявка партнера (ім’я, канал, аудиторія).',
         '**Профіль:** місто, якщо ви вкажете його в профілі застосунку.',
         '**Покупки:** що придбано за Telegram Stars, сума, номер платежу Telegram. Даних картки ми не отримуємо — оплату проводить Telegram.',
-        '**Звідки ви прийшли:** мітка посилання, за яким ви вперше відкрили бота (пост у каналі, реклама, сайт, Discord, запрошення), і час першого входу.',
+        '**Звідки ви прийшли:** мітка посилання, за яким ви вперше відкрили бота (пост у каналі, реклама, сайт, Discord, Instagram, Facebook, TikTok, запрошення), і час першого входу.',
         '**Discord** (якщо ви на нашому сервері): id, ім’я користувача й відображуване ім’я, коли увійшли й вийшли, за яким запрошенням прийшли; прив’язка до Telegram — лише якщо ви самі пов’язали акаунти командою /link або особистим запрошенням із застосунку.',
         '**Безпека:** вашу IP-адресу обробляє Cloudflare, щоб доставляти запити. Ми не зберігаємо IP-адресу — лише її незворотний хеш із «сіллю», і тільки разом із подіями безпеки (підроблені запити, флуд, блокування): тип події, країна, розділ, час. А також лічильники запитів без прив’язки до людей.',
         '**На вашому пристрої:** застосунок зберігає в пам’яті браузера налаштування, локальні профілі гравців (імена й аватари, які ви додали) і поточну партію. Це залишається на пристрої; на сервер іде лише перелічене вище (наприклад, підсумок партії, який надсилає ведучий).'
@@ -143,7 +143,7 @@ export const PRIVACY = {
         '**Friends and clubs:** your friends and friend requests, your invite code and whom you invited, clubs (name, city, description, link, logo), club memberships and club chat messages, partner applications (name, channel, audience).',
         '**Profile:** your city, if you add it to your profile in the app.',
         '**Purchases:** what you bought with Telegram Stars, the amount and the Telegram payment id. We never get card details — Telegram handles the payment.',
-        '**Where you came from:** the tag of the link you first opened the bot with (a channel post, an ad, the website, Discord, an invitation) and the time of your first visit.',
+        '**Where you came from:** the tag of the link you first opened the bot with (a channel post, an ad, the website, Discord, Instagram, Facebook, TikTok, an invitation) and the time of your first visit.',
         '**Discord** (if you are on our server): your id, username and display name, when you joined and left, which invitation brought you; a link to your Telegram account only if you connected them yourself with /link or a personal invitation from the app.',
         '**Security:** Cloudflare processes your IP address to deliver requests. We do not store IP addresses — only an irreversible salted hash, and only with security events (forged requests, floods, blocks): the event type, country, section and time. Plus request counters that are not linked to anyone.',
         '**On your device:** the app keeps settings, local player profiles (names and avatars you added) and the current game in browser storage. That stays on your device; only what is listed above reaches our server (for example, a game result sent by the host).'
@@ -205,7 +205,7 @@ export const PRIVACY = {
         '**Znajomi i kluby:** lista znajomych i zaproszenia, Twój kod zaproszenia i kogo zaprosiłeś, kluby (nazwa, miasto, opis, link, logo), członkostwo i wiadomości na czacie klubu, zgłoszenie partnera (imię, kanał, odbiorcy).',
         '**Profil:** miasto, jeśli podasz je w profilu aplikacji.',
         '**Zakupy:** co kupiłeś za Telegram Stars, kwota i numer płatności Telegrama. Danych karty nie otrzymujemy — płatność obsługuje Telegram.',
-        '**Skąd przyszedłeś:** znacznik linku, przez który pierwszy raz otworzyłeś bota (post na kanale, reklama, strona, Discord, zaproszenie), i czas pierwszej wizyty.',
+        '**Skąd przyszedłeś:** znacznik linku, przez który pierwszy raz otworzyłeś bota (post na kanale, reklama, strona, Discord, Instagram, Facebook, TikTok, zaproszenie), i czas pierwszej wizyty.',
         '**Discord** (jeśli jesteś na naszym serwerze): id, nazwa użytkownika i nazwa wyświetlana, kiedy dołączyłeś i wyszedłeś, przez jakie zaproszenie; powiązanie z Telegramem — tylko jeśli sam połączyłeś konta komendą /link lub osobistym zaproszeniem z aplikacji.',
         '**Bezpieczeństwo:** Twój adres IP przetwarza Cloudflare, aby dostarczać żądania. Nie przechowujemy adresów IP — tylko ich nieodwracalny skrót z „solą”, i tylko razem ze zdarzeniami bezpieczeństwa (sfałszowane żądania, flood, blokady): rodzaj zdarzenia, kraj, sekcja, czas. Do tego liczniki żądań niepowiązane z osobami.',
         '**Na Twoim urządzeniu:** aplikacja przechowuje w pamięci przeglądarki ustawienia, lokalne profile graczy (imiona i awatary, które dodałeś) i bieżącą grę. To zostaje na urządzeniu; na serwer trafia tylko to, co wymieniono wyżej (np. wynik gry wysłany przez prowadzącego).'
@@ -267,7 +267,7 @@ export const PRIVACY = {
         '**Ընկերներ և ակումբներ.** ընկերների ցանկն ու հայտերը, ձեր հրավերի կոդը և ում եք հրավիրել, ակումբները (անուն, քաղաք, նկարագրություն, հղում, լոգո), անդամակցությունն ու ակումբի չաթի հաղորդագրությունները, գործընկերոջ հայտը (անուն, ալիք, լսարան)։',
         '**Պրոֆիլ.** քաղաքը, եթե այն նշեք հավելվածի պրոֆիլում։',
         '**Գնումներ.** ինչ եք գնել Telegram Stars-ով, գումարը և Telegram-ի վճարման համարը։ Քարտի տվյալներ մենք չենք ստանում. վճարումն իրականացնում է Telegram-ը։',
-        '**Որտեղից եք եկել.** այն հղման պիտակը, որով առաջին անգամ բացել եք բոտը (ալիքի գրառում, գովազդ, կայք, Discord, հրավեր), և առաջին այցի ժամը։',
+        '**Որտեղից եք եկել.** այն հղման պիտակը, որով առաջին անգամ բացել եք բոտը (ալիքի գրառում, գովազդ, կայք, Discord, Instagram, Facebook, TikTok, հրավեր), և առաջին այցի ժամը։',
         '**Discord** (եթե մեր սերվերում եք). id, օգտանուն և ցուցադրվող անուն, երբ եք մտել և դուրս եկել, որ հրավերով եք եկել. կապը Telegram-ի հետ՝ միայն եթե ինքներդ եք կապել հաշիվները /link հրամանով կամ հավելվածի անձնական հրավերով։',
         '**Անվտանգություն.** ձեր IP հասցեն մշակում է Cloudflare-ը՝ հարցումները հասցնելու համար։ Մենք IP հասցե չենք պահում՝ միայն դրա անշրջելի «աղով» հեշը, և միայն անվտանգության իրադարձությունների հետ (կեղծ հարցումներ, ֆլուդ, արգելափակումներ)՝ իրադարձության տեսակը, երկիրը, բաժինը, ժամը։ Ինչպես նաև հարցումների հաշվիչներ՝ առանց մարդկանց հետ կապի։',
         '**Ձեր սարքում.** հավելվածը դիտարկիչի հիշողության մեջ պահում է կարգավորումները, խաղացողների տեղային պրոֆիլները (ձեր ավելացրած անուններն ու ավատարները) և ընթացիկ խաղը։ Սա մնում է սարքում. սերվեր է գնում միայն վերը թվարկվածը (օրինակ՝ խաղի արդյունքը, որը ուղարկում է վարողը)։'

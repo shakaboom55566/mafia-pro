@@ -10,6 +10,8 @@ import { postsKey, entitiesToHtml } from '../src/posts.js';
 import { classify, kyiv, digest, DIGEST_HOUR } from '../src/growth.js';
 import { Bot } from '../src/tg.js';
 import { writeFileSync } from 'node:fs';
+import { startMockSocial } from './mock-social.js';
+import { socialKey, seal, unseal } from '../src/social.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const worker = (await import('../src/index.js')).default;
@@ -1053,6 +1055,92 @@ console.log('/broadcast: preview → confirm → portions by cron → progress, 
   await cb(adm, `bc_cancel_${b.id}`); eq((await bc()).status, 'cancelled', 'cancelled from the preview');
   const s3 = sentTo().length; await tick(); eq(sentTo().length, s3, 'a cancelled broadcast never goes out');
   delete env.BROADCAST_BATCH; delete env.CHAT_URL; delete env.CHANNEL_ID; }
+
+console.log('social media: /social, Facebook + Instagram and TikTok consent → sealed tokens, creds for the workflow, report, delete, pause, TikTok mode, stats, token watch');
+{ const sm = await startMockSocial(8793); const adm = user(777); const key = await socialKey('test-token');
+  const smc = (data, extra = {}) => hook({ update_id: 900, callback_query: Object.assign({ id: 'smq', from: adm, data, message: { message_id: 501, chat: { id: 777 }, text: '📱 Соцсети' } }, extra) });
+  const ans = () => lastCall('answerCallbackQuery').params;
+  const sk = (p, b, k = key) => post(p, b || {}, { 'X-Social-Key': k });
+  Object.assign(env, { META_GRAPH_BASE: sm.base, META_DIALOG_BASE: 'https://fb.test', TIKTOK_API: sm.base, TIKTOK_AUTH: 'https://tt.test', SOCIAL_BASE: 'https://api.test' });
+  await hook(msg(adm, '/social')); let c = lastTo(777);
+  ok(/Соцсети/.test(c.params.text) && /Instagram: ⚪️ не подключён/.test(c.params.text) && /META_APP_ID/.test(c.params.text), 'no app keys yet: status + what to add');
+  ok(!c.params.reply_markup.inline_keyboard.some(r => r.some(b => b.url)), 'no connect buttons without keys');
+  await hook(msg(user(55), '/social')); ok(!/Соцсети/.test(lastTo(55).params.text), 'not for players');
+  Object.assign(env, { META_APP_ID: '4242', META_APP_SECRET: 'meta-secret', TIKTOK_CLIENT_KEY: 'ttkey', TIKTOK_CLIENT_SECRET: 'tt-secret' });
+  await hook(msg(adm, '/social')); c = lastTo(777);
+  const urls = c.params.reply_markup.inline_keyboard.flat().filter(b => b.url).map(b => new URL(b.url));
+  const mu = urls.find(u => u.host === 'fb.test'), tu = urls.find(u => u.host === 'tt.test');
+  ok(mu && /\/v\d+\.\d\/dialog\/oauth$/.test(mu.pathname) && mu.searchParams.get('client_id') === '4242' && mu.searchParams.get('redirect_uri') === 'https://api.test/social/cb/meta' && /instagram_content_publish/.test(mu.searchParams.get('scope')), 'Meta consent link: app, redirect, permissions');
+  ok(tu && tu.pathname === '/v2/auth/authorize/' && tu.searchParams.get('client_key') === 'ttkey' && /video\.upload/.test(tu.searchParams.get('scope')) && tu.searchParams.get('redirect_uri') === 'https://api.test/social/cb/tiktok', 'TikTok consent link');
+  env.META_CONFIG_ID = 'cfg-77'; await hook(msg(adm, '/social'));
+  const mu2 = new URL(lastTo(777).params.reply_markup.inline_keyboard.flat().find(b => b.url && b.url.startsWith('https://fb.test')).url);
+  ok(mu2.searchParams.get('config_id') === 'cfg-77' && !mu2.searchParams.get('scope'), 'Facebook Login for Business: config_id instead of scope'); delete env.META_CONFIG_ID;
+  let r = await call('/social/cb/meta?code=good-code&state=' + 'a'.repeat(32)); ok(r.status === 400 && /устарела/.test(await r.text()), 'unknown state → refused');
+  r = await call('/social/cb/meta?error=access_denied&state=' + mu.searchParams.get('state')); ok(r.status === 400 && /отменено/.test(await r.text()), 'consent declined → page, state used up');
+  await hook(msg(adm, '/social')); const st = new URL(lastTo(777).params.reply_markup.inline_keyboard.flat().find(b => b.url && b.url.startsWith('https://fb.test')).url).searchParams.get('state');
+  r = await call(`/social/cb/meta?code=good-code&state=${st}`); const page = await r.text();
+  ok(r.status === 200 && /Готово/.test(page) && !/page-token/.test(page), 'Meta connected; no token on the page');
+  ok(/Подключено: страница Facebook <b>Mafia Pro<\/b> и Instagram <b>@mafiapro\.app<\/b>/.test(lastTo(777).params.text) && /Страниц доступно: 2/.test(lastTo(777).params.text), 'admin told: page + Instagram, other pages');
+  eq((await call(`/social/cb/meta?code=good-code&state=${st}`)).status, 400, 'state works once');
+  ok(sm.calls.some(x => x.q.grant_type === 'fb_exchange_token' && x.q.fb_exchange_token === 'short-user'), 'short user token exchanged for a long-lived one');
+  const row = await env.DB.prepare("SELECT * FROM social_accounts WHERE platform = 'meta'").first();
+  ok(row && row.secret.startsWith('v1:') && !row.secret.includes('page-token') && !row.info.includes('page-token') && row.account_id === '1001', 'tokens sealed at rest');
+  eq((await post('/social/creds', {})).status, 403, 'creds: no key → 403'); eq((await sk('/social/creds', {}, 'x'.repeat(48))).status, 403, 'creds: wrong key → 403');
+  let cr = await (await sk('/social/creds')).json();
+  ok(cr.ok && cr.meta.pageToken === 'page-token-1001' && cr.meta.igId === '1784' && cr.meta.igUsername === 'mafiapro.app' && !cr.paused && cr.ttMode === 'telegram' && cr.admins[0] === 777, 'creds: Page token, Instagram id, admins, TikTok by hand');
+  ok(cr.apps.meta === true && cr.apps.tiktok === true, 'creds: app keys configured');
+  // TikTok
+  r = await call(`/social/cb/tiktok?code=tt-code&state=${tu.searchParams.get('state')}`); ok(r.status === 200, 'TikTok connected (its own state)');
+  ok(/TikTok подключён: <b>Mafia Pro TT<\/b>/.test(lastTo(777).params.text) && /черновики TikTok/.test(lastTo(777).params.text), 'admin told: TikTok, drafts mode');
+  cr = await (await sk('/social/creds')).json(); ok(cr.tiktok.token === 'tt-access-1' && cr.ttMode === 'inbox', 'creds: TikTok token, inbox mode');
+  { const a = await env.DB.prepare("SELECT secret FROM social_accounts WHERE platform = 'tiktok'").first(); const s0 = await unseal(env, a.secret); s0.access_exp = now() + 60;
+    await env.DB.prepare("UPDATE social_accounts SET secret = ?1 WHERE platform = 'tiktok'").bind(await seal(env, s0)).run(); }
+  cr = await (await sk('/social/creds')).json(); ok(cr.tiktok.token === 'tt-access-2' && sm.state.ttRefresh === 1, 'TikTok token near its end → refreshed');
+  cr = await (await sk('/social/creds')).json(); ok(cr.tiktok.token === 'tt-access-2' && sm.state.ttRefresh === 1, 'fresh token reused');
+  ok(sm.calls.filter(x => x.form.grant_type === 'refresh_token').pop().form.refresh_token === 'tt-refresh-1', 'refreshed with the stored refresh token');
+  // report → /social → delete
+  eq((await sk('/social/report', { id: 'bad id!' })).status === 200 && (await (await sk('/social/report', { id: 'bad id!' })).json()).ok, false, 'report: bad id refused');
+  ok((await (await sk('/social/report', { id: '2026-10-15', rubric: 'Роль дня', bytes: 5e6, results: { instagram: { id: '1795', url: 'https://www.instagram.com/reel/X/', status: 'published' }, facebook: { id: '3311', url: 'https://www.facebook.com/reel/3311', status: 'published' }, tiktok: { id: 'v_inbox_1', status: 'SEND_TO_USER_INBOX' } } })).json()).ok, 'report stored');
+  await hook(msg(adm, '/social')); ok(/2026-10-15 · Роль дня — IG ✅ FB ✅ TT 📥/.test(lastTo(777).params.text), '/social lists the post');
+  await smc('sm_del_2026-10-15'); ok(lastCall('editMessageReplyMarkup').params.reply_markup.inline_keyboard[0][0].callback_data === 'sm_delok_2026-10-15', 'delete asks first');
+  await smc('sm_keep_2026-10-15'); ok(lastCall('editMessageReplyMarkup').params.reply_markup.inline_keyboard[0][0].callback_data === 'sm_del_2026-10-15', 'kept → buttons back');
+  await smc('sm_delok_2026-10-15'); let t = lastTo(777).params.text;
+  ok(sm.state.deleted.includes('1795') && sm.state.deleted.includes('3311') && /Instagram: удалено/.test(t) && /Facebook: удалено/.test(t) && /TikTok: у TikTok нет удаления/.test(t), 'deleted from Instagram and Facebook; TikTok explained');
+  ok(sm.calls.filter(x => x.method === 'DELETE').every(x => x.q.access_token === 'page-token-1001'), 'deletes use the Page token');
+  eq(await env.DB.prepare("SELECT ig_status || '/' || fb_status AS s FROM social_posts WHERE id = '2026-10-15'").first('s'), 'deleted/deleted', 'statuses: deleted');
+  await sk('/social/report', { id: '2026-10-16', results: { facebook: { id: '9555', status: 'published' }, tiktok: { status: 'telegram' } } });
+  await smc('sm_delok_2026-10-16'); t = lastTo(777).params.text;
+  ok(sm.state.deleted.includes('1001_9555') && /Facebook: удалено/.test(t) && !/TikTok/.test(t), 'reel id refused → its Page post deleted; TikTok posted by hand: nothing to say');
+  await smc('sm_delok_nope-1'); ok(/не найден/.test(ans().text), 'unknown post');
+  // pause, TikTok mode, page switch
+  await smc('sm_pause'); ok((await (await sk('/social/creds')).json()).paused === true && /Пауза/.test(ans().text), 'pause');
+  ok(/на паузе/.test(lastCall('editMessageText').params.text), 'status card refreshed');
+  await smc('sm_resume'); ok((await (await sk('/social/creds')).json()).paused === false, 'resume');
+  await smc('sm_tt_direct'); ok((await (await sk('/social/creds')).json()).ttMode === 'direct', 'TikTok: direct mode');
+  await hook({ update_id: 901, callback_query: { id: 'smx', from: user(55), data: 'sm_pause', message: { message_id: 1, chat: { id: 55 } } } });
+  ok(/администратор/.test(ans().text) && (await (await sk('/social/creds')).json()).paused === false, 'players cannot pause');
+  await hook(msg(adm, '/social page 1002')); cr = await (await sk('/social/creds')).json(); ok(cr.meta.pageId === '1002' && cr.meta.igId === null, '/social page switches the Page');
+  ok(/к странице не привязан Instagram/.test(lastTo(777).params.text), 'status: Page without Instagram');
+  await hook(msg(adm, '/social page 1001')); await hook(msg(adm, '/social page 999999')); ok(/нет среди подключённых/.test(lastTo(777).params.text), 'unknown page');
+  // profile links → stats
+  eq(classify('ig'), { source: 'instagram', detail: '' }, 'start=ig → Instagram'); eq(classify('tt_bio'), { source: 'tiktok', detail: 'bio' }, 'start=tt_bio → TikTok · bio'); eq(classify('fb').source, 'facebook', 'start=fb → Facebook');
+  await hook(msg(user(8801, 'uk'), '/start ig')); await hook(msg(user(8802, 'en'), '/start tt'));
+  const ss = await (await sk('/social/stats', { days: 7 })).json();
+  ok(ss.ok && ss.sources.ig.visitors === 1 && ss.sources.ig.newPlayers === 1 && ss.sources.tt.visitors === 1 && ss.sources.fb.visitors === 0, 'stats: visits from the profile links');
+  ok(ss.posts.some(p => p.id === '2026-10-15') && !JSON.stringify(ss).includes('token'), 'stats: posts, no tokens');
+  eq(await env.DB.prepare('SELECT source FROM player_track WHERE tg_id = 8801').first('source'), 'instagram', 'newcomer from Instagram recorded');
+  // lockdown: no tokens leave the vault
+  { const sec = await import('../src/security.js'); await sec.setLockdown(env, true, 'test', 'test'); sec._resetSecurityMemory();
+    cr = await (await sk('/social/creds')).json(); ok(cr.locked === true && !cr.meta && !cr.tiktok, 'lockdown: no tokens');
+    await sec.setLockdown(env, false, 'test'); sec._resetSecurityMemory(); }
+  // token watch (twice a day)
+  sm.state.pageTokenOk = false; await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'social:check_at'").run(); let waits = []; await worker.scheduled({ cron: '*/5 * * * *' }, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
+  ok(/Соцсети/.test(lastTo(777).params.text) && /токен страницы не работает/.test(lastTo(777).params.text), 'dead Page token → admins told');
+  const before = tg.calls.length; waits = []; await worker.scheduled({ cron: '*/5 * * * *' }, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
+  ok(!tg.calls.slice(before).some(x => x.method === 'sendMessage' && /Соцсети/.test(x.params.text || '')), 'checked at most twice a day');
+  sm.state.pageTokenOk = true;
+  for (const k of ['META_GRAPH_BASE', 'META_DIALOG_BASE', 'TIKTOK_API', 'TIKTOK_AUTH', 'SOCIAL_BASE', 'META_APP_ID', 'META_APP_SECRET', 'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET']) delete env[k];
+  await sm.close(); }
 
 console.log('security: webhook only from Telegram, forged logins, limits, bans, defused table state, anti-cheat, watch → incidents → alerts, lockdown, report');
 { const sec = await import('../src/security.js'); sec._resetSecurityMemory();

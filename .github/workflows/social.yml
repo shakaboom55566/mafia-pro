@@ -1,0 +1,138 @@
+name: Social
+
+# Instagram, Facebook and TikTok: one AI video a day (social/AGENT.md — the daily agent, social/PLAN.md — what to post).
+# The agent pushes social/posts/YYYY-MM-DD.md → this workflow makes an 8-second vertical video with Veo 3.1 (Gemini API), adds the end card,
+# publishes an Instagram Reel and a Facebook Page Reel and sends it to TikTok (drafts / direct / by hand — /social in the bot), then DMs the
+# video to the admins with "delete everywhere" and "pause" buttons. Results: social/published/<id>.json (committed); the log: a commit comment.
+# Accounts are connected by the admin in the bot (/social); their tokens stay in the backend and come to each run masked (POST /social/creds).
+# Secrets: BOT_TOKEN (already set), GEMINI_API_KEY (Google AI Studio key on a project with billing; set a monthly spend cap in AI Studio → Spend).
+# Manual: Actions → Social → Run workflow (mode status | stats | publish | preview). From the agent:
+#   gh api -X POST repos/<owner>/<repo>/actions/workflows/social.yml/dispatches -f ref=main -f 'inputs[mode]=status'
+on:
+  push:
+    branches: [main]
+    paths: ['social/posts/**.md', 'social/lib/**', 'social/run.mjs', 'social/test.mjs', '.github/workflows/social.yml']
+  schedule:
+    - cron: '30 17 * * *'   # 20:30 Kyiv in summer, 19:30 in winter: today's post if the push run did not publish it
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'status | stats | publish | preview (preview: the video only to the admins, nothing published)'
+        type: choice
+        options: [status, stats, publish, preview]
+        default: status
+      file:
+        description: 'Post file for publish / preview (social/posts/YYYY-MM-DD.md); empty = today'
+        required: false
+      force:
+        description: 'Publish even if already published, paused or not today'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: social
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      TZ: Europe/Kiev
+      LOG: /tmp/social.log
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: ffmpeg and a font for the end card
+        run: |
+          if ! command -v ffmpeg >/dev/null || [ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf ]; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core >/dev/null
+          fi
+          ffmpeg -version | head -1
+
+      - name: What to do
+        id: plan
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+          MODE: ${{ inputs.mode }}
+          FILE: ${{ inputs.file }}
+        run: |
+          : > "$LOG"; tests=0; files=""
+          if [ "$EVENT" = "push" ]; then
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+              changed=$(git diff --name-only --diff-filter=AM "$BEFORE" "$GITHUB_SHA")
+            else changed=$(git show --name-only --pretty=format: "$GITHUB_SHA"); fi
+            files=$(echo "$changed" | grep -E '^social/posts/[^/]+\.md$' || true)
+            echo "$changed" | grep -qE '^(social/lib/|social/run\.mjs|social/test\.mjs|\.github/workflows/social\.yml)' && tests=1
+            if [ -n "$files" ]; then mode=publish; else mode=status; fi
+          elif [ "$EVENT" = "schedule" ]; then mode=today
+          else mode="$MODE"; files="$FILE"; [ "$mode" = "publish" ] || [ "$mode" = "preview" ] && [ -z "$files" ] && files="social/posts/$(date +%F).md"; fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"; echo "tests=$tests" >> "$GITHUB_OUTPUT"
+          { echo "files<<EOF"; echo "$files"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          echo "## social: $mode ${files//$'\n'/ }" | tee -a "$LOG"
+
+      - name: Tests (fake Veo, Meta, TikTok, Telegram)
+        if: steps.plan.outputs.tests == '1'
+        env:
+          BOT_TOKEN: ''
+          GEMINI_API_KEY: ''
+        run: node social/test.mjs 2>&1 | tee -a "$LOG"
+
+      - name: Run
+        id: run
+        env:
+          MODE: ${{ steps.plan.outputs.mode }}
+          FILES: ${{ steps.plan.outputs.files }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -o pipefail
+          extra=""; [ "$FORCE" = "true" ] && extra="--force"
+          case "$MODE" in
+            publish) node social/run.mjs check $FILES && node social/run.mjs publish $FILES $extra ;;
+            preview) node social/run.mjs publish $FILES --preview ;;
+            today)   node social/run.mjs today ;;
+            stats)   node social/run.mjs stats ;;
+            *)       node social/run.mjs status ;;
+          esac
+
+      - name: Commit what was published
+        if: always()
+        continue-on-error: true
+        run: |
+          git add social/published 2>/dev/null || true
+          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          git config user.name "mafia-pro-social"
+          git config user.email "social@users.noreply.github.com"
+          ids=$(git diff --cached --name-only | sed -n 's#social/published/\(.*\)\.json#\1#p' | tr '\n' ' ')
+          git commit -m "social: published $ids"
+          for i in 1 2 3 4 5; do git fetch -q origin main && git rebase -q origin/main && git push -q origin HEAD:main && { echo "pushed"; exit 0; }; sleep $((i * 5)); done
+          echo "::warning::could not push social/published"
+
+      - name: Post the log as a commit comment
+        if: always() && (steps.plan.outputs.mode != 'today' || steps.run.outcome != 'success' || hashFiles('social/published/*.json') != '')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          MODE: ${{ steps.plan.outputs.mode }}
+        run: |
+          if [ "$MODE" = "today" ] && grep -q "no post for today\|already published" "$LOG" && [ "$JOB_STATUS" = "success" ]; then echo "nothing to report"; exit 0; fi
+          node -e '
+            const fs = require("fs"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
+            for (const k of ["BOT_TOKEN", "GEMINI_API_KEY"]) { const v = process.env[k]; if (v && v.length > 5) s = s.split(v).join("<" + k + ">"); }
+            s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>").replace(/::add-mask::\S+/g, "");
+            const body = "**Social** (" + process.env.MODE + ") run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s.slice(-12000) + "\n```";
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/comment.json", JSON.stringify({ body }));
+          '
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input "$RUNNER_TEMP/comment.json" > /dev/null && echo "log posted"
