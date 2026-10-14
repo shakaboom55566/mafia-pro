@@ -174,9 +174,9 @@ let checks = 0; const SHOT = {};
   }
   // scenario game with all premium roles
   await act('go', { to: 'shop' });
-  for (const id of roleIds) { if (await state(`!!ROLE['${id}'].premium`)) await act('buy-confirm', { kind: 'role', id }); }
+  for (const id of roleIds) { if (await state(`!!ROLE['${id}'].premium`)) await state(`(grantOwned('role', '${id}'), render(), true)`); }
   for (const sc of ['chaos', 'clan_war', 'survival']) {
-    await act('buy-confirm', { kind: 'scen', id: sc });
+    await state(`(grantOwned('scen', '${sc}'), render(), true)`);
     await act('scen-use', { id: sc }); await check('scenario setup ' + sc, sc === 'chaos' ? 'scen-setup' : null);
     await act('deal');
     const m = await state('S.game.players.length'); for (let i = 0; i < m; i++) { await act('flip'); await act('hide'); }
@@ -214,7 +214,7 @@ let checks = 0; const SHOT = {};
   await act('sheet', { id: 'players' }); const fpid = await state('alive(S.game)[0].id'); await act('player', { id: fpid }); await check('classic fouls sheet', 'classic-fouls'); await act('foul-add', { id: fpid }); await act('sheet-close');
   // ---- diplomacy pack ----
   await act('go', { to: 'shop' }); await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await check('shop pack', 'shop-pack'); await page.evaluate(() => window.scrollTo(0, 0));
-  await act('buy', { kind: 'pack', id: 'diplomacy' }); await check('pack buy sheet', 'pack-buy'); await act('buy-confirm', { kind: 'pack', id: 'diplomacy' });
+  await act('buy', { kind: 'pack', id: 'diplomacy' }); await check('pack buy sheet', 'pack-buy'); await state("(grantOwned('pack', 'diplomacy'), S.ui.sheet = null, render(), true)");
   await act('role', { id: 'blackmailer' }); await check('pack role card', 'pack-card'); await act('sheet-close');
   await act('role', { id: 'kamikaze' }); await page.evaluate(() => { const el = document.querySelector('.counter-list'); if (el) el.scrollIntoView(); }); await check('counters on role sheet', 'counters'); await act('sheet-close');
   // rotatable card in the role sheet: drag it half a turn with a real pointer and verify the back is shown

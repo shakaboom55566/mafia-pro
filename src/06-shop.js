@@ -69,22 +69,23 @@ function shopScreen() {
 }
 function buySheetHTML(kind, id) {
   const u = U();
+  const web = !inTelegram(); const label = price => web ? `${I.tg || ''} ${u.buyInTg}`.trim() : tt(u.buyDemo, { price }); const note = web ? u.buyTgOnly : u.buyNote;
   if (kind === 'role') {
     const r = ROLE[id];
     return `<h2>${u.buyTitle}</h2><div class="card-wrap" style="max-width:240px;margin-top:10px">${cardHTML(r)}</div>
-      <p class="hint" style="margin:12px 0">${u.buyNote}</p>
-      <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="role" data-id="${id}">${tt(u.buyDemo, { price: u.priceCard })}</button></div>`;
+      <p class="hint" style="margin:12px 0">${note}</p>
+      <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="role" data-id="${id}">${label(u.priceCard)}</button></div>`;
   }
   if (kind === 'pack') {
     const pk = PACKS[id];
     return `<h2>${u.packTitle}</h2><p class="hint" style="margin:6px 0">${u.packSub}</p><div class="filters wrap">${pk.roles.map(rid => `<span class="chip">${roleArt(rid, 'portrait').replace('class="art-svg', 'style="width:18px;height:18px;border-radius:50%;vertical-align:middle;margin-right:4px" class="art-svg')}${ROLE[rid].name}</span>`).join('')}</div>
-      <p class="hint" style="margin:12px 0">${u.buyNote}</p>
-      <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="pack" data-id="${id}">${tt(u.buyDemo, { price: u.pricePack })}</button></div>`;
+      <p class="hint" style="margin:12px 0">${note}</p>
+      <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="pack" data-id="${id}">${label(u.pricePack)}</button></div>`;
   }
   const sc = SCENARIO[id];
   return `<h2>${u.buyTitle}</h2><div style="margin-top:10px">${scenarioCardHTML(sc).replace(/<div class="btn-row"[\s\S]*?<\/div>\s*<\/div>$/, '</div>')}</div>
-    <p class="hint" style="margin:12px 0">${u.buyNote}</p>
-    <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="scen" data-id="${id}">${tt(u.buyDemo, { price: u.priceScen })}</button></div>`;
+    <p class="hint" style="margin:12px 0">${note}</p>
+    <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="scen" data-id="${id}">${label(u.priceScen)}</button></div>`;
 }
 /* Scenario → setup */
 function applyScenario(id, n) {
@@ -119,14 +120,27 @@ function enableGyro() {
 let gyroAsked = false;
 document.addEventListener('pointerdown', () => { if (!gyroAsked) { gyroAsked = true; enableGyro(); } }, { once: true });
 
+/* v41: a purchase is granted only after a paid Telegram Stars invoice (08-telegram.js → tgBuy) or by the account (cloudSync).
+   Outside Telegram there is no account to pay from — the shop sends the player to the app in Telegram, nothing is unlocked here. */
+function grantOwned(kind, id) {
+  S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
+  if (kind === 'role') { if (!S.owned.roles.includes(id)) S.owned.roles.push(id); toast(tt(U().bought, { name: ROLE[id].name })); }
+  else if (kind === 'pack') { if (!S.owned.packs.includes(id)) S.owned.packs.push(id); toast(tt(U().bought, { name: U().packTitle })); }
+  else { if (!S.owned.scenarios.includes(id)) S.owned.scenarios.push(id); toast(tt(U().bought, { name: SCENARIO[id].name })); }
+}
+function shopTelegramUrl() {
+  const bot = (typeof LB !== 'undefined' && LB.bot) || (typeof CLOUD !== 'undefined' && CLOUD.me && CLOUD.me.bot) || 'mafiaprof_bot';
+  return `https://t.me/${bot}/app?startapp=shop`;
+}
+const inTelegram = () => typeof TG !== 'undefined' && !!TG.app;
 Object.assign(ACT, {
   buy(el) { S.ui.sheet = { type: 'buy', kind: el.dataset.kind, id: el.dataset.id }; render(); },
-  'buy-confirm'(el) {
-    const kind = el.dataset.kind, id = el.dataset.id;
-    if (kind === 'role') { if (!S.owned.roles.includes(id)) S.owned.roles.push(id); toast(tt(U().bought, { name: ROLE[id].name })); }
-    else if (kind === 'pack') { S.owned.packs = S.owned.packs || []; if (!S.owned.packs.includes(id)) S.owned.packs.push(id); toast(tt(U().bought, { name: U().packTitle })); }
-    else { if (!S.owned.scenarios.includes(id)) S.owned.scenarios.push(id); toast(tt(U().bought, { name: SCENARIO[id].name })); }
+  'buy-confirm'() { // reached only when no Stars invoice can be made: never unlocks anything
     S.ui.sheet = null; render();
+    if (inTelegram()) { toast(U().tgNA); return; }
+    toast(U().buyTgOnly);
+    const url = shopTelegramUrl();
+    try { const w = window.open(url, '_blank', 'noopener'); if (!w) location.href = url; } catch (e) { try { location.href = url; } catch (e2) {} }
   },
   'scen-use'(el) { const classic = el.dataset.id === 'classic'; applyScenario(el.dataset.id, classic ? 10 : undefined); S.ui.showAll = false; go('setup'); },
   'scen-clear'() { S.setup.scenario = null; S.setup.comp = presetFor(S.setup.n); render(); }

@@ -10,7 +10,7 @@ const ctx = {
 };
 ctx.window = { scrollTo() {}, AudioContext: null, webkitAudioContext: null }; ctx.navigator = { language: 'ru' }; ctx.requestAnimationFrame = () => 1; ctx.Intl = Intl;
 ctx.self = ctx; vm.createContext(ctx);
-vm.runInContext(src + '\nthis.X = { ACT, S: () => S, render, P, alive, ROLE, T, voteOutcome, voteWeight, reviewGame, label, PACKS, canNominate, tally, FX, U: () => U(), tt, COUNTERS, COUNTERED_BY, ROLES, dayAbilityBlocked };', ctx);
+vm.runInContext(src + '\nthis.X = { ACT, S: () => S, render, P, alive, ROLE, T, voteOutcome, voteWeight, reviewGame, label, PACKS, canNominate, tally, FX, U: () => U(), tt, COUNTERS, COUNTERED_BY, ROLES, dayAbilityBlocked, grantOwned };', ctx);
 const X = ctx.X; let fails = 0; let shots = 0;
 function check(name) {
   const h = app.innerHTML; shots++;
@@ -203,14 +203,20 @@ A['demo-remove'](); check('demo removed');
 // shop: buy a card and a scenario, start a scenario game
 A.go(el('go', { to: 'shop' })); check('shop');
 A.buy(el('buy', { kind: 'role', id: 'arsonist' })); check('buy sheet role');
-A['buy-confirm'](el('buy-confirm', { kind: 'role', id: 'arsonist' })); check('bought role');
+if (!app.innerHTML.includes(X.U().buyInTg)) { fails++; console.log('FAIL buy sheet outside Telegram must send to Telegram'); }
+A['buy-confirm'](el('buy-confirm', { kind: 'role', id: 'arsonist' })); check('buy outside Telegram');
+// v41: outside Telegram the buy button never unlocks anything (it used to be a free "demo" purchase)
+if (X.S().owned.roles.includes('arsonist')) { fails++; console.log('FAIL a card was unlocked without payment'); }
+X.grantOwned('role', 'arsonist'); check('bought role'); // what a paid Stars invoice does
 A.buy(el('buy', { kind: 'scen', id: 'chaos' })); check('buy sheet scen');
-A['buy-confirm'](el('buy-confirm', { kind: 'scen', id: 'chaos' })); check('bought scen');
+A['buy-confirm'](el('buy-confirm', { kind: 'scen', id: 'chaos' }));
+if (X.S().owned.scenarios.includes('chaos')) { fails++; console.log('FAIL a scenario was unlocked without payment'); }
+X.grantOwned('scen', 'chaos'); check('bought scen');
 A['scen-use'](el('scen-use', { id: 'chaos' })); check('setup from scenario');
 S = X.S(); console.log('chaos comp', S.setup.n, S.setup.comp.join(','));
 const unowned = S.setup.comp.filter(id => X.ROLE[id].premium && !S.owned.roles.includes(id));
 console.log('unowned in comp:', unowned.length);
-unowned.forEach(id => A['buy-confirm'](el('buy-confirm', { kind: 'role', id })));
+unowned.forEach(id => X.grantOwned('role', id));
 check('setup all owned');
 A.deal(); check('deal scenario');
 S = X.S(); for (let i = 0; i < S.game.players.length; i++) { A.flip(); A.hide(); }
@@ -335,7 +341,8 @@ clearInterval(X.T.iv);
 // ---------------- diplomacy pack ----------------
 {
   const E = name => vm.runInContext(name, ctx); const u = X.U();
-  A['buy-confirm'](el('buy-confirm', { kind: 'pack', id: 'diplomacy' })); A.go(el('go', { to: 'shop' })); check('shop with pack');
+  A['buy-confirm'](el('buy-confirm', { kind: 'pack', id: 'diplomacy' })); if (X.S().owned.packs.includes('diplomacy')) { fails++; console.log('FAIL the pack was unlocked without payment'); }
+  X.grantOwned('pack', 'diplomacy'); A.go(el('go', { to: 'shop' })); check('shop with pack');
   if (!app.innerHTML.includes('pack-card')) { fails++; console.log('FAIL pack card missing in shop'); }
   A['scen-use'](el('scen-use', { id: 'big_politics' })); check('pack setup');
   S = X.S(); const packRoles = X.PACKS.diplomacy.roles; const have = packRoles.filter(r => S.setup.comp.includes(r));

@@ -17,7 +17,7 @@ function applyStartParam(sp) {
 function tgInit() {
   try {
     const q = typeof location !== 'undefined' && location.search ? new URLSearchParams(location.search).get('startapp') : null;
-    const tg = window.Telegram && window.Telegram.WebApp; if (!tg || tg.platform === 'unknown') { applyStartParam(q); return; }
+    const tg = window.Telegram && window.Telegram.WebApp; if (!tg || tg.platform === 'unknown') { dropUnverifiedPurchases(); applyStartParam(q); return; }
     TG.app = tg; TG.ready = true;
     tg.ready(); tg.expand();
     try { tg.setHeaderColor('#0b0a0e'); tg.setBackgroundColor('#0b0a0e'); if (tg.setBottomBarColor) tg.setBottomBarColor('#0b0a0e'); } catch (e) {}
@@ -30,7 +30,7 @@ function tgInit() {
     if (tg.BackButton) tg.BackButton.onClick(() => { if (S.ui.sheet) { S.ui.sheet = null; render(); } else ACT.back({ dataset: {} }); });
     // purchases go through Telegram Stars when the backend is configured (window.MAFIA_API); otherwise the demo purchase stays
     const origBuy = ACT['buy-confirm'];
-    ACT['buy-confirm'] = function (el) { const kind = el.dataset.kind, id = el.dataset.id; if (apiBase() && tgBuy(kind, id, () => origBuy.call(this, el))) { S.ui.sheet = null; render(); return; } return origBuy.call(this, el); };
+    ACT['buy-confirm'] = function (el) { const kind = el.dataset.kind, id = el.dataset.id; if (apiBase() && tgBuy(kind, id, () => { CLOUD.bought = (CLOUD.bought || []).concat(kind + ':' + id); grantOwned(kind, id); S.ui.sheet = null; save(); render(); })) { S.ui.sheet = null; render(); return; } return origBuy.call(this, el); };
     tgSync();
     setTimeout(cloudSync, 0);
   } catch (e) {}
@@ -79,10 +79,15 @@ async function cloudSync() {
   try {
     const d = await api('/api/me', {}); if (!d.ok) return;
     CLOUD.me = d; S.cloud = { user: d.user, rating: d.rating, at: Date.now() };
-    const o = d.owned || {}; let added = 0;
-    S.owned = S.owned || { roles: [], scenarios: [] }; S.owned.packs = S.owned.packs || [];
-    [['roles', o.roles], ['scenarios', o.scenarios], ['packs', o.packs]].forEach(([k, arr]) => (arr || []).forEach(id => { if (!S.owned[k].includes(id)) { S.owned[k].push(id); added++; } }));
-    S.owned.allUntil = Number(o.allUntil) || 0; S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || '';
+    // v41: the account is the only source of purchases — what this device remembers is replaced, not merged
+    // (kept: what was paid in this session, until the bot has seen the payment)
+    const o = d.owned; let added = 0;
+    if (o && typeof o === 'object') {
+      const before = S.owned || {}; const next = { roles: (o.roles || []).slice(), scenarios: (o.scenarios || []).slice(), packs: (o.packs || []).slice() };
+      (CLOUD.bought || []).forEach(k => { const i = k.indexOf(':'); const kind = k.slice(0, i), id = k.slice(i + 1); const key = kind === 'role' ? 'roles' : kind === 'pack' ? 'packs' : 'scenarios'; if (!next[key].includes(id)) next[key].push(id); });
+      ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
+      S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
+    } S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || '';
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -100,7 +105,9 @@ function agoText(sec) {
   if (sec < 3600) return tt(u.agoMin, { n: Math.floor(sec / 60) }); if (sec < 86400) return tt(u.agoHour, { n: Math.floor(sec / 3600) }); if (sec < 180 * 86400) return tt(u.agoDay, { n: Math.floor(sec / 86400) }); return u.frLongAgo;
 }
 const presenceHTML = f => f.online ? `<span class="fr-on">● ${esc(U().frOnline)}</span>` : (typeof f.seenAgo === 'number' ? `<span class="fr-off">${esc(tt(U().frSeen, { t: agoText(f.seenAgo) }))}</span>` : '');
-/* purchases: in Telegram the demo button becomes a Stars invoice created by the backend */
+/* outside Telegram there is no account: purchases this browser remembers were never paid (v40 and earlier unlocked them for free) */
+function dropUnverifiedPurchases() { S.owned = { roles: [], scenarios: [], packs: [] }; }
+/* purchases: in Telegram the buy button opens a Stars invoice created by the backend */
 function tgBuy(kind, id, onDone) {
   const tg = TG.app; if (!tg || !tg.openInvoice || !apiBase()) return false;
   const u = U(); const title = kind === 'pack' ? u.packTitle : kind === 'role' ? (ROLE[id] && ROLE[id].name) : (SCENARIO[id] && SCENARIO[id].name);

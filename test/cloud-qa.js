@@ -27,6 +27,8 @@ const path = require('path'); const http = require('http');
   const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push('console: ' + m.text()); });
   await p.addInitScript(({ initData, user, api }) => {
+    // v41: a card this device remembers but the account never paid for (the old free "demo" purchase) must not survive the sync
+    try { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('mafiapro.v1', JSON.stringify({ owned: { roles: ['sniper'], scenarios: ['chaos'], packs: ['diplomacy'] } })); } } catch (e) {}
     window.MAFIA_API = api; window.__tg = { invoices: [], links: [] };
     const noop = () => {};
     window.Telegram = { WebApp: { platform: 'ios', version: '8.0', initData, initDataUnsafe: { user, auth_date: 1, hash: 'x' }, ready: noop, expand: noop, close: noop,
@@ -39,6 +41,7 @@ const path = require('path'); const http = require('http');
 
   console.log('restore purchases on start');
   ok(await S(() => S.owned.roles.includes('arsonist')), 'arsonist restored from the account');
+  ok(await S(() => !S.owned.roles.includes('sniper') && !S.owned.scenarios.includes('chaos') && !(S.owned.packs || []).includes('diplomacy')), 'unpaid purchases remembered by the device are dropped by the account');
   ok(await S(() => S.cloud && S.cloud.user && S.cloud.user.id === 100), 'cloud profile loaded');
   ok(await S(() => !!document.querySelector('.toast')) || true, 'toast (optional)');
 
