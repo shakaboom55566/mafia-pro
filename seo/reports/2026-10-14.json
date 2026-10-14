@@ -1,9 +1,7 @@
 {
  "date": "2026-10-14",
  "site": "https://mafiapro.app/",
- "notes": [
-  "Bing Webmaster: не подключён (нет секрета BING_API_KEY)"
- ],
+ "notes": [],
  "gsc": {
   "property": "sc-domain:mafiapro.app",
   "account": "seo-555@mafia-pro-seo.iam.gserviceaccount.com",
@@ -30,7 +28,7 @@
    {
     "url": "https://mafiapro.app/",
     "verdict": "NEUTRAL",
-    "coverage": "URL is unknown to Google",
+    "coverage": "Discovered - currently not indexed",
     "lastCrawl": null,
     "googleCanonical": null
    },
@@ -72,7 +70,7 @@
    {
     "url": "https://mafiapro.app/ru/roles/",
     "verdict": "NEUTRAL",
-    "coverage": "Discovered - currently not indexed",
+    "coverage": "URL is unknown to Google",
     "lastCrawl": null,
     "googleCanonical": null
    },
@@ -86,7 +84,7 @@
    {
     "url": "https://mafiapro.app/en/roles/",
     "verdict": "NEUTRAL",
-    "coverage": "URL is unknown to Google",
+    "coverage": "Discovered - currently not indexed",
     "lastCrawl": null,
     "googleCanonical": null
    },
@@ -100,25 +98,28 @@
    {
     "url": "https://mafiapro.app/hy/roles/",
     "verdict": "NEUTRAL",
-    "coverage": "URL is unknown to Google",
+    "coverage": "Discovered - currently not indexed",
     "lastCrawl": null,
     "googleCanonical": null
    },
    {
     "url": "https://mafiapro.app/ru/rules/",
-    "error": "500 Internal error encountered."
+    "verdict": "NEUTRAL",
+    "coverage": "Discovered - currently not indexed",
+    "lastCrawl": null,
+    "googleCanonical": null
    },
    {
     "url": "https://mafiapro.app/uk/rules/",
     "verdict": "NEUTRAL",
-    "coverage": "URL is unknown to Google",
+    "coverage": "Discovered - currently not indexed",
     "lastCrawl": null,
     "googleCanonical": null
    },
    {
     "url": "https://mafiapro.app/ru/roles/don/",
     "verdict": "NEUTRAL",
-    "coverage": "URL is unknown to Google",
+    "coverage": "Discovered - currently not indexed",
     "lastCrawl": null,
     "googleCanonical": null
    }
@@ -534,33 +535,39 @@
    "targets": []
   }
  },
- "bing": null,
+ "bing": {
+  "GetQueryStats": [],
+  "GetPageStats": [],
+  "GetCrawlStats": []
+ },
  "psi": [
   {
    "url": "https://mafiapro.app/ru/",
-   "performance": 90,
+   "performance": 80,
    "seo": 100,
    "accessibility": 100,
-   "lcp": "2.5 s",
+   "lcp": "4.1 s",
    "cls": "0.041",
-   "tbt": "210 ms",
+   "tbt": "0 ms",
    "fails": [
     "First Contentful Paint",
-    "Largest Contentful Paint",
-    "Total Blocking Time"
+    "Largest Contentful Paint"
    ],
    "field": null,
    "source": "lighthouse"
   },
   {
    "url": "https://mafiapro.app/en/",
-   "performance": 99,
+   "performance": 88,
    "seo": 100,
    "accessibility": 100,
-   "lcp": "1.7 s",
+   "lcp": "3.1 s",
    "cls": "0.001",
    "tbt": "0 ms",
-   "fails": [],
+   "fails": [
+    "First Contentful Paint",
+    "Largest Contentful Paint"
+   ],
    "field": null,
    "source": "lighthouse"
   },
@@ -570,7 +577,7 @@
    "seo": 100,
    "accessibility": 100,
    "lcp": "3.8 s",
-   "cls": "0.002",
+   "cls": "0.003",
    "tbt": "0 ms",
    "fails": [
     "First Contentful Paint",

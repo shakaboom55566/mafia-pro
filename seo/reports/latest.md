@@ -2,21 +2,18 @@
 
 Сайт: https://mafiapro.app/
 
-## Замечания
-- Bing Webmaster: не подключён (нет секрета BING_API_KEY)
-
 ## Индексация Google (ключевые страницы)
 Проиндексировано 4 из 14.
-- / — URL is unknown to Google
+- / — Discovered - currently not indexed
 - /en/ — URL is unknown to Google
-- /ru/roles/ — Discovered - currently not indexed
+- /ru/roles/ — URL is unknown to Google
 - /uk/roles/ — Discovered - currently not indexed
-- /en/roles/ — URL is unknown to Google
+- /en/roles/ — Discovered - currently not indexed
 - /pl/roles/ — Discovered - currently not indexed
-- /hy/roles/ — URL is unknown to Google
-- /ru/rules/ — 500 Internal error encountered.
-- /uk/rules/ — URL is unknown to Google
-- /ru/roles/don/ — URL is unknown to Google
+- /hy/roles/ — Discovered - currently not indexed
+- /ru/rules/ — Discovered - currently not indexed
+- /uk/rules/ — Discovered - currently not indexed
+- /ru/roles/don/ — Discovered - currently not indexed
 
 ## RU
 Показы 0, клики 0, средняя позиция —. Страны: —
@@ -106,9 +103,12 @@
 | շերիֆ մաֆիա դեր | long | — | 0 |
 
 ## Скорость (Lighthouse, мобильные)
-- /ru/ — скорость 90, SEO 100, доступность 100; LCP 2.5 s, CLS 0.041; проблемы: First Contentful Paint; Largest Contentful Paint; Total Blocking Time
-- /en/ — скорость 99, SEO 100, доступность 100; LCP 1.7 s, CLS 0.001
-- /ru/roles/don/ — скорость 82, SEO 100, доступность 100; LCP 3.8 s, CLS 0.002; проблемы: First Contentful Paint; Largest Contentful Paint
+- /ru/ — скорость 80, SEO 100, доступность 100; LCP 4.1 s, CLS 0.041; проблемы: First Contentful Paint; Largest Contentful Paint
+- /en/ — скорость 88, SEO 100, доступность 100; LCP 3.1 s, CLS 0.001; проблемы: First Contentful Paint; Largest Contentful Paint
+- /ru/roles/don/ — скорость 82, SEO 100, доступность 100; LCP 3.8 s, CLS 0.003; проблемы: First Contentful Paint; Largest Contentful Paint
 
 ## Живые страницы
 Все 16 проверок в порядке.
+
+## Bing
+Запросов с показами: 0.
