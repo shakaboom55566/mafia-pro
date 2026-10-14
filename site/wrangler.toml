@@ -1,0 +1,21 @@
+# Mafia Pro — the app and the public website at the own domain (v40), Cloudflare Workers static assets.
+# Deployed by the Pages workflow (pages.yml) after the build: the same _site that GitHub Pages used to serve.
+# The custom domains create their DNS records and certificates themselves (the zone mafiapro.app is in this Cloudflare account).
+name = "mafia-pro-site"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+routes = [
+  { pattern = "mafiapro.app", custom_domain = true },
+  { pattern = "www.mafiapro.app", custom_domain = true }
+]
+
+[assets]
+directory = "../_site"
+binding = "ASSETS"
+not_found_handling = "404-page"
+html_handling = "auto-trailing-slash"
+run_worker_first = true
+
+[observability]
+enabled = true

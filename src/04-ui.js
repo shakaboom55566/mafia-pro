@@ -995,6 +995,7 @@ function hostOffSeats() {
 }
 /* ---------- boot ---------- */
 function start(hot) {
+  if (window.MP_MOVING) return; // v40: leaving for the old address to fetch the saved data (seo/app-migrate.js)
   setLang('ru');
   load();
   if (hot && hot.S) S = hot.S;

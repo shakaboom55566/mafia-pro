@@ -3,19 +3,50 @@
 <head>
 <meta charset="utf-8">
 <script src="https://telegram.org/js/telegram-web-app.js?59"></script>
+<script>
+/* v40 — the move from shakaboom55566.github.io/mafia-pro/ to mafiapro.app. The player's saved data (profiles, settings, the game)
+   lives in the browser storage of the address the app was opened at. The old address is now a bridge (seo/bridge.html): it reads
+   that storage and opens the new address with the data in the hash (#…&mpm=<base64url JSON> or mpm=none).
+   Opened at the new address inside Telegram (the menu button) with nothing saved here yet, the app asks the bridge once
+   (?mpback=1) and comes back with the data. Search engines and site visitors outside Telegram never bounce. */
+(function () {
+  var KEY = 'mafiapro.v1', DONE = 'mafiapro.moved', OLD = 'https://shakaboom55566.github.io/mafia-pro/';
+  var ls; try { ls = window.localStorage; ls.getItem(KEY); } catch (e) { return; }
+  var h = location.hash || '';
+  var parts = h.replace(/^#/, '').split('&').filter(Boolean);
+  var mpm = null; var rest = parts.filter(function (p) { if (p.indexOf('mpm=') === 0) { mpm = p.slice(4); return false; } return true; });
+  if (mpm !== null) {
+    try {
+      if (mpm && mpm !== 'none' && !ls.getItem(KEY)) {
+        var s = decodeURIComponent(escape(atob(mpm.replace(/-/g, '+').replace(/_/g, '/'))));
+        JSON.parse(s); ls.setItem(KEY, s);
+      }
+    } catch (e) {}
+    try { ls.setItem(DONE, '1'); } catch (e) {}
+    try { history.replaceState(history.state, '', location.pathname + location.search + (rest.length ? '#' + rest.join('&') : '')); } catch (e) {}
+    return;
+  }
+  if (location.hostname !== 'mafiapro.app' || ls.getItem(DONE) || ls.getItem(KEY)) return;
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg || !tg.initData) return;
+  try { ls.setItem(DONE, '1'); } catch (e) { return; } // set before leaving: a bridge that does not answer can never make a loop
+  window.MP_MOVING = true;
+  location.replace(OLD + (location.search ? location.search + '&' : '?') + 'mpback=1' + h);
+})();
+</script>
 <meta name="mafia-api" content="__MAFIA_API__">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
-<link rel="canonical" href="https://shakaboom55566.github.io/mafia-pro/">
+<link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Mafia Pro">
 <meta property="og:title" content="Mafia Pro — мафия в Telegram">
 <meta property="og:description" content="Приложение раздаёт карты, ведёт ночь, день и голосование. За живым столом или онлайн. 55 ролей, пять языков.">
-<meta property="og:url" content="https://shakaboom55566.github.io/mafia-pro/">
-<meta property="og:image" content="https://shakaboom55566.github.io/mafia-pro/og/ru.png">
+<meta property="og:url" content="https://mafiapro.app/">
+<meta property="og:image" content="https://mafiapro.app/og/ru.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.png">
 <!--GSC_VERIFY-->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Mafia Pro","applicationCategory":"GameApplication","applicationSubCategory":"Party game","operatingSystem":"Telegram, Web","url":"https://shakaboom55566.github.io/mafia-pro/","installUrl":"https://t.me/mafiaprof_bot","inLanguage":["ru","uk","en","pl","hy"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://shakaboom55566.github.io/mafia-pro/og/ru.png","sameAs":["https://t.me/mafiaprof_bot","https://t.me/mafiaprof"]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Mafia Pro","applicationCategory":"GameApplication","applicationSubCategory":"Party game","operatingSystem":"Telegram, Web","url":"https://mafiapro.app/","installUrl":"https://t.me/mafiaprof_bot","inLanguage":["ru","uk","en","pl","hy"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://mafiapro.app/og/ru.png","sameAs":["https://t.me/mafiaprof_bot","https://t.me/mafiaprof"]}</script>
 <title>Mafia Pro — мафия в Telegram: онлайн и за живым столом</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -5977,6 +6008,7 @@ function hostOffSeats() {
 }
 /* ---------- boot ---------- */
 function start(hot) {
+  if (window.MP_MOVING) return; // v40: leaving for the old address to fetch the saved data (seo/app-migrate.js)
   setLang('ru');
   load();
   if (hot && hot.S) S = hot.S;

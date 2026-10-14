@@ -20,10 +20,13 @@ mkdir -p deploy
   echo '<head>'
   echo '<meta charset="utf-8">'
   echo '<script src="https://telegram.org/js/telegram-web-app.js?59"></script>'
+  # v40: the move to the own domain — the player's saved data comes over from the old address (seo/app-migrate.js, seo/bridge.html)
+  echo '<script>'; cat seo/app-migrate.js; echo '</script>'
   # backend address: the Pages workflow replaces the placeholder with the MAFIA_API_URL repository variable (empty = no backend)
   echo '<meta name="mafia-api" content="__MAFIA_API__">'
   # search engines and link previews (v38): the app page renders by script, the crawlable site lives in <lang>/ (seo/build-site.mjs)
-  cat seo/app-head.html
+  SITE_URL=$(tr -d '[:space:]' < seo/site-url.txt 2>/dev/null); SITE_URL=${SITE_URL:-https://shakaboom55566.github.io/mafia-pro/}
+  sed "s#__SITE__#${SITE_URL%/}/#g" seo/app-head.html
   cat mafia-pro.html | sed '/<\/style>/,$!b;/<\/style>/{p;s/.*/<\/head><body>/;}' 
   cat seo/app-noscript.html
   echo '</body></html>'

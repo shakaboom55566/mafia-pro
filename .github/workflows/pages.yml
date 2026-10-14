@@ -71,6 +71,9 @@ jobs:
           cp _site/cards/ru/*.png _site/cards/  # v33 addresses (cards/<role>.png) keep working
           du -sh _site/cards
 
+      - name: The move to the own domain in a browser (old player, new player, old links — seo/test-move.js)
+        run: node -e "require('playwright')" 2>/dev/null && node seo/test-move.js || { node -e "require('playwright')" 2>/dev/null && exit 1; echo "::warning::playwright missing — move test skipped"; }
+
       - name: Public website for search engines (<lang>/, roles, rules, setups, sitemap.xml)
         run: |
           GSC_VERIFY=$(sed -n 's/^google=//p' seo/verify.txt 2>/dev/null | tr -d '[:space:]') node seo/build-site.mjs _site
@@ -78,6 +81,36 @@ jobs:
       - name: Website pictures (card thumbnails, link previews)
         continue-on-error: true
         run: node seo/render-images.js _site && du -sh _site/og
+
+      - name: Own domain — publish the app and the website at mafiapro.app (Cloudflare, site/wrangler.toml)
+        id: cf
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          SITE=$(tr -d '[:space:]' < seo/site-url.txt 2>/dev/null); SITE=${SITE%/}/
+          case "$SITE" in */github.io/*|*.github.io/*|/) echo "no own domain in seo/site-url.txt"; exit 0;; esac
+          echo "$GITHUB_SHA" > _site/build.txt
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            (cd backend && npm install --no-audit --no-fund 2>&1 | tail -1)
+            ok=0; for i in 1 2 3; do backend/node_modules/.bin/wrangler deploy --config site/wrangler.toml 2>&1 | tee /tmp/cf-site.log && { ok=1; break; }; sleep 20; done
+            [ "$ok" = 1 ] || echo "::warning::Cloudflare deploy of $SITE failed — see the log; GitHub Pages keeps serving the full site"
+          else echo "::warning::no CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID"; fi
+          # moved = the own domain answers with a build of this site (this one or an earlier one): from then on GitHub Pages is only the bridge
+          for i in $(seq 1 24); do
+            B=$(curl -fsS --max-time 10 "${SITE}build.txt" 2>/dev/null | tr -d '[:space:]')
+            if [ "$B" = "$GITHUB_SHA" ]; then echo "live: $SITE serves this build"; echo "moved=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            [ -n "$B" ] && [ "$ok" != 1 ] && { echo "live: $SITE serves an earlier build ($B)"; echo "moved=true" >> "$GITHUB_OUTPUT"; exit 0; }
+            [ "$ok" != 1 ] && [ $i -gt 2 ] && break
+            sleep 15
+          done
+          echo "::warning::$SITE does not answer yet (DNS / certificate / custom domain) — GitHub Pages keeps serving the full site"
+
+      - name: The old address becomes a bridge to the own domain (seo/make-bridge.mjs)
+        if: steps.cf.outputs.moved == 'true'
+        run: node seo/make-bridge.mjs _site _gh && test -f _gh/index.html
 
       - name: IndexNow — which website pages changed against the live site
         continue-on-error: true
@@ -91,7 +124,7 @@ jobs:
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: ${{ steps.cf.outputs.moved == 'true' && '_gh' || '_site' }}
 
       - name: Deploy
         id: deployment
@@ -108,5 +141,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           META=$(grep -o '<meta name="mafia-api" content="[^"]*">' _site/index.html || echo '(no meta)')
-          jq -n --arg body "**Deploy to GitHub Pages** run $GITHUB_RUN_NUMBER — **${{ job.status }}** · ${{ steps.deployment.outputs.page_url }}"$'\n\n'"\`$META\`" '{body: $body}' > /tmp/c.json
+          SITE=$(tr -d '[:space:]' < seo/site-url.txt 2>/dev/null)
+          CF="own domain: ${SITE:-—} — ${{ steps.cf.outputs.moved == 'true' && 'live, GitHub Pages is the bridge' || 'not live, GitHub Pages serves the full site' }}"
+          CFLOG=$(grep -E "Uploaded|Deployed|custom domain|Current Version|ERROR|✘" /tmp/cf-site.log 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | tail -12)
+          jq -n --arg body "**Deploy to GitHub Pages** run $GITHUB_RUN_NUMBER — **${{ job.status }}** · ${{ steps.deployment.outputs.page_url }}"$'\n\n'"\`$META\`"$'\n\n'"$CF"$'\n```\n'"$CFLOG"$'\n```' '{body: $body}' > /tmp/c.json
           gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input /tmp/c.json > /dev/null && echo "noted"

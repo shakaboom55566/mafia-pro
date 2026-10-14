@@ -2,9 +2,10 @@
 /* Checks the SEO report summary on made-up Search Console rows (no network): language by page folder, targets,
    page-2 opportunities, low CTR, the markdown, and the service-account token request (signed JWT). */
 import crypto from 'node:crypto';
-import { summarize, markdown, googleToken, langOf } from './report.mjs';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('✗ ' + m); } };
 const S = 'https://shakaboom55566.github.io/mafia-pro/';
+process.env.SITE_URL = S; // the report reads its address when loaded: test with a fixed one, whatever seo/site-url.txt says
+const { summarize, markdown, googleToken, langOf } = await import('./report.mjs');
 ok(langOf(S + 'uk/roles/don/') === 'uk' && langOf(S) === 'app' && langOf(S + 'hy/') === 'hy', 'language by folder');
 const rows = [
   { query: 'роли в мафии', page: S + 'ru/roles/', country: 'ukr', clicks: 3, impressions: 120, ctr: 0.025, position: 12.4 },

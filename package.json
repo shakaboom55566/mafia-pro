@@ -10,6 +10,6 @@
     "test:browser": "node test/browser-qa.js",
     "balance": "node test/montecarlo.js"
   },
-  "homepage": "https://shakaboom55566.github.io/mafia-pro/",
+  "homepage": "https://mafiapro.app/",
   "repository": { "type": "git", "url": "https://github.com/shakaboom55566/mafia-pro.git" }
 }
