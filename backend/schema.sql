@@ -377,3 +377,28 @@ CREATE TABLE IF NOT EXISTS channel_post_media (
   image      TEXT NOT NULL,
   updated_at INTEGER NOT NULL
 );
+-- Broadcast to every player (broadcast.js): /broadcast → preview to the admin → "Разослать" → portions from the minute cron
+CREATE TABLE IF NOT EXISTS broadcasts (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind        TEXT NOT NULL,          -- invite (built-in channel + chat invitation, per language) | custom (the admin's text)
+  text        TEXT,                   -- Telegram HTML of a custom broadcast
+  status      TEXT NOT NULL,          -- preview | sending | stopped | done | cancelled
+  created_by  INTEGER NOT NULL,
+  created_at  INTEGER NOT NULL,
+  started_at  INTEGER,
+  finished_at INTEGER,
+  admin_chat  INTEGER,                -- the control card with the progress
+  admin_msg   INTEGER,
+  retry_at    INTEGER,                -- Telegram flood control: not before this time
+  error       TEXT
+);
+CREATE TABLE IF NOT EXISTS broadcast_queue (
+  bid     INTEGER NOT NULL,           -- broadcasts.id
+  tg_id   INTEGER NOT NULL,
+  lang    TEXT,
+  status  TEXT NOT NULL,              -- pending | sent | blocked (blocked the bot / never started it) | failed
+  error   TEXT,
+  at      INTEGER,
+  PRIMARY KEY (bid, tg_id)
+);
+CREATE INDEX IF NOT EXISTS broadcast_queue_pending ON broadcast_queue (bid, status);

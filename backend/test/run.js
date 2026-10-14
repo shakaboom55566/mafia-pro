@@ -989,6 +989,67 @@ console.log('player growth: where new players come from, tracked links, names in
   await cfg('growth:live', 'off'); await cfg('growth:digest_at', now() + 86400 * 3);
   delete env.CHANNEL_ID; }
 
+console.log('/broadcast: preview → confirm → portions by cron → progress, blocked users counted, admins skipped');
+{ env.CHANNEL_ID = '@mafiaprof'; env.CHAT_URL = 'https://t.me/+3kRZICcUMyBjZDdi'; env.BROADCAST_BATCH = '7';
+  const adm = user(777, 'ru'); const stranger = user(778, 'ru');
+  const cb = (from, data) => hook({ update_id: 900, callback_query: { id: 'q' + data, from, data, message: { message_id: 4242, chat: { id: from.id } } } });
+  const bc = () => env.DB.prepare('SELECT * FROM broadcasts ORDER BY id DESC LIMIT 1').first();
+  const tick = async () => { const w = []; await worker.scheduled({ cron: '* * * * *' }, env, { waitUntil: p => w.push(p) }); await Promise.all(w); };
+  const users = (await env.DB.prepare('SELECT tg_id, lang FROM users WHERE tg_id != 777').all()).results;
+  const total = users.length; ok(total > 10, 'enough players in the test db: ' + total);
+  const ukUser = users.find(x => x.lang === 'uk'); const blockedOne = users.find(x => x.tg_id !== (ukUser && ukUser.tg_id)).tg_id;
+  // a non-admin cannot start it
+  const before = tg.calls.length; await hook(msg(stranger, '/broadcast')); ok(!(await bc()), 'a non-admin cannot create a broadcast');
+  ok(!tg.calls.slice(before).some(c => c.method === 'sendMessage' && /Рассылка/.test(c.params.text || '')), 'no control card for a non-admin');
+  // preview: samples per language + control card, nobody else gets anything
+  const mark = tg.calls.length;
+  await hook(msg(adm, '/broadcast'));
+  let b = await bc(); ok(b && b.status === 'preview' && b.kind === 'invite', 'preview created');
+  const toAdmin = tg.calls.slice(mark).filter(c => c.method === 'sendMessage' && c.params.chat_id === 777);
+  ok(tg.calls.slice(mark).filter(c => c.method === 'sendMessage').every(c => c.params.chat_id === 777), 'preview goes to the admin only');
+  const samples = toAdmin.filter(c => c.params.text.includes('🃏'));
+  ok(samples.some(c => c.params.text.includes('Mafia Pro стала ближе')) && samples.some(c => c.params.text.includes('Mafia Pro стала ближчою')), 'samples in ru and uk');
+  const s0 = samples[0].params; const kb = s0.reply_markup.inline_keyboard;
+  ok(kb[0][0].url === 'https://t.me/mafiaprof' && kb[0][1].url === 'https://t.me/+3kRZICcUMyBjZDdi' && kb[1][0].web_app.url === env.APP_URL, 'buttons: channel, chat, play');
+  ok(s0.text.includes('href="https://t.me/mafiaprof"') && s0.text.includes('href="https://t.me/+3kRZICcUMyBjZDdi"') && s0.parse_mode === 'HTML', 'links in the text');
+  const ctl = toAdmin[toAdmin.length - 1].params; ok(ctl.text.includes(`Получат: <b>${total}</b>`) && ctl.reply_markup.inline_keyboard[0][0].callback_data === `bc_go_${b.id}`, 'control card: recipients and the confirm button');
+  // a non-admin pressing the button does nothing
+  await cb(stranger, `bc_go_${b.id}`); eq((await bc()).status, 'preview', 'a non-admin cannot confirm');
+  // confirm → queue (admins excluded), nothing sent until the cron
+  tg.blocked.add(blockedOne); const nBlocked = users.filter(x => tg.blocked.has(x.tg_id)).length;
+  const m2 = tg.calls.length; await cb(adm, `bc_go_${b.id}`); b = await bc(); eq(b.status, 'sending', 'confirmed → sending');
+  const q = await env.DB.prepare('SELECT COUNT(*) AS n, SUM(tg_id = 777) AS a FROM broadcast_queue WHERE bid = ?1').bind(b.id).first(); ok(q.n === total && !q.a, 'everyone queued once, admin excluded');
+  await cb(adm, `bc_go_${b.id}`); eq((await env.DB.prepare('SELECT COUNT(*) AS n FROM broadcast_queue WHERE bid = ?1').bind(b.id).first()).n, total, 'double click does not queue twice');
+  ok(!tg.calls.slice(m2).some(c => c.method === 'sendMessage' && c.params.chat_id !== 777), 'nothing sent before the cron');
+  ok(lastCall('editMessageText').params.text.includes('Идёт рассылка') && lastCall('editMessageText').params.reply_markup.inline_keyboard[0][0].callback_data === `bc_stop_${b.id}`, 'card: progress + stop');
+  // a second /broadcast while one is running shows it instead of starting another
+  await hook(msg(adm, '/broadcast другое')); ok((await bc()).id === b.id && lastTo(777).params.text.includes('Идёт рассылка'), 'one broadcast at a time');
+  // portions
+  const sentTo = () => tg.calls.slice(m2).filter(c => c.method === 'sendMessage' && c.params.chat_id !== 777 && c.params.chat_id !== '@mafiaprof' && (c.params.text || '').includes('href="https://t.me/+3kRZICcUMyBjZDdi"'));
+  const s1 = sentTo().length; await tick(); ok(sentTo().length - s1 === 7, 'one portion = BROADCAST_BATCH messages: ' + (sentTo().length - s1));
+  const ukMsg = sentTo().find(c => c.params.chat_id === (ukUser && ukUser.tg_id)); if (ukMsg) ok(ukMsg.params.text.includes('ближчою') && ukMsg.params.reply_markup.inline_keyboard[1][0].text === '🎲 Грати', 'a uk player gets the uk text and buttons');
+  // stop and resume
+  await cb(adm, `bc_stop_${b.id}`); eq((await bc()).status, 'stopped', 'stopped');
+  const s2 = sentTo().length; await tick(); eq(sentTo().length, s2, 'stopped → cron sends nothing');
+  await cb(adm, `bc_go_${b.id}`); eq((await bc()).status, 'sending', 'resumed');
+  for (let i = 0; i < 20 && (await bc()).status === 'sending'; i++) await tick();
+  b = await bc(); eq(b.status, 'done', 'done after all portions');
+  const fin = await env.DB.prepare("SELECT SUM(status = 'sent') AS s, SUM(status = 'blocked') AS bl, SUM(status = 'pending') AS p FROM broadcast_queue WHERE bid = ?1").bind(b.id).first();
+  ok(fin.s === total - nBlocked && fin.bl === nBlocked && !fin.p, `delivered ${fin.s}, blocked ${fin.bl} (expected ${nBlocked})`);
+  const perUser = new Map(); for (const c of sentTo()) perUser.set(c.params.chat_id, (perUser.get(c.params.chat_id) || 0) + 1);
+  ok([...perUser.values()].every(v => v === 1), 'nobody got it twice');
+  ok(lastTo(777).params.text.includes(`доставлено ${total - nBlocked} из ${total}`) && lastTo(777).params.text.includes(`недоступны ${nBlocked}`), 'final report to the admin: ' + lastTo(777).params.text);
+  ok(lastCall('editMessageText').params.text.includes('Рассылка завершена'), 'card shows done');
+  await tick(); eq(sentTo().length, total, 'cron after done sends nothing more (one attempt per player, blocked ones included)');
+  // custom text with formatting, flood control
+  tg.blocked.delete(blockedOne);
+  await hook({ update_id: 901, message: { message_id: 902, from: adm, chat: { id: 777, type: 'private' }, text: '/broadcast Вечером играем', entities: [{ type: 'bot_command', offset: 0, length: 10 }, { type: 'bold', offset: 11, length: 7 }] } });
+  b = await bc(); ok(b.kind === 'custom' && b.text === '<b>Вечером</b> играем' && b.status === 'preview', 'custom text kept with formatting');
+  ok(tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 777).slice(-2)[0].params.text === '<b>Вечером</b> играем', 'custom sample sent to the admin');
+  await cb(adm, `bc_cancel_${b.id}`); eq((await bc()).status, 'cancelled', 'cancelled from the preview');
+  const s3 = sentTo().length; await tick(); eq(sentTo().length, s3, 'a cancelled broadcast never goes out');
+  delete env.BROADCAST_BATCH; delete env.CHAT_URL; delete env.CHANNEL_ID; }
+
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
   eq((await call('/api/nothing', { method: 'POST', body: '{}' })).status, 404, 'unknown api');

@@ -44,6 +44,7 @@ import { Bot, verifyInitData, esc } from './tg.js';
 import { apiPostDraft, onPostCallback, onPostReply, listPosts, runPostsCron, postsKey } from './posts.js';
 import { trackStart, trackApp, trackGameNames, runGrowthCron, onPlayersCommand, postStats } from './growth.js';
 import { t, pickLang } from './texts.js';
+import { onBroadcastCommand, onBroadcastCallback, runBroadcastCron } from './broadcast.js';
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 
@@ -417,6 +418,7 @@ async function handleUpdate(env, bot, upd) {
 async function onCallback(env, bot, q) {
   const u = q.from || {}; const lang = pickLang(u.language_code);
   if (/^cp_/.test(q.data || '') && await onPostCallback(env, bot, q, id => isAdmin(env, id))) return;
+  if (/^bc_/.test(q.data || '') && await onBroadcastCallback(env, bot, q, id => isAdmin(env, id))) return;
   const cm = /^cl_(acc|dec)_(\d+)$/.exec(q.data || '');
   if (cm) {
     const r = await respondClubInvite(env, bot, u, Number(cm[2]), cm[1] === 'acc');
@@ -502,11 +504,12 @@ async function onText(env, bot, msg) {
     }
     return bot.send(chat, t(lang, 'welcome'), play);
   }
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') : t(lang, 'help'), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') : t(lang, 'help'), play);
   if (isAdmin(env, u.id)) {
     if (msg.reply_to_message && await onPostReply(env, bot, msg)) return;
     if (/^\/posts(?:@\w+)?$/.test(text)) return bot.send(chat, await listPosts(env));
     if (/^\/players(?:@\w+)?(?:\s|$)/.test(text)) return onPlayersCommand(env, bot, msg);
+    if (/^\/broadcast(?:@\w+)?(?:\s|$)/.test(text)) return onBroadcastCommand(env, bot, msg);
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
       const target = await findUser(env, g[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(g[2]) }));
@@ -1632,11 +1635,12 @@ export default {
       return json({ ok: false, error: 'internal' }, 500);
     }
   },
-  /* cron (wrangler.toml [triggers]): channel posts whose time has come, new players (growth.js), Discord members */
+  /* cron (wrangler.toml [triggers]): channel posts whose time has come, new players (growth.js), Discord members, /broadcast portions (broadcast.js) */
   async scheduled(event, env, ctx) {
     const minute = !!(event && event.cron === '* * * * *'); // every minute: Discord members; every 5 minutes: channel posts
     if (!minute) ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
     if (!minute) ctx.waitUntil(runGrowthCron(env, new Bot(env)).catch(e => console.error('growth cron', e && e.stack || e))); // new players: notice to admins, daily digest with the table
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
+    if (minute || !event || !event.cron) ctx.waitUntil(runBroadcastCron(env, new Bot(env)).catch(e => console.error('broadcast cron', e && e.stack || e))); // /broadcast: the next portion
   }
 };

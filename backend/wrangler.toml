@@ -25,6 +25,8 @@ DISCORD_CATEGORY_ID = "1559482164825952332"
 DISCORD_PUBLIC_KEY = "0043fbf602abd13573ec140afe6ed1e9cc5978c4806e18f5068f42a951faff76"
 # Telegram channel for daily posts (the bot must be its admin with "Post messages"); drafts go to ADMIN_IDS for approval
 CHANNEL_ID = "@mafiaprof"
+# players' chat for the /broadcast invitation and its "💬 Чат" button
+CHAT_URL = "https://t.me/+3kRZICcUMyBjZDdi"
 
 [[d1_databases]]
 binding = "DB"

@@ -246,6 +246,12 @@ export const TEXTS = {
     unknown: 'Բացեք հավելվածը «Խաղալ» կոճակով կամ ներքևի մենյուի կոճակով։'
   }
 };
+/* /broadcast in the admin help (broadcast.js) */
+Object.assign(TEXTS.ru, { adminHelpBroadcast: '/broadcast — разослать всем игрокам приглашение в канал и чат (сначала образец и кнопка «Разослать»), /broadcast <текст> — свой текст' });
+Object.assign(TEXTS.uk, { adminHelpBroadcast: '/broadcast — розіслати всім гравцям запрошення в канал і чат (спершу зразок і кнопка «Разослать»), /broadcast <текст> — свій текст' });
+Object.assign(TEXTS.en, { adminHelpBroadcast: '/broadcast — send every player the channel and chat invitation (a sample and a confirm button first), /broadcast <text> — your own text' });
+Object.assign(TEXTS.pl, { adminHelpBroadcast: '/broadcast — wyślij wszystkim graczom zaproszenie na kanał i czat (najpierw próbka i przycisk potwierdzenia), /broadcast <tekst> — własny tekst' });
+Object.assign(TEXTS.hy, { adminHelpBroadcast: '/broadcast — ուղարկել բոլոր խաղացողներին ալիքի և չատի հրավերը (նախ՝ նմուշ և հաստատման կոճակ), /broadcast <տեքստ> — ձեր տեքստը' });
 export function pickLang(code) {
   const c = String(code || '').toLowerCase().slice(0, 2);
   return TEXTS[c] ? c : (c === 'be' || c === 'kk' ? 'ru' : 'ru');
