@@ -9,4 +9,3 @@ node_modules/
 backend/node_modules/
 backend/.wrangler/
 backend/*.log
-backend/package-lock.json

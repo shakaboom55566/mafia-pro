@@ -5,25 +5,28 @@ async function hmac(keyBytes, data) {
   const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return crypto.subtle.sign('HMAC', key, enc(data));
 }
-function safeEqual(a, b) { if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; }
+export function safeEqual(a, b) { a = String(a); b = String(b); if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; }
 
 /* https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
-   Returns { user, authDate, startParam, raw } or null. */
-export async function verifyInitData(initData, botToken, maxAgeSec = 86400) {
-  if (!initData || typeof initData !== 'string' || initData.length > 4096) return null;
+   checkInitData → { ok, reason, v }: reason tells a forged signature ('bad_hash') from an expired one ('expired'), so the security
+   layer can count forgeries without punishing an app left open for a day. verifyInitData → { user, authDate, startParam, raw } or null. */
+export async function checkInitData(initData, botToken, maxAgeSec = 86400) {
+  if (!initData || typeof initData !== 'string') return { ok: false, reason: 'missing' };
+  if (initData.length > 4096) return { ok: false, reason: 'too_long' };
   const params = new URLSearchParams(initData);
-  const hash = params.get('hash'); if (!hash) return null;
+  const hash = params.get('hash'); if (!hash) return { ok: false, reason: 'no_hash' };
   params.delete('hash');
   const dcs = [...params.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, v]) => `${k}=${v}`).join('\n');
   const secret = await hmac(enc('WebAppData'), botToken);
   const sig = hex(await hmac(secret, dcs));
-  if (!safeEqual(sig, hash.toLowerCase())) return null;
+  if (!safeEqual(sig, hash.toLowerCase())) return { ok: false, reason: 'bad_hash' };
   const authDate = Number(params.get('auth_date') || 0);
-  if (!authDate || Math.abs(Date.now() / 1000 - authDate) > maxAgeSec) return null;
-  let user = null; try { user = JSON.parse(params.get('user') || 'null'); } catch (e) { return null; }
-  if (!user || !user.id) return null;
-  return { user, authDate, startParam: params.get('start_param') || null, raw: params };
+  if (!authDate || Math.abs(Date.now() / 1000 - authDate) > maxAgeSec) return { ok: false, reason: 'expired' };
+  let user = null; try { user = JSON.parse(params.get('user') || 'null'); } catch (e) { return { ok: false, reason: 'bad_user' }; }
+  if (!user || !user.id) return { ok: false, reason: 'bad_user' };
+  return { ok: true, reason: null, v: { user, authDate, startParam: params.get('start_param') || null, raw: params } };
 }
+export async function verifyInitData(initData, botToken, maxAgeSec = 86400) { const r = await checkInitData(initData, botToken, maxAgeSec); return r.ok ? r.v : null; }
 
 /* Build an initData string signed with the bot token — used by the test-suite to impersonate the Mini App. */
 export async function signInitData(fields, botToken) {

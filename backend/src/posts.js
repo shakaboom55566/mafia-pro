@@ -7,7 +7,7 @@
    - an admin's reply to a draft message replaces the draft text (formatting kept) and the draft is re-sent
    - /posts — the next drafts and their status
    - scheduled() every 5 minutes publishes approved posts whose slot has come */
-import { esc } from './tg.js';
+import { esc, safeEqual } from './tg.js';
 
 const enc = s => new TextEncoder().encode(s);
 const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -82,7 +82,7 @@ async function refreshCards(env, bot, p) {
 /* POST /posts/draft — from the GitHub workflow */
 export async function apiPostDraft(env, bot, req) {
   const key = req.headers.get('X-Posts-Key') || '';
-  if (!env.BOT_TOKEN || key !== await postsKey(env.BOT_TOKEN)) return { status: 403, body: { ok: false, error: 'forbidden' } };
+  if (!env.BOT_TOKEN || !safeEqual(key, await postsKey(env.BOT_TOKEN))) return { status: 403, body: { ok: false, error: 'forbidden' } };
   let b = null; try { b = await req.json(); } catch (e) { return { status: 400, body: { ok: false, error: 'bad_json' } }; }
   const id = String(b.id || ''); const text = String(b.text || '').trim(); const slot = Number(b.slot_at) || 0;
   if (!/^[A-Za-z0-9_-]{4,40}$/.test(id) || !text || !slot) return { status: 400, body: { ok: false, error: 'bad_post' } };

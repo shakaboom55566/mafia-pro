@@ -12,7 +12,7 @@ const out = fs.mkdtempSync(path.join(os.tmpdir(), 'mp-site-'));
 const r = build(out, { SITE_URL: DEFAULT_SITE });
 const BASE = new URL(DEFAULT_SITE).pathname;
 const files = []; (function walk(d) { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (f.name === 'index.html') files.push(p); } })(out);
-ok(files.length === r.pages && r.pages === LANGS.length * (4 + 55), `pages: ${files.length} / ${r.pages}`);
+ok(files.length === r.pages && r.pages === LANGS.length * (5 + 55), `pages: ${files.length} / ${r.pages}`);
 const exists = u => { // a site URL or a root-relative path → a file in the build (the app root and images are made by other steps)
   let p = u.startsWith(DEFAULT_SITE) ? u.slice(DEFAULT_SITE.length) : u.startsWith(BASE) ? u.slice(BASE.length) : null; if (p === null) return true;
   p = p.split('#')[0]; if (p === '' || /^(cards|og)\/|favicon\.png$/.test(p)) return true;
@@ -36,6 +36,7 @@ for (const f of files) {
 const sm = fs.readFileSync(path.join(out, 'sitemap.xml'), 'utf8');
 ok((sm.match(/<url>/g) || []).length === r.pages + 1, 'sitemap lists every page + the app');
 ok(fs.readFileSync(path.join(out, 'robots.txt'), 'utf8').includes('Sitemap: ' + DEFAULT_SITE + 'sitemap.xml'), 'robots.txt points at the sitemap');
+for (const l of LANGS) { const h = fs.readFileSync(path.join(out, l, 'privacy/index.html'), 'utf8'); ok(h.includes('/mydata') && h.includes('/deletedata') && h.includes('/support') && (h.match(/<h2>/g) || []).length >= 11, l + ': privacy policy with the bot commands and all sections'); ok(fs.readFileSync(path.join(out, l, 'index.html'), 'utf8').includes(`${BASE}${l}/privacy/`), l + ': footer links the policy'); }
 const ovr = path.join(os.tmpdir(), 'mp-ovr.json'); fs.writeFileSync(ovr, JSON.stringify({ 'ru/roles/don/': { title: 'Дон мафии: как играть за главу семьи | Mafia Pro', intro: 'Проверочный абзац.', faq: [['Кто такой Дон?', 'Глава мафии.']] }, 'en/': { faq: [['Extra?', 'Yes.']] } }));
 const od = fs.mkdtempSync(path.join(os.tmpdir(), 'mp-site-')); build(od, { SITE_URL: DEFAULT_SITE, SEO_OVERRIDES: ovr });
 { const h = fs.readFileSync(path.join(od, 'ru/roles/don/index.html'), 'utf8'); ok(h.includes('<title>Дон мафии: как играть за главу семьи | Mafia Pro</title>') && h.includes('<p>Проверочный абзац.</p>') && /"@type":"FAQPage"/.test(h) && h.includes('<summary>Кто такой Дон?</summary>'), 'override: title, intro, FAQ on a role page'); }

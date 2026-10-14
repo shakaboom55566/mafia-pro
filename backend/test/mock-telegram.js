@@ -32,6 +32,7 @@ export function startMockTelegram(port = 8790) {
         case 'getChatMember': return send(200, { ok: true, result: Object.assign({ user: { id: params.user_id } }, state.member) });
         case 'createInvoiceLink': return send(200, { ok: true, result: 'https://t.me/$' + Buffer.from(params.payload).toString('base64url') });
         case 'answerPreCheckoutQuery': return send(200, { ok: true, result: true });
+        case 'getWebhookInfo': return send(200, { ok: true, result: { url: 'https://api.test/webhook', pending_update_count: 0 } });
         default: return send(200, { ok: true, result: true });
       }
     });

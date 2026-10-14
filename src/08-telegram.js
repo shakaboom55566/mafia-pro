@@ -9,8 +9,8 @@ function applyStartParam(sp) {
   if (sp === 'classic') { S.ui.tgStart = { a: 'scen-use', id: 'classic' }; }
   else if (sp === 'shop') S.screen = 'shop';
   else if (sp === 'cards') S.screen = 'cards';
-  else if (sp.startsWith('card_') && ROLE[sp.slice(5)]) { S.screen = 'cards'; S.ui.sheet = { type: 'role', id: sp.slice(5) }; }
-  else if (sp.startsWith('scen_') && SCENARIO[sp.slice(5)]) { S.ui.tgStart = { a: 'scen-use', id: sp.slice(5) }; }
+  else if (sp.startsWith('card_') && Object.prototype.hasOwnProperty.call(ROLE, sp.slice(5))) { S.screen = 'cards'; S.ui.sheet = { type: 'role', id: sp.slice(5) }; }
+  else if (sp.startsWith('scen_') && Object.prototype.hasOwnProperty.call(SCENARIO, sp.slice(5))) { S.ui.tgStart = { a: 'scen-use', id: sp.slice(5) }; }
   else if (/^friend_[A-Za-z0-9]{6,10}$/.test(sp)) { S.ui.tgStart = { a: 'fr-accept', id: sp.slice(7).toUpperCase() }; }
   else if (/^ref_[A-Za-z0-9]{6,10}$/.test(sp)) { S.ui.tgStart = { a: 'ref-attach', id: sp.slice(4).toUpperCase() }; }
 }

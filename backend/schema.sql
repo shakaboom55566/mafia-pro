@@ -402,3 +402,57 @@ CREATE TABLE IF NOT EXISTS broadcast_queue (
   PRIMARY KEY (bid, tg_id)
 );
 CREATE INDEX IF NOT EXISTS broadcast_queue_pending ON broadcast_queue (bid, status);
+-- Security (v44, security.js): events (IPs only as a salted hash, never the address), per-minute counters, incidents, bans
+CREATE TABLE IF NOT EXISTS security_events (
+  id       INTEGER PRIMARY KEY AUTOINCREMENT,
+  at       INTEGER NOT NULL,
+  type     TEXT NOT NULL,              -- auth_forged | webhook_forged | flood_ip | rate_limit | scrape | xss_attempt | admin:<action> | …
+  severity TEXT NOT NULL,              -- info | low | medium | high | critical
+  ip       TEXT,                       -- salted SHA-256 of the IP, 12 hex
+  tg_id    INTEGER,
+  path     TEXT,
+  country  TEXT,
+  n        INTEGER NOT NULL DEFAULT 1, -- events of the same type and source folded into this row (one row per minute)
+  detail   TEXT
+);
+CREATE INDEX IF NOT EXISTS security_events_at ON security_events (at);
+CREATE INDEX IF NOT EXISTS security_events_type ON security_events (type, at);
+CREATE TABLE IF NOT EXISTS security_stats (
+  minute INTEGER NOT NULL,             -- unix time / 60
+  key    TEXT NOT NULL,                -- req | req:api | req:webhook | rl | blocked | 5xx | host:<name> | ev:<type>
+  n      INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (minute, key)
+);
+CREATE TABLE IF NOT EXISTS security_incidents (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind           TEXT NOT NULL,        -- see KINDS in security.js
+  severity       TEXT NOT NULL,
+  status         TEXT NOT NULL,        -- open | closed (30 quiet minutes)
+  opened_at      INTEGER NOT NULL,
+  last_at        INTEGER NOT NULL,
+  closed_at      INTEGER,
+  count          INTEGER NOT NULL DEFAULT 0,
+  summary        TEXT,
+  actions        TEXT,                 -- JSON list of what was done automatically
+  notified_at    INTEGER,
+  notified_count INTEGER,
+  acked_by       INTEGER,
+  acked_at       INTEGER
+);
+CREATE INDEX IF NOT EXISTS security_incidents_open ON security_incidents (status, kind);
+CREATE TABLE IF NOT EXISTS security_bans (
+  key        TEXT PRIMARY KEY,         -- ip:<hash> | tg:<id>
+  until      INTEGER NOT NULL,
+  reason     TEXT,
+  by         TEXT,                     -- auto | admin:<id> | agent
+  created_at INTEGER NOT NULL
+);
+-- Privacy (v44): a player's choices — no broadcast messages (/unsubscribe); /support messages per day
+CREATE TABLE IF NOT EXISTS user_prefs (
+  tg_id        INTEGER PRIMARY KEY,
+  no_news      INTEGER NOT NULL DEFAULT 0,
+  support_day  INTEGER,
+  support_n    INTEGER NOT NULL DEFAULT 0,
+  export_at    INTEGER,
+  updated_at   INTEGER NOT NULL
+);

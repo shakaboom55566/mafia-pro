@@ -12,14 +12,33 @@
 (function () {
   var KEY = 'mafiapro.v1', DONE = 'mafiapro.moved', OLD = 'https://shakaboom55566.github.io/mafia-pro/';
   var ls; try { ls = window.localStorage; ls.getItem(KEY); } catch (e) { return; }
+  function clean(d) {
+    if (!d || typeof d !== 'object') return null;
+    var IMG = /^(data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+|https:\/\/[^\s"'<>]+)$/;
+    function walk(v, depth, k) {
+      if (v == null || typeof v === 'boolean') return v;
+      if (typeof v === 'number') return isFinite(v) ? v : null;
+      if (typeof v === 'string') { if (k === 'avatar' || k === 'photo') return IMG.test(v) ? v : null; return v.slice(0, 4000).replace(/</g, '‹').replace(/>/g, '›').replace(/"/g, '”'); }
+      if (depth > 8) return null;
+      if (Object.prototype.toString.call(v) === '[object Array]') { var a = []; for (var i = 0; i < v.length && i < 2000; i++) a.push(walk(v[i], depth + 1, k)); return a; }
+      if (typeof v === 'object') { var o = {}; for (var key in v) { if (!Object.prototype.hasOwnProperty.call(v, key) || key === '__proto__' || key === 'constructor' || key === 'prototype') continue; o[key] = walk(v[key], depth + 1, key); } return o; }
+      return null;
+    }
+    var out = {}; var keep = ['settings', 'setup', 'game', 'profiles', 'meId', 'demoSeeded', 'owned', 'lobby'];
+    for (var i = 0; i < keep.length; i++) if (d[keep[i]] != null) out[keep[i]] = walk(d[keep[i]], 0, keep[i]);
+    return out;
+  }
   var h = location.hash || '';
   var parts = h.replace(/^#/, '').split('&').filter(Boolean);
   var mpm = null; var rest = parts.filter(function (p) { if (p.indexOf('mpm=') === 0) { mpm = p.slice(4); return false; } return true; });
   if (mpm !== null) {
     try {
-      if (mpm && mpm !== 'none' && !ls.getItem(KEY)) {
+      // v44: a link is not trusted — taken only from the old address (when the browser tells the referrer), without the Telegram
+      // user (that comes from Telegram itself); strings cannot carry markup, pictures only data: or https
+      var ref = document.referrer || '';
+      if (mpm && mpm !== 'none' && !ls.getItem(KEY) && (!ref || ref.indexOf('https://shakaboom55566.github.io/') === 0)) {
         var s = decodeURIComponent(escape(atob(mpm.replace(/-/g, '+').replace(/_/g, '/'))));
-        JSON.parse(s); ls.setItem(KEY, s);
+        var c = clean(JSON.parse(s)); if (c) ls.setItem(KEY, JSON.stringify(c));
       }
     } catch (e) {}
     try { ls.setItem(DONE, '1'); } catch (e) {}
@@ -3897,6 +3916,12 @@ I18N.hy.intro = {
   trumps: { name: 'Մաֆիայի հաղթաթղթերը', lore: 'Մաֆիան հատուկ քարտերով. Զինագործ, Կամիկաձե, Մաֆիայի բժիշկ, Դահիճ։' },
   third: { name: 'Երրորդ ուժ', lore: 'Մաֆիայից ու քաղաքից բացի՝ Մոլագար, իսկ մեծ սեղաններին՝ Ծաղրածու և Գայլամարդ։' }
 };
+/* ---------------- Privacy (v44): the policy link in Settings, all languages ---------------- */
+Object.assign(I18N.ru.ui, { privacy: 'Конфиденциальность', privacyD: 'Какие данные мы храним и как их удалить' });
+Object.assign(I18N.uk.ui, { privacy: 'Конфіденційність', privacyD: 'Які дані ми зберігаємо і як їх видалити' });
+Object.assign(I18N.en.ui, { privacy: 'Privacy', privacyD: 'What data we keep and how to delete it' });
+Object.assign(I18N.pl.ui, { privacy: 'Prywatność', privacyD: 'Jakie dane przechowujemy i jak je usunąć' });
+Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ինչ տվյալներ ենք պահում և ինչպես ջնջել դրանք' });
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
@@ -5236,6 +5261,8 @@ let S = {
 };
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* an avatar / photo address that may go into <img src>: a small inline picture or an https address, nothing else */
+const safeImg = u => typeof u === 'string' && /^(data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(u);
 const U = () => L.ui;
 const SAVE_KEY = 'mafiapro.v1';
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
@@ -5313,7 +5340,8 @@ const I = {
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-8.5-9A4 4 0 0 1 12 7a4 4 0 0 1 8.5 4C19 15.5 12 20 12 20z"/></svg>',
   edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M12.5 7.5l4 4"/></svg>',
   club: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9"/><path d="M3 19h18"/></svg>',
-  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>'
+  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>'
 };
 
 /* ---------- shared pieces ---------- */
@@ -5646,8 +5674,8 @@ function actStep(g, step) {
   const u = U(); const actor = P(g, step.actorId); const role = ROLE[step.roleId];
   const recorded = g.actions.find(a => a.stepId === step.id);
   const stolen = stolenFrom(g, step.actorId);
-  const head = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title || role.name}</div><div class="s">${label(actor)}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
-    <div class="script">${step.script}</div>${step.members ? membersHTML(step.members) : ''}${step.note ? `<div class="hint" style="margin-top:8px">${step.note}</div>` : ''}`;
+  const head = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title || role.name}</div><div class="s">${esc(label(actor))}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
+    <div class="script">${step.script}</div>${step.members ? membersHTML(step.members) : ''}${step.note ? `<div class="hint" style="margin-top:8px">${esc(step.note)}</div>` : ''}`;
   const nav = (primary) => `<div class="btn-row"><button class="btn ghost" data-a="prev">${u.back}</button>${primary}</div>`;
   if (step.disabled) return `${head}<div class="quiet" style="margin-top:10px">${u.disabledNote}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
   if (stolen) return `${head}<div class="quiet" style="margin-top:10px">${tt(u.stolenNote, { player: esc(label(P(g, stolen.actorId))) })}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
@@ -6055,6 +6083,7 @@ function settingsScreen() {
   <div class="menu" style="margin-top:12px">
     <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="profiles"><div class="ico">${I.users}</div><div><div class="t">${u.plLocalBtn}</div><div class="d">${u.plLocalD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="privacy"><div class="ico">${I.lock}</div><div><div class="t">${u.privacy || 'Privacy'}</div><div class="d">${u.privacyD || ''}</div></div><span class="chev">${I.chev}</span></button>
   </div>
   <div class="panel" style="margin-top:12px"><div class="eyebrow">${u.about}</div><p class="hint" style="margin-top:6px">${u.aboutText}</p></div>`;
 }
@@ -6097,6 +6126,7 @@ function go(screen) {
 function profileBackTarget() { const f = S.ui.profileFrom; return f && !['profile', 'myprofile', 'pstats', 'deal'].includes(f) ? f : (S.game && f === 'game' ? 'game' : 'home'); }
 
 const ACT = {
+  privacy() { const l = ['ru', 'uk', 'en', 'pl', 'hy'].includes(S.settings.lang) ? S.settings.lang : 'en'; const url = 'https://mafiapro.app/' + l + '/privacy/'; try { const tw = window.Telegram && window.Telegram.WebApp; if (tw && tw.initData && tw.openLink) tw.openLink(url); else window.open(url, '_blank', 'noopener'); } catch (e) {} },
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
@@ -6272,7 +6302,7 @@ function profById(id) { return S.profiles.find(p => p.id === id) || null; }
 function initials(name) { return String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?'; }
 function avatarHTML(pr, cls = '') {
   const [bg, fg] = AV_COLORS[(pr.color || 0) % AV_COLORS.length];
-  const inner = pr.avatar ? `<img src="${pr.avatar}" alt="">` : esc(initials(pr.name));
+  const inner = safeImg(pr.avatar) ? `<img src="${esc(pr.avatar)}" alt="">` : esc(initials(pr.name));
   return `<div class="avatar ${cls}" style="--av-bg:${bg};--av-fg:${fg}">${inner}</div>`;
 }
 function newProfile(d = {}) {
@@ -6707,8 +6737,8 @@ function applyStartParam(sp) {
   if (sp === 'classic') { S.ui.tgStart = { a: 'scen-use', id: 'classic' }; }
   else if (sp === 'shop') S.screen = 'shop';
   else if (sp === 'cards') S.screen = 'cards';
-  else if (sp.startsWith('card_') && ROLE[sp.slice(5)]) { S.screen = 'cards'; S.ui.sheet = { type: 'role', id: sp.slice(5) }; }
-  else if (sp.startsWith('scen_') && SCENARIO[sp.slice(5)]) { S.ui.tgStart = { a: 'scen-use', id: sp.slice(5) }; }
+  else if (sp.startsWith('card_') && Object.prototype.hasOwnProperty.call(ROLE, sp.slice(5))) { S.screen = 'cards'; S.ui.sheet = { type: 'role', id: sp.slice(5) }; }
+  else if (sp.startsWith('scen_') && Object.prototype.hasOwnProperty.call(SCENARIO, sp.slice(5))) { S.ui.tgStart = { a: 'scen-use', id: sp.slice(5) }; }
   else if (/^friend_[A-Za-z0-9]{6,10}$/.test(sp)) { S.ui.tgStart = { a: 'fr-accept', id: sp.slice(7).toUpperCase() }; }
   else if (/^ref_[A-Za-z0-9]{6,10}$/.test(sp)) { S.ui.tgStart = { a: 'ref-attach', id: sp.slice(4).toUpperCase() }; }
 }
@@ -7701,7 +7731,7 @@ function tbTimerLeft(tm) { if (!tm) return null; const el = tm.running ? Math.ro
 function tbTimerPaint() { const el = document.querySelector('#tb-timer'); const tm = TB.data && TB.data.pub && TB.data.pub.timer; if (!el || !tm) return; const left = Math.max(0, tbTimerLeft(tm)); const m = Math.floor(left / 60), s = left % 60; el.textContent = m + ':' + String(s).padStart(2, '0'); el.classList.toggle('over', left <= 0); if (left === 0) { if (!TB.tOver) { TB.tOver = true; if (TB.data.pub.chat === 'speaker') keepFocus(render); } } else TB.tOver = false; }
 /* may I write right now? mirrors the server rule */
 function tbCanChat(pub, me) { if (!pub || !me || me.alive === false) return false; if (pub.chat === true || pub.chat === 'all') return true; if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && tbTimerLeft(pub.timer) > 0); return false; }
-const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${seat} · ${esc(s.name)}` : String(seat); };
+const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${esc(String(seat))} · ${esc(s.name)}` : esc(String(seat)); };
 /* the round table: seats around a ring, host and player count in the middle */
 function roundTableHTML(seats, profiles, center, marks = {}) {
   const u = U(); const n = Math.max(1, seats.length); const size = n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm';

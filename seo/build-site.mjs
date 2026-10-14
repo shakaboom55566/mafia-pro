@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { loadApp } from '../discord/setup.mjs';
 import { T } from '../discord/texts.mjs';
 import { S } from './texts.mjs';
+import { PRIVACY, UPDATED } from './privacy.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const LANGS = ['ru', 'uk', 'en', 'pl', 'hy'];
@@ -108,7 +109,7 @@ ${body}
 </main>
 <footer class="foot"><div class="wrap">
   <nav class="langs">${LANGS.map(x => x === l ? `<span>${esc(S[x].native)}</span>` : `<a href="${href(altMap[x])}" hreflang="${S[x].html}" lang="${S[x].html}">${esc(S[x].native)}</a>`).join('')}</nav>
-  <p>${esc(s.footer)} · <a href="https://t.me/${BOT}">@${esc(BOT)}</a> · <a href="https://t.me/mafiaprof">t.me/mafiaprof</a></p>
+  <p>${esc(s.footer)} · <a href="https://t.me/${BOT}">@${esc(BOT)}</a> · <a href="https://t.me/mafiaprof">t.me/mafiaprof</a> · <a href="${href(`${l}/privacy/`)}">${esc(PRIVACY[l].label)}</a></p>
 </div></footer>
 </body>
 </html>
@@ -186,6 +187,11 @@ ${body}
 <section><h2>${esc(s.scen.scenH)}</h2>${app.SCENARIOS.map(sc => `<div class="box scen" id="${esc(sc.id)}"><h3>${esc(sc.name)}</h3><p>${esc(sc.lore)}</p><p><small>${esc(s.scen.special)}: ${compLinks(l, app, sc.roles)} · ${esc(s.scen.count)}: ${sc.min}–${sc.max}</small></p></div>`).join('')}</section>`;
     write(`${l}/scenarios/index.html`, page({ l, p: `${l}/scenarios/`, title: s.scen.title, desc: s.scen.desc, h1: s.scen.h1, lead: s.scen.lead, crumbs: [[s.nav.scenarios, `${l}/scenarios/`]], body: scenBody }));
 
+    /* privacy policy (v44): seo/privacy.mjs — must stay true to backend/src (privacy.js, security.js) */
+    const pv = PRIVACY[l];
+    const pvBody = `<p class="lead"><small>${esc(pv.updatedLabel)} ${esc(UPDATED[l])}</small></p>` + pv.sections.map(sec => `<section><h2>${esc(sec.h)}</h2>${(sec.p || []).map(x => `<p>${md(x)}</p>`).join('')}${sec.ul ? `<ul>${sec.ul.map(x => `<li>${md(x)}</li>`).join('')}</ul>` : ''}${(sec.after || []).map(x => `<p>${md(x)}</p>`).join('')}</section>`).join('\n');
+    write(`${l}/privacy/index.html`, page({ l, p: `${l}/privacy/`, title: pv.title, desc: pv.desc, h1: pv.h1, lead: pv.lead, crumbs: [[pv.label, `${l}/privacy/`]], ld: [{ '@context': 'https://schema.org', '@type': 'WebPage', name: pv.title, description: pv.desc, inLanguage: s.html, url: abs(`${l}/privacy/`), dateModified: '2026-10-14', publisher: { '@type': 'Organization', name: 'Mafia Pro' } }], body: pvBody }));
+
     /* the picture for link previews (rendered to og/<lang>.png by seo/render-images.js) */
     write(`og/${l}.html`, `<!doctype html><html lang="${s.html}"><head><meta charset="utf-8"><meta name="robots" content="noindex"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800&family=Manrope:wght@600&family=Noto+Sans+Armenian:wght@700&display=swap"><style>
 html,body{margin:0;width:1200px;height:630px;background:#0b0a0e;color:#f1e9da;font-family:Manrope,'Noto Sans Armenian',sans-serif;overflow:hidden}
@@ -200,7 +206,7 @@ h1{font:800 70px/1.05 Unbounded,'Noto Sans Armenian',sans-serif;margin:22px 0 26
 
   /* sitemap with hreflang alternates, robots */
   const today = new Date().toISOString().slice(0, 10);
-  const prio = p => (/^[a-z]{2}\/$/.test(p) ? '1.0' : /roles\/$|rules\/$|scenarios\/$/.test(p) ? '0.8' : '0.6');
+  const prio = p => (/^[a-z]{2}\/$/.test(p) ? '1.0' : /roles\/$|rules\/$|scenarios\/$/.test(p) ? '0.8' : /privacy\/$/.test(p) ? '0.3' : '0.6');
   const sm = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 <url><loc>${SITE}</loc><lastmod>${today}</lastmod><priority>0.9</priority></url>

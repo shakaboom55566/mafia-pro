@@ -17,7 +17,7 @@ const tg = await startMockTelegram(8790);
 const env = {
   DB: makeD1(path.join(here, '..', 'schema.sql')),
   BOT_TOKEN: 'test-token', WEBHOOK_SECRET: 'hook-secret',
-  APP_URL: 'https://shakaboom55566.github.io/mafia-pro/', ALLOWED_ORIGIN: 'https://shakaboom55566.github.io',
+  SEC_RESULT_GAP: '0', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/', ALLOWED_ORIGIN: 'https://shakaboom55566.github.io',
   TELEGRAM_API: tg.base, STARS_ROLE: '100', STARS_SCENARIO: '500', STARS_PACK: '1750', ADMIN_IDS: '777'
 };
 const pending = []; const ctx = { waitUntil(p) { pending.push(p); }, passThroughOnException() {} };
@@ -372,6 +372,7 @@ console.log('admin: full access grants (bot commands + API)');
   eq((await (await post('/api/me', { initData: await initData(user(603, 'uk')) })).json()).owned.allUntil, 0, 'expired → no access'); }
 
 console.log('game result → ratings');
+await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (100, 201, 0), (201, 100, 0), (100, 202, 0), (202, 100, 0), (9001, 9002, 0), (9002, 9001, 0)').run(); // results credit only the host's own people
 { const host = await initData(user(100));
   const game = { id: 'g-1', mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'A', tgId: 201, roleId: 'don', won: false, points: -10, side: 'mafia' }, { seat: 2, name: 'B', tgId: 202, roleId: 'sheriff', won: true, points: 31, side: 'city' }, { seat: 3, name: 'C', roleId: 'citizen', won: true, points: 24, side: 'city' }] };
   const r = await (await post('/api/game/result', { initData: host, game })).json(); ok(r.ok && r.recorded, 'recorded');
@@ -386,6 +387,7 @@ console.log('game result → ratings');
   const me = await (await post('/api/me', { initData: host })).json(); eq(me.rating.hosted, 1, 'host credited');
   const lb = await (await call('/api/leaderboard?limit=5')).json(); ok(lb.ok && lb.top[0].tgId === 202 && lb.top[0].points === 1031 && lb.top[0].rank === 1, 'leaderboard'); }
 
+await env.DB.prepare('DELETE FROM friends WHERE (tg_id = 100 AND friend_id IN (201, 202)) OR (friend_id = 100 AND tg_id IN (201, 202))').run();
 console.log('player profile');
 { const a = await initData(user(100)); const pr = await (await post('/api/profile', { initData: a, tgId: 202 })).json();
   ok(pr.ok && pr.user.tgId === 202 && pr.user.name === 'User202' && pr.rating.points === 1031 && pr.rating.games === 1 && pr.rating.wins === 1, 'profile with rating: ' + JSON.stringify(pr.rating));
@@ -885,7 +887,9 @@ console.log('discord analytics: baseline, joins through whose invite, leaves, pe
   eq(await env.DB.prepare('SELECT tg_id FROM discord_members WHERE user_id = ?1').bind('800000000000000002').first('tg_id'), 2320, 'Vera tied to Telegram 2320');
   await hook(msg(user(2320, 'ru'), '/start ' + lurl.split('start=')[1])); ok(lastTo(2320).params.text.includes('устарела'), 'a link works once');
   const st4 = await (await signed(Object.assign({ type: 2, data: { name: 'stats' } }, asker))).json(); ok(st4.type === 4 && st4.data.embeds && st4.data.embeds[0].title === '📊 User2320', 'now /stats shows Vera’s own statistics');
-  const inv = await (await signed(Object.assign({ type: 2, data: { name: 'invites', options: [{ name: 'days', type: 4, value: 30 }] } }, asker))).json();
+  const noPerm = await (await signed(Object.assign({ type: 2, data: { name: 'invites', options: [] } }, asker))).json();
+  ok(noPerm.data.flags === 64 && /администратор/.test(noPerm.data.content), '/invites without Manage Server → refused');
+  const inv = await (await signed(Object.assign({ type: 2, data: { name: 'invites', options: [{ name: 'days', type: 4, value: 30 }] } }, { member: Object.assign({}, asker.member, { permissions: '32' }) }))).json();
   ok(inv.data.flags === 64 && inv.data.embeds[0].description.includes('<@800000000000000002> — пришло 3, ушло 1') && inv.data.embeds[0].fields[0].value === '6', '/invites: Vera brought 3, 1 left; 6 joins: ' + (inv.data.embeds && inv.data.embeds[0].description).slice(0, 300));
   // the Members intent switched off: one warning a day, nothing breaks
   dc.st.membersFail = true; await cron(); await cron(); ok(posts().filter(m => m.embeds[0].title.includes('не видит участников')).length === 1, 'missing intent → one warning');
@@ -1049,6 +1053,167 @@ console.log('/broadcast: preview → confirm → portions by cron → progress, 
   await cb(adm, `bc_cancel_${b.id}`); eq((await bc()).status, 'cancelled', 'cancelled from the preview');
   const s3 = sentTo().length; await tick(); eq(sentTo().length, s3, 'a cancelled broadcast never goes out');
   delete env.BROADCAST_BATCH; delete env.CHAT_URL; delete env.CHANNEL_ID; }
+
+console.log('security: webhook only from Telegram, forged logins, limits, bans, defused table state, anti-cheat, watch → incidents → alerts, lockdown, report');
+{ const sec = await import('../src/security.js'); sec._resetSecurityMemory();
+  const TGIP = '149.154.167.220', EVIL = '203.0.113.7';
+  ok(sec.ipInTelegram(TGIP) && sec.ipInTelegram('91.108.4.1') && sec.ipInTelegram('149.154.175.255'), 'Telegram networks recognised');
+  ok(!sec.ipInTelegram(EVIL) && !sec.ipInTelegram('149.154.176.1') && !sec.ipInTelegram('2001:db8::1') && !sec.ipInTelegram(''), 'other addresses are not Telegram');
+  const at = (ip, extra = {}) => Object.assign({ 'CF-Connecting-IP': ip }, extra);
+  const evs = async type => (await env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS n FROM security_events WHERE type = ?1').bind(type).first('n'));
+  // webhook: from Telegram with the secret → ok; from elsewhere without the secret → 403 + event
+  eq((await post('/webhook', msg(user(31), '/help'), at(TGIP, { 'X-Telegram-Bot-Api-Secret-Token': 'hook-secret' }))).status, 200, 'webhook from Telegram with the secret');
+  eq((await post('/webhook', msg(user(777), '/players all'), at(EVIL, { 'X-Telegram-Bot-Api-Secret-Token': 'guess' }))).status, 403, 'forged webhook (foreign IP, wrong secret) → 403');
+  await settle(); ok(await evs('webhook_forged') >= 1, 'forged webhook recorded');
+  ok(!tg.calls.some(c => c.method === 'sendDocument' && c.params.chat_id === 777 && c.params.caption && /all/.test(c.params.caption)), 'no export happened');
+  // Telegram from a new range inside its own networks (by ASN) is still accepted; the extra ranges variable works too
+  { const fakeReq = h => ({ headers: new Headers(h) }); const bot0 = new Bot(env);
+    eq(await sec.webhookGate(env, fakeReq({ 'X-Telegram-Bot-Api-Secret-Token': 'hook-secret' }), { ip: '5.28.16.1', ih: 'aa', asn: 62041, org: 'Telegram Messenger Inc', path: '/webhook' }, bot0), null, 'Telegram ASN with the secret → accepted');
+    env.TG_EXTRA_NETS = '5.28.16.0/20'; eq(await sec.webhookGate(env, fakeReq({ 'X-Telegram-Bot-Api-Secret-Token': 'hook-secret' }), { ip: '5.28.16.9', ih: 'ab', asn: 0, path: '/webhook' }, bot0), null, 'extra network from the variable → accepted'); delete env.TG_EXTRA_NETS;
+    ok((await sec.webhookGate(env, fakeReq({ 'X-Telegram-Bot-Api-Secret-Token': 'nope' }), { ip: '5.28.16.1', ih: 'ac', asn: 62041, path: '/webhook' }, bot0)).status === 403, 'Telegram network with a wrong secret → 403'); }
+  // the right secret from a foreign address = a leak: refused, the secret is replaced, admin powers locked
+  const before = tg.calls.length;
+  eq((await post('/webhook', msg(user(777), '/players all'), at(EVIL, { 'X-Telegram-Bot-Api-Secret-Token': 'hook-secret' }))).status, 403, 'leaked secret from a foreign IP → 403');
+  await settle();
+  const sw = tg.calls.slice(before).find(c => c.method === 'setWebhook'); ok(sw && /^[0-9a-f]{64}$/.test(sw.params.secret_token) && sw.params.url === 'https://api.test/webhook', 'webhook secret replaced at Telegram');
+  ok(await sec.isLockdown(env), 'lockdown switched on automatically');
+  eq((await post('/webhook', msg(user(31), '/help'), at(TGIP, { 'X-Telegram-Bot-Api-Secret-Token': 'hook-secret' }))).status, 403, 'the old secret no longer works');
+  eq((await post('/webhook', msg(user(31), '/help'), at(TGIP, { 'X-Telegram-Bot-Api-Secret-Token': sw.params.secret_token }))).status, 200, 'the new secret works');
+  const hookNew = { 'X-Telegram-Bot-Api-Secret-Token': sw.params.secret_token };
+  const adm = { id: 777, first_name: 'Admin', language_code: 'ru' };
+  await post('/webhook', msg(adm, '/players all'), at(TGIP, hookNew)); ok(/режим блокировки/.test(lastTo(777).params.text), 'lockdown: /players refused');
+  await post('/webhook', msg(adm, '/broadcast Привет'), at(TGIP, hookNew)); ok(/режим блокировки/.test(lastTo(777).params.text), 'lockdown: /broadcast refused');
+  await post('/webhook', msg(adm, '/grant 31 30'), at(TGIP, hookNew)); ok(/режим блокировки/.test(lastTo(777).params.text), 'lockdown: /grant refused');
+  eq((await (await post('/api/admin/grant', { initData: await initData(user(777)), q: '31', days: 3 })).json()).error, 'lockdown', 'lockdown: app admin API refused');
+  await post('/webhook', msg(adm, '/security unlock'), at(TGIP, hookNew)); ok(/GitHub/.test(lastTo(777).params.text) && await sec.isLockdown(env), 'cannot be unlocked from Telegram');
+  // the Security workflow's key
+  const key = await sec.secKey('test-token');
+  eq((await post('/sec/report', {}, { 'X-Sec-Key': 'nope' })).status, 403, 'report needs the key');
+  const un = await (await post('/sec/act', { action: 'unlock', note: 'проверено' }, { 'X-Sec-Key': key })).json(); ok(un.ok && un.mode === 'normal' && !(await sec.isLockdown(env)), 'unlock through the workflow key');
+  ok(/снят/.test(lastTo(777).params.text), 'admins told about the unlock');
+  sec._resetSecurityMemory(); await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'sec:hook'").run(); // back to the deployed secret for the rest of the suite
+  // forged logins: counted per address, 30 in 10 minutes → the address is blocked; an expired login is not a forgery
+  const good = await initData(user(32)); const forged = good.replace(/hash=\w{6}/, 'hash=abcdef');
+  const expired = await initData(user(32), { auth_date: String(now() - 90000) });
+  const af0 = await evs('auth_forged'); await env.DB.prepare("DELETE FROM security_stats WHERE key LIKE 'ev:auth%'").run();
+  for (let i = 0; i < 5; i++) await post('/api/me', { initData: expired }, at('198.51.100.9')); await settle(); await sec.flushStats(env);
+  eq([await evs('auth_forged') - af0, await env.DB.prepare("SELECT COALESCE(SUM(n), 0) AS n FROM security_stats WHERE key = 'ev:auth_forged'").first('n')], [0, 0], 'expired logins are not counted as forged');
+  for (let i = 0; i < 30; i++) await post('/api/me', { initData: forged }, at('198.51.100.9')); await settle();
+  ok(await evs('auth_forged') >= 1 && await evs('auth_bruteforce') === 1, 'forged logins → brute-force event');
+  const blocked = await post('/api/me', { initData: good }, at('198.51.100.9')); eq(blocked.status, 403, 'that address is blocked now, even with a good login');
+  ok(blocked.headers.get('Access-Control-Allow-Origin'), 'a block still carries CORS (the app shows an error, not a network failure)');
+  eq((await post('/api/me', { initData: good }, at('198.51.100.10'))).status, 200, 'other addresses are fine');
+  // per-address limit and the flood ban
+  env.SEC_IP_RPM = '20'; env.SEC_IP_BAN_RPM = '40';
+  const codes = []; for (let i = 0; i < 45; i++) codes.push((await call('/api/leaderboard', { headers: at('192.0.2.50') })).status); await settle();
+  ok(codes.slice(0, 20).every(c => c === 200) && codes[20] === 429, 'over 20 a minute → 429');
+  ok(codes[44] === 403 || codes[44] === 429, 'flooding on → blocked'); ok(await env.DB.prepare("SELECT 1 FROM security_bans WHERE key LIKE 'ip:%' AND reason LIKE 'флуд%'").first(), 'flood ban stored');
+  delete env.SEC_IP_RPM; delete env.SEC_IP_BAN_RPM;
+  // per-player limit and scraping
+  env.SEC_PLAYERS_10M = '3'; const sc = await initData(user(33)); const st = [];
+  for (let i = 0; i < 5; i++) st.push((await post('/api/players', { initData: sc, offset: i * 50 }, at('192.0.2.60'))).status); await settle();
+  eq(st, [200, 200, 200, 429, 429], 'paging through all players is limited'); ok(await evs('scrape') >= 1, 'scraping recorded'); delete env.SEC_PLAYERS_10M;
+  // too big a body
+  const big = await call('/api/me', { method: 'POST', headers: at('192.0.2.61', { 'Content-Type': 'application/json' }), body: JSON.stringify({ initData: good, pad: 'x'.repeat(sec.MAX_BODY + 10) }) });
+  eq(big.status, 413, 'a body over the limit → 413');
+  // a hostile host: markup in the published table state is defused before players read it
+  const host = await initData(user(34, 'ru', { first_name: '<b>Host</b>' })); const pl = await initData(user(35, 'ru', { first_name: 'Ann"><img src=x onerror=alert(1)>' }));
+  const lob = await (await post('/api/lobby', { initData: host, fresh: true })).json();
+  await post('/api/table/join', { initData: pl, code: lob.code });
+  const seat = await env.DB.prepare('SELECT name FROM lobby_players WHERE code = ?1 AND tg_id = 35').bind(lob.code).first('name'); ok(seat && !/[<>"]/.test(seat) && seat.includes('img src=x'), 'a Telegram name with markup is defused at the table: ' + seat);
+  const evil = '<img src=x onerror=alert(1)>';
+  await post('/api/table/publish', { initData: host, code: lob.code, pub: { v: 2, phase: 'lobby', n: 7, seats: [{ seat: evil, name: evil, tgId: 35 }], result: { color: 'x" onmouseover="alert(1)' } }, priv: { 35: { seat: 1, roleId: 'citizen', note: evil } } });
+  const ts = await (await post('/api/table/state', { initData: pl, code: lob.code })).json();
+  const txt = JSON.stringify({ pub: ts.pub, me: ts.me }); ok(!txt.includes('<img') && !txt.includes('\\"') && txt.includes('‹img src=x onerror=alert(1)›'), 'players get the state without tags or quotes');
+  await settle(); ok(await evs('xss_attempt') >= 1, 'the attempt is recorded');
+  // anti-cheat: points only for the host's own people, and not twice in two minutes
+  delete env.SEC_RESULT_GAP;
+  const cheat = await (await post('/api/game/result', { initData: host, game: { id: 'cheat-1', mode: 'classic', winner: 'city', code: lob.code, players: [{ seat: 1, name: 'Me', tgId: 34, roleId: 'sheriff', won: true, points: 90, side: 'city' }, { seat: 2, name: 'Ann', tgId: 35, roleId: 'citizen', won: true, points: 20, side: 'city' }, { seat: 3, name: 'Stranger', tgId: 36, roleId: 'citizen', won: true, points: 90, side: 'city' }] } })).json();
+  ok(cheat.ok && cheat.recorded, 'game recorded');
+  eq([(await env.DB.prepare('SELECT points FROM ratings WHERE tg_id = 35').first('points')), await env.DB.prepare('SELECT points FROM ratings WHERE tg_id = 36').first('points')], [20, null], 'seated player credited, a stranger in the report is not');
+  const sum = JSON.parse(await env.DB.prepare("SELECT summary FROM games WHERE game_id = 'cheat-1'").first('summary')); ok(sum[2].tgId === null && sum[2].name === 'Stranger', 'the stranger keeps the seat without the Telegram id');
+  await post('/api/game/result', { initData: host, game: { id: 'cheat-1b', mode: 'classic', winner: 'city', code: lob.code, players: [{ seat: 3, name: 'Stranger', tgId: 37, roleId: 'citizen', won: true, points: 90, side: 'city' }] } });
+  await post('/api/game/result', { initData: host, game: { id: 'cheat-2', mode: 'classic', winner: 'city', code: lob.code, players: [{ seat: 2, name: 'Ann', tgId: 35, roleId: 'citizen', won: true, points: 20, side: 'city' }] } });
+  eq(await env.DB.prepare('SELECT points FROM ratings WHERE tg_id = 35').first('points'), 20, 'a second game within two minutes gives no points');
+  env.SEC_RESULT_GAP = '0'; await settle();
+  ok(await evs('result_reject') >= 1 && await evs('result_flood') >= 1, 'both recorded');
+  // the watch: incidents, automatic response, alerts with buttons
+  const m0 = Math.floor(now() / 60); await env.DB.prepare("INSERT INTO security_stats (minute, key, n) VALUES (?1, 'req', 2500) ON CONFLICT(minute, key) DO UPDATE SET n = 2500").bind(m0 - 1).run();
+  const a0 = tg.calls.length; await worker.scheduled({ cron: '* * * * *' }, env, ctx); await settle();
+  const inc = (await env.DB.prepare("SELECT kind, severity, status FROM security_incidents WHERE status = 'open' ORDER BY id").all()).results.map(i => i.kind);
+  ok(['webhook_leak', 'webhook_probe', 'auth_attack', 'flood', 'xss', 'scraping', 'cheating'].every(k => inc.includes(k)), 'incidents opened: ' + inc.join(', '));
+  ok(Number(await env.DB.prepare("SELECT value FROM discord_cfg WHERE key = 'sec:guard'").first('value')) > now() + 1500, 'flood → stricter limits (guard mode) for 30 minutes');
+  ok(await sec.isLockdown(env), 'the leaked webhook secret keeps admin powers locked');
+  const alerts = tg.calls.slice(a0).filter(c => c.method === 'sendMessage' && c.params.chat_id === 777 && /Безопасность ·/.test(c.params.text));
+  ok(alerts.length >= 7 && alerts.some(a => /КРИТИЧНО/.test(a.params.text)), 'admin alerted for each incident (' + alerts.length + ')');
+  ok(alerts[0].params.reply_markup.inline_keyboard[0][0].callback_data.startsWith('sec_ack_'), 'alert has an "acknowledged" button');
+  const a1 = tg.calls.length; await worker.scheduled({ cron: '* * * * *' }, env, ctx); await settle();
+  eq(tg.calls.slice(a1).filter(c => c.method === 'sendMessage' && /Безопасность ·/.test(c.params.text || '')).length, 0, 'no repeated alerts a minute later');
+  const id0 = (await env.DB.prepare("SELECT id FROM security_incidents WHERE kind = 'xss'").first('id'));
+  await post('/webhook', { update_id: 5, callback_query: { id: 'q1', from: adm, data: `sec_ack_${id0}`, message: { message_id: 1, chat: { id: 777 } } } }, hookNew.secret ? hookNew : { 'X-Telegram-Bot-Api-Secret-Token': 'hook-secret' });
+  ok(await env.DB.prepare('SELECT acked_at FROM security_incidents WHERE id = ?1').bind(id0).first('acked_at'), 'acknowledged with the button');
+  await hook(msg(adm, '/security')); const stx = lastTo(777).params.text; ok(/Открытые инциденты/.test(stx) && /блокировка/.test(stx), '/security shows incidents and the mode');
+  await hook(msg(adm, '/security ban 36 2')); ok(await env.DB.prepare("SELECT 1 FROM security_bans WHERE key = 'tg:36'").first(), '/security ban <id>');
+  eq((await post('/api/me', { initData: await initData(user(36)) })).status, 403, 'a banned player is refused');
+  await hook(msg(adm, '/security unban tg:36')); eq((await post('/api/me', { initData: await initData(user(36)) })).status, 200, '/security unban');
+  await hook(msg(user(31), '/security')); ok(!/Безопасность Mafia Pro/.test(lastTo(31).params.text), '/security is for admins only');
+  // incidents close after 30 quiet minutes
+  await env.DB.prepare("UPDATE security_incidents SET last_at = last_at - 3600 WHERE status = 'open'").run(); await env.DB.prepare('DELETE FROM security_events').run(); await env.DB.prepare('DELETE FROM security_stats').run();
+  const a2 = tg.calls.length; await worker.scheduled({ cron: '* * * * *' }, env, ctx); await settle();
+  eq((await env.DB.prepare("SELECT COUNT(*) AS n FROM security_incidents WHERE status = 'open'").first('n')), 0, 'quiet incidents closed');
+  ok(tg.calls.slice(a2).some(c => c.method === 'sendMessage' && /закрыт/.test(c.params.text || '')), 'admin told they are closed');
+  // the report: no Telegram ids or IPs in it
+  await post('/api/me', { initData: forged }, at('198.51.100.77')); await settle();
+  const rep = await (await post('/sec/report', { hours: 24 }, { 'X-Sec-Key': key })).json();
+  ok(rep.ok && rep.mode && Array.isArray(rep.incidents) && rep.incidents.length >= 7 && rep.events.some(e => e.type === 'auth_forged'), 'report: mode, incidents, events');
+  const rs = JSON.stringify(rep); ok(!rs.includes('198.51.100') && !/"(34|35|36|777)"/.test(rs) && !rs.includes(':777') && !rs.includes('tg:36"'), 'report has no IPs or Telegram ids');
+  const ban = await (await post('/sec/act', { action: 'ban', target: rep.topIps[0].ip, hours: 1, note: 'тест' }, { 'X-Sec-Key': key })).json(); ok(ban.ok && ban.until > now(), 'the agent can ban by IP hash');
+  await hook(msg(adm, '/security log')); await settle();
+  eq((await (await post('/sec/act', { action: 'ban', target: 'tg:' + await sec.tgHash(env, 777) }, { 'X-Sec-Key': key })).json()).error, 'admin', 'the agent cannot ban an admin');
+  const lk = await (await post('/sec/act', { action: 'lockdown_on', note: 'агент' }, { 'X-Sec-Key': key })).json(); ok(lk.ok && await sec.isLockdown(env), 'the agent can lock down');
+  await post('/sec/act', { action: 'unlock' }, { 'X-Sec-Key': key }); await post('/sec/act', { action: 'guard_off' }, { 'X-Sec-Key': key });
+  const note = await (await post('/sec/act', { action: 'note', note: 'Проверил <всё>' }, { 'X-Sec-Key': key })).json(); ok(note.ok && lastTo(777).params.text.includes('Проверил &lt;всё&gt;'), 'the agent writes to the admins (escaped)');
+  // the admin's account from a new country
+  await post('/api/me', { initData: await initData(user(777)) }, { 'CF-IPCountry': 'UA', 'CF-Connecting-IP': '192.0.2.90' });
+  await post('/api/me', { initData: await initData(user(777)) }, { 'CF-IPCountry': 'NL', 'CF-Connecting-IP': '192.0.2.91' }); await settle();
+  ok(await evs('admin_new_country') === 1, 'the admin seen from a new country → event');
+  // security headers on the API
+  const h = await call('/'); ok(h.headers.get('X-Content-Type-Options') === 'nosniff' && /frame-ancestors 'none'/.test(h.headers.get('Content-Security-Policy') || ''), 'API answers carry security headers');
+  sec._resetSecurityMemory(); await env.DB.prepare('DELETE FROM security_bans').run(); await env.DB.prepare("DELETE FROM discord_cfg WHERE key LIKE 'sec:%'").run(); }
+
+console.log('privacy: /privacy, /mydata, /unsubscribe, /support, /deletedata');
+{ const p = user(41, 'uk'); await hook(msg(p, '/start'));
+  await hook(msg(p, '/privacy')); ok(lastTo(41).params.text.includes('https://shakaboom55566.github.io/uk/privacy/') || lastTo(41).params.text.includes('/uk/privacy/'), 'policy link in the player language: ' + lastTo(41).params.text.slice(-60));
+  await hook(msg(p, '/help')); ok(lastTo(41).params.text.includes('/privacy'), '/help mentions /privacy');
+  await post('/api/me', { initData: await initData(p), city: 'Київ' });
+  await hook(msg(p, '/mydata')); const doc = lastCall('sendDocument'); ok(doc && doc.params.chat_id === 41 && /my-data-41\.json$/.test(doc.params.document.name), 'data file sent');
+  const data = JSON.parse(doc.params.document.bytes.toString('utf8')); ok(data.telegramId === 41 && data.profile.username === 'user41' && data.city.city === 'Київ', 'file has the profile and city');
+  await hook(msg(p, '/mydata')); ok(/годину/.test(lastTo(41).params.text), 'second export within an hour → wait');
+  await hook(msg(p, '/unsubscribe')); ok(await env.DB.prepare('SELECT no_news FROM user_prefs WHERE tg_id = 41').first('no_news') === 1, 'unsubscribed');
+  await hook(msg({ id: 777, first_name: 'Admin', language_code: 'ru' }, '/broadcast')); const card = lastTo(777).params.text; ok(/Получат/.test(card), 'broadcast preview');
+  const bq = await env.DB.prepare("SELECT id FROM broadcasts ORDER BY id DESC LIMIT 1").first('id');
+  await hook({ update_id: 6, callback_query: { id: 'q2', from: { id: 777, first_name: 'Admin', language_code: 'ru' }, data: `bc_go_${bq}`, message: { message_id: 1, chat: { id: 777 } } } });
+  ok(!(await env.DB.prepare('SELECT 1 FROM broadcast_queue WHERE bid = ?1 AND tg_id = 41').bind(bq).first()), 'an unsubscribed player is not in the broadcast');
+  await hook({ update_id: 7, callback_query: { id: 'q3', from: { id: 777, first_name: 'Admin', language_code: 'ru' }, data: `bc_stop_${bq}`, message: { message_id: 1, chat: { id: 777 } } } });
+  await env.DB.prepare("UPDATE broadcasts SET status = 'cancelled' WHERE id = ?1").bind(bq).run();
+  await hook(msg(p, '/subscribe')); ok(await env.DB.prepare('SELECT no_news FROM user_prefs WHERE tg_id = 41').first('no_news') === 0, 'subscribed again');
+  await hook(msg(p, '/support Не приходит карта <b>')); ok(/Поддержка/.test(lastTo(777).params.text) && lastTo(777).params.text.includes('Не приходит карта &lt;b&gt;'), 'support message forwarded to the admin (escaped)');
+  const sup = lastTo(777); await hook({ update_id: 61, message: { message_id: 70, from: { id: 777, first_name: 'Admin', language_code: 'ru' }, chat: { id: 777, type: 'private' }, text: 'Перезапустите стол <ok>', reply_to_message: { message_id: 69, text: sup.params.text.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>') } } });
+  ok(/Відповідь команди/.test(lastTo(41).params.text) && lastTo(41).params.text.includes('Перезапустите стол &lt;ok&gt;') && /Ответ отправлен/.test(lastTo(777).params.text), 'admin reply to a support message reaches the player in their language');
+  for (let i = 0; i < 5; i++) await hook(msg(p, '/support ще ' + i)); ok(/5 повідомлень/.test(lastTo(41).params.text), 'support: 5 a day');
+  // deletion: a game with the player, a friend, a seat
+  await env.DB.prepare("INSERT INTO games (game_id, host_id, code, mode, players, winner, summary, created_at) VALUES ('pv-1', 41, NULL, 'classic', 2, 'city', ?1, ?2)").bind(JSON.stringify([{ seat: 1, name: 'Оля', tgId: 41, roleId: 'sheriff', won: true, points: 30 }, { seat: 2, name: 'Інший', tgId: 42, roleId: 'don', won: false, points: -10 }]), now()).run();
+  await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (41, 42, 0), (42, 41, 0)').run();
+  await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (41, 30, 1, 1, 0, 0) ON CONFLICT(tg_id) DO NOTHING').run();
+  await hook(msg(p, '/deletedata')); const ask = lastTo(41); ok(ask.params.reply_markup.inline_keyboard[0][0].callback_data === 'pv_del_yes', 'deletion asks first');
+  ok(await env.DB.prepare('SELECT 1 FROM users WHERE tg_id = 41').first(), 'nothing deleted before the button');
+  await hook({ update_id: 8, callback_query: { id: 'q4', from: p, data: 'pv_del_yes', message: { message_id: 9, chat: { id: 41 } } } });
+  const gone = await Promise.all(['users', 'ratings', 'user_cities', 'user_prefs', 'player_track'].map(tb => env.DB.prepare(`SELECT COUNT(*) AS n FROM ${tb} WHERE tg_id = 41`).first('n')));
+  eq(gone, [0, 0, 0, 0, 0], 'profile, rating, city, settings, source deleted');
+  eq(await env.DB.prepare('SELECT COUNT(*) AS n FROM friends WHERE tg_id = 41 OR friend_id = 41').first('n'), 0, 'friendships deleted');
+  const sm = JSON.parse(await env.DB.prepare("SELECT summary FROM games WHERE game_id = 'pv-1'").first('summary')); ok(sm[0].tgId === null && sm[0].name === 'Игрок' && sm[1].tgId === 42, 'game kept for the other player, this seat anonymised');
+  eq(await env.DB.prepare("SELECT host_id FROM games WHERE game_id = 'pv-1'").first('host_id'), 0, 'hosted game no longer points to the player');
+  ok(/видалено/.test(lastCall('editMessageText').params.text), 'confirmation shown'); }
 
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');

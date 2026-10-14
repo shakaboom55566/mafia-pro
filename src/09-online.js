@@ -226,7 +226,7 @@ function tbTimerLeft(tm) { if (!tm) return null; const el = tm.running ? Math.ro
 function tbTimerPaint() { const el = document.querySelector('#tb-timer'); const tm = TB.data && TB.data.pub && TB.data.pub.timer; if (!el || !tm) return; const left = Math.max(0, tbTimerLeft(tm)); const m = Math.floor(left / 60), s = left % 60; el.textContent = m + ':' + String(s).padStart(2, '0'); el.classList.toggle('over', left <= 0); if (left === 0) { if (!TB.tOver) { TB.tOver = true; if (TB.data.pub.chat === 'speaker') keepFocus(render); } } else TB.tOver = false; }
 /* may I write right now? mirrors the server rule */
 function tbCanChat(pub, me) { if (!pub || !me || me.alive === false) return false; if (pub.chat === true || pub.chat === 'all') return true; if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && tbTimerLeft(pub.timer) > 0); return false; }
-const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${seat} · ${esc(s.name)}` : String(seat); };
+const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${esc(String(seat))} · ${esc(s.name)}` : esc(String(seat)); };
 /* the round table: seats around a ring, host and player count in the middle */
 function roundTableHTML(seats, profiles, center, marks = {}) {
   const u = U(); const n = Math.max(1, seats.length); const size = n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm';

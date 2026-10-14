@@ -6,7 +6,7 @@ function profById(id) { return S.profiles.find(p => p.id === id) || null; }
 function initials(name) { return String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?'; }
 function avatarHTML(pr, cls = '') {
   const [bg, fg] = AV_COLORS[(pr.color || 0) % AV_COLORS.length];
-  const inner = pr.avatar ? `<img src="${pr.avatar}" alt="">` : esc(initials(pr.name));
+  const inner = safeImg(pr.avatar) ? `<img src="${esc(pr.avatar)}" alt="">` : esc(initials(pr.name));
   return `<div class="avatar ${cls}" style="--av-bg:${bg};--av-fg:${fg}">${inner}</div>`;
 }
 function newProfile(d = {}) {

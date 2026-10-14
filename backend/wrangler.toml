@@ -1,9 +1,15 @@
 # Mafia Pro backend — Cloudflare Worker + D1.
 # Secrets (set by the deploy workflow, never committed): BOT_TOKEN, WEBHOOK_SECRET, DISCORD_BOT_TOKEN (optional).
+# Security layer (security.js) knobs, all optional vars: SEC_IP_RPM, SEC_IP_BAN_RPM, SEC_TG_RPM, SEC_FLOOD_RPM, SEC_DAILY_WARN, WORKERS_PLAN ("paid" = no daily-limit warning).
 name = "mafia-pro-api"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
 workers_dev = true
+# v44: the API's own domain inside the mafiapro.app Cloudflare zone — zone security (WAF and rate-limiting rules, DDoS protection)
+# stops a flood before the worker runs. workers.dev stays on for old app builds; the deploy uses api.mafiapro.app once it answers.
+routes = [
+  { pattern = "api.mafiapro.app", custom_domain = true }
+]
 
 [vars]
 APP_URL = "https://mafiapro.app/"
@@ -39,3 +45,12 @@ crons = ["*/5 * * * *", "* * * * *"]
 
 [observability]
 enabled = true
+
+# v44: per-IP limit shared by the worker's isolates in one Cloudflare location (security.js reads env.RL_IP); the deploy
+# workflow drops this block if the account does not offer it
+[[ratelimits]]
+name = "RL_IP"
+namespace_id = "4401"
+  [ratelimits.simple]
+  limit = 1500
+  period = 60

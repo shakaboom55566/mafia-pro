@@ -116,7 +116,7 @@ const hexBytes = h => new Uint8Array(String(h).match(/../g).map(x => parseInt(x,
 let keyCache = null;
 export async function verifyInteraction(env, sigHex, timestamp, body) {
   const pk = String(env.DISCORD_PUBLIC_KEY || '').trim(); if (!/^[0-9a-f]{64}$/i.test(pk) || !/^[0-9a-f]{128}$/i.test(String(sigHex || '')) || !timestamp) return false;
-  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false; // replayed
+  const ts = Number(timestamp); if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false; // replayed (or not a number)
   try {
     if (!keyCache || keyCache.pk !== pk) {
       let key; try { key = await crypto.subtle.importKey('raw', hexBytes(pk), { name: 'Ed25519' }, false, ['verify']); }

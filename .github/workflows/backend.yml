@@ -5,6 +5,8 @@ name: Deploy backend (Cloudflare Worker)
 # Optional (Discord voice rooms for online tables): DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_CATEGORY_ID.
 # Runs on every push that touches backend/, or manually: Actions → "Deploy backend" → Run workflow.
 # The (sanitized) log of the deploy steps is posted as a comment on the commit, so it can be read without opening the run.
+# v44 security: the webhook secret is masked and never exported to later steps (this repository and its logs are public);
+# install scripts never see the tokens; the API answers at https://api.mafiapro.app (behind the Cloudflare zone) once it works.
 on:
   push:
     branches: [main]
@@ -60,10 +62,23 @@ jobs:
 
       - name: Install wrangler
         if: steps.check.outputs.ready == 'true'
-        run: npm install --no-audit --no-fund 2>&1 | tail -3
+        # install scripts of dependencies must not see the tokens: they are blank in this step;
+        # the lockfile committed after the first run pins every package (npm ci)
+        env:
+          CLOUDFLARE_API_TOKEN: ''
+          CLOUDFLARE_ACCOUNT_ID: ''
+          BOT_TOKEN: ''
+          DISCORD_BOT_TOKEN: ''
+        run: |
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund 2>&1 | tail -3; else npm install --no-audit --no-fund 2>&1 | tail -3; fi
+          echo "wrangler $(node -p 'require("wrangler/package.json").version')" | tee -a "$LOG"
 
       - name: Tests (worker + SQLite + mock Telegram)
         if: steps.check.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ''
+          BOT_TOKEN: ''
+          DISCORD_BOT_TOKEN: ''
         run: node --no-warnings test/run.js 2>&1 | tee -a "$LOG"
 
       - name: D1 database (create once, migrate every time)
@@ -100,40 +115,65 @@ jobs:
         id: deploy
         run: |
           set -eo pipefail
-          # Cloudflare's API occasionally answers 5xx: retry the deploy up to three times
-          ok=0; for i in 1 2 3; do { echo "## deploy (attempt $i)"; npx wrangler deploy; } 2>&1 | tee -a "$LOG" | tee deploy.out && { ok=1; break; }; sleep 20; done
-          [ "$ok" = 1 ] || { echo "::error::wrangler deploy failed three times"; exit 1; }
+          # Cloudflare's API occasionally answers 5xx: retry. If the account refuses the optional parts (the api.mafiapro.app
+          # domain, the rate-limit binding), deploy without them and say so in the log.
+          ok=0; for i in 1 2; do { echo "## deploy (attempt $i)"; npx wrangler deploy; } 2>&1 | tee -a "$LOG" | tee deploy.out && { ok=1; break; }; sleep 15; done
+          if [ "$ok" != 1 ]; then
+            echo "::warning::deploy failed — retrying without the rate-limit binding" | tee -a "$LOG"
+            node strip-optional.cjs wrangler.toml ratelimits | tee -a "$LOG"
+            { echo "## deploy without the rate-limit binding"; npx wrangler deploy; } 2>&1 | tee -a "$LOG" | tee deploy.out && ok=1 || true
+          fi
+          if [ "$ok" != 1 ]; then
+            echo "::warning::deploy failed — retrying without the api.mafiapro.app domain too" | tee -a "$LOG"
+            node strip-optional.cjs wrangler.toml all | tee -a "$LOG"
+            for i in 1 2; do { echo "## deploy without the optional parts (attempt $i)"; npx wrangler deploy; } 2>&1 | tee -a "$LOG" | tee deploy.out && { ok=1; break; }; sleep 20; done
+          fi
+          [ "$ok" = 1 ] || { echo "::error::wrangler deploy failed"; exit 1; }
           URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.out | head -1)
           [ -n "$URL" ] || { echo "::error::Worker URL not found in wrangler output"; exit 1; }
           echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "API: $URL" | tee -a "$LOG"
+          echo "API (workers.dev): $URL" | tee -a "$LOG"
+          # the API's own domain sits behind the Cloudflare zone (WAF / rate-limiting rules stop a flood before the worker runs)
+          API="$URL"
+          if grep -q 'api.mafiapro.app' deploy.out; then
+            for i in $(seq 1 18); do
+              if curl -sS --max-time 10 https://api.mafiapro.app/ 2>/dev/null | grep -q '"ok":true'; then API="https://api.mafiapro.app"; break; fi
+              sleep 10
+            done
+          fi
+          echo "api=$API" >> "$GITHUB_OUTPUT"
+          echo "API in use: $API" | tee -a "$LOG"
 
       - name: Worker secrets (bot token, webhook secret)
         if: steps.check.outputs.ready == 'true'
         run: |
           set -eo pipefail
-          WEBHOOK_SECRET=$(printf '%s' "$BOT_TOKEN:mafia-pro-webhook" | sha256sum | cut -c1-48)
+          # the webhook secret is derived from the bot token (v2 label: the earlier one was visible in public logs), masked,
+          # and never written to $GITHUB_ENV — values there are printed in the env block of every later step
+          WEBHOOK_SECRET=$(printf '%s' "$BOT_TOKEN:mafia-pro-webhook:v2" | sha256sum | cut -c1-48)
+          echo "::add-mask::$WEBHOOK_SECRET"
           { echo "## secrets"
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
           printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
           if [ -n "$DISCORD_BOT_TOKEN" ]; then printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN; fi
           } 2>&1 | tee -a "$LOG"
-          echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$GITHUB_ENV"
 
       - name: Health check
         if: steps.check.outputs.ready == 'true'
         run: |
           set -eo pipefail
           sleep 5
-          { echo "## health"; curl -sS --retry 5 --retry-delay 3 "${{ steps.deploy.outputs.url }}/"; echo; } 2>&1 | tee -a "$LOG" | tee health.json
+          { echo "## health"; curl -sS --retry 5 --retry-delay 3 "${{ steps.deploy.outputs.api }}/"; echo; } 2>&1 | tee -a "$LOG" | tee health.json
           grep -q '"ok":true' health.json
 
       - name: Telegram webhook → worker
         if: steps.check.outputs.ready == 'true'
         run: |
           set -eo pipefail
+          WEBHOOK_SECRET=$(printf '%s' "$BOT_TOKEN:mafia-pro-webhook:v2" | sha256sum | cut -c1-48)
+          echo "::add-mask::$WEBHOOK_SECRET"
           R=$(curl -sS "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
-            --data-urlencode "url=${{ steps.deploy.outputs.url }}/webhook" \
+            --data-urlencode "url=${{ steps.deploy.outputs.api }}/webhook" \
             --data-urlencode "secret_token=${WEBHOOK_SECRET}" \
             --data-urlencode 'allowed_updates=["message","pre_checkout_query","callback_query"]' \
             --data-urlencode "drop_pending_updates=true")
@@ -145,7 +185,7 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          URL: ${{ steps.deploy.outputs.url }}
+          URL: ${{ steps.deploy.outputs.api }}
         run: |
           { echo "## pages"; gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" -f api_url="$URL" && echo "Pages redeploy triggered with api_url=$URL"; } 2>&1 | tee -a "$LOG"
 
@@ -154,30 +194,31 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-          URL: ${{ steps.deploy.outputs.url }}
+          URL: ${{ steps.deploy.outputs.api }}
         run: |
           { echo "## variable"; gh variable set MAFIA_API_URL --body "$URL" --repo "$GITHUB_REPOSITORY" && echo "variable MAFIA_API_URL = $URL"; } 2>&1 | tee -a "$LOG"
 
-      - name: Commit the backend address (.mafia-api-url) for later site builds
+      - name: Commit the backend address (.mafia-api-url) and the lockfile for later builds
         if: steps.check.outputs.ready == 'true'
         continue-on-error: true
         working-directory: ${{ github.workspace }}
         env:
-          URL: ${{ steps.deploy.outputs.url }}
+          URL: ${{ steps.deploy.outputs.api }}
         run: |
           set -eo pipefail
           { echo "## address file"
-          if [ "$(cat .mafia-api-url 2>/dev/null)" = "$URL" ]; then echo "already up to date"; exit 0; fi
-          echo "$URL" > .mafia-api-url
+          [ "$(cat .mafia-api-url 2>/dev/null)" = "$URL" ] || echo "$URL" > .mafia-api-url
+          git add .mafia-api-url
+          [ -f backend/package-lock.json ] && git add backend/package-lock.json
+          if git diff --cached --quiet; then echo "already up to date"; exit 0; fi
           git config user.name "mafia-pro-deploy"
           git config user.email "deploy@users.noreply.github.com"
-          git add .mafia-api-url
-          git commit -m "chore: backend address $URL"
+          git commit -m "chore: backend address $URL, pinned dependencies"
           git stash --include-untracked || true   # wrangler.toml was edited by the D1 step; keep the tree clean for the rebase
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
-          echo "committed .mafia-api-url"
+          echo "committed"
           } 2>&1 | tee -a "$LOG"
 
       - name: Post the deploy log as a commit comment
@@ -186,11 +227,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          # never leak secrets into the comment
+          # never leak secrets (or the admins' Telegram ids from wrangler's binding table) into the public comment
           node -e '
-            const fs = require("fs"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
-            for (const k of ["BOT_TOKEN", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "WEBHOOK_SECRET", "DISCORD_BOT_TOKEN"]) { const v = process.env[k]; if (v && v.length > 3) s = s.split(v).join("<" + k + ">"); }
-            s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>");
+            const fs = require("fs"); const crypto = require("crypto"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
+            const wh = process.env.BOT_TOKEN ? crypto.createHash("sha256").update(process.env.BOT_TOKEN + ":mafia-pro-webhook:v2").digest("hex").slice(0, 48) : "";
+            const keys = { BOT_TOKEN: process.env.BOT_TOKEN, CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID, WEBHOOK_SECRET: wh, DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN };
+            for (const [k, v] of Object.entries(keys)) { if (v && v.length > 3) s = s.split(v).join("<" + k + ">"); }
+            s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>").replace(/(ADMIN_IDS[^\n]*?)\d{5,}(?:,\d{5,})*/g, "$1<ids>");
             if (s.length > 12000) s = s.slice(0, 4000) + "\n…\n" + s.slice(-8000);
             const body = "**Deploy backend** run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s + "\n```";
             fs.writeFileSync(process.env.RUNNER_TEMP + "/comment.json", JSON.stringify({ body }));
@@ -203,8 +246,8 @@ jobs:
           {
             echo "## Бэкенд развёрнут"
             echo
-            echo "- API: ${{ steps.deploy.outputs.url }}"
-            echo "- Webhook бота: ${{ steps.deploy.outputs.url }}/webhook"
+            echo "- API: ${{ steps.deploy.outputs.api }} (workers.dev: ${{ steps.deploy.outputs.url }})"
+            echo "- Webhook бота: ${{ steps.deploy.outputs.api }}/webhook"
             echo "- D1: mafia-pro (схема применена)"
             echo "- Сайт перепубликован с адресом бэкенда (workflow «Deploy to GitHub Pages»)"
           } >> "$GITHUB_STEP_SUMMARY"

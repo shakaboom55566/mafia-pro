@@ -10,6 +10,8 @@ let S = {
 };
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* an avatar / photo address that may go into <img src>: a small inline picture or an https address, nothing else */
+const safeImg = u => typeof u === 'string' && /^(data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(u);
 const U = () => L.ui;
 const SAVE_KEY = 'mafiapro.v1';
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
@@ -87,7 +89,8 @@ const I = {
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-8.5-9A4 4 0 0 1 12 7a4 4 0 0 1 8.5 4C19 15.5 12 20 12 20z"/></svg>',
   edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M12.5 7.5l4 4"/></svg>',
   club: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9"/><path d="M3 19h18"/></svg>',
-  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>'
+  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>'
 };
 
 /* ---------- shared pieces ---------- */
@@ -420,8 +423,8 @@ function actStep(g, step) {
   const u = U(); const actor = P(g, step.actorId); const role = ROLE[step.roleId];
   const recorded = g.actions.find(a => a.stepId === step.id);
   const stolen = stolenFrom(g, step.actorId);
-  const head = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title || role.name}</div><div class="s">${label(actor)}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
-    <div class="script">${step.script}</div>${step.members ? membersHTML(step.members) : ''}${step.note ? `<div class="hint" style="margin-top:8px">${step.note}</div>` : ''}`;
+  const head = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title || role.name}</div><div class="s">${esc(label(actor))}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
+    <div class="script">${step.script}</div>${step.members ? membersHTML(step.members) : ''}${step.note ? `<div class="hint" style="margin-top:8px">${esc(step.note)}</div>` : ''}`;
   const nav = (primary) => `<div class="btn-row"><button class="btn ghost" data-a="prev">${u.back}</button>${primary}</div>`;
   if (step.disabled) return `${head}<div class="quiet" style="margin-top:10px">${u.disabledNote}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
   if (stolen) return `${head}<div class="quiet" style="margin-top:10px">${tt(u.stolenNote, { player: esc(label(P(g, stolen.actorId))) })}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
@@ -829,6 +832,7 @@ function settingsScreen() {
   <div class="menu" style="margin-top:12px">
     <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="profiles"><div class="ico">${I.users}</div><div><div class="t">${u.plLocalBtn}</div><div class="d">${u.plLocalD}</div></div><span class="chev">${I.chev}</span></button>
+    <button class="menu-item" data-a="privacy"><div class="ico">${I.lock}</div><div><div class="t">${u.privacy || 'Privacy'}</div><div class="d">${u.privacyD || ''}</div></div><span class="chev">${I.chev}</span></button>
   </div>
   <div class="panel" style="margin-top:12px"><div class="eyebrow">${u.about}</div><p class="hint" style="margin-top:6px">${u.aboutText}</p></div>`;
 }
@@ -871,6 +875,7 @@ function go(screen) {
 function profileBackTarget() { const f = S.ui.profileFrom; return f && !['profile', 'myprofile', 'pstats', 'deal'].includes(f) ? f : (S.game && f === 'game' ? 'game' : 'home'); }
 
 const ACT = {
+  privacy() { const l = ['ru', 'uk', 'en', 'pl', 'hy'].includes(S.settings.lang) ? S.settings.lang : 'en'; const url = 'https://mafiapro.app/' + l + '/privacy/'; try { const tw = window.Telegram && window.Telegram.WebApp; if (tw && tw.initData && tw.openLink) tw.openLink(url); else window.open(url, '_blank', 'noopener'); } catch (e) {} },
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },

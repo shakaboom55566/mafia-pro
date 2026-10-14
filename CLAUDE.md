@@ -14,3 +14,11 @@
 ## Сборка и проверки
 
 `bash build.sh`, затем `node test/sim.js` и `for l in ru uk en pl hy; do LANG_CODE=$l node test/ui-smoke.js; done` (как в Pages-workflow). Новый файл в `src/` добавляется в оба списка `build.sh` и в список `test/ui-smoke.js`.
+
+## Безопасность (v44)
+
+- Новый эндпоинт API — только через `auth()` (подпись Telegram) или `keyGate()` (служебный ключ); пользовательский текст, который увидят другие, — экранировать на клиенте (`esc`) и не доверять ему на сервере (`cleanStr` / `cleanTableJSON` из `backend/src/security.js`).
+- В workflow никогда не писать секреты и производные от них значения в `$GITHUB_ENV` или в лог: репозиторий и логи публичные. Производное значение — сразу `echo "::add-mask::…"`.
+- Изменили, какие данные хранятся, — поправьте `seo/privacy.mjs` (политика на 5 языках) и экспорт/удаление в `backend/src/privacy.js`.
+- Дежурный агент безопасности работает по `security/AGENT.md`, журнал — `security/journal.md` (без личных данных).
+

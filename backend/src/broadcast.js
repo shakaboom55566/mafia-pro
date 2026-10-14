@@ -8,6 +8,7 @@
    has "⏸ Остановить" / "▶️ Продолжить". Recipients: everyone in `users` (opened the bot or the app) except the admins.
    Players who blocked the bot, or never started a chat with it, are counted as unreachable. */
 import { esc } from './tg.js';
+import { newsOptOutSql } from './privacy.js';
 import { pickLang } from './texts.js';
 import { entitiesToHtml } from './posts.js';
 
@@ -100,7 +101,8 @@ export function messageFor(env, b, lang) {
 
 const row = (env, id) => env.DB.prepare('SELECT * FROM broadcasts WHERE id = ?1').bind(id).first();
 const active = env => env.DB.prepare("SELECT * FROM broadcasts WHERE status IN ('sending', 'stopped') ORDER BY id DESC LIMIT 1").first();
-function notAdmins(env) { const ids = adminIds(env); return ids.length ? { sql: ` WHERE tg_id NOT IN (${ids.map((_, i) => '?' + (i + 1)).join(',')})`, args: ids } : { sql: '', args: [] }; }
+/* recipients: everyone except admins and players who chose /unsubscribe (privacy.js) */
+function notAdmins(env) { const ids = adminIds(env); return ids.length ? { sql: ` WHERE tg_id NOT IN (${ids.map((_, i) => '?' + (i + 1)).join(',')}) AND ${newsOptOutSql}`, args: ids } : { sql: ` WHERE ${newsOptOutSql}`, args: [] }; }
 /* recipients by language (after pickLang) */
 async function audience(env) {
   const w = notAdmins(env);

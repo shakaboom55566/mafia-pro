@@ -6,14 +6,33 @@
 (function () {
   var KEY = 'mafiapro.v1', DONE = 'mafiapro.moved', OLD = 'https://shakaboom55566.github.io/mafia-pro/';
   var ls; try { ls = window.localStorage; ls.getItem(KEY); } catch (e) { return; }
+  function clean(d) {
+    if (!d || typeof d !== 'object') return null;
+    var IMG = /^(data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+|https:\/\/[^\s"'<>]+)$/;
+    function walk(v, depth, k) {
+      if (v == null || typeof v === 'boolean') return v;
+      if (typeof v === 'number') return isFinite(v) ? v : null;
+      if (typeof v === 'string') { if (k === 'avatar' || k === 'photo') return IMG.test(v) ? v : null; return v.slice(0, 4000).replace(/</g, '‹').replace(/>/g, '›').replace(/"/g, '”'); }
+      if (depth > 8) return null;
+      if (Object.prototype.toString.call(v) === '[object Array]') { var a = []; for (var i = 0; i < v.length && i < 2000; i++) a.push(walk(v[i], depth + 1, k)); return a; }
+      if (typeof v === 'object') { var o = {}; for (var key in v) { if (!Object.prototype.hasOwnProperty.call(v, key) || key === '__proto__' || key === 'constructor' || key === 'prototype') continue; o[key] = walk(v[key], depth + 1, key); } return o; }
+      return null;
+    }
+    var out = {}; var keep = ['settings', 'setup', 'game', 'profiles', 'meId', 'demoSeeded', 'owned', 'lobby'];
+    for (var i = 0; i < keep.length; i++) if (d[keep[i]] != null) out[keep[i]] = walk(d[keep[i]], 0, keep[i]);
+    return out;
+  }
   var h = location.hash || '';
   var parts = h.replace(/^#/, '').split('&').filter(Boolean);
   var mpm = null; var rest = parts.filter(function (p) { if (p.indexOf('mpm=') === 0) { mpm = p.slice(4); return false; } return true; });
   if (mpm !== null) {
     try {
-      if (mpm && mpm !== 'none' && !ls.getItem(KEY)) {
+      // v44: a link is not trusted — taken only from the old address (when the browser tells the referrer), without the Telegram
+      // user (that comes from Telegram itself); strings cannot carry markup, pictures only data: or https
+      var ref = document.referrer || '';
+      if (mpm && mpm !== 'none' && !ls.getItem(KEY) && (!ref || ref.indexOf('https://shakaboom55566.github.io/') === 0)) {
         var s = decodeURIComponent(escape(atob(mpm.replace(/-/g, '+').replace(/_/g, '/'))));
-        JSON.parse(s); ls.setItem(KEY, s);
+        var c = clean(JSON.parse(s)); if (c) ls.setItem(KEY, JSON.stringify(c));
       }
     } catch (e) {}
     try { ls.setItem(DONE, '1'); } catch (e) {}

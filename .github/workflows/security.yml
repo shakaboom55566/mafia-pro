@@ -1,0 +1,96 @@
+name: Security
+
+# The on-call security agent's lever (v44). It reads the security report of the backend or acts on it; the result is posted as a
+# comment on the commit (no personal data: Telegram ids and IPs only as salted hashes — see backend/src/security.js).
+# Key: sha256(BOT_TOKEN + ':mafia-pro-security')[0..48], computed here and masked; nothing new to set.
+# Run: Actions → "Security" → Run workflow, or
+#   gh api -X POST repos/<owner>/<repo>/actions/workflows/security.yml/dispatches -f ref=main -f 'inputs[action]=report'
+# Actions:
+#   report          the report (hours = window, default 24)
+#   unlock          switch the lockdown OFF — only possible here, never from Telegram (a stolen Telegram account cannot undo it)
+#   lockdown_on     switch admin powers off (exports, broadcasts, grants, approvals); the game keeps working
+#   guard_on/off    stricter limits for N minutes (hours = minutes here) / back to normal
+#   ban / unban     target = ip:<12 hex> or tg:<10 hex> from the report; hours = how long (default 24)
+#   ack / close     target = incident number
+#   note            note = a message to the admins in Telegram from the agent
+#   rotate_webhook  a new random webhook secret, set at Telegram at once
+#   test_alert      a test alert to the admins (checks the alarm channel)
+#   edge            Cloudflare zone protection for mafiapro.app: HTTPS-only, TLS 1.2+, a flood rule for /api/ (needs a token with zone rights)
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'What to do'
+        type: choice
+        default: report
+        options: [report, unlock, lockdown_on, guard_on, guard_off, ban, unban, ack, close, note, rotate_webhook, test_alert, edge]
+      target:
+        description: 'ip:<hash> / tg:<hash> / incident number'
+        required: false
+      hours:
+        description: 'Hours (report window, ban length) or minutes for guard_on'
+        required: false
+      note:
+        description: 'Text for the admins / reason'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: security
+  cancel-in-progress: false
+
+jobs:
+  act:
+    runs-on: ubuntu-latest
+    env:
+      LOG: /tmp/security.log
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Call the backend
+        if: inputs.action != 'edge'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ACTION: ${{ inputs.action }}
+          TARGET: ${{ inputs.target }}
+          HOURS: ${{ inputs.hours }}
+          NOTE: ${{ inputs.note }}
+        run: |
+          [ -n "$BOT_TOKEN" ] || { echo "::error::BOT_TOKEN secret is not set"; exit 1; }
+          API=$(cat .mafia-api-url 2>/dev/null | tr -d '[:space:]')
+          [[ "$API" =~ ^https://[A-Za-z0-9.-]+$ ]] || { echo "::error::.mafia-api-url is empty or odd"; exit 1; }
+          export API
+          node security/call.mjs 2>&1 | tee -a "$LOG"
+
+      - name: Cloudflare zone protection (mafiapro.app)
+        if: inputs.action == 'edge'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_SECURITY_TOKEN: ${{ secrets.CLOUDFLARE_SECURITY_TOKEN }}
+        run: node security/edge.mjs 2>&1 | tee -a "$LOG"
+
+      - name: Post the result as a commit comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          ACTION: ${{ inputs.action }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_SECURITY_TOKEN: ${{ secrets.CLOUDFLARE_SECURITY_TOKEN }}
+        run: |
+          node -e '
+            const fs = require("fs"), crypto = require("crypto"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
+            const t = process.env.BOT_TOKEN || ""; const secrets = [t, process.env.CLOUDFLARE_API_TOKEN, process.env.CLOUDFLARE_SECURITY_TOKEN, t && crypto.createHash("sha256").update(t + ":mafia-pro-security").digest("hex").slice(0, 48)];
+            s = s.split("\n").filter(l => !l.startsWith("::add-mask::")).join("\n");
+            for (const v of secrets) if (v && v.length > 3) s = s.split(v).join("<secret>");
+            s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>");
+            if (s.length > 60000) s = s.slice(0, 20000) + "\n…\n" + s.slice(-38000);
+            const body = "**Security** run " + process.env.GITHUB_RUN_NUMBER + " · " + process.env.ACTION + " — **" + process.env.JOB_STATUS + "**\n\n" + s;
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/comment.json", JSON.stringify({ body }));
+          '
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input "$RUNNER_TEMP/comment.json" > /dev/null && echo "result posted"

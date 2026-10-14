@@ -46,6 +46,8 @@ jobs:
           mkdir -p _site
           # address of the backend: workflow input → repository variable → .mafia-api-url committed by the backend deploy
           [ -n "$MAFIA_API_URL" ] || MAFIA_API_URL=$(cat .mafia-api-url 2>/dev/null | tr -d '[:space:]')
+          # only a plain https origin may go into the page (no sed tricks, no markup)
+          if [ -n "$MAFIA_API_URL" ] && ! [[ "$MAFIA_API_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]]; then echo "::error::bad backend address"; exit 1; fi
           echo "backend: ${MAFIA_API_URL:-<none>}"
           sed "s#__MAFIA_API__#${MAFIA_API_URL}#" index.html > _site/index.html
           # search-engine ownership tags (v38): seo/verify.txt — lines "google=<code>" / "bing=<code>" from Search Console / Bing Webmaster

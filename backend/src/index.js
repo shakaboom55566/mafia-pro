@@ -40,7 +40,9 @@
    - GET  /api/leaderboard    top ratings (public)
    - GET  /                   health
    ============================================================ */
-import { Bot, verifyInitData, esc } from './tg.js';
+import { Bot, verifyInitData, checkInitData, esc } from './tg.js';
+import { guardRequest, userGate, authForged, webhookGate, keyGate, secKey, secEvent, secAudit, stat, isLockdown, LOCKED_TEXT, cleanTableJSON, cleanStr, looksLikeXss, bannedTg, botFlood, runSecurityWatch, onSecurityCommand, onSecurityCallback, securityReport, securityAct, MAX_BODY } from './security.js';
+import { onPrivacyText, onPrivacyCallback, onSupportReply, privacyHelp } from './privacy.js';
 import { apiPostDraft, onPostCallback, onPostReply, listPosts, runPostsCron, postsKey } from './posts.js';
 import { trackStart, trackApp, trackGameNames, runGrowthCron, onPlayersCommand, postStats } from './growth.js';
 import { t, pickLang } from './texts.js';
@@ -58,9 +60,20 @@ function stars(env, kind) { // prices in Telegram Stars; overridable with STARS_
   const d = { role: 100, scenario: 500, pack: 1750 };
   const v = Number(env['STARS_' + kind.toUpperCase()]); return Number.isFinite(v) && v > 0 ? Math.round(v) : d[kind];
 }
+const SEC_HEADERS = { 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'", 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' };
 function json(data, status = 200, extra = {}) {
-  return new Response(JSON.stringify(data), { status, headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, extra) });
+  return new Response(JSON.stringify(data), { status, headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, SEC_HEADERS, extra) });
 }
+/* the request body as text, at most MAX_BODY bytes (a lying or missing Content-Length cannot get more through) */
+async function readBody(req) {
+  const r = req.body ? req.body.getReader() : null; if (!r) return '';
+  const parts = []; let size = 0;
+  for (;;) { const { done, value } = await r.read(); if (done) break; size += value.byteLength; if (size > MAX_BODY) { try { r.cancel(); } catch (e) {} const e = new Error('too big'); e.tooBig = true; throw e; } parts.push(value); }
+  const all = new Uint8Array(size); let o = 0; for (const p of parts) { all.set(p, o); o += p.byteLength; }
+  return new TextDecoder().decode(all);
+}
+const withCors = (env, req, r) => { for (const [k, v] of Object.entries(corsHeaders(env, req))) r.headers.set(k, v); return r; };
+const VERIFIED = new WeakMap(); // request body object → its checked initData (filled by the router; a client cannot forge a WeakMap entry)
 function corsHeaders(env, req) {
   const allowed = (env.ALLOWED_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
   const origin = req.headers.get('Origin') || '';
@@ -223,7 +236,7 @@ async function clubSystem(env, clubId, text) { await env.DB.prepare('INSERT INTO
 function cleanClubFields(body) {
   const name = String(body.name || '').trim().slice(0, 48), city = String(body.city || '').trim().slice(0, 48), about = String(body.about || '').trim().slice(0, 300), link = String(body.link || '').trim().slice(0, 160);
   let logo = String(body.logo || ''); if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(logo) || logo.length > CLUB_LOGO_MAX) logo = '';
-  return { name, city, about, link, logo };
+  return { name, city, about, link, logo, xss: looksLikeXss(name + ' ' + city + ' ' + about + ' ' + link) };
 }
 async function notifyAdmins(env, bot, key, vars) {
   for (const adm of String(env.ADMIN_IDS || '').split(',').map(x => Number(x.trim())).filter(Boolean)) { const a = await userRow(env, adm); try { await bot.send(adm, t(pickLang(a && a.lang), key, vars)); } catch (e) {} }
@@ -252,6 +265,7 @@ async function apiClub(env, body) {
 async function apiClubApply(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const f = cleanClubFields(body); if (f.name.length < 2) return json({ ok: false, error: 'bad_name' }, 400);
+  if (f.xss) secEvent(env, 'xss_attempt', 'high', { tg: v.user.id, path: '/api/club/apply' });
   const mine = await membershipOf(env, v.user.id); if (mine) return json({ ok: false, error: 'in_club' }, 409);
   const existing = await env.DB.prepare('SELECT id, status FROM clubs WHERE owner_id = ?1 AND status != ?2').bind(v.user.id, 'rejected').first();
   if (existing) return json({ ok: false, error: 'has_club', id: existing.id, status: existing.status }, 409);
@@ -267,6 +281,7 @@ async function apiClubUpdate(env, body) {
   const c = await clubRow(env, Number(body.id)); if (!c) return json({ ok: false, error: 'not_found' }, 404);
   if (c.owner_id !== v.user.id && !isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
   const f = cleanClubFields(Object.assign({ name: c.name, city: c.city, about: c.about, link: c.link, logo: c.logo }, body)); if (f.name.length < 2) return json({ ok: false, error: 'bad_name' }, 400);
+  if (f.xss) secEvent(env, 'xss_attempt', 'high', { tg: v.user.id, path: '/api/club/update' });
   if (body.logo === '') f.logo = '';
   await env.DB.prepare('UPDATE clubs SET name = ?1, city = ?2, about = ?3, link = ?4, logo = ?5 WHERE id = ?6').bind(f.name, f.city, f.about, f.link, f.logo, c.id).run();
   return json({ ok: true, club: await clubCard(env, await clubRow(env, c.id)) });
@@ -284,7 +299,8 @@ async function listClubsAdmin(env) {
 }
 async function apiAdminClubs(env, bot, body, action) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
-  if (!isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
+  if (!isAdmin(env, v.user.id)) { secEvent(env, 'admin_denied', 'medium', { tg: v.user.id, path: 'admin' }); return json({ ok: false, error: 'forbidden' }, 403); }
+  if (action !== 'list' && action !== 'grants') { secAudit(env, v.user.id, 'app_club', { detail: action }); if (await isLockdown(env)) return json({ ok: false, error: 'lockdown' }, 423); }
   if (action === 'list') return json({ ok: true, clubs: await listClubsAdmin(env) });
   const c = await clubRow(env, Number(body.id)); if (!c) return json({ ok: false, error: 'not_found' }, 404);
   await setClubStatus(env, bot, c, !!body.approve);
@@ -382,6 +398,7 @@ async function apiClubChatSend(env, bot, body) {
   let kind = 'text', text = String(body.text || '').trim().slice(0, 500), code = '';
   if (body.lobby) { code = String(body.lobby).toUpperCase(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400); const lob = await env.DB.prepare('SELECT host_id, status FROM lobbies WHERE code = ?1').bind(code).first(); if (!lob || lob.host_id !== v.user.id || lob.status !== 'open') return json({ ok: false, error: 'no_lobby' }, 404); kind = 'lobby'; text = ''; }
   else if (!text) return json({ ok: false, error: 'empty' }, 400);
+  if (looksLikeXss(text)) secEvent(env, 'xss_attempt', 'high', { tg: v.user.id, path: '/api/club/chat/send' });
   const ins = await env.DB.prepare('INSERT INTO club_messages (club_id, tg_id, kind, text, code, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(mine.club_id, v.user.id, kind, text, code || null, now()).run();
   await env.DB.prepare('DELETE FROM club_messages WHERE club_id = ?1 AND id < (SELECT MIN(id) FROM (SELECT id FROM club_messages WHERE club_id = ?1 ORDER BY id DESC LIMIT 300))').bind(mine.club_id).run();
   if (kind === 'lobby') { // a table call also goes to every online member's Telegram, with a join button
@@ -417,6 +434,13 @@ async function handleUpdate(env, bot, upd) {
 }
 async function onCallback(env, bot, q) {
   const u = q.from || {}; const lang = pickLang(u.language_code);
+  if (await bannedTg(env, u.id) || botFlood(env, u.id)) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
+  if (/^sec_/.test(q.data || '') && await onSecurityCallback(env, bot, q, id => isAdmin(env, id))) return;
+  if (/^pv_/.test(q.data || '') && await onPrivacyCallback(env, bot, q, lang)) return;
+  if (/^(cp|bc)_/.test(q.data || '') && isAdmin(env, u.id)) { // admin powers: audited, off in lockdown
+    secAudit(env, u.id, /^bc_go/.test(q.data) ? 'broadcast_send' : /^cp_/.test(q.data) ? 'post_' + String(q.data).split('_')[1] : 'broadcast', { detail: String(q.data).slice(0, 40) });
+    if (await isLockdown(env)) return bot.call('answerCallbackQuery', { callback_query_id: q.id, text: '🔒 Режим блокировки: действие отключено', show_alert: true });
+  }
   if (/^cp_/.test(q.data || '') && await onPostCallback(env, bot, q, id => isAdmin(env, id))) return;
   if (/^bc_/.test(q.data || '') && await onBroadcastCallback(env, bot, q, id => isAdmin(env, id))) return;
   const cm = /^cl_(acc|dec)_(\d+)$/.exec(q.data || '');
@@ -485,6 +509,8 @@ async function sendRequest(env, bot, me, target) { // me: Telegram user object; 
 async function onText(env, bot, msg) {
   const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id;
   const text = msg.text.trim();
+  if (await bannedTg(env, u.id) || botFlood(env, u.id)) return; // blocked by the security layer, or a flood: silence
+  if (looksLikeXss((u.first_name || '') + ' ' + (u.last_name || '') + ' ' + (u.username || ''))) secEvent(env, 'xss_name', 'medium', { tg: u.id, detail: 'telegram name' });
   const isNew = !(await userRow(env, u.id));
   await touchUser(env, u);
   const play = bot.playButton(t(lang, 'play'), env.APP_URL);
@@ -504,8 +530,16 @@ async function onText(env, bot, msg) {
     }
     return bot.send(chat, t(lang, 'welcome'), play);
   }
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') : t(lang, 'help'), play);
+  if (await onPrivacyText(env, bot, msg, lang)) return; // /privacy /mydata /deletedata /unsubscribe /subscribe /support (privacy.js)
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n🛡 /security — безопасность: инциденты, блокировки, режим' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
   if (isAdmin(env, u.id)) {
+    if (/^\/security(?:@\w+)?(?:\s|$)/.test(text)) return onSecurityCommand(env, bot, msg);
+    const power = /^\/(players|broadcast|grant|revoke|partner|partner_no|club_ok|club_no)(?:@\w+)?(?:\s|$)/.exec(text);
+    if (power || (msg.reply_to_message && !text.startsWith('/'))) { // admin powers: every use is audited; all off in lockdown
+      secAudit(env, u.id, power ? (power[1] === 'players' ? 'players_export' : power[1]) : 'post_reply', { detail: text.split(/\s+/).slice(0, 2).join(' ').slice(0, 60) });
+      if (await isLockdown(env)) return bot.send(chat, LOCKED_TEXT);
+    }
+    if (msg.reply_to_message && await onSupportReply(env, bot, msg)) return; // the answer to a player's /support message
     if (msg.reply_to_message && await onPostReply(env, bot, msg)) return;
     if (/^\/posts(?:@\w+)?$/.test(text)) return bot.send(chat, await listPosts(env));
     if (/^\/players(?:@\w+)?(?:\s|$)/.test(text)) return onPlayersCommand(env, bot, msg);
@@ -570,7 +604,7 @@ async function onPaid(env, bot, msg) {
 
 /* ---------- Mini App API ---------- */
 async function auth(env, body) {
-  const v = await verifyInitData(body && body.initData, env.BOT_TOKEN);
+  const v = (body && typeof body === 'object' && VERIFIED.get(body)) || await verifyInitData(body && body.initData, env.BOT_TOKEN);
   if (!v) return null;
   await touchUser(env, v.user);
   return v;
@@ -659,7 +693,8 @@ async function listPartners(env) {
 }
 async function apiAdminPartners(env, bot, body, action) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
-  if (!isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
+  if (!isAdmin(env, v.user.id)) { secEvent(env, 'admin_denied', 'medium', { tg: v.user.id, path: 'admin' }); return json({ ok: false, error: 'forbidden' }, 403); }
+  if (action !== 'list' && action !== 'grants') { secAudit(env, v.user.id, 'app_partner', { detail: action }); if (await isLockdown(env)) return json({ ok: false, error: 'lockdown' }, 423); }
   if (action === 'list') return json({ ok: true, partners: await listPartners(env) });
   const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
   await setPartner(env, bot, target, !!body.approve);
@@ -737,7 +772,8 @@ async function apiFriendRespond(env, bot, body) {
 }
 async function apiAdmin(env, bot, body, action) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
-  if (!isAdmin(env, v.user.id)) return json({ ok: false, error: 'forbidden' }, 403);
+  if (!isAdmin(env, v.user.id)) { secEvent(env, 'admin_denied', 'medium', { tg: v.user.id, path: 'admin' }); return json({ ok: false, error: 'forbidden' }, 403); }
+  if (action !== 'list' && action !== 'grants') { secAudit(env, v.user.id, 'app_grant', { detail: action }); if (await isLockdown(env)) return json({ ok: false, error: 'lockdown' }, 423); }
   if (action === 'grants') return json({ ok: true, grants: await listGrants(env) });
   const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
   if (action === 'revoke') { await setGrant(env, bot, v.user.id, target, 0, true); return json({ ok: true, revoked: { tgId: target.tg_id, name: rowName(target) }, grants: await listGrants(env) }); }
@@ -808,16 +844,34 @@ async function apiResult(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const g = body.game || {};
   const gameId = String(g.id || '').slice(0, 64); if (!gameId) return json({ ok: false, error: 'bad_game' }, 400);
-  const players = Array.isArray(g.players) ? g.players.slice(0, 40) : [];
+  const hostId = v.user.id; const code = g.code && /^[A-Z0-9]{4,8}$/i.test(String(g.code)) ? String(g.code).toUpperCase() : null;
+  // anti-cheat: points go only to the host, players seated or dealt at the host's own table, the host's friends, invitees and club mates;
+  // anyone else in the report keeps the seat but loses the Telegram id (no rating, no referral reward)
+  const allowed = new Set([hostId]);
+  if (code) { const lob = await lobbyAny(env, code); if (lob && lob.host_id === hostId) {
+    for (const r of (await env.DB.prepare('SELECT tg_id FROM lobby_players WHERE code = ?1').bind(code).all()).results || []) allowed.add(r.tg_id);
+    const tr = await tableRow(env, code); if (tr) for (const k of Object.keys(parseJSON(tr.priv, {}) || {})) if (Number(k)) allowed.add(Number(k));
+  } }
+  for (const r of (await env.DB.prepare('SELECT friend_id AS id FROM friends WHERE tg_id = ?1 UNION SELECT tg_id AS id FROM referrals WHERE ref_by = ?1 UNION SELECT m.tg_id AS id FROM club_members m JOIN club_members me ON me.club_id = m.club_id WHERE me.tg_id = ?1').bind(hostId).all()).results || []) allowed.add(r.id);
+  let rejected = 0;
+  const players = (Array.isArray(g.players) ? g.players.slice(0, 40) : []).filter(p => p && typeof p === 'object').map(p => {
+    let tgId = Number(p.tgId) || null; if (tgId && !allowed.has(tgId)) { tgId = null; rejected++; }
+    return { seat: Number(p.seat) || null, name: cleanStr(String(p.name == null ? '' : p.name).slice(0, 64)), tgId, roleId: ID_RE.test(String(p.roleId || '')) ? String(p.roleId) : null, won: !!p.won, points: Math.max(-60, Math.min(90, Number(p.points) || 0)), side: ['city', 'mafia', 'neutral'].includes(p.side) ? p.side : '' };
+  });
+  if (rejected) secEvent(env, 'result_reject', 'medium', { tg: hostId, path: '/api/game/result', detail: { rejected, code } });
+  const gap = env.SEC_RESULT_GAP != null ? Number(env.SEC_RESULT_GAP) || 0 : 120; // seconds between two credited games of one host: no game is that short
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS n, MAX(created_at) AS last FROM games WHERE host_id = ?1 AND created_at > ?2').bind(hostId, now() - 86400).first();
+  const flood = !!recent && (recent.n >= 40 || (gap > 0 && recent.last && now() - recent.last < gap));
   const ins = await env.DB.prepare('INSERT OR IGNORE INTO games (game_id, host_id, code, mode, players, winner, summary, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
-    .bind(gameId, v.user.id, g.code ? String(g.code).slice(0, 8) : null, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), now()).run();
+    .bind(gameId, hostId, code, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), now()).run();
+  if (flood && ins.meta && ins.meta.changes > 0) secEvent(env, 'result_flood', 'medium', { tg: hostId, path: '/api/game/result', detail: { last24h: recent.n } });
   const ratings = {};
   await trackGameNames(env, players);
-  if (ins.meta && ins.meta.changes > 0) { // first report of this game → credit the players
-    await bumpRating(env, v.user.id, 0, 0, 0, 1);
+  if (ins.meta && ins.meta.changes > 0 && !flood) { // first report of this game → credit the players
+    await bumpRating(env, hostId, 0, 0, 0, 1);
     for (const p of players) {
       const tgId = Number(p.tgId); if (!tgId) continue;
-      const pts = Math.max(-60, Math.min(90, Number(p.points) || 0));
+      const pts = p.points;
       await bumpRating(env, tgId, pts, 1, p.won ? 1 : 0, 0);
       try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); }
     }
@@ -892,7 +946,7 @@ async function apiLobbyDeal(env, bot, body) {
     if (!m) { failed.push({ tgId, error: 'not_in_lobby' }); continue; }
     const roleId = String(c.roleId || '').slice(0, 32); if (!ID_RE.test(roleId)) { failed.push({ tgId, error: 'bad_role' }); continue; }
     const had = priv[tgId] && priv[tgId].roleId;
-    priv[tgId] = Object.assign({}, priv[tgId] || {}, { seat: Number(c.seat) || null, roleId, family: c.family || null, alive: true, dealtAt: ts * 1000 });
+    priv[tgId] = Object.assign({}, priv[tgId] || {}, { seat: Number(c.seat) || null, roleId, family: c.family ? cleanStr(String(c.family).slice(0, 32)) : null, alive: true, dealtAt: ts * 1000 });
     sent.push(tgId);
     if (had === roleId) continue;
     if (ts - (seen.get(tgId) || 0) > TABLE_SEEN_SEC) { try { const r = await bot.send(tgId, t(m.lang, 'cardReady', { code: lobby.code }), tableButton(env, m.lang, lobby.code)); if (r && r.ok) notified.push(tgId); } catch (e) {} }
@@ -1040,7 +1094,7 @@ async function flushStaleInvites(env, bot, code) {
 }
 async function seatPlayer(env, bot, code, u, lang) { // returns true when newly seated, 'host' for the table's own host
   const lob0 = await lobbyAny(env, code); if (lob0 && lob0.host_id === u.id && !(await lobbyOpts(env, code)).hostPlays) return 'host';
-  const name = displayName(u);
+  const name = cleanStr(displayName(u)).slice(0, 130); // shown in the host's app: no markup can come through a Telegram name
   const r = await env.DB.prepare('INSERT OR IGNORE INTO lobby_players (code, tg_id, name, username, lang, joined_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(code, u.id, name, u.username || null, lang, now()).run();
   const inserted = !!(r.meta && r.meta.changes > 0);
   const lobby = await lobbyAny(env, code);
@@ -1104,7 +1158,10 @@ async function apiTableJoin(env, bot, body) {
 async function apiTablePublish(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const lobby = await hostLobby(env, v, body); if (!lobby) return json({ ok: false, error: 'no_lobby' }, 404);
-  const pub = body.pub && typeof body.pub === 'object' ? body.pub : {}; const priv = body.priv && typeof body.priv === 'object' ? body.priv : {};
+  // the host's app builds this state, but a hostile host could send anything: every string is defused for HTML before players see it
+  const info = { hit: false };
+  const pub = body.pub && typeof body.pub === 'object' && !Array.isArray(body.pub) ? cleanTableJSON(body.pub, info) : {}; const priv = body.priv && typeof body.priv === 'object' && !Array.isArray(body.priv) ? cleanTableJSON(body.priv, info) : {};
+  if (info.hit) secEvent(env, 'xss_attempt', 'high', { tg: v.user.id, path: '/api/table/publish', detail: { code: lobby.code } });
   const pubTxt = JSON.stringify(pub), privTxt = JSON.stringify(priv);
   if (pubTxt.length > 120000 || privTxt.length > 120000) return json({ ok: false, error: 'too_big' }, 413);
   const ph0 = String(pub.phase || 'lobby');
@@ -1196,6 +1253,7 @@ async function apiTableChatSend(env, body) {
   const row = await tableRow(env, code); const pub = row ? parseJSON(row.pub, {}) : {}; const priv = row ? parseJSON(row.priv, {}) : {}; const me = priv[String(v.user.id)];
   if (!isHost && !chatAllowed(pub, me)) return json({ ok: false, error: 'chat_closed' }, 403);
   const text = String(body.text || '').trim().slice(0, 300); if (!text) return json({ ok: false, error: 'empty' }, 400);
+  if (looksLikeXss(text)) secEvent(env, 'xss_attempt', 'high', { tg: v.user.id, path: '/api/table/chat/send', detail: { code } });
   const last = await env.DB.prepare('SELECT created_at FROM table_chat WHERE code = ?1 AND tg_id = ?2 ORDER BY id DESC LIMIT 1').bind(code, v.user.id).first();
   if (last && now() - last.created_at < 1) return json({ ok: false, error: 'slow_down' }, 429);
   const name = (me && me.seat ? me.seat + ' · ' : '') + displayName(v.user);
@@ -1255,6 +1313,8 @@ async function sweepVoice(env) {
 }
 /* ---------- Discord server channels (webhooks made by discord/setup.mjs): #ищу-игру announcements and #результаты ---------- */
 const bg = (env, p) => { const q = Promise.resolve(p).catch(e => console.error('discord bg', e && e.stack || e)); if (env.bg) env.bg(q); return q; }; // after the response (ctx.waitUntil)
+/* user text inside Discord embeds: no markdown, no masked links, no mentions */
+const dmd = x => String(x == null ? '' : x).replace(/[\\`*_~|[\]()<>#@:]/g, '\\$&');
 const TABLE_COLOR = { open: 0xd4a24c, dealt: 0xe0a33c, live: 0x5865f2, finished: 0x4f545c, closed: 0x4f545c };
 async function postRow(env, code, kind) { return env.DB.prepare('SELECT * FROM discord_posts WHERE code = ?1 AND kind = ?2').bind(code, kind).first(); }
 async function savePost(env, code, kind, o) {
@@ -1275,7 +1335,7 @@ async function announceTable(env, bot, code, opt = {}) {
   const hl = post && post.hash ? (/"_hl":"([a-z]{2})"/.exec(post.hash) || [])[1] || 'ru' : await hookLang(env, 'tables', tlang); // the card stays in the channel it was posted to
   const T = cardT(hl); const label = T.status[st] || T.status.open;
   const username = ended || !bot ? '' : await botUsername(env, bot);
-  const fields = [{ name: T.players, value: `${n}${seats ? ' / ' + seats : ''}${o.hostPlays ? ' · ' + T.seekHost : ''}`, inline: true }, { name: T.host, value: rowName(host).slice(0, 80) || '—', inline: true }];
+  const fields = [{ name: T.players, value: `${n}${seats ? ' / ' + seats : ''}${o.hostPlays ? ' · ' + T.seekHost : ''}`, inline: true }, { name: T.host, value: dmd(rowName(host).slice(0, 80)) || '—', inline: true }];
   try { const m = await tableModeOf(env, code); fields.push({ name: T.mode || 'Mode', value: `${t(hl, m.mode === 'classic' ? 'modeClassic' : 'modeRole')} · ${t(hl, m.open ? 'modeOpen' : 'modeClosed')}`, inline: true }); } catch (e) {}
   if (!ended && voice && voice.status === 'on' && voice.invite) fields.push({ name: T.voice, value: `🎧 [${T.voiceLink}](${voice.invite})`, inline: false });
   if (!ended && lobby.status === 'open' && username) fields.push({ name: T.sit, value: `▶️ [${T.openTg}](https://t.me/${username}?start=join_${code})`, inline: false });
@@ -1301,9 +1361,9 @@ async function postResult(env, code, pub) {
   const side = pub.result.side; const color = side === 'mafia' ? 0x8b1e2d : side === 'city' ? 0xd4a24c : 0x7a7f8c;
   const roles = (Array.isArray(pub.roles) ? pub.roles : []).slice().sort((a, b) => (a.place || 99) - (b.place || 99) || a.seat - b.seat);
   const medal = p => (p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : '▫️');
-  const line = r => `${medal(r.place)} \`${String(r.seat).padStart(2)}\` ${String(r.name || '—').slice(0, 32)} — ${String(r.rn || r.roleId || '').slice(0, 32)} ${r.won ? '✅' : '❌'}${typeof r.total === 'number' ? ` ${r.total > 0 ? '+' : ''}${r.total}` : ''}`;
+  const line = r => `${medal(r.place)} \`${String(r.seat).padStart(2)}\` ${dmd(String(r.name || '—').slice(0, 32))} — ${dmd(String(r.rn || r.roleId || '').slice(0, 32))} ${r.won ? '✅' : '❌'}${typeof r.total === 'number' ? ` ${r.total > 0 ? '+' : ''}${r.total}` : ''}`;
   let list = ''; for (const r of roles) { const l = line(r) + '\n'; if (list.length + l.length > 3800) { list += '…'; break; } list += l; }
-  const payload = { embeds: [{ title: `🏆 ${String(pub.result.title || T.results).slice(0, 200)}`, description: `${flag} ${T.table} **${code}** · ${T.host_l} ${rowName(host).slice(0, 60) || '—'}${pub.day ? ` · ${T.days}: ${pub.day}` : ''}\n\n${list}`, color, timestamp: new Date().toISOString(), footer: { text: T.footer } }] };
+  const payload = { embeds: [{ title: `🏆 ${String(pub.result.title || T.results).slice(0, 200)}`, description: `${flag} ${T.table} **${code}** · ${T.host_l} ${dmd(rowName(host).slice(0, 60)) || '—'}${pub.day ? ` · ${T.days}: ${pub.day}` : ''}\n\n${list}`, color, timestamp: new Date().toISOString(), footer: { text: T.footer } }] };
   const r = await hookSend(env, 'results', payload, null, hl);
   if (!r.ok) { console.error('discord result', r.error); await env.DB.prepare('DELETE FROM discord_posts WHERE code = ?1 AND kind = ?2').bind(code, 'result').run(); return null; }
   await savePost(env, code, 'result', { message_id: r.id, final: true });
@@ -1438,7 +1498,7 @@ async function statsEmbed(env, tgId, member) {
   const recent = (d.recent || []).slice(0, 5).map(g => (g.won ? '✅' : '❌')).join(' ');
   const fields = [{ name: 'Рейтинг', value: String(r.points), inline: true }, { name: 'Игр', value: String(r.games || 0), inline: true }, { name: 'Побед', value: `${r.wins || 0} · ${pct(r.wins || 0, r.games || 0)}`, inline: true }];
   if (r.hosted) fields.push({ name: 'Вёл партий', value: String(r.hosted), inline: true });
-  if (d.user.club) fields.push({ name: 'Клуб', value: d.user.club.slice(0, 100), inline: true });
+  if (d.user.club) fields.push({ name: 'Клуб', value: dmd(d.user.club.slice(0, 100)), inline: true });
   if (best) fields.push({ name: 'Серия побед', value: best, inline: true });
   if (top) fields.push({ name: 'Лучшие роли', value: top.slice(0, 1000) });
   if (recent) fields.push({ name: 'Последние партии', value: recent });
@@ -1464,6 +1524,8 @@ async function onInteraction(env, bot, it) {
     return ephemeral('Откройте ссылку в Telegram и нажмите «Старт» — бот привяжет этот Discord к вашему аккаунту Mafia Pro. Ссылка действует 30 минут.', { components: [{ type: 1, components: [{ type: 2, style: 5, label: '🔗 Привязать в Telegram', url }] }] });
   }
   if (name === 'invites') {
+    let perms = 0n; try { perms = BigInt((it.member && it.member.permissions) || 0); } catch (e) {}
+    if (!(perms & 0x20n) && !(perms & 0x8n)) return ephemeral('Команда только для администраторов сервера.');
     const days = Math.max(1, Math.min(365, Number(((it.data.options || []).find(o => o.name === 'days') || {}).value) || 30)); const since = now() - days * 86400;
     const ev = (await env.DB.prepare('SELECT kind, via, inviter_id, inviter_tg FROM discord_events WHERE at > ?1').bind(since).all()).results || [];
     const by = {}; for (const e of ev) { const k = e.inviter_id ? `<@${e.inviter_id}>` : String(e.via || 'неизвестно').replace(/ ≈$/, '').slice(0, 80); const x = by[k] = by[k] || { join: 0, leave: 0 }; x[e.kind]++; }
@@ -1540,34 +1602,51 @@ export default {
     const env = Object.create(rawEnv, { bg: { value: p => { try { if (ctx && ctx.waitUntil) ctx.waitUntil(p); } catch (e) {} } } }); // background work (Discord posts) after the response
     const url = new URL(req.url); const path = url.pathname.replace(/\/+$/, '') || '/';
     const bot = new Bot(env);
+    let g = null;
     try {
+      g = await guardRequest(env, req, path); // bans, per-IP limits, body size (security.js)
+      if (g.deny) return path.startsWith('/api/') ? withCors(env, req, g.deny) : g.deny;
       if (path === '/webhook' && req.method === 'POST') {
-        if (!env.WEBHOOK_SECRET || req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.WEBHOOK_SECRET) return new Response('forbidden', { status: 403 });
-        let upd = null; try { upd = await req.json(); } catch (e) { return new Response('bad request', { status: 400 }); }
-        try { await handleUpdate(env, bot, upd); } catch (e) { console.error('update failed', e && e.stack || e); }
+        const no = await webhookGate(env, req, g, bot); if (no) return no; // only Telegram's networks, with the secret
+        let upd = null; try { upd = JSON.parse(await readBody(req)); } catch (e) { return new Response('bad request', { status: 400 }); }
+        try { await handleUpdate(env, bot, upd); } catch (e) { console.error('update failed', e && e.stack || e); stat(env, '5xx'); }
         return new Response('ok'); // always 200 so Telegram does not retry forever
       }
-      if (path === '/posts/draft' && req.method === 'POST') { const r = await apiPostDraft(env, bot, req); return json(r.body, r.status); }
+      if (path === '/posts/draft' && req.method === 'POST') {
+        if (!env.BOT_TOKEN || !(await keyGate(env, g, req.headers.get('X-Posts-Key'), await postsKey(env.BOT_TOKEN), 'posts'))) return json({ ok: false, error: 'forbidden' }, 403);
+        const r = await apiPostDraft(env, bot, req); return json(r.body, r.status);
+      }
       if (path === '/posts/stats' && req.method === 'POST') { // aggregated per-post numbers for the posting agent (no personal data)
-        if (!env.BOT_TOKEN || (req.headers.get('X-Posts-Key') || '') !== await postsKey(env.BOT_TOKEN)) return json({ ok: false, error: 'forbidden' }, 403);
-        let b = {}; try { b = await req.json(); } catch (e) {}
+        if (!env.BOT_TOKEN || !(await keyGate(env, g, req.headers.get('X-Posts-Key'), await postsKey(env.BOT_TOKEN), 'posts'))) return json({ ok: false, error: 'forbidden' }, 403);
+        let b = {}; try { b = JSON.parse(await readBody(req)); } catch (e) {}
         return json(await postStats(env, b && b.days));
       }
+      if ((path === '/sec/report' || path === '/sec/act') && req.method === 'POST') { // the "Security" workflow (on-call agent): no personal data in the report
+        if (!env.BOT_TOKEN || !(await keyGate(env, g, req.headers.get('X-Sec-Key'), await secKey(env.BOT_TOKEN), 'security'))) return json({ ok: false, error: 'forbidden' }, 403);
+        let b = {}; try { b = JSON.parse(await readBody(req)); } catch (e) {}
+        return json(path === '/sec/report' ? await securityReport(env, b && b.hours) : await securityAct(env, bot, b || {}));
+      }
       if (path === '/discord/interactions' && req.method === 'POST') { // Discord slash commands (Interactions Endpoint URL of the application)
-        const raw = await req.text();
-        if (!(await verifyInteraction(env, req.headers.get('X-Signature-Ed25519'), req.headers.get('X-Signature-Timestamp'), raw))) return new Response('invalid request signature', { status: 401 });
+        const raw = await readBody(req);
+        if (!(await verifyInteraction(env, req.headers.get('X-Signature-Ed25519'), req.headers.get('X-Signature-Timestamp'), raw))) { secEvent(env, 'discord_sig_fail', 'low', { ih: g.ih, country: g.country, path }); return new Response('invalid request signature', { status: 401 }); }
         let it = null; try { it = JSON.parse(raw); } catch (e) { return new Response('bad request', { status: 400 }); }
         return onInteraction(env, bot, it);
       }
       if (path.startsWith('/api/')) {
         const cors = corsHeaders(env, req);
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-        const wrap = p => p.then(r => { for (const [k, v] of Object.entries(cors)) r.headers.set(k, v); return r; });
+        const wrap = p => p.then(r => { for (const [k, v] of Object.entries(cors)) r.headers.set(k, v); if (r.status >= 500) stat(env, '5xx'); return r; });
         if (req.method === 'GET' && path === '/api/leaderboard') return wrap(apiLeaderboard(env, url));
         if (req.method === 'GET' && path === '/api/discord/widget') return wrap(apiDiscordWidget(env));
         if (req.method === 'GET' && path === '/api/clubs/top') return wrap(apiClubsTop(env, url));
         if (req.method !== 'POST') return wrap(Promise.resolve(json({ ok: false, error: 'method' }, 405)));
-        let body = null; try { body = await req.json(); } catch (e) { return wrap(Promise.resolve(json({ ok: false, error: 'bad_json' }, 400))); }
+        let body = null; try { body = JSON.parse(await readBody(req)); } catch (e) { return wrap(Promise.resolve(json({ ok: false, error: e && e.tooBig ? 'too_big' : 'bad_json' }, e && e.tooBig ? 413 : 400))); }
+        if (!body || typeof body !== 'object' || Array.isArray(body)) return wrap(Promise.resolve(json({ ok: false, error: 'bad_json' }, 400)));
+        if (body.initData) { // checked once here: forged signatures are counted, a signed-in player gets their own limit
+          const c = await checkInitData(body.initData, env.BOT_TOKEN);
+          if (c.ok) { VERIFIED.set(body, c.v); const no = await userGate(env, g, c.v.user.id, path, isAdmin(env, c.v.user.id)); if (no) return wrap(Promise.resolve(no)); }
+          else if (c.reason === 'bad_hash' || c.reason === 'too_long') authForged(env, g);
+        }
         switch (path) {
           case '/api/me': return wrap(apiMe(env, bot, body));
           case '/api/friends': return wrap(apiFriends(env, bot, body));
@@ -1629,9 +1708,9 @@ export default {
         }
       }
       if (path === '/' && req.method === 'GET') return json({ ok: true, service: 'mafia-pro-api', version: VERSION, app: env.APP_URL || null, interactions: !!env.DISCORD_PUBLIC_KEY, pk: env.DISCORD_PUBLIC_KEY ? String(env.DISCORD_PUBLIC_KEY).slice(0, 8) : null });
-      return new Response('not found', { status: 404 });
+      return new Response('not found', { status: 404, headers: SEC_HEADERS });
     } catch (e) {
-      console.error(e && e.stack || e);
+      console.error(e && e.stack || e); stat(env, '5xx');
       return json({ ok: false, error: 'internal' }, 500);
     }
   },
@@ -1642,5 +1721,6 @@ export default {
     if (!minute) ctx.waitUntil(runGrowthCron(env, new Bot(env)).catch(e => console.error('growth cron', e && e.stack || e))); // new players: notice to admins, daily digest with the table
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
     if (minute || !event || !event.cron) ctx.waitUntil(runBroadcastCron(env, new Bot(env)).catch(e => console.error('broadcast cron', e && e.stack || e))); // /broadcast: the next portion
+    if (minute || !event || !event.cron) ctx.waitUntil(runSecurityWatch(env, new Bot(env)).catch(e => console.error('security watch', e && e.stack || e))); // incidents → response → alerts (security.js)
   }
 };
