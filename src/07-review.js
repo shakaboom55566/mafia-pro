@@ -7,6 +7,7 @@ const RV = { vote: 2, kill: 3, heal: 3, info: 2, ctl: 2, day: 4, key: 1, min: -2
 const KEY_CITY = ['sheriff', 'doctor', 'journalist', 'bodyguard', 'jailer', 'sniper', 'tracker', 'mayor'];
 const KEY_MAFIA = ['don'];
 function campOf(p, roleId) {
+  if (!roleId && p && p.recruitedBy) return 'mafia';
   const r = ROLE[roleId || p.roleId];
   if (r.id === 'maniac') return 'maniac';
   if (r.side === 'self') return 'self';

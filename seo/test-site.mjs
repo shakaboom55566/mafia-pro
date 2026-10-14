@@ -12,7 +12,7 @@ const out = fs.mkdtempSync(path.join(os.tmpdir(), 'mp-site-'));
 const r = build(out, { SITE_URL: DEFAULT_SITE });
 const BASE = new URL(DEFAULT_SITE).pathname;
 const files = []; (function walk(d) { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (f.name === 'index.html') files.push(p); } })(out);
-ok(files.length === r.pages && r.pages === LANGS.length * (5 + 55), `pages: ${files.length} / ${r.pages}`);
+ok(files.length === r.pages && r.pages === LANGS.length * (5 + 57), `pages: ${files.length} / ${r.pages}`);
 const exists = u => { // a site URL or a root-relative path → a file in the build (the app root and images are made by other steps)
   let p = u.startsWith(DEFAULT_SITE) ? u.slice(DEFAULT_SITE.length) : u.startsWith(BASE) ? u.slice(BASE.length) : null; if (p === null) return true;
   p = p.split('#')[0]; if (p === '' || /^(cards|og)\/|favicon\.png$/.test(p)) return true;

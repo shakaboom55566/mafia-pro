@@ -16,7 +16,7 @@ function onlState(g) { return g.onl = g.onl || { proposals: {}, results: {}, lif
 function buildAsks(g) {
   const asks = {}; if (!g || !g.tg || !g.dealt || g.winner) return asks;
   const tgOf = p => seatTg(g, p.seat); const onl = onlState(g);
-  if (g.phase === 'night') {
+  if (g.phase === 'night' || g.phase === 'night0') { // night 0: only the Corrupter acts (recruitment)
     const step = g.steps[g.stepIdx]; if (!step || step.type !== 'act') return asks;
     const actor = P(g, step.actorId); const key = `${phaseTag(g)}:s${g.stepIdx}:${step.id}`;
     const recorded = g.actions.find(a => a.stepId === step.id);
@@ -38,7 +38,7 @@ function buildAsks(g) {
     if (p && !fxOn(g, 'intimidated', p.id) && !(p.fouls >= 3)) { const id = tgOf(p); const key = `${tag}:nom:${p.id}`; const mine = b.nominatedBy && b.nominatedBy[p.id]; if (id) asks[id] = { key, kind: 'nominate', need: 1, optional: true, targets: alive(g).filter(x => x.id !== p.id && !(b.candidates || []).includes(x.id) && canNominate(g, x.id)).map(x => ({ seat: x.seat, ok: true })), done: !!mine || !!onl.nomSkip[key], picked: mine ? [P(g, mine).seat] : null }; }
   }
   if (st === 'vote' && b.candidates && b.candidates.length && voteOutcome(g).kind !== 'skip1') {
-    alive(g).filter(v => canVoteNow(g, v.id)).forEach(v => { const id = tgOf(v); if (!id) return; const cands = b.candidates.filter(c => c !== v.id); if (!cands.length) return; asks[id] = { key: `${tag}:vote:r${b.round || 1}`, kind: 'vote', need: 1, targets: cands.map(c => ({ seat: P(g, c).seat, ok: true })), done: !!b.votes[v.id], picked: b.votes[v.id] ? [P(g, b.votes[v.id]).seat] : null, round: b.round || 1 }; });
+    alive(g).filter(v => canVoteNow(g, v.id)).forEach(v => { const id = tgOf(v); if (!id) return; const cands = b.candidates.filter(c => c !== v.id && voteAllowed(g, v.id, c)); if (!cands.length) return; asks[id] = { key: `${tag}:vote:r${b.round || 1}`, kind: 'vote', need: 1, targets: cands.map(c => ({ seat: P(g, c).seat, ok: true })), done: !!b.votes[v.id], picked: b.votes[v.id] ? [P(g, b.votes[v.id]).seat] : null, round: b.round || 1 }; });
   }
   if (st === 'lift' && b.lift) { const key = `${tag}:lift`; alive(g).forEach(v => { const id = tgOf(v); if (!id) return; const answered = onl.lift[key] && onl.lift[key][id] !== undefined; asks[id] = { key, kind: 'lift', yes: b.lift.yes.includes(v.id), done: !!answered, ids: b.lift.ids.map(x => P(g, x).seat) }; }); }
   if (st === 'roulette' && b.roulette && !b.roulette.hitId) { const cur = rouletteCurrent(g); const id = cur && tgOf(cur); if (id) asks[id] = { key: `${tag}:rou:${b.roulette.turn}`, kind: 'roulette', used: b.roulette.guesses.map(x => x.n), done: false }; }
@@ -124,7 +124,9 @@ function tablePriv(g) {
   g.players.forEach(p => {
     const id = seatTg(g, p.seat); if (!id) return;
     const mates = (isBlack(p) || p.roleId === 'werewolf') ? familyMembers(g, g.twoFamilies ? p.family : null).filter(m => m.id !== p.id).map(m => ({ seat: m.seat, name: m.name, roleId: m.roleId })) : [];
-    priv[id] = { seat: p.seat, roleId: p.roleId, family: p.family || null, alive: p.alive, mates, contract: p.contractId && P(g, p.contractId) ? P(g, p.contractId).seat : null, ask: asks[id] || null, results: onl.results[id] || [] };
+    const buyer = p.recruitedBy && p.alive ? P(g, p.recruitedBy) : null; // the Corrupter and his recruit know each other (not the recruit's card)
+    const recruits = p.roleId === 'corrupter' ? g.players.filter(x => x.recruitedBy === p.id && x.alive).map(x => ({ seat: x.seat, name: x.name })) : [];
+    priv[id] = { seat: p.seat, roleId: p.roleId, family: p.family || null, alive: p.alive, mates, contract: p.contractId && P(g, p.contractId) ? P(g, p.contractId).seat : null, recruitedBy: buyer ? { seat: buyer.seat, name: buyer.name } : null, recruits, ask: asks[id] || null, results: onl.results[id] || [] };
   });
   return priv;
 }
@@ -339,7 +341,7 @@ function tableScreen() {
       <div class="hint" style="text-align:center">${mySeat ? tt(u.tgSeated, { seat: mySeat }) : u.tbNoSeat}</div>
       ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, false) : ''}
       ${card}${mates}
-      ${me && me.contract ? `<div class="quiet">${tt(u.tbContract, { seat: me.contract })}</div>` : ''}
+      ${me && me.contract ? `<div class="quiet">${tt(u.tbContract, { seat: me.contract })}</div>` : ''}${recruitNoteHTML(me)}
       <div class="btn-row" style="justify-content:center">${d.isHost ? '' : `<button class="btn ghost sm" data-a="tb-leave" data-code="${esc(TB.code)}">${u.tbLeaveTable}</button>`}<button class="btn ghost sm" data-a="go" data-to="home">${u.tbLeaveBtn}</button></div></div>`;
   }
   // ----- the game, as seen by a living player
@@ -368,7 +370,7 @@ function tableScreen() {
     ${roundTableHTML(seats, profiles, center, marks)}
     ${ask ? tbAskHTML(ask, seats) : ''}${waiting}
     ${body}
-    ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}
+    ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}${recruitNoteHTML(me)}
     ${results}
     ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, true) : ''}
     ${pub.online ? tbChatHTML(pub, me) : ''}
@@ -388,6 +390,13 @@ function showInvites() {
   const list = (S.cloud && S.cloud.invites) || []; if (!list.length || S.ui.sheet) return;
   const inv = list.find(i => !TB.dismissed.has(i.code) && !(S.screen === 'table' && TB.code === i.code) && !(S.game && S.game.tg && S.game.tg.code === i.code)); if (!inv) return;
   S.ui.sheet = { type: 'tableInvite', code: inv.code }; tgHaptic('warning'); render();
+}
+/* Corrupter (v50): the recruit sees who bought them, the Corrupter sees his recruit */
+function recruitNoteHTML(me) {
+  const u = U(); if (!me) return '';
+  if (me.recruitedBy) return `<div class="warnbox">${tt(u.tbRecruited, { seat: me.recruitedBy.seat, name: esc(me.recruitedBy.name) })}</div>`;
+  if (me.recruits && me.recruits.length) return `<div class="quiet">${me.recruits.map(r => tt(u.tbRecruits, { seat: r.seat, name: esc(r.name) })).join('<br>')}</div>`;
+  return '';
 }
 /* open tables on the home screen: friends', club mates', invitations, my seats; join by code */
 const LB = { list: null, at: 0, busy: false, code: '', timer: null, bot: '' };

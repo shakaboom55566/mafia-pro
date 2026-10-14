@@ -139,6 +139,7 @@ function render() {
     case 'game': html = S.game ? (S.game.winner ? endScreen() : gameScreen()) : homeScreen(); break;
     case 'cards': html = cardsScreen(); break;
     case 'scenarios': html = scenariosScreen(); break;
+    case 'mini': html = miniScreen(); break;
     case 'settings': html = settingsScreen(); break;
     case 'profiles': html = profilesScreen(); break;
     case 'myprofile': html = myProfileScreen(); break;
@@ -235,6 +236,7 @@ function homeScreen() {
     <button class="menu-item ${cont ? '' : 'primary'}" data-a="new"><div class="ico">${I.plus}</div><div><div class="t">${u.roleGame}</div><div class="d">${u.newGameD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="scen-use" data-id="classic"><div class="ico">${I.users}</div><div><div class="t">${u.classicTitle}</div><div class="d">${u.classicSub}</div></div><span class="chev">${I.chev}</span></button>
     ${typeof tablesMenuItemHTML === 'function' ? tablesMenuItemHTML() : ''}
+    <button class="menu-item" data-a="go" data-to="mini"><div class="ico">${I.person}</div><div><div class="t">${u.miniMenu}</div><div class="d">${u.miniMenuD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="cards"><div class="ico">${I.cards}</div><div><div class="t">${u.cardsTitle}</div><div class="d">${tt(u.cardsD, { n: ROLES.length, roles: plural(ROLES.length, 'roles') })}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="scenarios"><div class="ico">${I.scen}</div><div><div class="t">${u.scenTitle}</div><div class="d">${u.scenD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
@@ -264,13 +266,16 @@ function setupScreen() {
   const dons = cnt('don');
   const sc = st.scenario ? SCENARIO[st.scenario] : null;
   // classic: the line-up is the sport one and cannot be edited — a plain list instead of the +/− editor
-  const fixedRows = st.scenario === 'classic' ? `<div class="comp-group"><div class="comp">${['don', 'mafia', 'sheriff', 'citizen'].filter(id => ROLE[id]).map(id => `<div class="comp-row">${sealHTML(ROLE[id])}<div><div class="n">${ROLE[id].name}</div><div class="s">${ROLE[id].short}</div></div><div class="ctl"><span class="c">${cnt(id)}</span></div></div>`).join('')}</div></div><p class="hint">${u.compFixed}</p>` : '';
+  const mini = !!(sc && sc.mini); // small-table scenarios: a fixed line-up for 5 or 6, like the classic
+  const fixedIds = st.scenario === 'classic' ? ['don', 'mafia', 'sheriff', 'citizen'] : mini ? [...new Set(st.comp)] : [];
+  const fixedRows = fixedIds.length ? `<div class="comp-group"><div class="comp">${fixedIds.filter(id => ROLE[id]).map(id => `<div class="comp-row">${sealHTML(ROLE[id])}<div><div class="n">${ROLE[id].name}</div><div class="s">${ROLE[id].short}</div></div><div class="ctl"><span class="c">${cnt(id)}</span></div></div>`).join('')}</div></div><p class="hint">${u.compFixed}</p>` : '';
   const twoFrom = sc && sc.mods.twoFamiliesFrom ? sc.mods.twoFamiliesFrom : TWO_FAMILIES_FROM;
   const two2 = st.n >= twoFrom;
   const unowned = unownedInComp(st.comp);
   let warn = '';
   if (unowned.length) warn = `<div class="warnbox">${tt(u.lockedInComp, { list: unowned.map(id => ROLE[id].name).join(', ') })}</div>`;
   else if (stats.total !== st.n) warn = `<div class="warnbox">${tt(u.warnCount, { total: stats.total, n: st.n, verb: stats.total < st.n ? u.addVerb : u.removeVerb, diff: Math.abs(stats.total - st.n) })}</div>`;
+  else if (mini) { const s5 = sc.sim[st.n]; warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n) }) : ''}</div>`; }
   else if (two2 && dons !== 2) warn = `<div class="warnbox">${tt(u.warnTwoDons, { n: twoFrom })}</div>`;
   else if (!two2 && dons !== 1) warn = `<div class="warnbox">${u.warnOneDon}</div>`;
   else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
@@ -281,8 +286,8 @@ function setupScreen() {
     const neut = st.comp.includes('maniac') ? u.okManiac : stats.neutral ? tt(u.okNeutralN, { n: stats.neutral }) : '';
     warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc || intro ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
   }
-  const ok = !unowned.length && stats.total === st.n && (two2 ? dons === 2 : dons === 1);
-  const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div>${sc.free ? '' : `<button class="btn xs ghost" data-a="scen-clear">×</button>`}</div></div>` : '';
+  const ok = !unowned.length && stats.total === st.n && (mini || (two2 ? dons === 2 : dons === 1));
+  const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.mini ? u.miniMenu : sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div>${sc.free ? '' : `<button class="btn xs ghost" data-a="scen-clear">×</button>`}</div></div>` : '';
   const sp = hostOffSeats();
   const names = Array.from({ length: st.n }, (_, i) => {
     const pr = sp[i] ? profById(sp[i]) : null;
@@ -293,7 +298,7 @@ function setupScreen() {
   const seatable = S.profiles.filter(pr => pr.id !== S.meId); // the host runs the game and never takes a seat
   const chips = `${seatable.length ? `<div class="prof-chips">${seatable.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}<button class="prof-chip" data-a="prof-new" style="border-style:dashed">+ ${u.newProfile}</button></div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p><button class="btn sm ghost" data-a="prof-new" style="align-self:flex-start">+ ${u.newProfile}</button>`}`;
   const classic = st.scenario === 'classic'; // classic is always a table of 10: no player-count chooser
-  return `${topbar(classic ? u.classicTitle : u.roleGame, classic ? u.classicSub : u.setupSub)}
+  return `${topbar(classic ? u.classicTitle : mini ? sc.name : u.roleGame, classic ? u.classicSub : mini ? u.miniSub : u.setupSub)}
   <div class="stack">
     ${scenBanner}
     ${openRolesHTML()}
@@ -307,8 +312,8 @@ function setupScreen() {
     </div>
     ${statsBar(stats)}
     ${warn}
-    <div class="row"><h2 class="grow">${u.composition}</h2>${classic ? '' : `<button class="btn xs ghost" data-a="preset">${u.resetPreset}</button>`}</div>
-    ${classic ? fixedRows : rows}
+    <div class="row"><h2 class="grow">${u.composition}</h2>${classic || mini ? '' : `<button class="btn xs ghost" data-a="preset">${u.resetPreset}</button>`}</div>
+    ${classic || mini ? fixedRows : rows}
     <h2>${u.names}</h2>
     <p class="hint">${u.namesHint}</p>
     ${typeof setupLobbyHTML === 'function' ? setupLobbyHTML(st) : ''}
@@ -358,6 +363,7 @@ function playerRow(g, p, withRole, extra = '') {
   if (p.fouls) tags.push(`<span class="pill ${p.fouls >= 3 ? 'gold' : ''}">${tt(u.foulsN, { n: p.fouls })}</span>`);
   if (g.phase === 'day' && fxOn(g, 'intimidated', p.id)) tags.push(`<span class="pill">${u.tagIntimidated}</span>`);
   if (p.defused || (g.phase === 'day' && fxOn(g, 'defused', p.id))) tags.push(`<span class="pill">${u.tagDefused}</span>`);
+  if (withRole && p.recruitedBy) tags.push(`<span class="pill">${u.tagRecruited} · ${P(g, p.recruitedBy) ? P(g, p.recruitedBy).seat : ''}</span>`);
   if (p.judgeUsed) tags.push(`<span class="pill">${u.tagVetoUsed}</span>`);
   if (p.executeUsed) tags.push(`<span class="pill">${u.tagExecUsed}</span>`);
   return `<button class="pl ${p.alive ? '' : 'dead'}" data-a="player" data-id="${p.id}"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div>${withRole ? `<div class="r">${r.name}</div>` : ''}</div><div class="tags">${tags.join('')}${extra}</div></button>`;
@@ -560,7 +566,7 @@ function voteBody(g) {
     const open = S.ui.vtOpen && voters.some(v => v.id === S.ui.vtOpen) ? S.ui.vtOpen : (!cands.length && curV ? curV.id : null);
     const rows = voters.map(v => {
       const mine = b.votes[v.id]; const w = voteWeight(g, v.id);
-      const chips = cands.filter(c => c !== v.id).map(cid => `<button class="vt-c ${mine === cid ? 'sel' : ''}" data-a="vt-pick" data-v="${v.id}" data-c="${cid}" aria-label="${esc(P(g, cid).name)}">${P(g, cid).seat}</button>`).join('');
+      const chips = cands.filter(c => c !== v.id && voteAllowed(g, v.id, c)).map(cid => `<button class="vt-c ${mine === cid ? 'sel' : ''}" data-a="vt-pick" data-v="${v.id}" data-c="${cid}" aria-label="${esc(P(g, cid).name)}">${P(g, cid).seat}</button>`).join('');
       const others = free ? al.filter(p => p.id !== v.id && !cands.includes(p.id) && canNominate(g, p.id)) : [];
       const more = others.length ? `<button class="vt-c more ${open === v.id ? 'on' : ''}" data-a="vt-more" data-v="${v.id}" aria-label="${u.vtOther}">${cands.length ? '+' : u.vtPick}</button>` : '';
       const list = open === v.id && others.length ? `<div class="vt-more">${others.map(p => `<button class="vt-c" data-a="vt-pick" data-v="${v.id}" data-c="${p.id}" aria-label="${esc(p.name)}">${p.seat}</button>`).join('')}</div>` : '';
@@ -805,6 +811,38 @@ function classicCardHTML() {
     ${open ? `<ul class="rules">${u.classicRules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
     <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="classic-rules">${u.classicRulesTitle}</button><button class="btn primary sm grow" data-a="scen-use" data-id="classic">${u.playClassic}</button></div></div>`;
 }
+/* ---------- Small table (v50): scenarios for 5–6 players ---------- */
+function miniN() { const n = S.ui.miniN || 6; return Math.max(MINI_MIN, Math.min(MINI_MAX, n)); }
+function miniSimLine(sc, n) {
+  const u = U(); const s = sc.sim[n]; if (!s) return '';
+  const parts = [tt(u.simCity, { v: s[0] }), sc.other === 'bomb' ? tt(u.simBomb, { v: s[1] }) : tt(u.simMafia, { v: s[1] })];
+  if (s[2]) parts.push(tt(u.simManiac, { v: s[2] }));
+  return parts.join(' · ');
+}
+function miniCardHTML(sc, n) {
+  const u = U(); const comp = scenarioComp(sc, n); const st = compositionStats(comp); const open = S.ui.miniRules === sc.id;
+  const roles = comp.map(id => `<span class="ri" title="${ROLE[id].name}">${roleArt(id, 'portrait')}</span>`).join('');
+  const s = sc.sim[n];
+  return `<div class="scen-card mini"><div class="row"><span class="premium-pill classic">${tt(u.miniPlayers || '{n}', { n })}</span><div class="t grow">${sc.name}</div></div>
+    <div class="l">${sc.lore}</div>
+    <div class="roles">${roles}</div>
+    <div class="m">${tt(u.miniCards, { list: comp.map(id => ROLE[id].name).join(', ') })}</div>
+    ${statsBar(st)}
+    ${s ? `<div class="m sim">${tt(u.miniSim, { line: miniSimLine(sc, n), nights: s[3] })}</div>` : ''}
+    ${open ? `<ul class="rules">${sc.rules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
+    <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="mini-rules" data-id="${sc.id}">${u.miniRules}</button><button class="btn primary sm grow" data-a="mini-use" data-id="${sc.id}" data-n="${n}">${u.miniUse}</button></div></div>`;
+}
+function miniScreen() {
+  const u = U(); const n = miniN();
+  const seg = `<div class="segment n2">${[MINI_MIN, MINI_MAX].map(k => `<button class="${k === n ? 'active' : ''}" data-a="mini-n" data-n="${k}">${tt(u.miniPlayers, { n: k })}</button>`).join('')}</div>`;
+  return `${topbar(u.miniTitle, u.miniSub)}
+  <div class="stack">
+    <p class="hint">${u.miniHint}</p>
+    <div class="eyebrow">${u.miniPick}</div>
+    ${seg}
+    <div class="stack-s">${MINI.map(sc => miniCardHTML(sc, n)).join('')}</div>
+  </div>`;
+}
 /* Intro scenarios for beginners (v43): a player-count chooser and five starter line-ups for that table */
 function introN() { const n = S.ui.introN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
 function introCardHTML(sc) {
@@ -921,15 +959,18 @@ const ACT = {
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
-  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
+  back() { if (S.screen === 'setup' && S.setup.scenario && SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini) { S.screen = 'mini'; } else if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
   new() { S.setup.scenario = null; if (S.setup.n < MIN_PLAYERS || S.setup.n > MAX_PLAYERS) S.setup.n = 10; S.setup.comp = presetFor(S.setup.n); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   continue() { go('game'); },
   n(el) { const d = +el.dataset.d; setN(S.setup.n + d); },
   nrange(el) { setN(+el.value); },
   name(el) { S.setup.names[+el.dataset.i] = el.value; save(); },
-  comp(el) { if (S.setup.scenario === 'classic') return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
-  preset() { if (S.setup.scenario === 'classic') return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
+  comp(el) { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
+  preset() { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
+  'mini-n'(el) { S.ui.miniN = +el.dataset.n; render(); },
+  'mini-rules'(el) { S.ui.miniRules = S.ui.miniRules === el.dataset.id ? null : el.dataset.id; render(); },
+  'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN()); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
   'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
@@ -971,7 +1012,7 @@ const ACT = {
     S.ui.pick = []; render();
   },
   skip() { const g = S.game; const step = g.steps[g.stepIdx]; addLog(g, tt(L.e.logSkip, { role: ROLE[step.roleId].name, player: label(P(g, step.actorId)) }), true); ACT.next(); },
-  undo() { const g = S.game; const step = g.steps[g.stepIdx]; const a = g.actions.find(x => x.stepId === step.id); if (a && a.ability === 'execute') P(g, a.actorId).executeUsed = false; if (a && a.ability === 'snipe') P(g, a.actorId).snipeUsed = false; if (a && a.ability === 'ignite') P(g, a.actorId).igniteUsed = false; if (a && a.ability === 'douse') g.doused = g.doused.filter(x => x !== a.targets[0]); if (a && a.ability === 'remember') return; g.actions = g.actions.filter(x => x.stepId !== step.id); S.ui.result = null; S.ui.pick = []; render(); },
+  undo() { const g = S.game; const step = g.steps[g.stepIdx]; const a = g.actions.find(x => x.stepId === step.id); if (a && a.ability === 'execute') P(g, a.actorId).executeUsed = false; if (a && a.ability === 'snipe') P(g, a.actorId).snipeUsed = false; if (a && a.ability === 'ignite') P(g, a.actorId).igniteUsed = false; if (a && a.ability === 'douse') g.doused = g.doused.filter(x => x !== a.targets[0]); if (a && a.ability === 'remember') return; if (a && a.ability === 'recruit') { const t = P(g, a.targets[0]); if (t && t.recruitedBy === a.actorId) { delete t.recruitedBy; delete t.recruitedOn; } } g.actions = g.actions.filter(x => x.stepId !== step.id); S.ui.result = null; S.ui.pick = []; render(); },
   resolve() { const g = S.game; undoTake('night', () => { resolveNight(g); startDay(g); }); S.ui.pick = []; window.scrollTo(0, 0); render(); },
   day0() { const g = S.game; undoTake('night', () => { if (isClassic(g)) startDay(g); else startDay0(g); }); window.scrollTo(0, 0); render(); },
   night() { undoTake('day', () => startNight(S.game)); S.ui.pick = []; S.ui.result = null; window.scrollTo(0, 0); render(); },
@@ -997,7 +1038,7 @@ const ACT = {
     render();
   },
   cand(el) { const g = S.game; if (!canNominate(g, el.dataset.id) || g.ballot.candidates.includes(el.dataset.id)) return; g.ballot.candidates.push(el.dataset.id); S.ui.candPick = false; render(); },
-  'vt-pick'(el) { const g = S.game; const id = el.dataset.v; if (!castVote(g, id, el.dataset.c)) return; S.ui.vtOpen = null; voterSet(g, voteOrder(g).findIndex(v => v.id === id)); if (g.ballot.votes[id]) voterAdvance(g); render(); },
+  'vt-pick'(el) { const g = S.game; const id = el.dataset.v; if (!voteAllowed(g, id, el.dataset.c)) { toast(U().voteRecruitBlocked); return; } if (!castVote(g, id, el.dataset.c)) return; S.ui.vtOpen = null; voterSet(g, voteOrder(g).findIndex(v => v.id === id)); if (g.ballot.votes[id]) voterAdvance(g); render(); },
   'vt-more'(el) { const id = el.dataset.v; S.ui.vtOpen = S.ui.vtOpen === id ? null : id; render(); },
   'vote-open'(el) { S.ui.voteOpen = S.ui.voteOpen === el.dataset.id ? null : el.dataset.id; render(); },
   'vote-remove'(el) { const b = S.game.ballot; if ((b.forced || []).includes(el.dataset.id)) return; b.candidates = b.candidates.filter(c => c !== el.dataset.id); b.auto = (b.auto || []).filter(c => c !== el.dataset.id); Object.keys(b.votes).forEach(v => { if (b.votes[v] === el.dataset.id) delete b.votes[v]; }); render(); },

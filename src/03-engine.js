@@ -36,6 +36,17 @@ const P = (g, id) => g.players.find(p => p.id === id);
 const alive = g => g.players.filter(p => p.alive);
 const aliveWith = (g, roleId) => alive(g).filter(p => p.roleId === roleId);
 const isBlack = p => ROLE[p.roleId].team === 'black';
+/* Corrupter (v50): a recruited player keeps their card but plays for the mafia until the game ends or they leave */
+const onMafiaSide = p => isBlack(p) || !!p.recruitedBy;
+const liveRecruitOf = (g, corrId) => alive(g).find(p => p.recruitedBy === corrId) || null;
+/* which side a player plays for in this game (recruits — mafia; the Bomb of the bomb hunt — itself) */
+function playSideOf(g, p) {
+  if (p.recruitedBy) return 'mafia';
+  if (g.mods && g.mods.bombHunt && p.roleId === 'bomb') return 'bomb';
+  return ROLE[p.roleId].side;
+}
+/* a recruit may not vote against the corrupter who bought them */
+const voteAllowed = (g, voterId, candId) => { const v = P(g, voterId); return !(v && v.recruitedBy && v.recruitedBy === candId); };
 const label = p => `${p.seat} · ${p.name}`;
 function families(g) { return g.twoFamilies ? ['A', 'B'] : [null]; }
 function familyMembers(g, fam) {
@@ -75,6 +86,7 @@ function buildNight0Steps(g) {
   const steps = [];
   families(g).forEach(fam => {
     const m = familyMembers(g, fam);
+    if (m.length && m.every(p => p.roleId === 'corrupter')) return; // a lone Corrupter wakes on his own step below
     if (m.length) steps.push({ id: uid(), type: 'meet', title: familyName(fam), roleId: 'don', members: m, fam,
       script: tt(L.e.night0Family, { family: familyNameLc(fam) }) });
   });
@@ -83,6 +95,7 @@ function buildNight0Steps(g) {
     if (m.length) steps.push({ id: uid(), type: 'meet', title: ROLE[rid].name, roleId: rid, members: m,
       script: tt(L.e.night0Role, { role: ROLE[rid].name, tail: ROLE[rid].wake ? L.e.night0Active : L.e.night0Passive }) });
   });
+  aliveWith(g, 'corrupter').forEach(c => steps.push({ id: uid(), type: 'act', roleId: 'corrupter', actorId: c.id, ability: 'recruit', targets: 1, allowSelf: false, script: L.e.recruitScript0 }));
   return steps;
 }
 
@@ -93,6 +106,7 @@ function buildNightSteps(g) {
     const m = familyMembers(g, fam);
     const blacks = m.filter(isBlack);
     if (!blacks.length) return;
+    if (blacks.every(p => p.roleId === 'corrupter') && !m.some(p => p.roleId === 'werewolf')) return; // the Corrupter does not shoot
     const shooter = shooterOf(g, fam);
     if (shooter) {
       const two = gunsmithNight(g, fam);
@@ -122,6 +136,7 @@ function buildNightSteps(g) {
     const th = blacks.find(p => p.roleId === 'thug'); if (th) steps.push(act('thug', th, { fam, script: L.e.script4.thug }));
   });
   const one = (rid, extra) => aliveWith(g, rid).forEach(p => steps.push(act(rid, p, extra)));
+  aliveWith(g, 'corrupter').filter(c => !liveRecruitOf(g, c.id)).forEach(c => steps.push(act('corrupter', c, { fam: c.family || null, script: L.e.recruitScript })));
   one('maniac', { script: L.e.script.maniac });
   one('witch', { targets: 2, script: L.e.script2.witch });
   aliveWith(g, 'amnesiac').filter(p => !p.remembered).forEach(p => steps.push(act('amnesiac', p, { deadTargets: true, script: L.e.script2.amnesiac })));
@@ -158,6 +173,8 @@ function stepTargets(g, step) {
     let ok = true, why = '';
     if (step.roleId === 'jailer' && p.id === actor.lastJail) { ok = false; why = L.e.whyJailLast; }
     if (p.id === actor.id && !step.allowSelf) { ok = false; why = L.e.why.self; }
+    if (actor.recruitedBy && p.id === actor.recruitedBy && (['shoot', 'execute', 'snipe'].includes(step.ability) || (step.modes && step.modes.includes('shoot')))) { ok = false; why = L.e.whyRecruiter; }
+    if (step.ability === 'recruit' && p.id !== actor.id && onMafiaSide(p)) { ok = false; why = L.e.whyMafiaAlready; }
     if (step.roleId === 'mafia_doctor') {
       if (!isBlack(p) || (g.twoFamilies && p.family !== actor.family)) { ok = false; why = L.e.why.family; }
       if (p.id === actor.lastHeal) { ok = false; why = L.e.why.healedLast; }
@@ -218,6 +235,8 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'compare') { const r = compareResult(g, targets[0], targets[1]); result = { kind: 'same', same: r.same }; }
   if (ability === 'spy') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
   if (ability === 'findSheriff') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'sheriff', yes: t.roleId === 'sheriff', who: t }; }
+  if (ability === 'recruit') { const t = P(g, targets[0]); t.recruitedBy = actor.id; t.recruitedOn = g.night; result = { kind: 'text', text: tt(L.e.recruitDone, { target: label(t), actor: label(actor) }) }; }
+  if (ability === 'defuse' && g.mods && g.mods.bombHunt) { const t = P(g, targets[0]); result = { kind: 'text', text: tt(t.roleId === 'bomb' ? L.e.bhFound : L.e.bhNotFound, { target: label(t) }) }; }
   if (ability === 'execute') actor.executeUsed = true;
   if (ability === 'snipe') actor.snipeUsed = true;
   if (ability === 'ignite') { actor.igniteUsed = true; result = { kind: 'text', text: g.doused.filter(id => P(g, id).alive).length ? tt(L.e.igniteDone, { list: g.doused.filter(id => P(g, id).alive).map(id => label(P(g, id))).join(', ') }) : L.e.igniteNone }; }
@@ -256,6 +275,7 @@ function eliminate(g, id, cause, out = []) {
   out.push({ id, cause });
   addLog(g, tt(L.e.eliminated, { player: label(p), role: ROLE[p.roleId].name, cause }));
   if (p.roleId === 'bomb' && !p.defused) {
+    g.bombBlew = p.id;
     const ex = out.map(o => o.id).concat([id]);
     const l = nearestAlive(g, p.seat, -1, ex);
     const r = nearestAlive(g, p.seat, +1, ex.concat(l ? [l.id] : []));
@@ -312,6 +332,7 @@ function resolveNight(g) {
   const dead = []; const shotLog = [];
   const avenged = []; const attacked = new Set(); const savedBy = {};
   const out = (a, t, v) => { a.outcome = a.outcome || {}; a.outcome[t] = v; };
+  const dodged = new Set(); // Ninja: the first shot of the night misses
   list.filter(a => a.ability === 'shoot' || a.ability === 'execute' || a.ability === 'snipe').forEach(a => {
     const lethal = a.ability === 'execute';
     a.targets.forEach(t => {
@@ -328,6 +349,7 @@ function resolveNight(g) {
         [t, ...protectedIds].forEach(x => { if (!dead.includes(x)) dead.push(x); });
         return;
       }
+      if (tp.roleId === 'ninja' && !lethal && !dodged.has(t)) { dodged.add(t); shotLog.push(tt(L.e.ninjaDodge, pr)); out(a, t, 'dodged'); return; }
       if (healed.has(t) && !lethal) { shotLog.push(a.ability === 'snipe' ? tt(L.e.snipeHealed, pr) : tt(L.e.shotHealed, pr)); out(a, t, 'healed'); return; }
       shotLog.push(lethal ? tt(L.e.execHit, { target: label(tp), tail: healed.has(t) ? L.e.execHealTail : '' }) : a.ability === 'snipe' ? tt(L.e.snipeHit, pr) : tt(L.e.shotHit, pr));
       out(a, t, 'hit');
@@ -403,6 +425,7 @@ function effectiveVotes(g) {
   const b = g.ballot; const eff = {};
   Object.keys(b.votes).forEach(v => {
     let to = b.votes[v];
+    if (!voteAllowed(g, v, to)) return;
     if (!fxOn(g, 'certified', v)) {
       const h = g.effects.hypno[v]; if (h && h.day === g.day && alive(g).some(p => p.id === h.to)) to = h.to;
       const f = FX(g, 'follow')[v]; if (f && f.day === g.day) { const master = P(g, f.by); if (master && master.alive && b.votes[f.by]) to = b.votes[f.by]; }
@@ -454,15 +477,28 @@ function useProsecutor(g, prosecutorId, candId) {
 }
 
 /* ---------- Win check ---------- */
-function checkWin(g) {
+/* Bomb hunt (v50): only the Sapper can defuse the Bomb at night. Voting out a defused Bomb — the city wins; an undefused one explodes — the city lost.
+   Two left: the Sapper with the Bomb — the Sapper wins; anyone else with the Bomb — the city lost. The Sapper gone and the Bomb live — nobody can defuse it. */
+function bombHuntWin(g) {
+  const bomb = g.players.find(p => p.roleId === 'bomb'); if (!bomb) return null;
   const al = alive(g);
-  const blacks = al.filter(isBlack);
-  const others = al.filter(p => !isBlack(p));
+  const city = text => ({ side: 'city', title: L.e.bhCityTitle, text });
+  const boom = text => ({ side: 'bomb', title: L.e.bhBombTitle, text });
+  if (!bomb.alive) return bomb.defused ? city(tt(L.e.bhDefusedOut, { player: label(bomb) })) : boom(tt(L.e.bhExploded, { player: label(bomb) }));
+  if (al.length <= 2) { const other = al.find(p => p.id !== bomb.id); return other && other.roleId === 'sapper' ? city(L.e.bhDuelSapper) : boom(L.e.bhDuelCitizen); }
+  if (!bomb.defused && !al.some(p => p.roleId === 'sapper')) return boom(L.e.bhNoSapper);
+  return null;
+}
+function checkWin(g) {
+  if (g.mods && g.mods.bombHunt) return bombHuntWin(g);
+  const al = alive(g);
+  const blacks = al.filter(onMafiaSide);
+  const others = al.filter(p => !onMafiaSide(p));
   const maniac = al.find(p => p.roleId === 'maniac');
   if (maniac && al.length <= 2 && blacks.length === 0) return { side: 'maniac', title: L.e.winManiac, text: tt(L.e.winManiacText, { player: label(maniac) }) };
   if (blacks.length === 0) return { side: 'city', title: L.e.winCity, text: maniac ? L.e.winCityManiac : L.e.winCityText };
   if (!g.twoFamilies) {
-    if (blacks.length >= others.length) return { side: 'mafia', title: L.e.winMafia, text: L.e.winMafiaText };
+    if (g.mods && g.mods.mafiaMajority ? blacks.length > others.length : blacks.length >= others.length) return { side: 'mafia', title: L.e.winMafia, text: L.e.winMafiaText };
     return null;
   }
   const A = blacks.filter(p => p.family === 'A'), B = blacks.filter(p => p.family === 'B');
@@ -661,7 +697,7 @@ function rouletteGuess(g, n) {
    (and stops being one when nobody votes for him any more, unless he was nominated on purpose) */
 function castVote(g, voterId, candId) {
   const b = g.ballot; const v = P(g, voterId); const c = P(g, candId);
-  if (!b || !v || !c || !v.alive || !c.alive || voterId === candId || !canVoteNow(g, voterId)) return false;
+  if (!b || !v || !c || !v.alive || !c.alive || voterId === candId || !canVoteNow(g, voterId) || !voteAllowed(g, voterId, candId)) return false;
   const prev = b.votes[voterId];
   if (prev === candId) { delete b.votes[voterId]; dropAutoCand(g, candId); return true; }
   if (!b.candidates.includes(candId)) {

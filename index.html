@@ -574,6 +574,10 @@ p { margin: 0; }
 .winner.city { background: radial-gradient(120% 100% at 50% 0%, rgba(199,66,58,.35), var(--bg-2) 70%); }
 .winner.mafia { background: radial-gradient(120% 100% at 50% 0%, rgba(167,175,194,.3), var(--bg-2) 70%); }
 .winner.maniac { background: radial-gradient(120% 100% at 50% 0%, rgba(157,108,224,.35), var(--bg-2) 70%); }
+.winner.bomb { background: radial-gradient(120% 100% at 50% 0%, rgba(232,140,48,.38), var(--bg-2) 70%); }
+.scen-card.mini { border-color: rgba(98,168,111,.3); }
+.scen-card.mini .t { padding-right: 0; }
+.scen-card.mini .m.sim { color: var(--fg-2); }
 .winner h1 { font-size: 28px; margin-top: 8px; }
 .winner .e { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; font-weight: 800; color: var(--gold); }
 
@@ -3471,7 +3475,7 @@ Object.assign(I18N.ru.ui, {
   ptOffer: '<b>20 % в Stars</b> со всех покупок игроков, которых вы привели, в течение 12 месяцев. От 50 активных игроков — <b>30 %</b>. Пока у вас 10+ активных игроков — <b>полный доступ бесплатно</b>. Выплаты раз в месяц от 1000 ⭐ (≈ 13 $) на карту или USDT, либо в Stars-эквиваленте.',
   ptWho: 'Кому подходит', ptWhoText: 'Ведущим и клубам живой мафии, авторам Telegram-каналов и TikTok/Reels, организаторам квизов и игротек. Ваша ссылка ведёт на бота, каждому новому игроку даёт 7 дней полного доступа — её удобно ставить в закреп, описание канала и на столы.',
   ptApply: 'Подать заявку', ptName: 'Название клуба / канала', ptChannel: 'Ссылка на канал, клуб или профиль', ptAudience: 'Аудитория (сколько человек, город)', ptSend: 'Отправить заявку', ptPending: 'Заявка на рассмотрении — ответим в течение 1–2 дней.', ptRejected: 'Заявка отклонена. Напишите нам, если это ошибка.',
-  ptActive: 'Вы партнёр · {share} %', ptLink: 'Партнёрская ссылка', ptLinkApp: 'Прямая ссылка в приложение', ptInvited: 'Пришли', ptQualified: 'Играли', ptPurchases: 'Покупок', ptEarned: 'Заработано', ptBalance: 'К выплате', ptPaid: 'Выплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Выплата от 1000 ⭐ раз в месяц. Для выплаты напишите @{admin} или ответьте боту.', ptMaterials: 'Материалы', ptMaterialsText: 'Текст поста: «Играем в живую мафию с Mafia Pro: 55 карт, раздача в личку, рейтинг. По моей ссылке — 7 дней полного доступа бесплатно». Картинки — обложка и аватар бота есть в репозитории проекта.',
+  ptActive: 'Вы партнёр · {share} %', ptLink: 'Партнёрская ссылка', ptLinkApp: 'Прямая ссылка в приложение', ptInvited: 'Пришли', ptQualified: 'Играли', ptPurchases: 'Покупок', ptEarned: 'Заработано', ptBalance: 'К выплате', ptPaid: 'Выплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Выплата от 1000 ⭐ раз в месяц. Для выплаты напишите @{admin} или ответьте боту.', ptMaterials: 'Материалы', ptMaterialsText: 'Текст поста: «Играем в живую мафию с Mafia Pro: 57 карт, раздача в личку, рейтинг. По моей ссылке — 7 дней полного доступа бесплатно». Картинки — обложка и аватар бота есть в репозитории проекта.',
   admPartners: 'Партнёры', admApprove: 'Подтвердить', admReject: 'Отклонить', admPending: 'заявка', admActive: 'партнёр', admRejected: 'отклонён'
 });
 Object.assign(I18N.uk.ui, {
@@ -3485,7 +3489,7 @@ Object.assign(I18N.uk.ui, {
   ptOffer: '<b>20 % у Stars</b> з усіх покупок гравців, яких ви привели, протягом 12 місяців. Від 50 активних гравців — <b>30 %</b>. Поки у вас 10+ активних гравців — <b>повний доступ безкоштовно</b>. Виплати раз на місяць від 1000 ⭐ (≈ 13 $) на картку або USDT, або в Stars-еквіваленті.',
   ptWho: 'Кому підходить', ptWhoText: 'Ведучим і клубам живої мафії, авторам Telegram-каналів і TikTok/Reels, організаторам квізів та ігротек. Ваше посилання веде на бота, кожному новому гравцю дає 7 днів повного доступу — його зручно ставити в закріп, опис каналу та на столи.',
   ptApply: 'Подати заявку', ptName: 'Назва клубу / каналу', ptChannel: 'Посилання на канал, клуб або профіль', ptAudience: 'Аудиторія (скільки людей, місто)', ptSend: 'Надіслати заявку', ptPending: 'Заявка на розгляді — відповімо протягом 1–2 днів.', ptRejected: 'Заявку відхилено. Напишіть нам, якщо це помилка.',
-  ptActive: 'Ви партнер · {share} %', ptLink: 'Партнерське посилання', ptLinkApp: 'Пряме посилання в застосунок', ptInvited: 'Прийшли', ptQualified: 'Грали', ptPurchases: 'Покупок', ptEarned: 'Зароблено', ptBalance: 'До виплати', ptPaid: 'Виплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Виплата від 1000 ⭐ раз на місяць. Для виплати напишіть @{admin} або відповідьте боту.', ptMaterials: 'Матеріали', ptMaterialsText: 'Текст поста: «Граємо в живу мафію з Mafia Pro: 55 карт, роздача в особисті, рейтинг. За моїм посиланням — 7 днів повного доступу безкоштовно». Картинки — обкладинка та аватар бота є в репозиторії проєкту.',
+  ptActive: 'Ви партнер · {share} %', ptLink: 'Партнерське посилання', ptLinkApp: 'Пряме посилання в застосунок', ptInvited: 'Прийшли', ptQualified: 'Грали', ptPurchases: 'Покупок', ptEarned: 'Зароблено', ptBalance: 'До виплати', ptPaid: 'Виплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Виплата від 1000 ⭐ раз на місяць. Для виплати напишіть @{admin} або відповідьте боту.', ptMaterials: 'Матеріали', ptMaterialsText: 'Текст поста: «Граємо в живу мафію з Mafia Pro: 57 карт, роздача в особисті, рейтинг. За моїм посиланням — 7 днів повного доступу безкоштовно». Картинки — обкладинка та аватар бота є в репозиторії проєкту.',
   admPartners: 'Партнери', admApprove: 'Підтвердити', admReject: 'Відхилити', admPending: 'заявка', admActive: 'партнер', admRejected: 'відхилено'
 });
 Object.assign(I18N.en.ui, {
@@ -3499,7 +3503,7 @@ Object.assign(I18N.en.ui, {
   ptOffer: '<b>20% in Stars</b> of every purchase by the players you bring, for 12 months. From 50 active players — <b>30%</b>. While you have 10+ active players — <b>full access for free</b>. Payouts monthly from 1000 ⭐ (≈ $13) to a card or USDT, or as Stars-equivalent.',
   ptWho: 'Who it is for', ptWhoText: 'Live Mafia hosts and clubs, Telegram channel and TikTok/Reels authors, quiz and board-game organisers. Your link opens the bot and gives every new player 7 days of full access — pin it, put it in the channel description and on the tables.',
   ptApply: 'Apply', ptName: 'Club / channel name', ptChannel: 'Link to the channel, club or profile', ptAudience: 'Audience (how many people, city)', ptSend: 'Send application', ptPending: 'Application under review — we reply within 1–2 days.', ptRejected: 'Application declined. Message us if this is a mistake.',
-  ptActive: 'You are a partner · {share}%', ptLink: 'Partner link', ptLinkApp: 'Direct app link', ptInvited: 'Joined', ptQualified: 'Played', ptPurchases: 'Purchases', ptEarned: 'Earned', ptBalance: 'Payable', ptPaid: 'Paid out', ptStars: '⭐', ptApprox: '≈ ${usd}', ptPayoutNote: 'Payout from 1000 ⭐ once a month. To request one, message @{admin} or reply to the bot.', ptMaterials: 'Materials', ptMaterialsText: 'Post text: “We play live Mafia with Mafia Pro: 55 cards, cards dealt privately, ratings. My link gives 7 days of full access for free.” Images — the cover and the bot avatar are in the project repository.',
+  ptActive: 'You are a partner · {share}%', ptLink: 'Partner link', ptLinkApp: 'Direct app link', ptInvited: 'Joined', ptQualified: 'Played', ptPurchases: 'Purchases', ptEarned: 'Earned', ptBalance: 'Payable', ptPaid: 'Paid out', ptStars: '⭐', ptApprox: '≈ ${usd}', ptPayoutNote: 'Payout from 1000 ⭐ once a month. To request one, message @{admin} or reply to the bot.', ptMaterials: 'Materials', ptMaterialsText: 'Post text: “We play live Mafia with Mafia Pro: 57 cards, cards dealt privately, ratings. My link gives 7 days of full access for free.” Images — the cover and the bot avatar are in the project repository.',
   admPartners: 'Partners', admApprove: 'Approve', admReject: 'Decline', admPending: 'application', admActive: 'partner', admRejected: 'declined'
 });
 Object.assign(I18N.pl.ui, {
@@ -3513,7 +3517,7 @@ Object.assign(I18N.pl.ui, {
   ptOffer: '<b>20% w Stars</b> ze wszystkich zakupów graczy, których przyprowadzisz, przez 12 miesięcy. Od 50 aktywnych graczy — <b>30%</b>. Dopóki masz 10+ aktywnych graczy — <b>pełny dostęp za darmo</b>. Wypłaty raz w miesiącu od 1000 ⭐ (≈ 13 $) na kartę lub USDT, albo w ekwiwalencie Stars.',
   ptWho: 'Dla kogo', ptWhoText: 'Prowadzący i kluby mafii na żywo, autorzy kanałów Telegram i TikTok/Reels, organizatorzy quizów i planszówek. Twój link otwiera bota i daje każdemu nowemu graczowi 7 dni pełnego dostępu — przypnij go, wstaw do opisu kanału i na stoły.',
   ptApply: 'Złóż wniosek', ptName: 'Nazwa klubu / kanału', ptChannel: 'Link do kanału, klubu lub profilu', ptAudience: 'Publiczność (ile osób, miasto)', ptSend: 'Wyślij wniosek', ptPending: 'Wniosek w trakcie rozpatrywania — odpowiemy w 1–2 dni.', ptRejected: 'Wniosek odrzucony. Napisz do nas, jeśli to pomyłka.',
-  ptActive: 'Jesteś partnerem · {share}%', ptLink: 'Link partnerski', ptLinkApp: 'Bezpośredni link do aplikacji', ptInvited: 'Dołączyli', ptQualified: 'Grali', ptPurchases: 'Zakupów', ptEarned: 'Zarobione', ptBalance: 'Do wypłaty', ptPaid: 'Wypłacono', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Wypłata od 1000 ⭐ raz w miesiącu. Aby ją zlecić, napisz do @{admin} lub odpowiedz botowi.', ptMaterials: 'Materiały', ptMaterialsText: 'Tekst posta: „Gramy w mafię na żywo z Mafia Pro: 55 kart, karty prywatnie, ranking. Mój link daje 7 dni pełnego dostępu za darmo”. Grafiki — okładka i awatar bota są w repozytorium projektu.',
+  ptActive: 'Jesteś partnerem · {share}%', ptLink: 'Link partnerski', ptLinkApp: 'Bezpośredni link do aplikacji', ptInvited: 'Dołączyli', ptQualified: 'Grali', ptPurchases: 'Zakupów', ptEarned: 'Zarobione', ptBalance: 'Do wypłaty', ptPaid: 'Wypłacono', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Wypłata od 1000 ⭐ raz w miesiącu. Aby ją zlecić, napisz do @{admin} lub odpowiedz botowi.', ptMaterials: 'Materiały', ptMaterialsText: 'Tekst posta: „Gramy w mafię na żywo z Mafia Pro: 57 kart, karty prywatnie, ranking. Mój link daje 7 dni pełnego dostępu za darmo”. Grafiki — okładka i awatar bota są w repozytorium projektu.',
   admPartners: 'Partnerzy', admApprove: 'Zatwierdź', admReject: 'Odrzuć', admPending: 'wniosek', admActive: 'partner', admRejected: 'odrzucony'
 });
 Object.assign(I18N.hy.ui, {
@@ -3527,7 +3531,7 @@ Object.assign(I18N.hy.ui, {
   ptOffer: '<b>20 % Stars-ով</b> ձեր բերած խաղացողների բոլոր գնումներից 12 ամիս։ 50 ակտիվ խաղացողից՝ <b>30 %</b>։ Քանի դեռ ունեք 10+ ակտիվ խաղացող՝ <b>լիարժեք հասանելիություն անվճար</b>։ Վճարումներ ամիսը մեկ՝ 1000 ⭐-ից (≈ 13 $) քարտին կամ USDT-ով, կամ Stars-համարժեքով։',
   ptWho: 'Ում է հարմար', ptWhoText: 'Կենդանի մաֆիայի վարողներին և ակումբներին, Telegram-ալիքների և TikTok/Reels-ի հեղինակներին, վիկտորինաների և խաղերի կազմակերպիչներին։ Ձեր հղումը բացում է բոտը և յուրաքանչյուր նոր խաղացողի տալիս 7 օր լիարժեք հասանելիություն — ամրացրեք այն, դրեք ալիքի նկարագրության մեջ և սեղանների վրա։',
   ptApply: 'Հայտ ներկայացնել', ptName: 'Ակումբի / ալիքի անունը', ptChannel: 'Ալիքի, ակումբի կամ պրոֆիլի հղում', ptAudience: 'Լսարան (քանի մարդ, քաղաք)', ptSend: 'Ուղարկել հայտը', ptPending: 'Հայտը դիտարկվում է — կպատասխանենք 1–2 օրվա ընթացքում։', ptRejected: 'Հայտը մերժված է։ Գրեք մեզ, եթե սա սխալ է։',
-  ptActive: 'Դուք գործընկեր եք · {share} %', ptLink: 'Գործընկերային հղում', ptLinkApp: 'Ուղիղ հղում դեպի հավելված', ptInvited: 'Եկել են', ptQualified: 'Խաղացել են', ptPurchases: 'Գնումներ', ptEarned: 'Վաստակած', ptBalance: 'Վճարման', ptPaid: 'Վճարված', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Վճարում 1000 ⭐-ից ամիսը մեկ։ Վճարման համար գրեք @{admin}-ին կամ պատասխանեք բոտին։', ptMaterials: 'Նյութեր', ptMaterialsText: 'Գրառման տեքստ․ «Կենդանի մաֆիա ենք խաղում Mafia Pro-ով՝ 55 քարտ, քարտերը անձնական, վարկանիշ։ Իմ հղումով՝ 7 օր լիարժեք հասանելիություն անվճար»։ Նկարները՝ շապիկը և բոտի ավատարը նախագծի պահոցում են։',
+  ptActive: 'Դուք գործընկեր եք · {share} %', ptLink: 'Գործընկերային հղում', ptLinkApp: 'Ուղիղ հղում դեպի հավելված', ptInvited: 'Եկել են', ptQualified: 'Խաղացել են', ptPurchases: 'Գնումներ', ptEarned: 'Վաստակած', ptBalance: 'Վճարման', ptPaid: 'Վճարված', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Վճարում 1000 ⭐-ից ամիսը մեկ։ Վճարման համար գրեք @{admin}-ին կամ պատասխանեք բոտին։', ptMaterials: 'Նյութեր', ptMaterialsText: 'Գրառման տեքստ․ «Կենդանի մաֆիա ենք խաղում Mafia Pro-ով՝ 57 քարտ, քարտերը անձնական, վարկանիշ։ Իմ հղումով՝ 7 օր լիարժեք հասանելիություն անվճար»։ Նկարները՝ շապիկը և բոտի ավատարը նախագծի պահոցում են։',
   admPartners: 'Գործընկերներ', admApprove: 'Հաստատել', admReject: 'Մերժել', admPending: 'հայտ', admActive: 'գործընկեր', admRejected: 'մերժված'
 });
 /* ---------------- Clubs ---------------- */
@@ -3995,6 +3999,198 @@ I18N.hy.intro = {
   trumps: { name: 'Մաֆիայի հաղթաթղթերը', lore: 'Մաֆիան հատուկ քարտերով. Զինագործ, Կամիկաձե, Մաֆիայի բժիշկ, Դահիճ։' },
   third: { name: 'Երրորդ ուժ', lore: 'Մաֆիայից ու քաղաքից բացի՝ Մոլագար, իսկ մեծ սեղաններին՝ Ծաղրածու և Գայլամարդ։' }
 };
+/* ============================================================
+   SMALL TABLE (v50): scenarios for 5–6 players — "Sapper and Bomb" and "Corruption";
+   two new free cards: Ninja (city, dodges one shot a night) and Corrupter (mafia, recruits instead of shooting).
+   ============================================================ */
+(function () {
+  const R = {};
+  R.ru = {
+    roles: {
+      ninja: { name: 'Ниндзя', mono: 'Нн', kind: 'Пассивная · ночь', short: 'Каждую ночь уворачивается от одного выстрела.', rules: ['Первый выстрел в Ниндзя за ночь — промах: он уворачивается. Второй выстрел той же ночью убивает.', 'Уворачивается каждую ночь — способность не кончается.', 'Удар Палача и огонь Поджигателя — не выстрелы: от них не увернуться.', 'Днём выбывает голосованием как обычно.', 'Ночью не просыпается. Для проверок — красный.'], lore: 'На крышах Кастельмара его никто не видел — только слышали, как пуля звякнула о черепицу там, где он стоял секунду назад.', tip: 'Не спешите раскрываться: пока мафия не знает, кто Ниндзя, её выстрел в вас пропадёт.' },
+      corrupter: { name: 'Коррупционер', mono: 'Кр', kind: 'Активная · ночь', short: 'Мафия, которая не стреляет: вербует игрока за столом.', rules: ['Играет за мафию, но не стреляет.', 'В ночь знакомства просыпается и показывает игрока — тот завербован. Ведущий касается его, он открывает глаза и видит Коррупционера.', 'Завербованный остаётся со своей картой и способностями, но играет за мафию — до конца игры или пока не выбудет.', 'Завербованный не может голосовать против Коррупционера, стрелять в него и признаваться, что его купили.', 'Нового игрока Коррупционер покупает, только когда завербованный выбыл: просыпается следующей ночью и выбирает снова.', 'Для проверок — чёрный; завербованный — по своей карте.'], lore: 'Он никогда не носит оружия. Конверт во внутреннем кармане стреляет точнее.', tip: 'Покупайте того, кто громче всех защищает город: его голос и доверие к нему теперь работают на вас.' }
+    },
+    hooks: { ninja: 'Ниндзя уворачивается от выстрела', corrupter: 'Коррупционер перекупает игроков' },
+    abilities: { recruit: 'вербовка' },
+    e: {
+      recruitScript0: 'Просыпается <b>Коррупционер</b> и показывает, кого вербует. Коррупционер поднимает руку; коснитесь завербованного — тот открывает глаза, видит Коррупционера, и оба засыпают.',
+      recruitScript: 'Завербованный выбыл. Просыпается <b>Коррупционер</b> и показывает нового игрока. Коррупционер поднимает руку; коснитесь завербованного — тот открывает глаза и видит его.',
+      recruitDone: '{target} завербован Коррупционером ({actor}): играет за мафию, не голосует против него и не стреляет в него.',
+      whyRecruiter: 'это его Коррупционер', whyMafiaAlready: 'уже играет за мафию',
+      ninjaDodge: '{by}: выстрел в {target} — Ниндзя уворачивается.',
+      bhFound: 'Покажите Сапёру 👍: {target} — Бомба. Она обезврежена, теперь её можно выгонять.',
+      bhNotFound: 'Покажите Сапёру 👎: {target} — не Бомба.',
+      bhCityTitle: 'Город победил', bhBombTitle: 'Бомба взорвалась',
+      bhDefusedOut: 'Город выгнал обезвреженную Бомбу — {player}.',
+      bhExploded: '{player} — Бомба, и её не успели обезвредить: взрыв забрал двух соседей. Город проиграл.',
+      bhDuelSapper: 'Остались Сапёр и Бомба — Сапёр её обезвредил.',
+      bhDuelCitizen: 'Бомба осталась один на один с мирным — обезвредить её некому. Город проиграл.',
+      bhNoSapper: 'Сапёр выбыл, а Бомба не обезврежена — обезвредить её больше некому. Город проиграл.'
+    },
+    ui: {
+      miniMenu: 'Малый стол', miniMenuD: '5–6 игроков · Сапёр и Бомба, Коррупция', miniTitle: 'Малый стол', miniSub: 'Сценарии на 5–6 игроков',
+      miniHint: 'Для маленькой компании: у каждого своя роль, партии короткие. Баланс каждого состава проверен симуляцией.',
+      miniPick: 'Сколько игроков', miniPlayers: '{n} игроков', miniCards: 'Карты: {list}', miniRules: 'Правила', miniUse: 'Создать игру',
+      miniSim: 'По симуляции: {line} · {nights} ночей', simBomb: 'Бомба {v}%', okSimMini: ' Сценарий «{name}». По симуляции: {line}.',
+      tagRecruited: 'завербован', voteRecruitBlocked: 'Завербованный не может голосовать против своего Коррупционера.',
+      tbRecruited: 'Вас завербовал Коррупционер — {seat} · {name}. Вы играете за мафию: не голосуйте против него, не стреляйте в него и не признавайтесь.',
+      tbRecruits: 'Ваш завербованный: {seat} · {name}'
+    },
+    mini: {
+      bomb_hunt: { name: 'Сапёр и Бомба', lore: 'Где-то за столом тикает. Ночью Сапёр ищет Бомбу, днём город решает, кого выгнать, — и боится ошибиться.', rules: ['Бомба играет против всех, остальные — город.', 'Ночью просыпается только Сапёр и показывает игрока. Ведущий молча отвечает: 👍 — это Бомба, она обезврежена; 👎 — нет.', 'Игроки выбывают только дневным голосованием.', 'Выгнали обезвреженную Бомбу — город победил. Выгнали необезвреженную — она взрывается и забирает двух ближайших соседей: город проиграл.', 'Остались Сапёр и Бомба — победа Сапёра. Бомба один на один с другим игроком — город проиграл.', 'Сапёр выбыл, а Бомба ещё не обезврежена — город проиграл.'] },
+      corruption: { name: 'Коррупция', lore: 'В этом городе не стреляют — в этом городе покупают. Коррупционер вербует по одному, и никто не знает, кто уже взял конверт.', rules: ['Коррупционер — мафия, но не стреляет: в ночь знакомства он вербует игрока.', 'Завербованный остаётся со своей картой, но играет за мафию: не голосует против Коррупционера, не стреляет в него и не признаётся.', 'Выбыл завербованный — следующей ночью Коррупционер покупает нового.', 'Маньяк играет сам за себя; если завербовали его — стреляет за мафию.', 'На 6 игроков за столом ещё Ниндзя: каждую ночь уворачивается от одного выстрела.', 'Мафия побеждает, когда её больше, чем остальных; город — когда не осталось ни Коррупционера, ни его людей.'] }
+    }
+  };
+  R.uk = {
+    roles: {
+      ninja: { name: 'Ніндзя', mono: 'Нн', kind: 'Пасивна · ніч', short: 'Щоночі ухиляється від одного пострілу.', rules: ['Перший постріл у Ніндзя за ніч — промах: він ухиляється. Другий постріл тієї ж ночі вбиває.', 'Ухиляється щоночі — здібність не закінчується.', 'Удар Ката й вогонь Палія — не постріли: від них не ухилитися.', 'Удень вибуває голосуванням як зазвичай.', 'Вночі не прокидається. Для перевірок — червоний.'], lore: 'На дахах Кастельмара його ніхто не бачив — лише чули, як куля дзенькнула об черепицю там, де він стояв секунду тому.', tip: 'Не поспішайте розкриватися: поки мафія не знає, хто Ніндзя, її постріл у вас пропаде.' },
+      corrupter: { name: 'Корупціонер', mono: 'Кр', kind: 'Активна · ніч', short: 'Мафія, що не стріляє: вербує гравця за столом.', rules: ['Грає за мафію, але не стріляє.', 'У ніч знайомства прокидається й показує гравця — той завербований. Ведучий торкається його, він розплющує очі й бачить Корупціонера.', 'Завербований лишається зі своєю картою і здібностями, але грає за мафію — до кінця гри або доки не вибуде.', 'Завербований не може голосувати проти Корупціонера, стріляти в нього й зізнаватися, що його купили.', 'Нового гравця Корупціонер купує, лише коли завербований вибув: прокидається наступної ночі й обирає знову.', 'Для перевірок — чорний; завербований — за своєю картою.'], lore: 'Він ніколи не носить зброї. Конверт у внутрішній кишені стріляє влучніше.', tip: 'Купуйте того, хто найгучніше захищає місто: його голос і довіра до нього тепер працюють на вас.' }
+    },
+    hooks: { ninja: 'Ніндзя ухиляється від пострілу', corrupter: 'Корупціонер перекуповує гравців' },
+    abilities: { recruit: 'вербування' },
+    e: {
+      recruitScript0: 'Прокидається <b>Корупціонер</b> і показує, кого вербує. Корупціонер піднімає руку; торкніться завербованого — той розплющує очі, бачить Корупціонера, і обоє засинають.',
+      recruitScript: 'Завербований вибув. Прокидається <b>Корупціонер</b> і показує нового гравця. Корупціонер піднімає руку; торкніться завербованого — той розплющує очі й бачить його.',
+      recruitDone: '{target} завербований Корупціонером ({actor}): грає за мафію, не голосує проти нього й не стріляє в нього.',
+      whyRecruiter: 'це його Корупціонер', whyMafiaAlready: 'уже грає за мафію',
+      ninjaDodge: '{by}: постріл у {target} — Ніндзя ухиляється.',
+      bhFound: 'Покажіть Саперу 👍: {target} — Бомба. Її знешкоджено, тепер її можна виганяти.',
+      bhNotFound: 'Покажіть Саперу 👎: {target} — не Бомба.',
+      bhCityTitle: 'Місто перемогло', bhBombTitle: 'Бомба вибухнула',
+      bhDefusedOut: 'Місто вигнало знешкоджену Бомбу — {player}.',
+      bhExploded: '{player} — Бомба, і її не встигли знешкодити: вибух забрав двох сусідів. Місто програло.',
+      bhDuelSapper: 'Лишилися Сапер і Бомба — Сапер її знешкодив.',
+      bhDuelCitizen: 'Бомба лишилася сам на сам із мирним — знешкодити її нікому. Місто програло.',
+      bhNoSapper: 'Сапер вибув, а Бомбу не знешкоджено — знешкодити її більше нікому. Місто програло.'
+    },
+    ui: {
+      miniMenu: 'Малий стіл', miniMenuD: '5–6 гравців · Сапер і Бомба, Корупція', miniTitle: 'Малий стіл', miniSub: 'Сценарії на 5–6 гравців',
+      miniHint: 'Для невеликої компанії: у кожного своя роль, партії короткі. Баланс кожного складу перевірено симуляцією.',
+      miniPick: 'Скільки гравців', miniPlayers: '{n} гравців', miniCards: 'Карти: {list}', miniRules: 'Правила', miniUse: 'Створити гру',
+      miniSim: 'За симуляцією: {line} · {nights} ночей', simBomb: 'Бомба {v}%', okSimMini: ' Сценарій «{name}». За симуляцією: {line}.',
+      tagRecruited: 'завербований', voteRecruitBlocked: 'Завербований не може голосувати проти свого Корупціонера.',
+      tbRecruited: 'Вас завербував Корупціонер — {seat} · {name}. Ви граєте за мафію: не голосуйте проти нього, не стріляйте в нього й не зізнавайтеся.',
+      tbRecruits: 'Ваш завербований: {seat} · {name}'
+    },
+    mini: {
+      bomb_hunt: { name: 'Сапер і Бомба', lore: 'Десь за столом цокає. Уночі Сапер шукає Бомбу, удень місто вирішує, кого вигнати, — і боїться помилитися.', rules: ['Бомба грає проти всіх, решта — місто.', 'Уночі прокидається тільки Сапер і показує гравця. Ведучий мовчки відповідає: 👍 — це Бомба, її знешкоджено; 👎 — ні.', 'Гравці вибувають тільки денним голосуванням.', 'Вигнали знешкоджену Бомбу — місто перемогло. Вигнали незнешкоджену — вона вибухає й забирає двох найближчих сусідів: місто програло.', 'Лишилися Сапер і Бомба — перемога Сапера. Бомба сам на сам з іншим гравцем — місто програло.', 'Сапер вибув, а Бомбу ще не знешкоджено — місто програло.'] },
+      corruption: { name: 'Корупція', lore: 'У цьому місті не стріляють — у цьому місті купують. Корупціонер вербує по одному, і ніхто не знає, хто вже взяв конверт.', rules: ['Корупціонер — мафія, але не стріляє: у ніч знайомства він вербує гравця.', 'Завербований лишається зі своєю картою, але грає за мафію: не голосує проти Корупціонера, не стріляє в нього й не зізнається.', 'Вибув завербований — наступної ночі Корупціонер купує нового.', 'Маніяк грає сам за себе; якщо завербували його — стріляє за мафію.', 'На 6 гравців за столом ще Ніндзя: щоночі ухиляється від одного пострілу.', 'Мафія перемагає, коли її більше, ніж решти; місто — коли не лишилося ні Корупціонера, ні його людей.'] }
+    }
+  };
+  R.en = {
+    roles: {
+      ninja: { name: 'Ninja', mono: 'Nj', kind: 'Passive · night', short: 'Dodges one shot every night.', rules: ['The first shot at the Ninja each night misses: he dodges it. A second shot the same night kills.', 'He dodges every night; the ability never runs out.', 'The Executioner’s strike and the Arsonist’s fire are not shots: they cannot be dodged.', 'By day he can be voted out as usual.', 'Does not wake at night. Checks show red.'], lore: 'Nobody has ever seen him on the roofs of Castelmar — people only hear a bullet ring off the tiles where he stood a second ago.', tip: 'Do not reveal yourself too soon: while the mafia does not know who the Ninja is, their shot at you is wasted.' },
+      corrupter: { name: 'Corrupter', mono: 'Cr', kind: 'Active · night', short: 'A mafia member who never shoots: he recruits a player at the table.', rules: ['Plays for the mafia but does not shoot.', 'On the acquaintance night he wakes and points at a player — that player is recruited. The host touches them; they open their eyes and see the Corrupter.', 'The recruit keeps their card and abilities but plays for the mafia until the game ends or they leave.', 'The recruit may not vote against the Corrupter, shoot him or admit they were bought.', 'The Corrupter buys a new player only after the recruit has left: he wakes the next night and chooses again.', 'Checks show him black; the recruit shows the colour of their own card.'], lore: 'He never carries a gun. The envelope in his inside pocket hits harder.', tip: 'Buy whoever defends the town the loudest: their vote and the trust in them now work for you.' }
+    },
+    hooks: { ninja: 'the Ninja dodges a shot', corrupter: 'the Corrupter buys players over' },
+    abilities: { recruit: 'recruitment' },
+    e: {
+      recruitScript0: 'The <b>Corrupter</b> wakes and points at the player he recruits. The Corrupter raises a hand; touch the recruit — they open their eyes, see the Corrupter, and both go back to sleep.',
+      recruitScript: 'The recruit has left. The <b>Corrupter</b> wakes and points at a new player. The Corrupter raises a hand; touch the recruit — they open their eyes and see him.',
+      recruitDone: '{target} is recruited by the Corrupter ({actor}): plays for the mafia, never votes against him or shoots him.',
+      whyRecruiter: 'this is their Corrupter', whyMafiaAlready: 'already plays for the mafia',
+      ninjaDodge: '{by}: a shot at {target} — the Ninja dodges it.',
+      bhFound: 'Show the Sapper 👍: {target} is the Bomb. It is defused — now it can be voted out.',
+      bhNotFound: 'Show the Sapper 👎: {target} is not the Bomb.',
+      bhCityTitle: 'The town wins', bhBombTitle: 'The Bomb went off',
+      bhDefusedOut: 'The town voted out the defused Bomb — {player}.',
+      bhExploded: '{player} is the Bomb, and nobody defused it in time: the blast took both neighbours. The town lost.',
+      bhDuelSapper: 'Only the Sapper and the Bomb are left — the Sapper defused it.',
+      bhDuelCitizen: 'The Bomb is left alone with a townsperson — nobody can defuse it. The town lost.',
+      bhNoSapper: 'The Sapper is out and the Bomb is not defused — nobody can defuse it now. The town lost.'
+    },
+    ui: {
+      miniMenu: 'Small table', miniMenuD: '5–6 players · Sapper and Bomb, Corruption', miniTitle: 'Small table', miniSub: 'Scenarios for 5–6 players',
+      miniHint: 'For a small group: everyone has a role and games are short. Each line-up was balance-checked by simulation.',
+      miniPick: 'How many players', miniPlayers: '{n} players', miniCards: 'Cards: {list}', miniRules: 'Rules', miniUse: 'Create game',
+      miniSim: 'Simulation: {line} · {nights} nights', simBomb: 'Bomb {v}%', okSimMini: ' Scenario “{name}”. Simulation: {line}.',
+      tagRecruited: 'recruited', voteRecruitBlocked: 'A recruit cannot vote against their Corrupter.',
+      tbRecruited: 'You were recruited by the Corrupter — {seat} · {name}. You play for the mafia: do not vote against him, do not shoot him and do not admit it.',
+      tbRecruits: 'Your recruit: {seat} · {name}'
+    },
+    mini: {
+      bomb_hunt: { name: 'Sapper and Bomb', lore: 'Something is ticking at the table. By night the Sapper looks for the Bomb; by day the town decides whom to vote out — and dreads getting it wrong.', rules: ['The Bomb plays against everyone; everyone else is the town.', 'At night only the Sapper wakes and points at a player. The host answers silently: 👍 — it is the Bomb, now defused; 👎 — it is not.', 'Players leave only by the day vote.', 'Vote out the defused Bomb — the town wins. Vote out a live one — it explodes and takes its two nearest neighbours: the town lost.', 'Only the Sapper and the Bomb left — the Sapper wins. The Bomb alone with anyone else — the town lost.', 'The Sapper is out and the Bomb is not defused yet — the town lost.'] },
+      corruption: { name: 'Corruption', lore: 'Nobody shoots in this town — here they buy. The Corrupter recruits one player at a time, and nobody knows who has already taken the envelope.', rules: ['The Corrupter is mafia but does not shoot: on the acquaintance night he recruits a player.', 'The recruit keeps their card but plays for the mafia: never votes against the Corrupter, never shoots him and never admits it.', 'If the recruit leaves, the Corrupter buys a new one the next night.', 'The Maniac plays for himself; if he is the one recruited, he shoots for the mafia.', 'With 6 players there is also the Ninja: he dodges one shot every night.', 'The mafia wins when it outnumbers everyone else; the town wins when neither the Corrupter nor his people are left.'] }
+    }
+  };
+  R.pl = {
+    roles: {
+      ninja: { name: 'Ninja', mono: 'Nj', kind: 'Pasywna · noc', short: 'Co noc unika jednego strzału.', rules: ['Pierwszy strzał w Ninję w ciągu nocy chybia: Ninja robi unik. Drugi strzał tej samej nocy zabija.', 'Robi unik każdej nocy — zdolność się nie kończy.', 'Cios Kata i ogień Podpalacza to nie strzały: przed nimi nie da się uskoczyć.', 'W dzień odpada w głosowaniu jak zwykle.', 'W nocy się nie budzi. Przy sprawdzeniu — czerwony.'], lore: 'Nikt nie widział go na dachach Castelmaru — słychać tylko, jak kula dzwoni o dachówkę tam, gdzie stał sekundę wcześniej.', tip: 'Nie ujawniaj się za wcześnie: dopóki mafia nie wie, kto jest Ninją, jej strzał w ciebie przepada.' },
+      corrupter: { name: 'Korupcjonista', mono: 'Kr', kind: 'Aktywna · noc', short: 'Mafioso, który nie strzela: werbuje gracza przy stole.', rules: ['Gra dla mafii, ale nie strzela.', 'W noc zapoznania budzi się i wskazuje gracza — ten zostaje zwerbowany. Prowadzący go dotyka, gracz otwiera oczy i widzi Korupcjonistę.', 'Zwerbowany zachowuje swoją kartę i zdolności, ale gra dla mafii — do końca gry albo dopóki nie odpadnie.', 'Zwerbowany nie może głosować przeciw Korupcjoniście, strzelać do niego ani przyznać się, że go kupiono.', 'Nowego gracza Korupcjonista kupuje dopiero, gdy zwerbowany odpadł: budzi się następnej nocy i wybiera ponownie.', 'Przy sprawdzeniu — czarny; zwerbowany — według swojej karty.'], lore: 'Nigdy nie nosi broni. Koperta w wewnętrznej kieszeni trafia celniej.', tip: 'Kupuj tego, kto najgłośniej broni miasta: jego głos i zaufanie do niego pracują teraz dla ciebie.' }
+    },
+    hooks: { ninja: 'Ninja unika strzału', corrupter: 'Korupcjonista przekupuje graczy' },
+    abilities: { recruit: 'werbunek' },
+    e: {
+      recruitScript0: 'Budzi się <b>Korupcjonista</b> i wskazuje, kogo werbuje. Korupcjonista podnosi rękę; dotknij zwerbowanego — otwiera oczy, widzi Korupcjonistę i obaj zasypiają.',
+      recruitScript: 'Zwerbowany odpadł. Budzi się <b>Korupcjonista</b> i wskazuje nowego gracza. Korupcjonista podnosi rękę; dotknij zwerbowanego — otwiera oczy i go widzi.',
+      recruitDone: '{target} zwerbowany przez Korupcjonistę ({actor}): gra dla mafii, nie głosuje przeciw niemu i do niego nie strzela.',
+      whyRecruiter: 'to jego Korupcjonista', whyMafiaAlready: 'już gra dla mafii',
+      ninjaDodge: '{by}: strzał w {target} — Ninja robi unik.',
+      bhFound: 'Pokaż Saperowi 👍: {target} to Bomba. Rozbrojona — teraz można ją wyrzucić.',
+      bhNotFound: 'Pokaż Saperowi 👎: {target} to nie Bomba.',
+      bhCityTitle: 'Miasto wygrało', bhBombTitle: 'Bomba wybuchła',
+      bhDefusedOut: 'Miasto wyrzuciło rozbrojoną Bombę — {player}.',
+      bhExploded: '{player} to Bomba i nikt nie zdążył jej rozbroić: wybuch zabrał dwóch sąsiadów. Miasto przegrało.',
+      bhDuelSapper: 'Zostali Saper i Bomba — Saper ją rozbroił.',
+      bhDuelCitizen: 'Bomba została sam na sam z mieszkańcem — nie ma kto jej rozbroić. Miasto przegrało.',
+      bhNoSapper: 'Saper odpadł, a Bomba nie jest rozbrojona — nikt już jej nie rozbroi. Miasto przegrało.'
+    },
+    ui: {
+      miniMenu: 'Mały stół', miniMenuD: '5–6 graczy · Saper i Bomba, Korupcja', miniTitle: 'Mały stół', miniSub: 'Scenariusze na 5–6 graczy',
+      miniHint: 'Dla małej ekipy: każdy ma swoją rolę, partie są krótkie. Balans każdego składu sprawdzono symulacją.',
+      miniPick: 'Ilu graczy', miniPlayers: '{n} graczy', miniCards: 'Karty: {list}', miniRules: 'Zasady', miniUse: 'Utwórz grę',
+      miniSim: 'Według symulacji: {line} · {nights} nocy', simBomb: 'Bomba {v}%', okSimMini: ' Scenariusz „{name}”. Według symulacji: {line}.',
+      tagRecruited: 'zwerbowany', voteRecruitBlocked: 'Zwerbowany nie może głosować przeciw swojemu Korupcjoniście.',
+      tbRecruited: 'Zwerbował cię Korupcjonista — {seat} · {name}. Grasz dla mafii: nie głosuj przeciw niemu, nie strzelaj do niego i nie przyznawaj się.',
+      tbRecruits: 'Twój zwerbowany: {seat} · {name}'
+    },
+    mini: {
+      bomb_hunt: { name: 'Saper i Bomba', lore: 'Gdzieś przy stole tyka. Nocą Saper szuka Bomby, w dzień miasto decyduje, kogo wyrzucić — i boi się pomyłki.', rules: ['Bomba gra przeciw wszystkim, reszta to miasto.', 'W nocy budzi się tylko Saper i wskazuje gracza. Prowadzący odpowiada bez słów: 👍 — to Bomba, teraz rozbrojona; 👎 — nie.', 'Gracze odpadają tylko w dziennym głosowaniu.', 'Wyrzucona rozbrojona Bomba — miasto wygrywa. Wyrzucona nierozbrojona — wybucha i zabiera dwóch najbliższych sąsiadów: miasto przegrywa.', 'Zostali Saper i Bomba — wygrywa Saper. Bomba sam na sam z kimś innym — miasto przegrywa.', 'Saper odpadł, a Bomba nie jest jeszcze rozbrojona — miasto przegrywa.'] },
+      corruption: { name: 'Korupcja', lore: 'W tym mieście się nie strzela — tu się kupuje. Korupcjonista werbuje po jednym i nikt nie wie, kto już wziął kopertę.', rules: ['Korupcjonista to mafia, ale nie strzela: w noc zapoznania werbuje gracza.', 'Zwerbowany zachowuje kartę, ale gra dla mafii: nie głosuje przeciw Korupcjoniście, nie strzela do niego i się nie przyznaje.', 'Gdy zwerbowany odpadnie, następnej nocy Korupcjonista kupuje nowego.', 'Maniak gra sam dla siebie; jeśli to jego zwerbowano — strzela dla mafii.', 'Przy 6 graczach jest też Ninja: co noc unika jednego strzału.', 'Mafia wygrywa, gdy jest jej więcej niż reszty; miasto — gdy nie ma już ani Korupcjonisty, ani jego ludzi.'] }
+    }
+  };
+  R.hy = {
+    roles: {
+      ninja: { name: 'Նինձա', mono: 'Նն', kind: 'Պասիվ · գիշեր', short: 'Ամեն գիշեր խուսափում է մեկ կրակոցից։', rules: ['Գիշերվա ընթացքում Նինձային ուղղված առաջին կրակոցը վրիպում է՝ նա խուսափում է։ Նույն գիշերվա երկրորդ կրակոցը սպանում է։', 'Խուսափում է ամեն գիշեր՝ կարողությունը չի սպառվում։', 'Դահիճի հարվածն ու Հրձիգի կրակը կրակոցներ չեն՝ դրանցից խուսափել չի լինի։', 'Ցերեկը դուրս է գալիս քվեարկությամբ, ինչպես միշտ։', 'Գիշերը չի արթնանում։ Ստուգման դեպքում՝ կարմիր։'], lore: 'Կաստելմարի տանիքներին նրան ոչ ոք չի տեսել՝ միայն լսել են, թե ինչպես է գնդակը զնգում կղմինդրին այնտեղ, որտեղ նա կանգնած էր մի վայրկյան առաջ։', tip: 'Մի՛ շտապեք բացահայտվել. քանի դեռ մաֆիան չգիտի, թե ով է Նինձան, ձեզ ուղղված նրա կրակոցը կորչում է։' },
+      corrupter: { name: 'Կաշառող', mono: 'Կշ', kind: 'Ակտիվ · գիշեր', short: 'Մաֆիա, որը չի կրակում՝ հավաքագրում է սեղանի շուրջ նստած խաղացողի։', rules: ['Խաղում է մաֆիայի կողմից, բայց չի կրակում։', 'Ծանոթության գիշերը արթնանում է և ցույց է տալիս խաղացողի՝ նա հավաքագրված է։ Վարողը դիպչում է նրան, նա բացում է աչքերը և տեսնում Կաշառողին։', 'Հավաքագրվածը պահում է իր քարտն ու կարողությունները, բայց խաղում է մաֆիայի կողմից՝ մինչև խաղի ավարտը կամ մինչև դուրս գալը։', 'Հավաքագրվածը չի կարող քվեարկել Կաշառողի դեմ, կրակել նրա վրա և խոստովանել, որ իրեն գնել են։', 'Նոր խաղացող Կաշառողը գնում է միայն այն ժամանակ, երբ հավաքագրվածը դուրս է եկել՝ արթնանում է հաջորդ գիշերը և նորից ընտրում։', 'Ստուգման դեպքում՝ սև. հավաքագրվածը՝ ըստ իր քարտի։'], lore: 'Նա երբեք զենք չի կրում։ Ներքին գրպանի ծրարն ավելի դիպուկ է կրակում։', tip: 'Գնե՛ք նրան, ով ամենաբարձր է պաշտպանում քաղաքը. նրա ձայնն ու նրա հանդեպ վստահությունն այժմ աշխատում են ձեզ համար։' }
+    },
+    hooks: { ninja: 'Նինձան խուսափում է կրակոցից', corrupter: 'Կաշառողը գնում է խաղացողներին' },
+    abilities: { recruit: 'հավաքագրում' },
+    e: {
+      recruitScript0: 'Արթնանում է <b>Կաշառողը</b> և ցույց է տալիս, ում է հավաքագրում։ Կաշառողը բարձրացնում է ձեռքը. դիպեք հավաքագրվածին՝ նա բացում է աչքերը, տեսնում Կաշառողին, և երկուսն էլ քնում են։',
+      recruitScript: 'Հավաքագրվածը դուրս է եկել։ Արթնանում է <b>Կաշառողը</b> և ցույց է տալիս նոր խաղացողի։ Կաշառողը բարձրացնում է ձեռքը. դիպեք հավաքագրվածին՝ նա բացում է աչքերը և տեսնում նրան։',
+      recruitDone: '{target}-ը հավաքագրված է Կաշառողի ({actor}) կողմից. խաղում է մաֆիայի համար, չի քվեարկում նրա դեմ և չի կրակում նրա վրա։',
+      whyRecruiter: 'սա նրա Կաշառողն է', whyMafiaAlready: 'արդեն խաղում է մաֆիայի համար',
+      ninjaDodge: '{by}. կրակոց {target}-ի վրա — Նինձան խուսափում է։',
+      bhFound: 'Ցույց տվեք Ականազերծողին 👍. {target}-ը Ռումբն է։ Այն վնասազերծված է, այժմ կարելի է վտարել։',
+      bhNotFound: 'Ցույց տվեք Ականազերծողին 👎. {target}-ը Ռումբը չէ։',
+      bhCityTitle: 'Քաղաքը հաղթեց', bhBombTitle: 'Ռումբը պայթեց',
+      bhDefusedOut: 'Քաղաքը վտարեց վնասազերծված Ռումբը՝ {player}։',
+      bhExploded: '{player}-ը Ռումբն է, և այն չհասցրին վնասազերծել. պայթյունը տարավ երկու հարևանին։ Քաղաքը պարտվեց։',
+      bhDuelSapper: 'Մնացել են Ականազերծողն ու Ռումբը՝ Ականազերծողը վնասազերծեց այն։',
+      bhDuelCitizen: 'Ռումբը մնաց մենակ խաղաղ բնակչի հետ՝ վնասազերծող չկա։ Քաղաքը պարտվեց։',
+      bhNoSapper: 'Ականազերծողը դուրս է եկել, իսկ Ռումբը վնասազերծված չէ՝ այլևս վնասազերծող չկա։ Քաղաքը պարտվեց։'
+    },
+    ui: {
+      miniMenu: 'Փոքր սեղան', miniMenuD: '5–6 խաղացող · Ականազերծողն ու Ռումբը, Կոռուպցիա', miniTitle: 'Փոքր սեղան', miniSub: 'Սցենարներ 5–6 խաղացողի համար',
+      miniHint: 'Փոքր ընկերախմբի համար. յուրաքանչյուրն ունի իր դերը, խաղերը կարճ են։ Ամեն կազմի հավասարակշռությունը ստուգված է սիմուլյացիայով։',
+      miniPick: 'Քանի՞ խաղացող', miniPlayers: '{n} խաղացող', miniCards: 'Քարտեր. {list}', miniRules: 'Կանոններ', miniUse: 'Ստեղծել խաղ',
+      miniSim: 'Սիմուլյացիայով. {line} · {nights} գիշեր', simBomb: 'Ռումբ {v}%', okSimMini: ' Սցենար «{name}»։ Սիմուլյացիայով. {line}։',
+      tagRecruited: 'հավաքագրված', voteRecruitBlocked: 'Հավաքագրվածը չի կարող քվեարկել իր Կաշառողի դեմ։',
+      tbRecruited: 'Ձեզ հավաքագրել է Կաշառողը՝ {seat} · {name}։ Դուք խաղում եք մաֆիայի համար. մի՛ քվեարկեք նրա դեմ, մի՛ կրակեք նրա վրա և մի՛ խոստովանեք։',
+      tbRecruits: 'Ձեր հավաքագրվածը՝ {seat} · {name}'
+    },
+    mini: {
+      bomb_hunt: { name: 'Ականազերծողն ու Ռումբը', lore: 'Սեղանի շուրջ ինչ-որ տեղ տկտկում է։ Գիշերը Ականազերծողը փնտրում է Ռումբը, ցերեկը քաղաքը որոշում է, ում վտարել, և վախենում է սխալվել։', rules: ['Ռումբը խաղում է բոլորի դեմ, մնացածը՝ քաղաքն են։', 'Գիշերը արթնանում է միայն Ականազերծողը և ցույց է տալիս խաղացողի։ Վարողը լուռ պատասխանում է. 👍՝ սա Ռումբն է, այժմ վնասազերծված, 👎՝ ոչ։', 'Խաղացողները դուրս են գալիս միայն ցերեկային քվեարկությամբ։', 'Վտարեցին վնասազերծված Ռումբը՝ քաղաքը հաղթեց։ Վտարեցին չվնասազերծվածը՝ այն պայթում է և տանում երկու մոտակա հարևաններին. քաղաքը պարտվեց։', 'Մնացել են Ականազերծողն ու Ռումբը՝ Ականազերծողի հաղթանակ։ Ռումբը մենակ որևէ այլ խաղացողի հետ՝ քաղաքը պարտվեց։', 'Ականազերծողը դուրս է եկել, իսկ Ռումբը դեռ վնասազերծված չէ՝ քաղաքը պարտվեց։'] },
+      corruption: { name: 'Կոռուպցիա', lore: 'Այս քաղաքում չեն կրակում՝ այստեղ գնում են։ Կաշառողը հավաքագրում է մեկ առ մեկ, և ոչ ոք չգիտի, թե ով է արդեն վերցրել ծրարը։', rules: ['Կաշառողը մաֆիա է, բայց չի կրակում. ծանոթության գիշերը նա հավաքագրում է խաղացողի։', 'Հավաքագրվածը պահում է իր քարտը, բայց խաղում է մաֆիայի համար. չի քվեարկում Կաշառողի դեմ, չի կրակում նրա վրա և չի խոստովանում։', 'Եթե հավաքագրվածը դուրս է եկել, հաջորդ գիշերը Կաշառողը նորին է գնում։', 'Մոլագարը խաղում է ինքն իր համար. եթե հավաքագրել են նրան՝ կրակում է մաֆիայի համար։', '6 խաղացողի դեպքում սեղանի շուրջ կա նաև Նինձա. ամեն գիշեր խուսափում է մեկ կրակոցից։', 'Մաֆիան հաղթում է, երբ այն մնացածներից շատ է. քաղաքը՝ երբ չեն մնացել ոչ Կաշառողը, ոչ նրա մարդիկ։'] }
+    }
+  };
+  Object.keys(R).forEach(code => {
+    const p = I18N[code], d = R[code];
+    Object.assign(p.roles, d.roles); Object.assign(p.hooks, d.hooks); Object.assign(p.abilities, d.abilities);
+    Object.assign(p.e, d.e); Object.assign(p.ui, d.ui); p.mini = d.mini;
+  });
+})();
 /* ---------------- Privacy (v44): the policy link in Settings, all languages ---------------- */
 Object.assign(I18N.ru.ui, { privacy: 'Конфиденциальность', privacyD: 'Какие данные мы храним и как их удалить' });
 Object.assign(I18N.uk.ui, { privacy: 'Конфіденційність', privacyD: 'Які дані ми зберігаємо і як їх видалити' });
@@ -4197,6 +4393,8 @@ const ART = (() => {
     bailiff: id => BG.court(id) + coat('#1b2340', '#111a30') + shirt(C.white) + tie('#1b1620') + badge() + neck(SKIN.light) + head(SKIN.light) + capUniform('#1b2340') + brows('#4a2f1d', 1) + eyes('dot') + mustache('#4a2f1d') + mouth('line') + hand(150, 168, SKIN.light) + `<rect x="138" y="170" width="34" height="20" fill="${C.cream}"/><rect x="146" y="158" width="20" height="10" rx="2" fill="#8c1f1a"/><rect x="151" y="144" width="10" height="16" rx="3" fill="#4a2f1d"/><path d="M142 180h26" stroke="#8c1f1a" stroke-width="2"/>`,
     auditor: id => BG.office(id) + coat('#3b3326', '#2a2416') + shirt(C.cream) + tie('#2f6f6a') + neck(SKIN.light) + head(SKIN.light) + hairSide('#8a8580') + glasses('#2a2a2e') + brows('#8a8580') + eyes('dot') + mouth('line') + hand(150, 176, SKIN.light) + `<g transform="rotate(-8 150 170)"><rect x="130" y="150" width="42" height="40" rx="3" fill="${C.cream}"/><path d="M136 160h30M136 168h30M136 176h20" stroke="#9a9088" stroke-width="2"/><path d="M160 178l4 5 8-10" stroke="#2f6f6a" stroke-width="3" fill="none"/></g>`,
     thug: id => BG.alley(id) + coat('#2a2a30', '#1b1a20') + `<path d="M60 150q40-14 80 0v12q-40-10-80 0z" fill="#1b1620"/>` + neck(SKIN.tan) + head(SKIN.tan) + `<path d="M70 66q30-22 60 0v10H70z" fill="${SKIN.tan}"/>` + brows('#1b1620', 1) + eyes('narrow') + scar() + stubble() + mouth('frown') + `<rect x="54" y="168" width="14" height="22" rx="4" fill="${SKIN.tan}"/><rect x="132" y="168" width="14" height="22" rx="4" fill="${SKIN.tan}"/><path d="M134 176h10M134 182h10" stroke="${C.gold}" stroke-width="2"/>`,
+    ninja: id => BG.rooftop(id) + `<path d="M40 182L150 34" stroke="#c9ccd3" stroke-width="5" stroke-linecap="round"/><path d="M34 190l18-22" stroke="#2a1d14" stroke-width="9" stroke-linecap="round"/><path d="M44 164l14 10" stroke="${C.gold}" stroke-width="4" stroke-linecap="round"/>` + coat('#1b1620', '#111') + neck('#1b1620') + head(SKIN.tan) + `<path d="M68 88q0-36 32-36t32 36z" fill="#1b1620"/><path d="M70 80h60" stroke="${C.crimson}" stroke-width="5"/><path d="M130 78q14 2 24-8M130 82q16 8 28 2" stroke="${C.crimson}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M68 96h64v10q0 22-32 22t-32-22z" fill="#1b1620"/>` + brows('#1b1620', 1) + eyes('narrow') + `<g class="fx-drift"><path d="M14 92h28M8 106h32M16 120h24" stroke="#cfd3dc" stroke-width="2" opacity=".55" stroke-linecap="round"/></g>`,
+    corrupter: id => BG.office(id) + coat('#2b2a30', '#1b1a20') + shirt(C.cream) + tie(C.gold) + neck(SKIN.light) + head(SKIN.light) + hairSlick('#2a1d14') + brows('#2a1d14', -1) + eyes('narrow') + mustache('#2a1d14') + mouth('grin') + hand(156, 174, SKIN.light) + `<g transform="rotate(-12 156 168)"><rect x="130" y="150" width="48" height="30" rx="3" fill="${C.cream}"/><path d="M130 150l24 17 24-17" stroke="#9a9088" stroke-width="2" fill="none"/><rect x="138" y="142" width="32" height="10" rx="2" fill="#3f7a4a"/><path d="M146 147h16" stroke="#cfe3c9" stroke-width="2"/></g>`,
     citizen: id => BG.plaza(id) + coat('#3b4e7a', '#2a3a5a') + scarfW('#c9b0ff') + neck(SKIN.light) + head(SKIN.light) + flatcap('#5a4a30') + brows('#4a2f1d') + eyes('dot') + mouth('grin') + hand(156, 176, SKIN.light) + `<rect x="136" y="164" width="38" height="26" rx="4" fill="#8a6a2b"/><path d="M142 164q13-18 26 0" stroke="#5a4a30" stroke-width="3" fill="none"/><path d="M140 160l30-8" stroke="#e9c58a" stroke-width="7" stroke-linecap="round"/>`,
     judge: id => BG.court(id) + coat('#1b1620', '#2a2a30') + `<path d="M84 150h32l-6 50h-20z" fill="${C.white}"/>` + neck(SKIN.light) + head(SKIN.light) + hairGray() + glasses('#2a2a2e') + brows('#8a8580', 1) + eyes('dot') + mouth('frown') + gavel()
   };
@@ -4346,7 +4544,9 @@ const ROLES = [
   {"id":"sapper","team":"red","color":"red","side":"city","wake":33,"ability":"defuse"},
   {"id":"bailiff","team":"red","color":"red","side":"city","wake":null,"ability":"final"},
   {"id":"auditor","team":"red","color":"red","side":"city","wake":34,"ability":"audit"},
-  {"id":"thug","team":"black","color":"black","side":"mafia","wake":35,"ability":"intimidate"}
+  {"id":"thug","team":"black","color":"black","side":"mafia","wake":35,"ability":"intimidate"},
+  {"id":"ninja","team":"red","color":"red","side":"city","wake":null,"ability":null},
+  {"id":"corrupter","team":"black","color":"black","side":"mafia","wake":36,"ability":"recruit"}
 ];
 const PREMIUM_PRICE = 2, SCENARIO_PRICE = 9.99, PACK_PRICE = 35;
 /* Localized text fields resolve through the active language pack */
@@ -4363,7 +4563,7 @@ const HOOKS = new Proxy({}, { get: (_, k) => L.hooks[k] });
 const SHOOTER_ORDER = ['don', 'gunsmith', 'executioner', 'spy', 'arsonist', 'hypnotist', 'saboteur', 'lawyer', 'mafia_doctor', 'balamut', 'blackmailer', 'provocateur', 'treasurer', 'ambassador', 'thug', 'mafia'];
 
 /* Wake order on the acquaintance night: the family together, then everyone else one by one */
-const NIGHT0_ORDER = ['maniac', 'jester', 'witch', 'amnesiac', 'survivor', 'contractor', 'jailer', 'thief', 'monk', 'sheriff', 'doctor', 'journalist', 'mayor', 'drunk', 'altruist', 'miller', 'azazel', 'morpheus', 'rabbi', 'bomb', 'bodyguard', 'judge', 'sniper', 'tracker', 'avenger', 'chairman', 'prosecutor', 'notary', 'pastor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer', 'sapper', 'bailiff', 'auditor'];
+const NIGHT0_ORDER = ['maniac', 'jester', 'witch', 'amnesiac', 'survivor', 'contractor', 'jailer', 'thief', 'monk', 'sheriff', 'doctor', 'journalist', 'mayor', 'drunk', 'altruist', 'miller', 'azazel', 'morpheus', 'rabbi', 'bomb', 'bodyguard', 'judge', 'sniper', 'tracker', 'avenger', 'chairman', 'prosecutor', 'notary', 'pastor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer', 'sapper', 'bailiff', 'auditor', 'ninja'];
 
 /* ---------- Balance presets by player count ---------- */
 const PRESETS = {
@@ -4460,23 +4660,40 @@ SCENARIO.classic = CLASSIC;
 const REPLACEABLE = { black: ['mafia', 'balamut', 'mafia_doctor', 'spy', 'executioner', 'kamikaze', 'gunsmith', 'thug'], red: ['drunk', 'altruist', 'miller', 'morpheus', 'azazel', 'monk', 'thief', 'bomb', 'rabbi', 'bodyguard', 'judge', 'journalist', 'mayor', 'werewolf', 'maniac', 'sapper', 'bailiff', 'auditor'] };
 /* Counter-picks: which cards answer each card (the reverse map — whom a card counters — is derived) */
 const COUNTERS = {
-  don: ['sheriff', 'doctor', 'bodyguard', 'rabbi', 'jailer', 'thief', 'avenger', 'monk'], gunsmith: ['doctor', 'rabbi', 'bodyguard', 'jailer', 'thief'], kamikaze: ['sapper', 'thug', 'sheriff', 'sniper'],
+  don: ['sheriff', 'doctor', 'bodyguard', 'rabbi', 'jailer', 'thief', 'avenger', 'monk', 'ninja'], gunsmith: ['doctor', 'rabbi', 'bodyguard', 'jailer', 'thief'], kamikaze: ['sapper', 'thug', 'sheriff', 'sniper'],
   mafia_doctor: ['jailer', 'thief', 'tracker', 'sheriff'], balamut: ['journalist', 'tracker', 'jailer', 'thief'], executioner: ['rabbi', 'jailer', 'bodyguard', 'thief'], spy: ['thief', 'jailer', 'monk', 'tracker'],
   arsonist: ['sapper', 'jailer', 'tracker', 'thief'], hypnotist: ['notary', 'tracker', 'jailer', 'thief'], saboteur: ['jailer', 'thief', 'tracker'], lawyer: ['bailiff', 'sheriff', 'sniper'], werewolf: ['spy', 'don'],
   mafia: ['sheriff', 'doctor', 'journalist', 'tracker'], blackmailer: ['auditor', 'notary', 'tracker', 'jailer', 'thief'], ambassador: ['bailiff', 'sheriff', 'sniper'], provocateur: ['pastor', 'miller', 'tracker', 'jailer', 'thief'],
   treasurer: ['auditor', 'pastor', 'miller', 'jailer', 'thief', 'tracker'], thug: ['jailer', 'thief', 'tracker', 'sheriff'],
-  jailer: ['saboteur', 'spy', 'witch'], thief: ['saboteur', 'witch', 'spy'], monk: ['saboteur', 'witch', 'spy', 'gunsmith'], sheriff: ['don', 'spy', 'balamut', 'saboteur'], doctor: ['executioner', 'arsonist', 'saboteur', 'spy', 'witch'],
+  jailer: ['saboteur', 'spy', 'witch'], thief: ['saboteur', 'witch', 'spy'], monk: ['saboteur', 'witch', 'spy', 'gunsmith'], sheriff: ['don', 'spy', 'balamut', 'saboteur', 'corrupter'], doctor: ['executioner', 'arsonist', 'saboteur', 'spy', 'witch'],
   journalist: ['balamut', 'saboteur', 'spy'], mayor: ['hypnotist', 'blackmailer', 'puppeteer', 'kamikaze'], drunk: ['notary', 'saboteur', 'witch'], altruist: ['blackmailer', 'hypnotist', 'saboteur'], miller: ['provocateur', 'treasurer', 'kamikaze'],
   azazel: ['don', 'kamikaze', 'sniper', 'maniac'], morpheus: ['don', 'kamikaze', 'sniper', 'maniac'], rabbi: ['arsonist', 'gunsmith', 'saboteur', 'witch'], bomb: ['sapper', 'spy'], bodyguard: ['executioner', 'arsonist', 'saboteur', 'witch'],
   judge: ['thug', 'kamikaze', 'don', 'spy'], sniper: ['witch', 'mafia_doctor', 'saboteur'], tracker: ['saboteur', 'witch', 'spy'], avenger: ['executioner', 'arsonist', 'spy'], chairman: ['hypnotist', 'puppeteer', 'blackmailer', 'kamikaze'],
   prosecutor: ['thug', 'lawyer', 'ambassador', 'kamikaze'], notary: ['saboteur', 'witch', 'spy'], pastor: ['saboteur', 'witch', 'spy'], sapper: ['saboteur', 'witch', 'spy'], bailiff: ['thug', 'kamikaze', 'spy'], auditor: ['saboteur', 'witch', 'spy'], citizen: ['don', 'mafia'],
-  maniac: ['jailer', 'thief', 'doctor', 'rabbi', 'bodyguard', 'tracker'], jester: ['judge', 'peacemaker', 'pastor', 'kamikaze', 'don'], witch: ['jailer', 'thief', 'spy', 'tracker'], amnesiac: ['jailer', 'thief', 'spy', 'kamikaze'],
+  maniac: ['jailer', 'thief', 'doctor', 'rabbi', 'bodyguard', 'tracker', 'ninja'], jester: ['judge', 'peacemaker', 'pastor', 'kamikaze', 'don'], witch: ['jailer', 'thief', 'spy', 'tracker'], amnesiac: ['jailer', 'thief', 'spy', 'kamikaze'],
   survivor: ['kamikaze', 'don', 'maniac', 'executioner'], contractor: ['pastor', 'peacemaker', 'judge', 'lawyer'], lobbyist: ['judge', 'lawyer', 'ambassador', 'peacemaker', 'pastor', 'drunk'], gambler: ['judge', 'lawyer', 'ambassador', 'peacemaker', 'pastor', 'drunk'],
-  peacemaker: ['bailiff', 'kamikaze', 'don', 'saboteur', 'witch'], puppeteer: ['notary', 'drunk', 'saboteur', 'witch', 'tracker', 'jailer']
+  peacemaker: ['bailiff', 'kamikaze', 'don', 'saboteur', 'witch'], puppeteer: ['notary', 'drunk', 'saboteur', 'witch', 'tracker', 'jailer'],
+  ninja: ['executioner', 'arsonist', 'kamikaze', 'gunsmith'], corrupter: ['sheriff', 'tracker', 'journalist']
 };
 const COUNTERED_BY = {}; Object.keys(COUNTERS).forEach(id => COUNTERS[id].forEach(c => { (COUNTERED_BY[c] = COUNTERED_BY[c] || []).push(id); }));
+/* ---------- Small table (v50): free scenarios for 5–6 players, a fixed line-up per table size (home menu → «Малый стол»).
+   Line-ups picked and checked by test/montecarlo.js (4000 games each): sim = [city %, the other side %, maniac %, average nights]. ---------- */
+const MINI_MIN = 5, MINI_MAX = 6;
+const MINI = [
+  { id: 'bomb_hunt', free: true, mini: true, min: 5, max: 6, mods: { bombHunt: true }, other: 'bomb',
+    comps: { 5: ['bomb', 'sapper', 'judge', 'azazel', 'morpheus'], 6: ['bomb', 'sapper', 'mayor', 'judge', 'azazel', 'morpheus'] },
+    sim: { 5: [50.5, 49.5, 0, 2], 6: [51.6, 48.5, 0, 2.4] } },
+  { id: 'corruption', free: true, mini: true, min: 5, max: 6, mods: { corruption: true, mafiaMajority: true }, other: 'mafia',
+    comps: { 5: ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac'], 6: ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac', 'ninja'] },
+    sim: { 5: [19.6, 68.4, 12, 1.6], 6: [37.8, 49.8, 12.5, 2.4] } }
+];
+MINI.forEach(sc => {
+  ['name', 'lore', 'rules'].forEach(k => Object.defineProperty(sc, k, { get() { const p = (L.mini && L.mini[sc.id]) || I18N.ru.mini[sc.id]; return p[k]; }, enumerable: true }));
+  SCENARIO[sc.id] = sc;
+});
 /* Build a scenario composition for n players from the balanced preset, swapping scenario roles in by team */
 function scenarioComp(sc, n) {
+  if (sc.comps) return (sc.comps[n] || sc.comps[sc.min]).slice();
   if (sc.comp) return sc.comp.slice();
   n = Math.max(sc.min, Math.min(sc.max, n));
   const comp = presetFor(n);
@@ -4672,6 +4889,17 @@ const P = (g, id) => g.players.find(p => p.id === id);
 const alive = g => g.players.filter(p => p.alive);
 const aliveWith = (g, roleId) => alive(g).filter(p => p.roleId === roleId);
 const isBlack = p => ROLE[p.roleId].team === 'black';
+/* Corrupter (v50): a recruited player keeps their card but plays for the mafia until the game ends or they leave */
+const onMafiaSide = p => isBlack(p) || !!p.recruitedBy;
+const liveRecruitOf = (g, corrId) => alive(g).find(p => p.recruitedBy === corrId) || null;
+/* which side a player plays for in this game (recruits — mafia; the Bomb of the bomb hunt — itself) */
+function playSideOf(g, p) {
+  if (p.recruitedBy) return 'mafia';
+  if (g.mods && g.mods.bombHunt && p.roleId === 'bomb') return 'bomb';
+  return ROLE[p.roleId].side;
+}
+/* a recruit may not vote against the corrupter who bought them */
+const voteAllowed = (g, voterId, candId) => { const v = P(g, voterId); return !(v && v.recruitedBy && v.recruitedBy === candId); };
 const label = p => `${p.seat} · ${p.name}`;
 function families(g) { return g.twoFamilies ? ['A', 'B'] : [null]; }
 function familyMembers(g, fam) {
@@ -4711,6 +4939,7 @@ function buildNight0Steps(g) {
   const steps = [];
   families(g).forEach(fam => {
     const m = familyMembers(g, fam);
+    if (m.length && m.every(p => p.roleId === 'corrupter')) return; // a lone Corrupter wakes on his own step below
     if (m.length) steps.push({ id: uid(), type: 'meet', title: familyName(fam), roleId: 'don', members: m, fam,
       script: tt(L.e.night0Family, { family: familyNameLc(fam) }) });
   });
@@ -4719,6 +4948,7 @@ function buildNight0Steps(g) {
     if (m.length) steps.push({ id: uid(), type: 'meet', title: ROLE[rid].name, roleId: rid, members: m,
       script: tt(L.e.night0Role, { role: ROLE[rid].name, tail: ROLE[rid].wake ? L.e.night0Active : L.e.night0Passive }) });
   });
+  aliveWith(g, 'corrupter').forEach(c => steps.push({ id: uid(), type: 'act', roleId: 'corrupter', actorId: c.id, ability: 'recruit', targets: 1, allowSelf: false, script: L.e.recruitScript0 }));
   return steps;
 }
 
@@ -4729,6 +4959,7 @@ function buildNightSteps(g) {
     const m = familyMembers(g, fam);
     const blacks = m.filter(isBlack);
     if (!blacks.length) return;
+    if (blacks.every(p => p.roleId === 'corrupter') && !m.some(p => p.roleId === 'werewolf')) return; // the Corrupter does not shoot
     const shooter = shooterOf(g, fam);
     if (shooter) {
       const two = gunsmithNight(g, fam);
@@ -4758,6 +4989,7 @@ function buildNightSteps(g) {
     const th = blacks.find(p => p.roleId === 'thug'); if (th) steps.push(act('thug', th, { fam, script: L.e.script4.thug }));
   });
   const one = (rid, extra) => aliveWith(g, rid).forEach(p => steps.push(act(rid, p, extra)));
+  aliveWith(g, 'corrupter').filter(c => !liveRecruitOf(g, c.id)).forEach(c => steps.push(act('corrupter', c, { fam: c.family || null, script: L.e.recruitScript })));
   one('maniac', { script: L.e.script.maniac });
   one('witch', { targets: 2, script: L.e.script2.witch });
   aliveWith(g, 'amnesiac').filter(p => !p.remembered).forEach(p => steps.push(act('amnesiac', p, { deadTargets: true, script: L.e.script2.amnesiac })));
@@ -4794,6 +5026,8 @@ function stepTargets(g, step) {
     let ok = true, why = '';
     if (step.roleId === 'jailer' && p.id === actor.lastJail) { ok = false; why = L.e.whyJailLast; }
     if (p.id === actor.id && !step.allowSelf) { ok = false; why = L.e.why.self; }
+    if (actor.recruitedBy && p.id === actor.recruitedBy && (['shoot', 'execute', 'snipe'].includes(step.ability) || (step.modes && step.modes.includes('shoot')))) { ok = false; why = L.e.whyRecruiter; }
+    if (step.ability === 'recruit' && p.id !== actor.id && onMafiaSide(p)) { ok = false; why = L.e.whyMafiaAlready; }
     if (step.roleId === 'mafia_doctor') {
       if (!isBlack(p) || (g.twoFamilies && p.family !== actor.family)) { ok = false; why = L.e.why.family; }
       if (p.id === actor.lastHeal) { ok = false; why = L.e.why.healedLast; }
@@ -4854,6 +5088,8 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'compare') { const r = compareResult(g, targets[0], targets[1]); result = { kind: 'same', same: r.same }; }
   if (ability === 'spy') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
   if (ability === 'findSheriff') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'sheriff', yes: t.roleId === 'sheriff', who: t }; }
+  if (ability === 'recruit') { const t = P(g, targets[0]); t.recruitedBy = actor.id; t.recruitedOn = g.night; result = { kind: 'text', text: tt(L.e.recruitDone, { target: label(t), actor: label(actor) }) }; }
+  if (ability === 'defuse' && g.mods && g.mods.bombHunt) { const t = P(g, targets[0]); result = { kind: 'text', text: tt(t.roleId === 'bomb' ? L.e.bhFound : L.e.bhNotFound, { target: label(t) }) }; }
   if (ability === 'execute') actor.executeUsed = true;
   if (ability === 'snipe') actor.snipeUsed = true;
   if (ability === 'ignite') { actor.igniteUsed = true; result = { kind: 'text', text: g.doused.filter(id => P(g, id).alive).length ? tt(L.e.igniteDone, { list: g.doused.filter(id => P(g, id).alive).map(id => label(P(g, id))).join(', ') }) : L.e.igniteNone }; }
@@ -4892,6 +5128,7 @@ function eliminate(g, id, cause, out = []) {
   out.push({ id, cause });
   addLog(g, tt(L.e.eliminated, { player: label(p), role: ROLE[p.roleId].name, cause }));
   if (p.roleId === 'bomb' && !p.defused) {
+    g.bombBlew = p.id;
     const ex = out.map(o => o.id).concat([id]);
     const l = nearestAlive(g, p.seat, -1, ex);
     const r = nearestAlive(g, p.seat, +1, ex.concat(l ? [l.id] : []));
@@ -4948,6 +5185,7 @@ function resolveNight(g) {
   const dead = []; const shotLog = [];
   const avenged = []; const attacked = new Set(); const savedBy = {};
   const out = (a, t, v) => { a.outcome = a.outcome || {}; a.outcome[t] = v; };
+  const dodged = new Set(); // Ninja: the first shot of the night misses
   list.filter(a => a.ability === 'shoot' || a.ability === 'execute' || a.ability === 'snipe').forEach(a => {
     const lethal = a.ability === 'execute';
     a.targets.forEach(t => {
@@ -4964,6 +5202,7 @@ function resolveNight(g) {
         [t, ...protectedIds].forEach(x => { if (!dead.includes(x)) dead.push(x); });
         return;
       }
+      if (tp.roleId === 'ninja' && !lethal && !dodged.has(t)) { dodged.add(t); shotLog.push(tt(L.e.ninjaDodge, pr)); out(a, t, 'dodged'); return; }
       if (healed.has(t) && !lethal) { shotLog.push(a.ability === 'snipe' ? tt(L.e.snipeHealed, pr) : tt(L.e.shotHealed, pr)); out(a, t, 'healed'); return; }
       shotLog.push(lethal ? tt(L.e.execHit, { target: label(tp), tail: healed.has(t) ? L.e.execHealTail : '' }) : a.ability === 'snipe' ? tt(L.e.snipeHit, pr) : tt(L.e.shotHit, pr));
       out(a, t, 'hit');
@@ -5039,6 +5278,7 @@ function effectiveVotes(g) {
   const b = g.ballot; const eff = {};
   Object.keys(b.votes).forEach(v => {
     let to = b.votes[v];
+    if (!voteAllowed(g, v, to)) return;
     if (!fxOn(g, 'certified', v)) {
       const h = g.effects.hypno[v]; if (h && h.day === g.day && alive(g).some(p => p.id === h.to)) to = h.to;
       const f = FX(g, 'follow')[v]; if (f && f.day === g.day) { const master = P(g, f.by); if (master && master.alive && b.votes[f.by]) to = b.votes[f.by]; }
@@ -5090,15 +5330,28 @@ function useProsecutor(g, prosecutorId, candId) {
 }
 
 /* ---------- Win check ---------- */
-function checkWin(g) {
+/* Bomb hunt (v50): only the Sapper can defuse the Bomb at night. Voting out a defused Bomb — the city wins; an undefused one explodes — the city lost.
+   Two left: the Sapper with the Bomb — the Sapper wins; anyone else with the Bomb — the city lost. The Sapper gone and the Bomb live — nobody can defuse it. */
+function bombHuntWin(g) {
+  const bomb = g.players.find(p => p.roleId === 'bomb'); if (!bomb) return null;
   const al = alive(g);
-  const blacks = al.filter(isBlack);
-  const others = al.filter(p => !isBlack(p));
+  const city = text => ({ side: 'city', title: L.e.bhCityTitle, text });
+  const boom = text => ({ side: 'bomb', title: L.e.bhBombTitle, text });
+  if (!bomb.alive) return bomb.defused ? city(tt(L.e.bhDefusedOut, { player: label(bomb) })) : boom(tt(L.e.bhExploded, { player: label(bomb) }));
+  if (al.length <= 2) { const other = al.find(p => p.id !== bomb.id); return other && other.roleId === 'sapper' ? city(L.e.bhDuelSapper) : boom(L.e.bhDuelCitizen); }
+  if (!bomb.defused && !al.some(p => p.roleId === 'sapper')) return boom(L.e.bhNoSapper);
+  return null;
+}
+function checkWin(g) {
+  if (g.mods && g.mods.bombHunt) return bombHuntWin(g);
+  const al = alive(g);
+  const blacks = al.filter(onMafiaSide);
+  const others = al.filter(p => !onMafiaSide(p));
   const maniac = al.find(p => p.roleId === 'maniac');
   if (maniac && al.length <= 2 && blacks.length === 0) return { side: 'maniac', title: L.e.winManiac, text: tt(L.e.winManiacText, { player: label(maniac) }) };
   if (blacks.length === 0) return { side: 'city', title: L.e.winCity, text: maniac ? L.e.winCityManiac : L.e.winCityText };
   if (!g.twoFamilies) {
-    if (blacks.length >= others.length) return { side: 'mafia', title: L.e.winMafia, text: L.e.winMafiaText };
+    if (g.mods && g.mods.mafiaMajority ? blacks.length > others.length : blacks.length >= others.length) return { side: 'mafia', title: L.e.winMafia, text: L.e.winMafiaText };
     return null;
   }
   const A = blacks.filter(p => p.family === 'A'), B = blacks.filter(p => p.family === 'B');
@@ -5297,7 +5550,7 @@ function rouletteGuess(g, n) {
    (and stops being one when nobody votes for him any more, unless he was nominated on purpose) */
 function castVote(g, voterId, candId) {
   const b = g.ballot; const v = P(g, voterId); const c = P(g, candId);
-  if (!b || !v || !c || !v.alive || !c.alive || voterId === candId || !canVoteNow(g, voterId)) return false;
+  if (!b || !v || !c || !v.alive || !c.alive || voterId === candId || !canVoteNow(g, voterId) || !voteAllowed(g, voterId, candId)) return false;
   const prev = b.votes[voterId];
   if (prev === candId) { delete b.votes[voterId]; dropAutoCand(g, candId); return true; }
   if (!b.candidates.includes(candId)) {
@@ -5495,6 +5748,7 @@ function render() {
     case 'game': html = S.game ? (S.game.winner ? endScreen() : gameScreen()) : homeScreen(); break;
     case 'cards': html = cardsScreen(); break;
     case 'scenarios': html = scenariosScreen(); break;
+    case 'mini': html = miniScreen(); break;
     case 'settings': html = settingsScreen(); break;
     case 'profiles': html = profilesScreen(); break;
     case 'myprofile': html = myProfileScreen(); break;
@@ -5591,6 +5845,7 @@ function homeScreen() {
     <button class="menu-item ${cont ? '' : 'primary'}" data-a="new"><div class="ico">${I.plus}</div><div><div class="t">${u.roleGame}</div><div class="d">${u.newGameD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="scen-use" data-id="classic"><div class="ico">${I.users}</div><div><div class="t">${u.classicTitle}</div><div class="d">${u.classicSub}</div></div><span class="chev">${I.chev}</span></button>
     ${typeof tablesMenuItemHTML === 'function' ? tablesMenuItemHTML() : ''}
+    <button class="menu-item" data-a="go" data-to="mini"><div class="ico">${I.person}</div><div><div class="t">${u.miniMenu}</div><div class="d">${u.miniMenuD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="cards"><div class="ico">${I.cards}</div><div><div class="t">${u.cardsTitle}</div><div class="d">${tt(u.cardsD, { n: ROLES.length, roles: plural(ROLES.length, 'roles') })}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="scenarios"><div class="ico">${I.scen}</div><div><div class="t">${u.scenTitle}</div><div class="d">${u.scenD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
@@ -5620,13 +5875,16 @@ function setupScreen() {
   const dons = cnt('don');
   const sc = st.scenario ? SCENARIO[st.scenario] : null;
   // classic: the line-up is the sport one and cannot be edited — a plain list instead of the +/− editor
-  const fixedRows = st.scenario === 'classic' ? `<div class="comp-group"><div class="comp">${['don', 'mafia', 'sheriff', 'citizen'].filter(id => ROLE[id]).map(id => `<div class="comp-row">${sealHTML(ROLE[id])}<div><div class="n">${ROLE[id].name}</div><div class="s">${ROLE[id].short}</div></div><div class="ctl"><span class="c">${cnt(id)}</span></div></div>`).join('')}</div></div><p class="hint">${u.compFixed}</p>` : '';
+  const mini = !!(sc && sc.mini); // small-table scenarios: a fixed line-up for 5 or 6, like the classic
+  const fixedIds = st.scenario === 'classic' ? ['don', 'mafia', 'sheriff', 'citizen'] : mini ? [...new Set(st.comp)] : [];
+  const fixedRows = fixedIds.length ? `<div class="comp-group"><div class="comp">${fixedIds.filter(id => ROLE[id]).map(id => `<div class="comp-row">${sealHTML(ROLE[id])}<div><div class="n">${ROLE[id].name}</div><div class="s">${ROLE[id].short}</div></div><div class="ctl"><span class="c">${cnt(id)}</span></div></div>`).join('')}</div></div><p class="hint">${u.compFixed}</p>` : '';
   const twoFrom = sc && sc.mods.twoFamiliesFrom ? sc.mods.twoFamiliesFrom : TWO_FAMILIES_FROM;
   const two2 = st.n >= twoFrom;
   const unowned = unownedInComp(st.comp);
   let warn = '';
   if (unowned.length) warn = `<div class="warnbox">${tt(u.lockedInComp, { list: unowned.map(id => ROLE[id].name).join(', ') })}</div>`;
   else if (stats.total !== st.n) warn = `<div class="warnbox">${tt(u.warnCount, { total: stats.total, n: st.n, verb: stats.total < st.n ? u.addVerb : u.removeVerb, diff: Math.abs(stats.total - st.n) })}</div>`;
+  else if (mini) { const s5 = sc.sim[st.n]; warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n) }) : ''}</div>`; }
   else if (two2 && dons !== 2) warn = `<div class="warnbox">${tt(u.warnTwoDons, { n: twoFrom })}</div>`;
   else if (!two2 && dons !== 1) warn = `<div class="warnbox">${u.warnOneDon}</div>`;
   else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
@@ -5637,8 +5895,8 @@ function setupScreen() {
     const neut = st.comp.includes('maniac') ? u.okManiac : stats.neutral ? tt(u.okNeutralN, { n: stats.neutral }) : '';
     warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc || intro ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
   }
-  const ok = !unowned.length && stats.total === st.n && (two2 ? dons === 2 : dons === 1);
-  const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div>${sc.free ? '' : `<button class="btn xs ghost" data-a="scen-clear">×</button>`}</div></div>` : '';
+  const ok = !unowned.length && stats.total === st.n && (mini || (two2 ? dons === 2 : dons === 1));
+  const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.mini ? u.miniMenu : sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div>${sc.free ? '' : `<button class="btn xs ghost" data-a="scen-clear">×</button>`}</div></div>` : '';
   const sp = hostOffSeats();
   const names = Array.from({ length: st.n }, (_, i) => {
     const pr = sp[i] ? profById(sp[i]) : null;
@@ -5649,7 +5907,7 @@ function setupScreen() {
   const seatable = S.profiles.filter(pr => pr.id !== S.meId); // the host runs the game and never takes a seat
   const chips = `${seatable.length ? `<div class="prof-chips">${seatable.map(pr => { const used = sp.includes(pr.id); return `<button class="prof-chip ${used ? 'used' : ''}" data-a="seat-assign" data-id="${pr.id}">${avatarHTML(pr, 'xs')}${esc(pr.name)}</button>`; }).join('')}<button class="prof-chip" data-a="prof-new" style="border-style:dashed">+ ${u.newProfile}</button></div><p class="hint">${u.seatHint2}</p>` : `<p class="hint">${u.noProfilesHint}</p><button class="btn sm ghost" data-a="prof-new" style="align-self:flex-start">+ ${u.newProfile}</button>`}`;
   const classic = st.scenario === 'classic'; // classic is always a table of 10: no player-count chooser
-  return `${topbar(classic ? u.classicTitle : u.roleGame, classic ? u.classicSub : u.setupSub)}
+  return `${topbar(classic ? u.classicTitle : mini ? sc.name : u.roleGame, classic ? u.classicSub : mini ? u.miniSub : u.setupSub)}
   <div class="stack">
     ${scenBanner}
     ${openRolesHTML()}
@@ -5663,8 +5921,8 @@ function setupScreen() {
     </div>
     ${statsBar(stats)}
     ${warn}
-    <div class="row"><h2 class="grow">${u.composition}</h2>${classic ? '' : `<button class="btn xs ghost" data-a="preset">${u.resetPreset}</button>`}</div>
-    ${classic ? fixedRows : rows}
+    <div class="row"><h2 class="grow">${u.composition}</h2>${classic || mini ? '' : `<button class="btn xs ghost" data-a="preset">${u.resetPreset}</button>`}</div>
+    ${classic || mini ? fixedRows : rows}
     <h2>${u.names}</h2>
     <p class="hint">${u.namesHint}</p>
     ${typeof setupLobbyHTML === 'function' ? setupLobbyHTML(st) : ''}
@@ -5714,6 +5972,7 @@ function playerRow(g, p, withRole, extra = '') {
   if (p.fouls) tags.push(`<span class="pill ${p.fouls >= 3 ? 'gold' : ''}">${tt(u.foulsN, { n: p.fouls })}</span>`);
   if (g.phase === 'day' && fxOn(g, 'intimidated', p.id)) tags.push(`<span class="pill">${u.tagIntimidated}</span>`);
   if (p.defused || (g.phase === 'day' && fxOn(g, 'defused', p.id))) tags.push(`<span class="pill">${u.tagDefused}</span>`);
+  if (withRole && p.recruitedBy) tags.push(`<span class="pill">${u.tagRecruited} · ${P(g, p.recruitedBy) ? P(g, p.recruitedBy).seat : ''}</span>`);
   if (p.judgeUsed) tags.push(`<span class="pill">${u.tagVetoUsed}</span>`);
   if (p.executeUsed) tags.push(`<span class="pill">${u.tagExecUsed}</span>`);
   return `<button class="pl ${p.alive ? '' : 'dead'}" data-a="player" data-id="${p.id}"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div>${withRole ? `<div class="r">${r.name}</div>` : ''}</div><div class="tags">${tags.join('')}${extra}</div></button>`;
@@ -5916,7 +6175,7 @@ function voteBody(g) {
     const open = S.ui.vtOpen && voters.some(v => v.id === S.ui.vtOpen) ? S.ui.vtOpen : (!cands.length && curV ? curV.id : null);
     const rows = voters.map(v => {
       const mine = b.votes[v.id]; const w = voteWeight(g, v.id);
-      const chips = cands.filter(c => c !== v.id).map(cid => `<button class="vt-c ${mine === cid ? 'sel' : ''}" data-a="vt-pick" data-v="${v.id}" data-c="${cid}" aria-label="${esc(P(g, cid).name)}">${P(g, cid).seat}</button>`).join('');
+      const chips = cands.filter(c => c !== v.id && voteAllowed(g, v.id, c)).map(cid => `<button class="vt-c ${mine === cid ? 'sel' : ''}" data-a="vt-pick" data-v="${v.id}" data-c="${cid}" aria-label="${esc(P(g, cid).name)}">${P(g, cid).seat}</button>`).join('');
       const others = free ? al.filter(p => p.id !== v.id && !cands.includes(p.id) && canNominate(g, p.id)) : [];
       const more = others.length ? `<button class="vt-c more ${open === v.id ? 'on' : ''}" data-a="vt-more" data-v="${v.id}" aria-label="${u.vtOther}">${cands.length ? '+' : u.vtPick}</button>` : '';
       const list = open === v.id && others.length ? `<div class="vt-more">${others.map(p => `<button class="vt-c" data-a="vt-pick" data-v="${v.id}" data-c="${p.id}" aria-label="${esc(p.name)}">${p.seat}</button>`).join('')}</div>` : '';
@@ -6161,6 +6420,38 @@ function classicCardHTML() {
     ${open ? `<ul class="rules">${u.classicRules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
     <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="classic-rules">${u.classicRulesTitle}</button><button class="btn primary sm grow" data-a="scen-use" data-id="classic">${u.playClassic}</button></div></div>`;
 }
+/* ---------- Small table (v50): scenarios for 5–6 players ---------- */
+function miniN() { const n = S.ui.miniN || 6; return Math.max(MINI_MIN, Math.min(MINI_MAX, n)); }
+function miniSimLine(sc, n) {
+  const u = U(); const s = sc.sim[n]; if (!s) return '';
+  const parts = [tt(u.simCity, { v: s[0] }), sc.other === 'bomb' ? tt(u.simBomb, { v: s[1] }) : tt(u.simMafia, { v: s[1] })];
+  if (s[2]) parts.push(tt(u.simManiac, { v: s[2] }));
+  return parts.join(' · ');
+}
+function miniCardHTML(sc, n) {
+  const u = U(); const comp = scenarioComp(sc, n); const st = compositionStats(comp); const open = S.ui.miniRules === sc.id;
+  const roles = comp.map(id => `<span class="ri" title="${ROLE[id].name}">${roleArt(id, 'portrait')}</span>`).join('');
+  const s = sc.sim[n];
+  return `<div class="scen-card mini"><div class="row"><span class="premium-pill classic">${tt(u.miniPlayers || '{n}', { n })}</span><div class="t grow">${sc.name}</div></div>
+    <div class="l">${sc.lore}</div>
+    <div class="roles">${roles}</div>
+    <div class="m">${tt(u.miniCards, { list: comp.map(id => ROLE[id].name).join(', ') })}</div>
+    ${statsBar(st)}
+    ${s ? `<div class="m sim">${tt(u.miniSim, { line: miniSimLine(sc, n), nights: s[3] })}</div>` : ''}
+    ${open ? `<ul class="rules">${sc.rules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
+    <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="mini-rules" data-id="${sc.id}">${u.miniRules}</button><button class="btn primary sm grow" data-a="mini-use" data-id="${sc.id}" data-n="${n}">${u.miniUse}</button></div></div>`;
+}
+function miniScreen() {
+  const u = U(); const n = miniN();
+  const seg = `<div class="segment n2">${[MINI_MIN, MINI_MAX].map(k => `<button class="${k === n ? 'active' : ''}" data-a="mini-n" data-n="${k}">${tt(u.miniPlayers, { n: k })}</button>`).join('')}</div>`;
+  return `${topbar(u.miniTitle, u.miniSub)}
+  <div class="stack">
+    <p class="hint">${u.miniHint}</p>
+    <div class="eyebrow">${u.miniPick}</div>
+    ${seg}
+    <div class="stack-s">${MINI.map(sc => miniCardHTML(sc, n)).join('')}</div>
+  </div>`;
+}
 /* Intro scenarios for beginners (v43): a player-count chooser and five starter line-ups for that table */
 function introN() { const n = S.ui.introN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
 function introCardHTML(sc) {
@@ -6277,15 +6568,18 @@ const ACT = {
   tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
-  back() { if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
+  back() { if (S.screen === 'setup' && S.setup.scenario && SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini) { S.screen = 'mini'; } else if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },
   new() { S.setup.scenario = null; if (S.setup.n < MIN_PLAYERS || S.setup.n > MAX_PLAYERS) S.setup.n = 10; S.setup.comp = presetFor(S.setup.n); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   continue() { go('game'); },
   n(el) { const d = +el.dataset.d; setN(S.setup.n + d); },
   nrange(el) { setN(+el.value); },
   name(el) { S.setup.names[+el.dataset.i] = el.value; save(); },
-  comp(el) { if (S.setup.scenario === 'classic') return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
-  preset() { if (S.setup.scenario === 'classic') return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
+  comp(el) { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
+  preset() { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
+  'mini-n'(el) { S.ui.miniN = +el.dataset.n; render(); },
+  'mini-rules'(el) { S.ui.miniRules = S.ui.miniRules === el.dataset.id ? null : el.dataset.id; render(); },
+  'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN()); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
   'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
@@ -6327,7 +6621,7 @@ const ACT = {
     S.ui.pick = []; render();
   },
   skip() { const g = S.game; const step = g.steps[g.stepIdx]; addLog(g, tt(L.e.logSkip, { role: ROLE[step.roleId].name, player: label(P(g, step.actorId)) }), true); ACT.next(); },
-  undo() { const g = S.game; const step = g.steps[g.stepIdx]; const a = g.actions.find(x => x.stepId === step.id); if (a && a.ability === 'execute') P(g, a.actorId).executeUsed = false; if (a && a.ability === 'snipe') P(g, a.actorId).snipeUsed = false; if (a && a.ability === 'ignite') P(g, a.actorId).igniteUsed = false; if (a && a.ability === 'douse') g.doused = g.doused.filter(x => x !== a.targets[0]); if (a && a.ability === 'remember') return; g.actions = g.actions.filter(x => x.stepId !== step.id); S.ui.result = null; S.ui.pick = []; render(); },
+  undo() { const g = S.game; const step = g.steps[g.stepIdx]; const a = g.actions.find(x => x.stepId === step.id); if (a && a.ability === 'execute') P(g, a.actorId).executeUsed = false; if (a && a.ability === 'snipe') P(g, a.actorId).snipeUsed = false; if (a && a.ability === 'ignite') P(g, a.actorId).igniteUsed = false; if (a && a.ability === 'douse') g.doused = g.doused.filter(x => x !== a.targets[0]); if (a && a.ability === 'remember') return; if (a && a.ability === 'recruit') { const t = P(g, a.targets[0]); if (t && t.recruitedBy === a.actorId) { delete t.recruitedBy; delete t.recruitedOn; } } g.actions = g.actions.filter(x => x.stepId !== step.id); S.ui.result = null; S.ui.pick = []; render(); },
   resolve() { const g = S.game; undoTake('night', () => { resolveNight(g); startDay(g); }); S.ui.pick = []; window.scrollTo(0, 0); render(); },
   day0() { const g = S.game; undoTake('night', () => { if (isClassic(g)) startDay(g); else startDay0(g); }); window.scrollTo(0, 0); render(); },
   night() { undoTake('day', () => startNight(S.game)); S.ui.pick = []; S.ui.result = null; window.scrollTo(0, 0); render(); },
@@ -6353,7 +6647,7 @@ const ACT = {
     render();
   },
   cand(el) { const g = S.game; if (!canNominate(g, el.dataset.id) || g.ballot.candidates.includes(el.dataset.id)) return; g.ballot.candidates.push(el.dataset.id); S.ui.candPick = false; render(); },
-  'vt-pick'(el) { const g = S.game; const id = el.dataset.v; if (!castVote(g, id, el.dataset.c)) return; S.ui.vtOpen = null; voterSet(g, voteOrder(g).findIndex(v => v.id === id)); if (g.ballot.votes[id]) voterAdvance(g); render(); },
+  'vt-pick'(el) { const g = S.game; const id = el.dataset.v; if (!voteAllowed(g, id, el.dataset.c)) { toast(U().voteRecruitBlocked); return; } if (!castVote(g, id, el.dataset.c)) return; S.ui.vtOpen = null; voterSet(g, voteOrder(g).findIndex(v => v.id === id)); if (g.ballot.votes[id]) voterAdvance(g); render(); },
   'vt-more'(el) { const id = el.dataset.v; S.ui.vtOpen = S.ui.vtOpen === id ? null : id; render(); },
   'vote-open'(el) { S.ui.voteOpen = S.ui.voteOpen === el.dataset.id ? null : el.dataset.id; render(); },
   'vote-remove'(el) { const b = S.game.ballot; if ((b.forced || []).includes(el.dataset.id)) return; b.candidates = b.candidates.filter(c => c !== el.dataset.id); b.auto = (b.auto || []).filter(c => c !== el.dataset.id); Object.keys(b.votes).forEach(v => { if (b.votes[v] === el.dataset.id) delete b.votes[v]; }); render(); },
@@ -6571,7 +6865,10 @@ function finishGame(g, w) {
 function resultFor(g, p, w) {
   const role = ROLE[p.roleId]; const side = role.side;
   let won = false, solo = false; const extra = g.extraWinners || [];
-  if (p.roleId === 'jester') { won = g.jesterWon === p.id; solo = won; }
+  const ps = typeof playSideOf === 'function' ? playSideOf(g, p) : side;
+  if (ps === 'bomb') { won = w.side === 'bomb'; solo = won; }
+  else if (p.recruitedBy) won = w.side === 'mafia';
+  else if (p.roleId === 'jester') { won = g.jesterWon === p.id; solo = won; }
   else if (['survivor', 'contractor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer'].includes(p.roleId)) { won = extra.includes(p.id) || (p.roleId === 'survivor' && p.alive) || (p.roleId === 'peacemaker' && p.alive) || (p.roleId === 'lobbyist' && (p.lobbyHits || 0) >= 3) || (p.roleId === 'gambler' && (p.betHits || 0) >= 2); solo = won; }
   else if (p.roleId === 'witch') won = w.side === 'mafia';
   else if (p.roleId === 'amnesiac') won = w.side === 'city';
@@ -6771,6 +7068,7 @@ const RV = { vote: 2, kill: 3, heal: 3, info: 2, ctl: 2, day: 4, key: 1, min: -2
 const KEY_CITY = ['sheriff', 'doctor', 'journalist', 'bodyguard', 'jailer', 'sniper', 'tracker', 'mayor'];
 const KEY_MAFIA = ['don'];
 function campOf(p, roleId) {
+  if (!roleId && p && p.recruitedBy) return 'mafia';
   const r = ROLE[roleId || p.roleId];
   if (r.id === 'maniac') return 'maniac';
   if (r.side === 'self') return 'self';
@@ -7061,7 +7359,7 @@ function sendResult(g, w) {
     const pr = p.profileId ? profById(p.profileId) : null;
     const tgId = (pr && pr.tgId) || (g.tg && g.tg.map && Object.keys(g.tg.map).find(k => g.tg.map[k] === p.seat)) || null;
     const { won, solo } = resultFor(g, p, w); const useful = g.useful && g.useful[p.id] ? g.useful[p.id] : 0;
-    const role = ROLE[p.roleId]; const side = role ? (role.side === 'mafia' ? 'mafia' : role.side === 'city' ? 'city' : 'neutral') : 'city';
+    const role = ROLE[p.roleId]; const ps = role ? playSideOf(g, p) : 'city'; const side = ps === 'mafia' ? 'mafia' : ps === 'city' ? 'city' : 'neutral';
     return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
   api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
@@ -7732,7 +8030,7 @@ function onlState(g) { return g.onl = g.onl || { proposals: {}, results: {}, lif
 function buildAsks(g) {
   const asks = {}; if (!g || !g.tg || !g.dealt || g.winner) return asks;
   const tgOf = p => seatTg(g, p.seat); const onl = onlState(g);
-  if (g.phase === 'night') {
+  if (g.phase === 'night' || g.phase === 'night0') { // night 0: only the Corrupter acts (recruitment)
     const step = g.steps[g.stepIdx]; if (!step || step.type !== 'act') return asks;
     const actor = P(g, step.actorId); const key = `${phaseTag(g)}:s${g.stepIdx}:${step.id}`;
     const recorded = g.actions.find(a => a.stepId === step.id);
@@ -7754,7 +8052,7 @@ function buildAsks(g) {
     if (p && !fxOn(g, 'intimidated', p.id) && !(p.fouls >= 3)) { const id = tgOf(p); const key = `${tag}:nom:${p.id}`; const mine = b.nominatedBy && b.nominatedBy[p.id]; if (id) asks[id] = { key, kind: 'nominate', need: 1, optional: true, targets: alive(g).filter(x => x.id !== p.id && !(b.candidates || []).includes(x.id) && canNominate(g, x.id)).map(x => ({ seat: x.seat, ok: true })), done: !!mine || !!onl.nomSkip[key], picked: mine ? [P(g, mine).seat] : null }; }
   }
   if (st === 'vote' && b.candidates && b.candidates.length && voteOutcome(g).kind !== 'skip1') {
-    alive(g).filter(v => canVoteNow(g, v.id)).forEach(v => { const id = tgOf(v); if (!id) return; const cands = b.candidates.filter(c => c !== v.id); if (!cands.length) return; asks[id] = { key: `${tag}:vote:r${b.round || 1}`, kind: 'vote', need: 1, targets: cands.map(c => ({ seat: P(g, c).seat, ok: true })), done: !!b.votes[v.id], picked: b.votes[v.id] ? [P(g, b.votes[v.id]).seat] : null, round: b.round || 1 }; });
+    alive(g).filter(v => canVoteNow(g, v.id)).forEach(v => { const id = tgOf(v); if (!id) return; const cands = b.candidates.filter(c => c !== v.id && voteAllowed(g, v.id, c)); if (!cands.length) return; asks[id] = { key: `${tag}:vote:r${b.round || 1}`, kind: 'vote', need: 1, targets: cands.map(c => ({ seat: P(g, c).seat, ok: true })), done: !!b.votes[v.id], picked: b.votes[v.id] ? [P(g, b.votes[v.id]).seat] : null, round: b.round || 1 }; });
   }
   if (st === 'lift' && b.lift) { const key = `${tag}:lift`; alive(g).forEach(v => { const id = tgOf(v); if (!id) return; const answered = onl.lift[key] && onl.lift[key][id] !== undefined; asks[id] = { key, kind: 'lift', yes: b.lift.yes.includes(v.id), done: !!answered, ids: b.lift.ids.map(x => P(g, x).seat) }; }); }
   if (st === 'roulette' && b.roulette && !b.roulette.hitId) { const cur = rouletteCurrent(g); const id = cur && tgOf(cur); if (id) asks[id] = { key: `${tag}:rou:${b.roulette.turn}`, kind: 'roulette', used: b.roulette.guesses.map(x => x.n), done: false }; }
@@ -7840,7 +8138,9 @@ function tablePriv(g) {
   g.players.forEach(p => {
     const id = seatTg(g, p.seat); if (!id) return;
     const mates = (isBlack(p) || p.roleId === 'werewolf') ? familyMembers(g, g.twoFamilies ? p.family : null).filter(m => m.id !== p.id).map(m => ({ seat: m.seat, name: m.name, roleId: m.roleId })) : [];
-    priv[id] = { seat: p.seat, roleId: p.roleId, family: p.family || null, alive: p.alive, mates, contract: p.contractId && P(g, p.contractId) ? P(g, p.contractId).seat : null, ask: asks[id] || null, results: onl.results[id] || [] };
+    const buyer = p.recruitedBy && p.alive ? P(g, p.recruitedBy) : null; // the Corrupter and his recruit know each other (not the recruit's card)
+    const recruits = p.roleId === 'corrupter' ? g.players.filter(x => x.recruitedBy === p.id && x.alive).map(x => ({ seat: x.seat, name: x.name })) : [];
+    priv[id] = { seat: p.seat, roleId: p.roleId, family: p.family || null, alive: p.alive, mates, contract: p.contractId && P(g, p.contractId) ? P(g, p.contractId).seat : null, recruitedBy: buyer ? { seat: buyer.seat, name: buyer.name } : null, recruits, ask: asks[id] || null, results: onl.results[id] || [] };
   });
   return priv;
 }
@@ -8055,7 +8355,7 @@ function tableScreen() {
       <div class="hint" style="text-align:center">${mySeat ? tt(u.tgSeated, { seat: mySeat }) : u.tbNoSeat}</div>
       ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, false) : ''}
       ${card}${mates}
-      ${me && me.contract ? `<div class="quiet">${tt(u.tbContract, { seat: me.contract })}</div>` : ''}
+      ${me && me.contract ? `<div class="quiet">${tt(u.tbContract, { seat: me.contract })}</div>` : ''}${recruitNoteHTML(me)}
       <div class="btn-row" style="justify-content:center">${d.isHost ? '' : `<button class="btn ghost sm" data-a="tb-leave" data-code="${esc(TB.code)}">${u.tbLeaveTable}</button>`}<button class="btn ghost sm" data-a="go" data-to="home">${u.tbLeaveBtn}</button></div></div>`;
   }
   // ----- the game, as seen by a living player
@@ -8084,7 +8384,7 @@ function tableScreen() {
     ${roundTableHTML(seats, profiles, center, marks)}
     ${ask ? tbAskHTML(ask, seats) : ''}${waiting}
     ${body}
-    ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}
+    ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}${recruitNoteHTML(me)}
     ${results}
     ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, true) : ''}
     ${pub.online ? tbChatHTML(pub, me) : ''}
@@ -8104,6 +8404,13 @@ function showInvites() {
   const list = (S.cloud && S.cloud.invites) || []; if (!list.length || S.ui.sheet) return;
   const inv = list.find(i => !TB.dismissed.has(i.code) && !(S.screen === 'table' && TB.code === i.code) && !(S.game && S.game.tg && S.game.tg.code === i.code)); if (!inv) return;
   S.ui.sheet = { type: 'tableInvite', code: inv.code }; tgHaptic('warning'); render();
+}
+/* Corrupter (v50): the recruit sees who bought them, the Corrupter sees his recruit */
+function recruitNoteHTML(me) {
+  const u = U(); if (!me) return '';
+  if (me.recruitedBy) return `<div class="warnbox">${tt(u.tbRecruited, { seat: me.recruitedBy.seat, name: esc(me.recruitedBy.name) })}</div>`;
+  if (me.recruits && me.recruits.length) return `<div class="quiet">${me.recruits.map(r => tt(u.tbRecruits, { seat: r.seat, name: esc(r.name) })).join('<br>')}</div>`;
+  return '';
 }
 /* open tables on the home screen: friends', club mates', invitations, my seats; join by code */
 const LB = { list: null, at: 0, busy: false, code: '', timer: null, bot: '' };

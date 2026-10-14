@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-privacy.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -26,6 +26,7 @@ function check(name) {
   else console.log('ok  ', name, `(${h.length} chars)`);
 }
 const el = (a, d = {}) => ({ dataset: Object.assign({ a }, d), value: d.value });
+const L_e = k => vm.runInContext('L.e', ctx)[k];
 const A = X.ACT;
 let forcedTies = 0, roulettes = 0;
 // drives the vote to a result: leader → expel; none → rest to last; tie → defence speeches → re-vote; tie again → roulette
@@ -595,6 +596,84 @@ clearInterval(X.T.iv);
   A['reseat-open'](); sel(0, 3); A['reseat-cancel'](); if (S.setup.names[0] !== 'Борис' || S.ui.reseat) F('cancel keeps the seats');
   S.lobby = null;
   console.log('v48 ok:', S.setup.names.slice(0, 7).join(','));
+}
+// v50: small table — Sapper and Bomb, Corruption, the Ninja
+{ const E = name => vm.runInContext(name, ctx); const u = X.U(); const F = m => { fails++; console.log('FAIL v50 ' + m); };
+  let S = X.S(); S.game = null; A.go(el('go', { to: 'home' }));
+  if (!app.innerHTML.includes('data-to="mini"') || !app.innerHTML.includes(u.miniMenu)) F('home menu has no small-table item');
+  A.go(el('go', { to: 'mini' })); check('v50 small table');
+  if ((app.innerHTML.match(/scen-card mini/g) || []).length !== 2) F('two small-table scenarios expected');
+  A['mini-n'](el('mini-n', { n: '5' })); check('v50 small table 5');
+  A['mini-rules'](el('mini-rules', { id: 'bomb_hunt' })); check('v50 rules open'); if (!app.innerHTML.includes('class="rules"')) F('rules list not shown');
+  const by = (g, id) => g.players.find(p => p.roleId === id);
+  const startGame = (id, n) => {
+    A['mini-use'](el('mini-use', { id, n: String(n) })); S = X.S(); check(`v50 setup ${id} ${n}`);
+    if (S.setup.n !== n || S.setup.scenario !== id || S.setup.comp.join() !== E('SCENARIO')[id].comps[n].join()) F(`setup of ${id} ${n}: ${S.setup.n} ${S.setup.comp.join()}`);
+    if (app.innerHTML.includes('data-a="comp"')) F('the small-table line-up must be fixed');
+    if (!app.innerHTML.includes('class="okbox"') || /data-a="deal"[^>]*disabled/.test(app.innerHTML)) F(`${id} ${n}: line-up should be ready to deal`);
+    A.deal(); for (let i = 0; i < n; i++) { A.flip(); A.hide(); } A.start(); return S.game;
+  };
+  const night = (g, picks) => { A.night(); let gd = 0; while (g.steps[g.stepIdx] && gd++ < 30) { const st = g.steps[g.stepIdx]; if (st.type === 'act' && !st.disabled) { const want = picks[st.roleId]; const ok = E('stepTargets')(g, st).filter(x => x.ok).map(x => x.p.id); if (want && ok.includes(want)) { A.pick(el('pick', { id: want })); A.confirm(); check('v50 night ' + st.roleId); } else { A.skip(); continue; } } A.next(); } A.resolve(); check('v50 morning'); };
+  const voteOut = (g, target) => { A.stage(el('stage', { id: 'balagan' })); A.stage(el('stage', { id: 'vote' })); A.cand(el('cand', { id: target })); X.alive(g).filter(p => p.id !== target).forEach(p => A.vote(el('vote', { c: target, v: p.id }))); check('v50 vote'); A['vote-finish'](el('vote-finish', { id: target })); check('v50 vote result'); };
+  const toDay1 = g => { let gd = 0; while (g.steps[g.stepIdx] && gd++ < 30) A.next(); A.day0(); gd = 0; while (X.alive(g)[g.speechIdx] && gd++ < 20) A.speech(el('speech', { d: '1' })); };
+  // 1. Sapper finds the Bomb at night, the town votes it out → the town wins
+  let g = startGame('bomb_hunt', 5); toDay1(g);
+  if (g.steps.some(s => s.type === 'act')) F('bomb hunt: nobody acts on night 0');
+  let bomb = by(g, 'bomb'), sap = by(g, 'sapper');
+  night(g, { sapper: bomb.id });
+  if (!bomb.defused) F('the Sapper did not defuse the Bomb');
+  if (!g.nightLog.some(a => a.roleId === 'sapper')) F('sapper action not logged');
+  if (X.alive(g).length !== 5) F('nobody dies at night in the bomb hunt');
+  voteOut(g, bomb.id);
+  let w = E('checkWin')(g); if (!w || w.side !== 'city') F('voting out the defused Bomb should win for the town: ' + JSON.stringify(w && w.side));
+  A.finish(); check('v50 end city');
+  // 2. the town votes out a live Bomb → explosion, the town lost
+  A.go(el('go', { to: 'mini' })); g = startGame('bomb_hunt', 6); toDay1(g); bomb = by(g, 'bomb'); sap = by(g, 'sapper');
+  const notBomb = g.players.find(p => p.roleId !== 'bomb' && p.roleId !== 'sapper');
+  night(g, { sapper: notBomb.id }); if (bomb.defused) F('a wrong pick must not defuse');
+  voteOut(g, bomb.id);
+  w = E('checkWin')(g); if (!w || w.side !== 'bomb') F('a live Bomb voted out should win: ' + JSON.stringify(w && w.side));
+  if (X.alive(g).length !== 3) F('the explosion should take two neighbours, alive: ' + X.alive(g).length);
+  A.finish(); check('v50 end bomb'); if (!app.innerHTML.includes('winner bomb')) F('bomb win banner');
+  if (!E('resultFor')(g, bomb, g.winner).won || E('resultFor')(g, sap, g.winner).won) F('only the Bomb wins its explosion');
+  // engine edge rules: 1:1 duels and the Sapper gone
+  { const h = E('newGame')(4, ['bomb', 'sapper', 'citizen', 'citizen'], [], {}, [], { bombHunt: true }); const hb = by(h, 'bomb'), hs = by(h, 'sapper'), hc = h.players.filter(p => p.roleId === 'citizen');
+    hc.forEach(p => { p.alive = false; }); if ((E('checkWin')(h) || {}).side !== 'city') F('Sapper and Bomb 1:1 → the Sapper wins');
+    hc[0].alive = true; hs.alive = false; if ((E('checkWin')(h) || {}).side !== 'bomb') F('Bomb and a townsperson 1:1 → the town lost');
+    hc[1].alive = true; if ((E('checkWin')(h) || {}).side !== 'bomb') F('Sapper gone, Bomb live → the town lost');
+    hb.defused = true; if (E('checkWin')(h)) F('Sapper gone but the Bomb already defused → the game goes on'); }
+  // 3. Corruption: recruitment on night 0, the recruit's limits, a new recruit after the old one leaves
+  A.go(el('go', { to: 'mini' })); g = startGame('corruption', 6); S = X.S();
+  const corr = by(g, 'corrupter'), sher = by(g, 'sheriff'), man = by(g, 'maniac'), nin = by(g, 'ninja'), doc = by(g, 'doctor');
+  const st0 = g.steps[g.steps.length - 1]; if (!st0 || st0.type !== 'act' || st0.roleId !== 'corrupter') F('night 0 should end with the Corrupter recruiting');
+  if (g.steps.some(s => s.type === 'meet' && s.roleId === 'don')) F('a lone Corrupter has no family meeting');
+  while (g.steps[g.stepIdx] && g.steps[g.stepIdx].type !== 'act') A.next();
+  A.pick(el('pick', { id: doc.id })); A.confirm(); check('v50 recruit picked'); if (doc.recruitedBy !== corr.id) F('recruit not set');
+  A.undo(); if (doc.recruitedBy) F('undo must cancel the recruitment');
+  A.pick(el('pick', { id: sher.id })); A.confirm(); check('v50 recruit result'); if (sher.recruitedBy !== corr.id) F('sheriff not recruited');
+  if (!app.innerHTML.includes(X.tt(L_e('recruitDone'), { target: X.label(sher), actor: X.label(corr) }).slice(0, 20))) F('recruit result not shown to the host');
+  A.next(); A.day0(); let gd = 0; while (X.alive(g)[g.speechIdx] && gd++ < 20) A.speech(el('speech', { d: '1' }));
+  A.night(); if (g.steps.some(s => s.roleId === 'corrupter')) F('no new recruitment while the recruit lives');
+  if (g.steps.some(s => s.ability === 'shoot' && s.roleId === 'don')) F('the Corrupter does not shoot');
+  const ss = g.steps.find(s => s.roleId === 'sheriff'); if (E('stepTargets')(g, ss).find(x => x.p.id === corr.id).ok) F('a recruited Sheriff cannot target the Corrupter');
+  // the maniac shoots the ninja once → dodged
+  let gd2 = 0; while (g.steps[g.stepIdx] && gd2++ < 30) { const st = g.steps[g.stepIdx]; if (st.type === 'act' && st.roleId === 'maniac') { A.pick(el('pick', { id: nin.id })); A.confirm(); } else if (st.type === 'act') { A.skip(); continue; } A.next(); }
+  A.resolve(); check('v50 ninja morning'); if (!nin.alive) F('the Ninja should dodge one shot');
+  if (!g.log.some(x => x.text.includes(X.tt(L_e('ninjaDodge'), { by: '', target: '' }).slice(-12)))) F('dodge not in the log');
+  // the recruit cannot vote against the Corrupter (host vote table)
+  A.stage(el('stage', { id: 'balagan' })); A.stage(el('stage', { id: 'vote' })); A.cand(el('cand', { id: corr.id })); check('v50 vote table');
+  A['vt-pick'](el('vt-pick', { v: sher.id, c: corr.id })); if (g.ballot.votes[sher.id]) F('the recruit voted against the Corrupter');
+  if (E('effectiveVotes')(g)[sher.id]) F('a recruit vote against the Corrupter must not count');
+  // win rule: the mafia needs a majority (2 vs 2 is not enough)
+  { const h = E('newGame')(6, ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac', 'ninja'], [], {}, [], { corruption: true, mafiaMajority: true }); const c = by(h, 'corrupter'), d = by(h, 'doctor');
+    d.recruitedBy = c.id; ['sheriff', 'mayor'].forEach(r => { by(h, r).alive = false; }); if (E('checkWin')(h)) F('2 vs 2: no winner yet under the majority rule');
+    by(h, 'ninja').alive = false; if ((E('checkWin')(h) || {}).side !== 'mafia') F('2 vs 1: the mafia wins');
+    if (!E('resultFor')(h, d, E('checkWin')(h)).won) F('the recruit wins with the mafia');
+    c.alive = false; d.alive = false; by(h, 'ninja').alive = true; by(h, 'sheriff').alive = true; if ((E('checkWin')(h) || {}).side !== 'city') F('no Corrupter and no recruit: the town wins');
+    const h2 = E('newGame')(6, ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac', 'ninja'], [], {}, [], { corruption: true }); const c2 = by(h2, 'corrupter'); by(h2, 'mayor').recruitedBy = c2.id; by(h2, 'mayor').alive = false;
+    h2.night = 1; const steps = E('buildNightSteps')(h2); if (!steps.some(s => s.roleId === 'corrupter' && s.ability === 'recruit')) F('a new recruitment after the recruit left'); }
+  S.game = null;
+  console.log('v50 ok');
 }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);

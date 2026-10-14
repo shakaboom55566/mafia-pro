@@ -1,11 +1,11 @@
 // Monte-Carlo balance simulator for Mafia Pro.
 // Loads the prototype's own data + engine, adds heuristic bots for every role and plays thousands of games.
 const fs = require('fs'); const vm = require('vm');
-const I18N_FILES = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02f-icons.js'];
+const I18N_FILES = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02f-icons.js'];
 const src = I18N_FILES.map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n') + '\n' + fs.readFileSync(__dirname + '/../src/02-data.js', 'utf8') + '\n' + fs.readFileSync(__dirname + '/../src/03-engine.js', 'utf8');
 const ctx = { console, Math, Date, Object, Array, Set, Number, String, JSON };
 vm.createContext(ctx);
-vm.runInContext(src + `\nsetLang('ru');\nthis.E = { newGame, startNight0, startDay0, startNight, startDay, recordAction, resolveNight, tally, finishVote, applyTrigger, useKamikaze, useJudge, checkWin, alive, P, ROLE, ROLES, PRESETS, presetFor, compositionStats, stepTargets, shooterOf, isBlack, TWO_FAMILIES_FROM, setLog: v => { LOG_ENABLED = v; } };`, ctx);
+vm.runInContext(src + `\nsetLang('ru');\nthis.E = { voteAllowed, onMafiaSide, playSideOf, liveRecruitOf, newGame, startNight0, startDay0, startNight, startDay, recordAction, resolveNight, tally, finishVote, applyTrigger, useKamikaze, useJudge, checkWin, alive, P, ROLE, ROLES, PRESETS, presetFor, compositionStats, stepTargets, shooterOf, isBlack, TWO_FAMILIES_FROM, setLog: v => { LOG_ENABLED = v; } };`, ctx);
 const E = ctx.E; E.setLog(false);
 const ROLE = E.ROLE;
 
@@ -21,6 +21,7 @@ const DEFAULT_CFG = {
   mafiaPush: 0.25,    // suspicion mafia manages to pile on their day target, per black alive
   wwPersuade: 0.5,    // werewolf's daily persuasion on each black
   claimSheriff: 0.6, claimJournalist: 0.4, claimThief: 0.5,
+  bhClaim: 0.6, bhCounter: 0.5, bhFakeFirst: 0.25, bhRead: 0.12, bhSafe: 0.35, bhTrust: 0.85,
   sheriffShoot: 0.8, maniacFocus: 0.75, kamikazeThreshold: 1.0
 };
 
@@ -29,10 +30,11 @@ const INFO_ROLES = ['sheriff', 'doctor', 'journalist', 'rabbi', 'bodyguard', 'ju
 function playGame(n, comp, cfg = DEFAULT_CFG, opts = {}) {
   const g = E.newGame(n, comp, [], {}, [], opts.mods || {});
   const pl = g.players;
-  const K = { S: {}, ch: {}, priv: {}, known: {}, claimed: { sheriff: null, journalist: null, thief: null }, found: {}, mafiaRoles: {}, hist: [] };
+  const K = { S: {}, ch: {}, priv: {}, known: {}, claimed: { sheriff: null, journalist: null, thief: null }, found: {}, mafiaRoles: {}, hist: [], bh: { checked: {}, found: null, claims: [], fakeSaid: {} } };
   pl.forEach(p => { K.S[p.id] = 0; K.ch[p.id] = rnd(); K.priv[p.id] = {}; });
   pl.filter(p => p.roleId === 'werewolf').forEach(w => pl.filter(E.isBlack).forEach(b => { K.priv[w.id][b.id] = 4; }));
   E.startNight0(g);
+  runNight0Acts(g, K, cfg);
   if (opts.firstDay) { E.startDay(g); runDay(g, K, cfg); const w0 = E.checkWin(g); if (w0) { g.winner = w0; return { side: w0.side, jester: !!g.jesterWon, nights: 0 }; } } else E.startDay0(g);
   let guard = 0;
   while (!g.winner && guard++ < 40) {
@@ -41,13 +43,24 @@ function playGame(n, comp, cfg = DEFAULT_CFG, opts = {}) {
     E.resolveNight(g);
     E.startDay(g);
     let w = E.checkWin(g); if (w) { g.winner = w; break; }
-    runDay(g, K, cfg);
+    (g.mods && g.mods.bombHunt ? runDayBombHunt : runDay)(g, K, cfg);
     w = E.checkWin(g); if (w) { g.winner = w; break; }
   }
   return { side: g.winner ? g.winner.side : 'draw', jester: !!g.jesterWon, nights: g.night };
 }
 
 const aliveOf = g => E.alive(g);
+const mafiaSide = p => E.onMafiaSide(p);
+/* night 0: only act steps (the Corrupter's recruitment); the Corrupter does not know roles — he buys at random, a little towards quiet players */
+function runNight0Acts(g, K, cfg) {
+  for (const step of g.steps) {
+    if (step.type !== 'act') continue;
+    const okT = E.stepTargets(g, step).filter(x => x.ok).map(x => x.p); if (!okT.length) continue;
+    const t = argmax(okT, x => K.ch[x.id] + 0.5 * rnd());
+    E.recordAction(g, step, [t.id]);
+    K.mafiaRoles[t.id] = K.mafiaRoles[t.id]; // the corrupter learns nothing about the card
+  }
+}
 const nonBlack = g => aliveOf(g).filter(p => !E.isBlack(p));
 const isAlive = (g, id) => { const p = id && E.P(g, id); return !!(p && p.alive); };
 
@@ -74,7 +87,20 @@ function runNight(g, K, cfg) {
       if (K.mafiaRoles[x.id] && INFO_ROLES.includes(K.mafiaRoles[x.id])) s += 5;
       return s;
     };
-    if (r === 'don' && step.ability === 'shoot') { // family shot (any shooter)
+    if (r === 'corrupter') { // a new recruit after the last one left
+      targets = [argmax(okT, x => K.ch[x.id] + 0.5 * rnd()).id];
+    } else if (r === 'sapper' && g.mods && g.mods.bombHunt) { // looks for the Bomb among those not checked yet
+      const mine = K.bh.checked[actor.id] = K.bh.checked[actor.id] || {};
+      const cands = okT.filter(x => mine[x.id] === undefined); const pool = cands.length ? cands : okT;
+      targets = [argmax(pool, x => S[x.id] + 0.6 * gauss()).id];
+    } else if (actor.recruitedBy && (r === 'maniac' || r === 'sheriff')) { // a bought killer shoots for the mafia
+      const cands = okT.filter(x => !mafiaSide(x)); if (!cands.length) continue;
+      if (r === 'sheriff' && rnd() > 0.5) continue;
+      targets = [argmax(cands, shotScore).id]; mode = 'shoot';
+    } else if (actor.recruitedBy && r === 'doctor') {
+      const corr = okT.find(x => x.id === actor.recruitedBy);
+      targets = [corr && rnd() < 0.6 ? corr.id : argmax(okT, x => (x.id === actor.id ? 1 : 0) + 0.5 * rnd()).id];
+    } else if (r === 'don' && step.ability === 'shoot') { // family shot (any shooter)
       targets = topK(okT, shotScore, step.targets).map(x => x.id);
     } else if (r === 'don' && step.ability === 'findSheriff') {
       const cands = okT.filter(x => !E.isBlack(x) && K.mafiaRoles[x.id] === undefined && x.id !== claimedSheriff);
@@ -139,6 +165,8 @@ function runNight(g, K, cfg) {
     if (!targets) continue;
     const res = E.recordAction(g, step, targets, mode);
     // knowledge updates
+    if (r === 'sapper' && g.mods && g.mods.bombHunt) { const t = E.P(g, targets[0]); K.bh.checked[actor.id][t.id] = t.roleId === 'bomb'; if (t.roleId === 'bomb') K.bh.found = t.id; }
+    if (actor.recruitedBy && r === 'sheriff') continue; // a bought Sheriff keeps quiet
     if (res && res.kind === 'color') {
       const who = res.who.id, c = res.color;
       const owner = r === 'thief' ? actor.id : actor.id;
@@ -188,13 +216,13 @@ function runDay(g, K, cfg) {
   aliveOf(g).filter(p => p.roleId === 'werewolf').forEach(() => aliveOf(g).filter(E.isBlack).forEach(b => { S[b.id] += cfg.wwPersuade; }));
   // 4. Social reads
   const skill = cfg.skill * Math.sqrt(10 / g.n); // less attention per player at big tables
-  al.forEach(x => { S[x.id] += (E.isBlack(x) ? skill : x.roleId === 'maniac' ? skill * 0.4 : 0) + gauss() * cfg.sigma; });
+  al.forEach(x => { S[x.id] += (mafiaSide(x) ? skill : x.roleId === 'maniac' ? skill * 0.4 : 0) + gauss() * cfg.sigma; });
   // 5. Mafia day target (per family) and push
   const famTargets = {};
   for (const fam of (g.twoFamilies ? ['A', 'B'] : [null])) {
-    const members = al.filter(p => E.isBlack(p) && (fam === null || p.family === fam));
+    const members = al.filter(p => mafiaSide(p) && (fam === null || p.family === fam));
     if (!members.length) continue;
-    const cands = al.filter(p => !(E.isBlack(p) && (fam === null || p.family === fam)));
+    const cands = al.filter(p => !(mafiaSide(p) && (fam === null || p.family === fam)));
     const t = argmax(cands, x => S[x.id] + 0.3 * K.ch[x.id] + (K.known[x.id] === 'red' ? -1 : 0));
     famTargets[fam] = t ? t.id : null;
     if (t) S[t.id] += cfg.mafiaPush * members.length;
@@ -212,11 +240,11 @@ function runDay(g, K, cfg) {
   const al2 = aliveOf(g); const b = g.ballot; b.candidates = []; b.votes = {};
   for (const v of al2) {
     let t = null;
-    if (E.isBlack(v)) t = famTargets[g.twoFamilies ? v.family : null];
+    if (mafiaSide(v)) t = famTargets[g.twoFamilies ? v.family : null];
     else if (v.roleId === 'jester') t = al2[Math.floor(rnd() * al2.length)].id;
     else {
       const others = al2.filter(x => x.id !== v.id);
-      t = argmax(others, x => S[x.id] + (K.priv[v.id][x.id] || 0) + gauss() * cfg.voteNoise).id;
+      t = argmax(others.filter(x => E.voteAllowed(g, v.id, x.id)), x => S[x.id] + (K.priv[v.id][x.id] || 0) + gauss() * cfg.voteNoise).id;
     }
     if (!t || t === v.id || !isAlive(g, t)) continue;
     b.votes[v.id] = t; if (!b.candidates.includes(t)) b.candidates.push(t);
@@ -242,17 +270,75 @@ function runDay(g, K, cfg) {
   }
   g.voteResult.removed.forEach(d => { const q = E.P(g, d.id); markRevealed(g, K, d.id, E.isBlack(q) ? 'black' : 'red'); });
 }
+/* ---------- Bomb hunt day: claims, a possible fake Sapper, safe votes on cleared players ---------- */
+function runDayBombHunt(g, K, cfg) {
+  const S = K.S; const al = aliveOf(g); const bh = K.bh;
+  const sapper = al.find(p => p.roleId === 'sapper'); const bomb = al.find(p => p.roleId === 'bomb');
+  const claim = id => bh.claims.find(c => c.id === id);
+  // 1. the real Sapper claims (always, once he has found the Bomb)
+  if (sapper && !claim(sapper.id) && (bh.found || rnd() < cfg.bhClaim)) bh.claims.push({ id: sapper.id, real: true });
+  // 2. the Bomb answers with a fake claim: accuses the real Sapper, or clears a random player
+  if (bomb && !claim(bomb.id) && ((claim(sapper && sapper.id) && rnd() < cfg.bhCounter) || (!bh.claims.length && rnd() < cfg.bhFakeFirst))) {
+    const victims = al.filter(p => p.id !== bomb.id); const real = sapper && claim(sapper.id);
+    bh.claims.push({ id: bomb.id, real: false, accuse: real && rnd() < 0.7 ? sapper.id : (rnd() < 0.4 ? victims[Math.floor(rnd() * victims.length)].id : null) });
+  }
+  // what each claimer says today
+  const says = c => {
+    if (c.real) { const mine = bh.checked[c.id] || {}; return { bomb: bh.found && E.P(g, bh.found).alive ? bh.found : null, clear: Object.keys(mine).filter(id => mine[id] === false && E.P(g, id).alive) }; }
+    const fs = bh.fakeSaid[c.id] = bh.fakeSaid[c.id] || { clear: [] };
+    if (!c.accuse && rnd() < 0.6) { const o = al.filter(p => p.id !== c.id && !fs.clear.includes(p.id) && !(sapper && p.id === sapper.id)); if (o.length) fs.clear.push(o[Math.floor(rnd() * o.length)].id); }
+    return { bomb: c.accuse && E.P(g, c.accuse).alive ? c.accuse : null, clear: fs.clear.filter(id => E.P(g, id).alive) };
+  };
+  const live = bh.claims.filter(c => E.P(g, c.id).alive);
+  // 3. votes
+  const b = g.ballot; b.candidates = []; b.votes = {};
+  const pickFrom = (v, list) => { const o = list.filter(x => x.id !== v.id); return o.length ? argmax(o, x => S[x.id] + gauss() * cfg.voteNoise).id : null; };
+  for (const v of al) {
+    let t = null;
+    if (v.roleId === 'bomb') { // gets the Sapper out if it knows him; otherwise anyone
+      const real = live.find(c => c.real); t = real ? real.id : pickFrom(v, al);
+    } else if (v.roleId === 'sapper') {
+      const said = says({ id: v.id, real: true });
+      t = said.bomb || (said.clear.length ? said.clear[Math.floor(rnd() * said.clear.length)] : pickFrom(v, al.filter(x => !live.some(c => c.id === x.id))));
+    } else {
+      let trust = null;
+      if (live.length === 1) trust = rnd() < cfg.bhTrust ? live[0] : null;
+      else if (live.length >= 2) {
+        if (rnd() < cfg.bhSafe) trust = 'safe';
+        else { const real = live.find(c => c.real), fake = live.find(c => !c.real); trust = rnd() < 0.5 + cfg.bhRead ? real : fake; }
+      }
+      if (trust && trust !== 'safe') { const said = says(trust); t = said.bomb || (said.clear.length ? said.clear[Math.floor(rnd() * said.clear.length)] : pickFrom(v, al.filter(x => x.id !== trust.id && !live.some(c => c.id === x.id)))); }
+      else t = pickFrom(v, al.filter(x => !live.some(c => c.id === x.id))) || pickFrom(v, al);
+    }
+    if (!t || t === v.id || !isAlive(g, t)) continue;
+    b.votes[v.id] = t; if (!b.candidates.includes(t)) b.candidates.push(t);
+  }
+  const tl = E.tally(g);
+  let elim = null;
+  if (tl.leaders.length === 1) elim = tl.leaders[0];
+  else if (tl.leaders.length > 1) elim = tl.leaders[Math.floor(rnd() * tl.leaders.length)];
+  const judge = al.find(p => p.roleId === 'judge' && !p.judgeUsed);
+  if (judge && elim && live.some(c => c.id === elim) && rnd() < 0.8) { E.useJudge(g, judge.id); return; } // the Judge saves a claimed Sapper from the vote
+  E.finishVote(g, elim);
+  while (g.pendingTriggers.length) {
+    const tr = g.pendingTriggers[0]; const cands = aliveOf(g).filter(x => x.id !== tr.actorId);
+    if (!cands.length) { g.pendingTriggers.shift(); continue; }
+    const real = live.find(c => c.real && E.P(g, c.id).alive); const said = real ? says(real) : { bomb: null, clear: [] };
+    const target = said.bomb ? E.P(g, said.bomb) : said.clear.length ? E.P(g, said.clear[0]) : cands[Math.floor(rnd() * cands.length)];
+    E.applyTrigger(g, tr, target.id);
+  }
+}
 function markRevealed(g, K, pid, color) {
   K.known[pid] = color;
   K.hist.filter(h => h.target === pid).forEach(h => { if (isAlive(g, h.voter)) K.S[h.voter] += color === 'red' ? 0.5 : -0.7; });
 }
 
 /* ---------- Evaluation ---------- */
-function evaluate(n, comp, games, cfg = DEFAULT_CFG) {
-  const c = { city: 0, mafia: 0, maniac: 0, draw: 0, jester: 0, nights: 0 };
-  for (let i = 0; i < games; i++) { const r = playGame(n, comp, cfg); c[r.side]++; if (r.jester) c.jester++; c.nights += r.nights; }
+function evaluate(n, comp, games, cfg = DEFAULT_CFG, mods) {
+  const c = { city: 0, mafia: 0, maniac: 0, bomb: 0, draw: 0, jester: 0, nights: 0 };
+  for (let i = 0; i < games; i++) { const r = playGame(n, comp, cfg, { mods }); c[r.side]++; if (r.jester) c.jester++; c.nights += r.nights; }
   const pct = k => Math.round(1000 * c[k] / games) / 10;
-  return { n, games, mafia: pct('mafia'), city: pct('city'), maniac: pct('maniac'), draw: pct('draw'), jester: pct('jester'), avgNights: Math.round(10 * c.nights / games) / 10, comp };
+  return { n, games, mafia: pct('mafia'), city: pct('city'), maniac: pct('maniac'), bomb: pct('bomb'), draw: pct('draw'), jester: pct('jester'), avgNights: Math.round(10 * c.nights / games) / 10, comp };
 }
 module.exports = { playGame, evaluate, E, ROLE, DEFAULT_CFG };
 
