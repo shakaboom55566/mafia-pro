@@ -312,11 +312,11 @@ function setupScreen() {
     <h2>${u.names}</h2>
     <p class="hint">${u.namesHint}</p>
     ${typeof setupLobbyHTML === 'function' ? setupLobbyHTML(st) : ''}
-    ${chips}
-    <div class="names">${names}</div>
+    ${S.ui.reseatOn ? reseatPanelHTML() : `${chips}${reseatSeats().length >= 2 ? `<button class="btn sm ghost" data-a="reseat-open" style="align-self:flex-start">⇄ ${u.rsOpen}</button>` : ''}
+    <div class="names">${names}</div>`}
     ${typeof creatorPlays === 'function' && creatorPlays() ? `<div class="hint" style="text-align:center">${u.dealNeedsHost}</div>` : ''}
     ${typeof voiceBlocksDeal === 'function' && voiceBlocksDeal() ? `<div class="hint dc-need" style="text-align:center">🎧 ${u.dcNeedConfirm}</div>` : ''}
-    <div class="sticky-bottom"><button class="btn primary" data-a="deal" ${ok && !(typeof creatorPlays === 'function' && creatorPlays()) && !(typeof voiceBlocksDeal === 'function' && voiceBlocksDeal()) ? '' : 'disabled'}>${u.dealCards}</button></div>
+    ${S.ui.reseatOn ? '' : `<div class="sticky-bottom"><button class="btn primary" data-a="deal" ${ok && !(typeof creatorPlays === 'function' && creatorPlays()) && !(typeof voiceBlocksDeal === 'function' && voiceBlocksDeal()) ? '' : 'disabled'}>${u.dealCards}</button></div>`}
   </div>`;
 }
 
@@ -934,6 +934,7 @@ const ACT = {
   'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
+    S.ui.reseatOn = false; S.ui.reseat = null; // the deal button is hidden while re-seating; a deal started otherwise drops the unfinished draft
     if (typeof creatorPlays === 'function' && creatorPlays()) { toast(U().dealNeedsHost); return; }
     if (typeof voiceBlocksDeal === 'function' && voiceBlocksDeal()) { toast(U().dcNeedConfirm); return; } // Discord table: everyone on voice first
     const sp = hostOffSeats();
@@ -942,6 +943,10 @@ const ACT = {
   },
   'seat-assign'(el) { const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; const id = el.dataset.id; const used = sp.indexOf(id); if (used >= 0) { sp[used] = null; render(); return; } let i = 0; while (i < S.setup.n && sp[i]) i++; if (i < S.setup.n) { sp[i] = id; render(); } },
   'open-roles'(el) { S.setup.openRoles = el.dataset.id === 'open'; save(); render(); },
+  'reseat-open'() { S.ui.reseatOn = true; S.ui.reseat = {}; render(); },
+  'reseat-cancel'() { S.ui.reseatOn = false; S.ui.reseat = null; render(); },
+  'reseat-sel'(el) { const i = +el.dataset.i; const t = +el.value; if (!(t >= 0 && t < S.setup.n) || reseatTarget(i) === t) return; S.ui.reseat = Object.assign({}, S.ui.reseat || {}, { [i]: t }); S.ui.reseatOn = true; render(); },
+  'reseat-apply'() { if (!reseatApply()) return; save(); render(); toast(U().rsDone); },
   'seat-clear'(el) { const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; sp[+el.dataset.i] = null; render(); },
   flip() { S.game.dealOpen = !S.game.dealOpen; S.ui.flipAnim = true; render(); },
   hide() { S.game.dealOpen = false; S.game.dealIdx += 1; window.scrollTo(0, 0); render(); },
@@ -1056,7 +1061,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role="button"][data-a]')) { e.preventDefault(); e.target.click(); } });
 document.addEventListener('input', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'name') ACT.name(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'fr-q') ACT['fr-q'](el); if (el.dataset.a === 'pl-q') ACT['pl-q'](el); if (el.dataset.a === 'adm-q') ACT['adm-q'](el); if (el.dataset.a === 'adm-days') ACT['adm-days'](el); if (el.dataset.a === 'pt-f') ACT['pt-f'](el); if (el.dataset.a === 'cl-f') ACT['cl-f'](el); if (el.dataset.a === 'cl-msg') ACT['cl-msg'](el); if (el.dataset.a === 'cl-inv-q') ACT['cl-inv-q'](el); });
-document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'cl-logo-file') ACT['cl-logo-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); if (el.dataset.a === 'tg-seat-set') ACT['tg-seat-set'](el); });
+document.addEventListener('change', e => { const el = e.target.closest('[data-a]'); if (!el) return; if (el.dataset.a === 'nrange') ACT.nrange(el); if (el.dataset.a === 'pf') ACT.pf(el); if (el.dataset.a === 'avatar-file') ACT['avatar-file'](el); if (el.dataset.a === 'cl-logo-file') ACT['cl-logo-file'](el); if (el.dataset.a === 'rt-pick') ACT['rt-pick'](el); if (el.dataset.a === 'tg-seat') ACT['tg-seat'](el); if (el.dataset.a === 'tg-seat-set') ACT['tg-seat-set'](el); if (el.dataset.a === 'reseat-sel') ACT['reseat-sel'](el); });
 
 /* open / closed game chooser on the setup screen */
 function openRolesHTML() {
@@ -1072,6 +1077,42 @@ function hostOffSeats() {
   const me = profById(S.meId); const mine = me && me.tgId ? String(me.name || '').trim().toLowerCase() : ''; // in Telegram the host's own name on a seat is a leftover, not a player
   if (mine) { const names = S.setup.names || []; const l = S.lobby; for (let i = 0; i < names.length; i++) { const seatedTg = l && l.seats && Object.values(l.seats).includes(i); if (!seatedTg && String(names[i] || '').trim().toLowerCase() === mine) names[i] = ''; } }
   return sp;
+}
+/* ---------- Re-seating before the deal: the host gives everyone a new seat number, then "Seat them" moves all at once ----------
+   The draft is keyed by the current seat (0-based) → the new seat; names, seat profiles and Telegram players move together. */
+function reseatSeats() {
+  const st = S.setup; const l = S.lobby; const sp = st.seatProfiles || []; const out = [];
+  for (let i = 0; i < st.n; i++) {
+    const tg = l && l.seats ? Object.keys(l.seats).find(k => Number(l.seats[k]) === i) : null;
+    const pl = tg ? (l.players || []).find(p => p.tgId === Number(tg)) : null;
+    const pr = sp[i] ? profById(sp[i]) : null;
+    const name = pr ? pr.name : (String(st.names[i] || '').trim() || (pl ? pl.name : ''));
+    if (name || pl) out.push({ i, name: name || tt(L.e.player, { n: i + 1 }), tg: tg ? Number(tg) : null });
+  }
+  return out;
+}
+function reseatTarget(i) { const d = S.ui.reseat || {}; return d[i] !== undefined ? d[i] : i; }
+function reseatState() {
+  const occ = reseatSeats(); const by = {}; occ.forEach(o => { const t = reseatTarget(o.i); (by[t] = by[t] || []).push(o); });
+  const dups = Object.keys(by).filter(t => by[t].length > 1).map(t => ({ seat: +t + 1, list: by[t].map(o => o.name) }));
+  return { occ, dups, moved: occ.filter(o => reseatTarget(o.i) !== o.i).length };
+}
+function reseatApply() {
+  const st = S.setup; const l = S.lobby; const r = reseatState(); if (r.dups.length || !r.moved) return false;
+  const names = st.names.slice(); const sp = (st.seatProfiles || []).slice(); const seats = l && l.seats ? Object.assign({}, l.seats) : null;
+  for (let i = 0; i < st.n; i++) { names[i] = ''; sp[i] = null; }
+  r.occ.forEach(o => { const t = reseatTarget(o.i); names[t] = st.names[o.i] || ''; sp[t] = (st.seatProfiles || [])[o.i] || null; if (seats && o.tg) seats[o.tg] = t; });
+  st.names = names; st.seatProfiles = sp; if (seats) l.seats = seats;
+  S.ui.reseat = null; S.ui.reseatOn = false; return true;
+}
+function reseatPanelHTML() {
+  const u = U(); const st = S.setup; const r = reseatState();
+  const who = k => { const o = r.occ.find(x => x.i === k); return o ? ' · ' + esc(o.name) : ''; };
+  const rows = r.occ.map(o => { const t = reseatTarget(o.i); const opts = Array.from({ length: st.n }, (_, k) => `<option value="${k}" ${k === t ? 'selected' : ''}>${k + 1}${who(k)}</option>`).join('');
+    return `<div class="rs-row ${t !== o.i ? 'moved' : ''} ${r.dups.some(d => d.seat === t + 1) ? 'bad' : ''}"><span class="seat">${o.i + 1}</span><span class="nm">${esc(o.name)}${o.tg ? ' <small>📱</small>' : ''}</span><span class="arr">→</span><select class="input" data-a="reseat-sel" data-i="${o.i}" aria-label="${u.rsPick}">${opts}</select></div>`; }).join('');
+  const msg = r.dups.length ? `<div class="warnbox">${r.dups.map(d => tt(u.rsDup, { seat: d.seat, list: d.list.map(esc).join(', ') })).join('<br>')}</div>` : `<div class="hint">${r.moved ? tt(u.rsMoved, { n: r.moved }) : u.rsSame}</div>`;
+  return `<div class="panel raised reseat"><div class="eyebrow gold">⇄ ${u.rsTitle}</div><div class="hint" style="margin:4px 0 8px">${u.rsHint}</div><div class="rs-list">${rows}</div>${msg}
+    <div class="btn-row" style="margin-top:10px"><button class="btn ghost" data-a="reseat-cancel">${u.cancel}</button><button class="btn primary grow" data-a="reseat-apply" ${r.dups.length || !r.moved ? 'disabled' : ''}>${u.rsApply}</button></div></div>`;
 }
 /* ---------- boot ---------- */
 function start(hot) {

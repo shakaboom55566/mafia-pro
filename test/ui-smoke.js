@@ -571,6 +571,31 @@ clearInterval(X.T.iv);
   A['vote-finish'](el('vote-finish', { id: a.id })); check('v47 result');
   console.log('v47 ok: table rows', vs.length);
 }
+// ---------------- v48: re-seating before the deal — draft numbers for everybody, "Seat them" applies all at once ----------------
+{
+  const F = msg => { fails++; console.log('FAIL', msg); };
+  A.new(); S = X.S(); S.setup.n = 7; S.setup.scenario = null; S.setup.comp = ['don', 'mafia', 'sheriff', 'doctor', 'drunk', 'bomb', 'bodyguard'];
+  S.setup.names = ['Аня', 'Борис', 'Вика', 'Глеб', 'Даша', 'Егор', '']; S.setup.seatProfiles = [];
+  S.lobby = { code: 'RS48', seats: { 101: 0, 102: 2 }, players: [{ tgId: 101, name: 'Аня' }, { tgId: 102, name: 'Вика' }] };
+  A.go(el('go', { to: 'setup' })); check('v48 setup with names');
+  if (!app.innerHTML.includes('data-a="reseat-open"')) F('re-seat button missing on a seated table');
+  A['reseat-open'](); check('v48 re-seat panel');
+  if ((app.innerHTML.match(/class="rs-row/g) || []).length !== 6) F('one row per occupied seat expected');
+  const sel = (i, t) => A['reseat-sel'](el('reseat-sel', { i: String(i), value: String(t) }));
+  sel(0, 2); check('v48 draft with a duplicate');
+  if (S.setup.names[0] !== 'Аня') F('nobody moves while the draft is edited');
+  if (!app.innerHTML.includes('class="warnbox"') || !/data-a="reseat-apply" disabled/.test(app.innerHTML)) F('a duplicate seat must block "Seat them"');
+  sel(2, 1); sel(1, 0); sel(4, 6); check('v48 draft complete');
+  if (/data-a="reseat-apply" disabled/.test(app.innerHTML)) F('a valid draft should allow "Seat them"');
+  A['reseat-apply'](); check('v48 seated');
+  const nm = S.setup.names.slice(0, 7).join(',');
+  if (nm !== 'Борис,Вика,Аня,Глеб,,Егор,Даша') F('names should move all at once, got ' + nm);
+  if (S.lobby.seats[101] !== 2 || S.lobby.seats[102] !== 1) F('Telegram players should move with their names: ' + JSON.stringify(S.lobby.seats));
+  if (S.ui.reseatOn || app.innerHTML.includes('class="rs-row')) F('the panel should close after seating');
+  A['reseat-open'](); sel(0, 3); A['reseat-cancel'](); if (S.setup.names[0] !== 'Борис' || S.ui.reseat) F('cancel keeps the seats');
+  S.lobby = null;
+  console.log('v48 ok:', S.setup.names.slice(0, 7).join(','));
+}
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
 process.exit(fails ? 1 : 0);
