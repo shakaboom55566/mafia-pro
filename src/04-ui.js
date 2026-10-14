@@ -405,7 +405,7 @@ function nightBody(g) {
   if (!step) {
     return `${phaseHead(g, isFirst ? u.allMet : u.allActed, isFirst ? u.canWake : u.resolveHint)}
       ${isFirst ? `<button class="btn primary" data-a="day0">${u.cityWakes}</button>` : `<button class="btn primary" data-a="resolve">${u.resolveNight}</button>`}
-      <button class="btn ghost" data-a="prev">${u.backStep}</button>`;
+      ${g.steps.length ? `<button class="btn ghost" data-a="prev">${u.backStep}</button>` : ''}${undoBtnHTML(g)}`;
   }
   const role = ROLE[step.roleId];
   let inner = '';
@@ -416,7 +416,7 @@ function nightBody(g) {
   } else {
     inner = actStep(g, step);
   }
-  return `${phaseHead(g, isFirst ? u.meetRoles : u.activePhase, tt(u.stepOf, { i: g.stepIdx + 1, n: g.steps.length }))}${progressHTML(g)}${inner}`;
+  return `${phaseHead(g, isFirst ? u.meetRoles : u.activePhase, tt(u.stepOf, { i: g.stepIdx + 1, n: g.steps.length }))}${progressHTML(g)}${inner}${undoBtnHTML(g)}`;
 }
 
 function actStep(g, step) {
@@ -468,7 +468,7 @@ function day0Body(g) {
   return `${phaseHead(g, u.phDay0, tt(u.introOf, { i: g.speechIdx + 1, n: al.length }))}
     <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.secIntro, { s: S.settings.intro })}</div></div></div></div>
     ${timerHTML(S.settings.intro, `d0-${g.speechIdx}`)}
-    <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro}</button></div>`;
+    <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro}</button></div>${undoBtnHTML(g)}`;
 }
 
 function kamikazeHTML(g) {
@@ -507,7 +507,8 @@ function dayBody(g) {
   if (st === 'morning') {
     const r = g.nightResult || { removed: [], notes: [], quiet: [] };
     const deaths = r.removed.length ? r.removed.map(d => deathRow(g, d)).join('') : `<div class="okbox">${u.noDeaths}</div>`;
-    const extra = al.filter(p => p.roleId === 'contractor' && p.contractId && P(g, p.contractId)).map(p => tt(u.contractInfo, { seat: p.seat, target: P(g, p.contractId).seat }));
+    const extra = al.filter(p => p.roleId === 'contractor' && p.contractId && P(g, p.contractId)).map(p => tt(u.contractInfo, { seat: p.seat, target: P(g, p.contractId).seat }))
+      .concat((g.pendingTriggers || []).filter(x => x.night).map(x => tt(u.azazelNightHint, { seat: P(g, x.actorId).seat })));
     const secret = r.quiet.concat(r.shotLog || []).concat(extra).map(q => `<div class="quiet">${esc(q)}</div>`).join('');
     const w = checkWin(g); const classic = isClassic(g);
     const lastWords = classic && r.removed.length ? r.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lw-${g.day}-${i}`)}</div>`).join('') : '';
@@ -515,7 +516,7 @@ function dayBody(g) {
     return `${phaseHead(g, u.morning, r.removed.length ? tt(u.outN, { n: r.removed.length }) : u.noLoss)}${statusHTML(g)}
       <div class="stack-s">${deaths}</div>${lastWords}${bm}
       ${secret ? `<div class="panel"><div class="eyebrow">${u.hostSecret}</div><div class="stack-s" style="margin-top:8px">${secret}</div></div>` : ''}
-      ${w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : classic ? `<button class="btn primary" data-a="stage" data-id="speeches" ${bm && !g.bestMove ? 'disabled' : ''}>${u.toSpeeches}</button>` : `${kamikazeHTML(g)}<button class="btn primary" data-a="stage" data-id="balagan">${u.toBalagan}</button>`}`;
+      ${w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : classic ? `<button class="btn primary" data-a="stage" data-id="speeches" ${bm && !g.bestMove ? 'disabled' : ''}>${u.toSpeeches}</button>` : `${kamikazeHTML(g)}<button class="btn primary" data-a="stage" data-id="balagan">${u.toBalagan}</button>`}${undoBtnHTML(g)}`;
   }
   if (st === 'balagan') {
     return `${phaseHead(g, u.balagan, u.freeTalk)}${statusHTML(g)}${timerHTML(S.settings.balagan, `bal-${g.day}`)}${kamikazeHTML(g)}
@@ -526,11 +527,11 @@ function dayBody(g) {
     const nomList = classic && g.ballot.candidates.length ? `<div class="hint">${tt(u.nominatedList, { list: g.ballot.candidates.map(id => P(g, id).seat).join(', ') })}</div>` : '';
     if (!p) return `${phaseHead(g, u.speechesDone, u.goVote)}${nomList}${kamikazeHTML(g)}<button class="btn primary" data-a="stage" data-id="vote">${u.toVote}</button>`;
     const fouls = classic && p.fouls >= 3 ? `<div class="warnbox">${u.foulNoSpeech}</div>` : '';
-    return `${phaseHead(g, u.speeches, tt(u.introOf, { i: g.speechIdx + 1, n: order.length }) + (classic ? ' · ' + tt(u.firstSpeaker, { seat: order[0].seat }) : ''))}
+    return `${phaseHead(g, u.speeches, tt(u.introOf, { i: g.speechIdx + 1, n: order.length }) + ' · ' + tt(u.firstSpeaker, { seat: order[0].seat }))}
       <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.seconds, { s: S.settings.speech })}</div></div></div></div>${fouls}
       ${timerHTML(S.settings.speech, `sp-${g.day}-${g.speechIdx}`)}${classic ? nominateHTML(g, p) : ''}${nomList}${kamikazeHTML(g)}
       <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < order.length ? u.nextOne : u.toVote}</button></div>
-      <button class="btn ghost sm" data-a="stage" data-id="vote" style="align-self:center">${u.skipSpeeches}</button>`;
+      <button class="btn ghost sm" data-a="stage" data-id="vote" style="align-self:center">${u.skipSpeeches}</button>${undoBtnHTML(g)}`;
   }
   if (st === 'lift') return liftBody(g);
   if (st === 'vote') return voteBody(g);
@@ -544,7 +545,7 @@ function voteBody(g) {
   const u = U(); const al = alive(g); const b = g.ballot;
   const cands = b.candidates; const round2 = b.round === 2;
   const t = tally(g);
-  const voters = al.filter(v => canVoteNow(g, v.id));
+  const voters = voteOrder(g);
   // candidates strip (round 1: removable, addable)
   const candHTML = cands.length ? `<div class="cand-strip">${cands.map(cid => { const c = P(g, cid); const row = t.rows.find(r => r.cid === cid); return `<div class="cand-chip ${t.leaders.includes(cid) && t.max > 0 ? 'lead' : ''}"><span class="seat">${c.seat}</span><span class="nm">${esc(c.name)}</span><span class="cnt">${fmt(row.total)}${row.anon ? ` <small>${tt(u.anonTag, { n: row.anon })}</small>` : ''}${row.x2 ? ` <small>${u.x2Tag}</small>` : ''}</span>${round2 || (b.forced || []).includes(cid) ? '' : `<button class="x" data-a="vote-remove" data-id="${cid}" aria-label="${u.voteRemove}">×</button>`}</div>`; }).join('')}</div>` : '';
   const addable = round2 || (isClassic(g) && cands.length) ? [] : al.filter(p => !cands.includes(p.id) && canNominate(g, p.id));
@@ -645,7 +646,7 @@ function voterIndex(g, voters) {
 }
 function voterSet(g, idx) { S.ui.voter = { key: g.day + ':' + (g.ballot.round || 1), idx }; }
 function voterAdvance(g) {
-  const voters = alive(g).filter(v => canVoteNow(g, v.id)); const cur = voterIndex(g, voters);
+  const voters = voteOrder(g); const cur = voterIndex(g, voters);
   let i = voters.findIndex((v, k) => k > cur && !g.ballot.votes[v.id]);
   if (i < 0) i = voters.findIndex(v => !g.ballot.votes[v.id]);
   voterSet(g, i < 0 ? voters.length : i);
@@ -680,10 +681,10 @@ function resultBody(g) {
   let trigHTML = '';
   if (trig) {
     const a = P(g, trig.actorId); const sel = S.ui.pick;
-    const txt = trig.type === 'azazel' ? u.trigAzazel : u.trigMorpheus;
+    const txt = trig.type === 'azazel' ? (trig.night ? u.trigAzazelNight : u.trigAzazel) : u.trigMorpheus;
     trigHTML = `<div class="panel raised"><div class="eyebrow gold">${ROLE[a.roleId].name} ${a.seat}</div><div class="hint">${esc(a.name)} ${txt}.</div>
       <div class="picker" style="margin-top:10px">${alive(g).map(p => `<button class="pk ${sel[0] === p.id ? 'sel' : ''}" data-a="pick" data-id="${p.id}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>`).join('')}</div>
-      <button class="btn danger" style="margin-top:10px" data-a="trig-confirm" ${sel.length ? '' : 'disabled'}>${u.confirm}</button></div>`;
+      <div class="btn-row" style="margin-top:10px">${trig.night ? `<button class="btn ghost" data-a="trig-skip">${u.trigSkip}</button>` : ''}<button class="btn danger grow" data-a="trig-confirm" ${sel.length ? '' : 'disabled'}>${u.confirm}</button></div></div>`;
   }
   const w = checkWin(g);
   const jester = vr.eliminatedId && P(g, vr.eliminatedId).roleId === 'jester' ? `<div class="result diff"><div class="eyebrow">${u.attention}</div><div class="big">${u.jesterWon}</div><div class="gesture">${u.jesterText}</div></div>` : '';
@@ -696,7 +697,42 @@ function resultBody(g) {
   return `${phaseHead(g, title, vr.eliminatedId ? tt(u.leaves, { seat: P(g, vr.eliminatedId).seat }) : '')}${vr.round === 2 ? `<div class="eyebrow gold">${u.revoteTitle}</div>` : ''}${rows}${rl}${lift}${imm}${chair}${jester}${lastWords}
     ${removed ? `<div class="stack-s">${removed}</div>` : ''}
     ${trigHTML}
-    ${trig ? '' : (w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : `<button class="btn primary" data-a="night">${tt(u.sleepNightN, { n: g.night + 1 })}</button>`)}`;
+    ${trig ? '' : (w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : `<button class="btn primary" data-a="night">${tt(u.sleepNightN, { n: g.night + 1 })}</button>`)}${undoBtnHTML(g)}`;
+}
+
+/* ---------- Host "Back" over a finished step of the game: night → morning, day → night, vote → results ----------
+   Before each such transition the game is copied; on the very next screen a Back button puts that copy back.
+   Copies live in their own localStorage key (written only when they change, not on every render). */
+const UNDO_KEY = SAVE_KEY + '.undo'; const UNDO_MAX = 4;
+function undoList() { if (!S.gameUndo) { try { S.gameUndo = JSON.parse(localStorage.getItem(UNDO_KEY) || '[]') || []; } catch (e) { S.gameUndo = []; } } return S.gameUndo; }
+function undoStore() { try { localStorage.setItem(UNDO_KEY, JSON.stringify(S.gameUndo || [])); } catch (e) {} }
+function gameSig(g) { return [g.phase, g.day, g.night, g.phase === 'day' ? g.dayStage : '', g.stepIdx || 0, g.speechIdx || 0].join('|'); }
+/* run a step that moves the game on; remember the game as it was if the step really moved it */
+function undoTake(kind, fn) {
+  const g = S.game; if (!g || g.winner) return fn();
+  let json = null; const before = gameSig(g); try { json = JSON.stringify(g); } catch (e) {}
+  const r = fn();
+  const now = S.game; if (!json || now !== g || g.winner || gameSig(g) === before) return r;
+  const list = undoList().filter(x => x.gid === g.id); list.push({ gid: g.id, kind, at: gameSig(g), json });
+  while (list.length > UNDO_MAX) list.shift();
+  S.gameUndo = list; undoStore(); return r;
+}
+function undoTop(g) { if (!g || g.winner) return null; const l = undoList(); const x = l[l.length - 1]; return x && x.gid === g.id && x.at === gameSig(g) ? x : null; }
+function undoBtnHTML(g) {
+  const x = undoTop(g); if (!x) return ''; const u = U();
+  return `<button class="btn ghost sm undo-phase" data-a="undo-phase" style="align-self:center">↩ ${{ night: u.undoToNight, day: u.undoToDay, vote: u.undoToVote }[x.kind] || u.back}</button>`;
+}
+function undoPhase() {
+  const g = S.game; const x = undoTop(g); if (!x) return false;
+  let prev = null; try { prev = JSON.parse(x.json); } catch (e) { return false; }
+  if (!prev || prev.id !== g.id) return false;
+  // online: answers already fetched from the table stay fetched — the copy only moves the game back
+  if (g.onl && prev.onl) prev.onl.since = Math.max(prev.onl.since || 0, g.onl.since || 0);
+  if (g.tg && !prev.tg) prev.tg = g.tg;
+  S.gameUndo.pop(); undoStore();
+  addLog(prev, tt(L.e.logUndo, { what: { night: U().undoToNight, day: U().undoToDay, vote: U().undoToVote }[x.kind] || '' }), true);
+  S.game = prev; S.ui.pick = []; S.ui.result = null; S.ui.kamikaze = null; S.ui.candPick = false; S.ui.voter = null; S.ui.prosecute = null; S.ui.nomOpen = null;
+  return true;
 }
 
 /* ---------- End: post-game review ---------- */
@@ -925,9 +961,10 @@ const ACT = {
   },
   skip() { const g = S.game; const step = g.steps[g.stepIdx]; addLog(g, tt(L.e.logSkip, { role: ROLE[step.roleId].name, player: label(P(g, step.actorId)) }), true); ACT.next(); },
   undo() { const g = S.game; const step = g.steps[g.stepIdx]; const a = g.actions.find(x => x.stepId === step.id); if (a && a.ability === 'execute') P(g, a.actorId).executeUsed = false; if (a && a.ability === 'snipe') P(g, a.actorId).snipeUsed = false; if (a && a.ability === 'ignite') P(g, a.actorId).igniteUsed = false; if (a && a.ability === 'douse') g.doused = g.doused.filter(x => x !== a.targets[0]); if (a && a.ability === 'remember') return; g.actions = g.actions.filter(x => x.stepId !== step.id); S.ui.result = null; S.ui.pick = []; render(); },
-  resolve() { const g = S.game; resolveNight(g); startDay(g); S.ui.pick = []; window.scrollTo(0, 0); render(); },
-  day0() { const g = S.game; if (isClassic(g)) startDay(g); else startDay0(g); window.scrollTo(0, 0); render(); },
-  night() { startNight(S.game); S.ui.pick = []; S.ui.result = null; window.scrollTo(0, 0); render(); },
+  resolve() { const g = S.game; undoTake('night', () => { resolveNight(g); startDay(g); }); S.ui.pick = []; window.scrollTo(0, 0); render(); },
+  day0() { const g = S.game; undoTake('night', () => { if (isClassic(g)) startDay(g); else startDay0(g); }); window.scrollTo(0, 0); render(); },
+  night() { undoTake('day', () => startNight(S.game)); S.ui.pick = []; S.ui.result = null; window.scrollTo(0, 0); render(); },
+  'undo-phase'() { if (!undoPhase()) return; window.scrollTo(0, 0); render(); toast(U().undoDone); },
   speech(el) {
     const g = S.game; const d = +el.dataset.d; g.speechIdx = Math.max(0, g.speechIdx + d);
     if (g.phase === 'day' && g.speechIdx >= speakOrder(g).length) g.dayStage = 'vote';
@@ -952,20 +989,21 @@ const ACT = {
   'vote-open'(el) { S.ui.voteOpen = S.ui.voteOpen === el.dataset.id ? null : el.dataset.id; render(); },
   'vote-remove'(el) { const b = S.game.ballot; if ((b.forced || []).includes(el.dataset.id)) return; b.candidates = b.candidates.filter(c => c !== el.dataset.id); Object.keys(b.votes).forEach(v => { if (b.votes[v] === el.dataset.id) delete b.votes[v]; }); render(); },
   vote(el) { const g = S.game; const b = g.ballot; const v = el.dataset.v, c = el.dataset.c; if (b.votes[v] === c) delete b.votes[v]; else { b.votes[v] = c; voterAdvance(g); } render(); },
-  'voter-step'(el) { const g = S.game; const voters = alive(g).filter(v => canVoteNow(g, v.id)); voterSet(g, Math.max(0, Math.min(voters.length - 1, voterIndex(g, voters) + (+el.dataset.d)))); render(); },
+  'voter-step'(el) { const g = S.game; const voters = voteOrder(g); voterSet(g, Math.max(0, Math.min(voters.length - 1, voterIndex(g, voters) + (+el.dataset.d)))); render(); },
   'voter-go'(el) { voterSet(S.game, +el.dataset.i); render(); },
   'cand-pick'() { S.ui.candPick = !S.ui.candPick; render(); },
-  'vote-finish'(el) { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'leader' || o.id !== el.dataset.id) return; finishVote(g, el.dataset.id); S.ui.pick = []; window.scrollTo(0, 0); render(); },
-  'vote-none'() { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'empty' && o.kind !== 'skip1') return; finishVote(g, null); window.scrollTo(0, 0); render(); },
+  'vote-finish'(el) { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'leader' || o.id !== el.dataset.id) return; undoTake('vote', () => finishVote(g, el.dataset.id)); S.ui.pick = []; window.scrollTo(0, 0); render(); },
+  'vote-none'() { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'empty' && o.kind !== 'skip1') return; undoTake('vote', () => finishVote(g, null)); window.scrollTo(0, 0); render(); },
   'vote-rest'() { voteRestToLast(S.game); render(); },
   'tie-start'() { const g = S.game; if (voteOutcome(g).kind !== 'tie') return; startTiebreak(g); S.ui.kamikaze = null; S.ui.pick = []; window.scrollTo(0, 0); render(); },
   'tie-speech'(el) { const g = S.game; g.speechIdx = Math.max(0, g.speechIdx + (+el.dataset.d)); if (g.speechIdx >= (g.ballot.tiedIds || []).length) startRevote(g); window.scrollTo(0, 0); render(); },
   revote() { startRevote(S.game); window.scrollTo(0, 0); render(); },
   'roulette-start'() { const g = S.game; const o = voteOutcome(g); if (g.ballot.round !== 2 || o.kind === 'leader') return; startRoulette(g); window.scrollTo(0, 0); render(); },
-  'roulette-guess'(el) { const g = S.game; const res = rouletteGuess(g, +el.dataset.n); if (!res) return; if (!res.hit) toast(tt(U().rouletteMiss, { seat: res.p.seat })); else window.scrollTo(0, 0); render(); },
-  judge(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; useJudge(g, el.dataset.id); window.scrollTo(0, 0); render(); },
-  lawyer(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; useLawyer(g, el.dataset.id, el.dataset.t); window.scrollTo(0, 0); render(); },
-  'trig-confirm'() { const g = S.game; applyTrigger(g, g.pendingTriggers[0], S.ui.pick[0]); S.ui.pick = []; render(); },
+  'roulette-guess'(el) { const g = S.game; const res = undoTake('vote', () => rouletteGuess(g, +el.dataset.n)); if (!res) return; if (!res.hit) toast(tt(U().rouletteMiss, { seat: res.p.seat })); else window.scrollTo(0, 0); render(); },
+  judge(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; undoTake('vote', () => useJudge(g, el.dataset.id)); window.scrollTo(0, 0); render(); },
+  lawyer(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; undoTake('vote', () => useLawyer(g, el.dataset.id, el.dataset.t)); window.scrollTo(0, 0); render(); },
+  'trig-confirm'() { const g = S.game; if (!g.pendingTriggers[0] || !S.ui.pick[0]) return; applyTrigger(g, g.pendingTriggers[0], S.ui.pick[0]); S.ui.pick = []; render(); },
+  'trig-skip'() { const g = S.game; if (!skipTrigger(g, g.pendingTriggers[0])) return; S.ui.pick = []; render(); },
   finish() { const g = S.game; finishGame(g, checkWin(g)); render(); },
   'classic-rules'() { S.ui.classicRules = !S.ui.classicRules; render(); },
   'nom-open'(el) { S.ui.nomOpen = el.dataset.id || null; render(); },
@@ -974,9 +1012,9 @@ const ACT = {
   prosecute(el) { useProsecutor(S.game, el.dataset.id, el.dataset.c); S.ui.prosecute = null; render(); },
   nominate(el) { nominate(S.game, el.dataset.id, el.dataset.t); S.ui.nomOpen = null; render(); },
   unnominate(el) { unnominate(S.game, el.dataset.id); render(); },
-  'vote-close'() { const g = S.game; const o = voteOutcome(g); if (o.kind === 'empty' || o.kind === 'skip1') return; resolveVoteAuto(g); S.ui.pick = []; window.scrollTo(0, 0); render(); },
+  'vote-close'() { const g = S.game; const o = voteOutcome(g); if (o.kind === 'empty' || o.kind === 'skip1') return; undoTake('vote', () => resolveVoteAuto(g)); S.ui.pick = []; window.scrollTo(0, 0); render(); },
   'lift-toggle'(el) { liftToggle(S.game, el.dataset.id); render(); },
-  'lift-finish'() { finishLiftAll(S.game); window.scrollTo(0, 0); render(); },
+  'lift-finish'() { undoTake('vote', () => finishLiftAll(S.game)); window.scrollTo(0, 0); render(); },
   'bm-pick'(el) { const id = el.dataset.id; const i = S.ui.pick.indexOf(id); if (i >= 0) S.ui.pick.splice(i, 1); else if (S.ui.pick.length < 3) S.ui.pick.push(id); render(); },
   'bm-save'(el) { const g = S.game; const r = g.nightResult; if (!r || !r.removed.length) return; recordBestMove(g, r.removed[0].id, el.dataset.skip ? [] : S.ui.pick.slice()); S.ui.pick = []; render(); },
   'foul-add'(el) { const g = S.game; addFoul(g, el.dataset.id); render(); },
@@ -992,7 +1030,7 @@ const ACT = {
     if (p.alive) { eliminate(g, p.id, L.e.causeHost); } else { p.alive = true; p.deadOn = null; addLog(g, tt(L.e.logReturn, { player: label(p) })); }
     S.ui.sheet = { type: 'players' }; render();
   },
-  'reset-confirm'() { S.game = null; S.ui.sheet = null; clearInterval(T.iv); T.key = null; S.screen = 'home'; render(); },
+  'reset-confirm'() { S.game = null; S.gameUndo = []; undoStore(); S.ui.sheet = null; clearInterval(T.iv); T.key = null; S.screen = 'home'; render(); },
   set(el) { const k = el.dataset.k, d = +el.dataset.d; S.settings[k] = Math.max(10, S.settings[k] + d); render(); },
   toggle(el) { const k = el.dataset.k; S.settings[k] = !S.settings[k]; render(); },
   lite(el) { S.settings.lite = el.dataset.v; applyLite(); render(); },

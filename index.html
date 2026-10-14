@@ -1372,15 +1372,15 @@ I18N.ru.roles = {
   "name": "Азазель",
   "mono": "Аз",
   "kind": "Пассивная · при выбывании",
-  "short": "Когда его выгоняют голосованием, забирает с собой одного игрока.",
+  "short": "Уходит не один: если его выгнали голосованием или убили ночью — забирает с собой одного игрока.",
   "rules": [
    "Если Азазеля выгоняют голосованием, он выбирает любого игрока — тот выбывает вместе с ним.",
-   "Срабатывает только при выбывании голосованием, не от ночного выстрела.",
+   "Если Азазеля убили ночью, на итогах следующего дня он может забрать с собой любого игрока (или отказаться).",
    "Если забранный игрок — Бомба, она взрывается.",
    "Ночью не просыпается."
   ],
   "lore": "Говорят, он заключил сделку задолго до того, как город узнал его имя. Если его вытолкнут на площадь — он уйдёт не один.",
-  "tip": "Пусть город знает: выгонять вас дорого. Но не раскрывайтесь мафии."
+  "tip": "Пусть город знает: убрать вас дорого — и днём, и ночью. Но не раскрывайтесь мафии."
  },
  "morpheus": {
   "name": "Морфей",
@@ -1565,10 +1565,10 @@ I18N.uk = {
       rules: ['У перший день за нього можуть зарахувати не більше 5 голосів, у другий — 4, далі 3, 2, 1 і 0.', 'Голоси понад ліміт не рахуються: при 6 піднятих руках і ліміті 5 йому зарахують 5.', 'Ведучий рахує мовчки, нічого не оголошуючи.', 'Уночі не прокидається.'],
       lore: 'Робітник заводу «Кастельмар-Сталь», людина, яку місто звикло не помічати. Але що довше йде гра, то важче зрушити його з місця.',
       tip: 'Ваша сила росте з кожним днем. Доживіть до четвертого — і вас майже не вигнати.' },
-    azazel: { name: 'Азазель', mono: 'Аз', kind: 'Пасивна · при вибуванні', short: 'Коли його виганяють голосуванням, забирає із собою одного гравця.',
-      rules: ['Якщо Азазеля виганяють голосуванням, він обирає будь-якого гравця — той вибуває разом із ним.', 'Спрацьовує лише при вибуванні голосуванням, не від нічного пострілу.', 'Якщо забраний гравець — Бомба, вона вибухає.', 'Уночі не прокидається.'],
+    azazel: { name: 'Азазель', mono: 'Аз', kind: 'Пасивна · при вибуванні', short: 'Іде не сам: якщо його вигнали голосуванням або вбили вночі — забирає із собою одного гравця.',
+      rules: ['Якщо Азазеля виганяють голосуванням, він обирає будь-якого гравця — той вибуває разом із ним.', 'Якщо Азазеля вбили вночі, на підсумках наступного дня він може забрати із собою будь-якого гравця (або відмовитися).', 'Якщо забраний гравець — Бомба, вона вибухає.', 'Уночі не прокидається.'],
       lore: 'Кажуть, він уклав угоду задовго до того, як місто дізналося його ім\'я. Якщо його виштовхнуть на площу — він піде не сам.',
-      tip: 'Хай місто знає: виганяти вас дорого. Але не розкривайтеся мафії.' },
+      tip: 'Хай місто знає: прибрати вас дорого — і вдень, і вночі. Але не розкривайтеся мафії.' },
     morpheus: { name: 'Морфей', mono: 'Мр', kind: 'Пасивна · при вибуванні', short: 'Коли його виганяють, забирає у гравця активну навичку до кінця гри.',
       rules: ['Якщо Морфея виганяють голосуванням, він обирає гравця — той втрачає активну здібність до кінця гри.', 'Якщо обрано стрільця сім\'ї, сім\'я не може стріляти, поки цей гравець сидить за столом.', 'Спрацьовує лише при вибуванні голосуванням.', 'Уночі не прокидається.'],
       lore: 'Він продає сни в крамниці на Годинниковій вулиці. Вигнаний з міста, він забирає із собою чужий дар — і хтось назавжди забуває, як це робилося.',
@@ -1780,10 +1780,10 @@ I18N.en = {
       rules: ['On day 1 at most 5 votes against him count, on day 2 at most 4, then 3, 2, 1 and 0.', 'Votes over the cap are ignored: with 6 hands and a cap of 5, he is counted 5.', 'The host counts silently, announcing nothing.', 'Does not wake at night.'],
       lore: 'A worker at Castelmar Steel, the kind of man the town is used to overlooking. But the longer the game runs, the harder he is to move.',
       tip: 'Your strength grows every day. Survive to day four and you are almost impossible to vote out.' },
-    azazel: { name: 'Azazel', mono: 'Az', kind: 'Passive · on elimination', short: 'When voted out, takes one player with him.',
-      rules: ['If Azazel is voted out, he picks any player, who leaves with him.', 'Triggers only on a vote, not on a night shot.', 'If the taken player is the Bomb, it explodes.', 'Does not wake at night.'],
+    azazel: { name: 'Azazel', mono: 'Az', kind: 'Passive · on elimination', short: 'Never leaves alone: voted out or killed at night, he takes one player with him.',
+      rules: ['If Azazel is voted out, he picks any player, who leaves with him.', 'If Azazel is killed at night, at the next day\'s results he may take any player along (or let it go).', 'If the taken player is the Bomb, it explodes.', 'Does not wake at night.'],
       lore: 'They say he made his deal long before the town learned his name. If they push him onto the square, he won\'t leave alone.',
-      tip: 'Let the town know that voting you out is expensive. But don\'t reveal yourself to the mafia.' },
+      tip: 'Let the town know that getting rid of you is expensive, by day and by night. But don\'t reveal yourself to the mafia.' },
     morpheus: { name: 'Morpheus', mono: 'Mo', kind: 'Passive · on elimination', short: 'When voted out, takes a player\'s active ability for the rest of the game.',
       rules: ['If Morpheus is voted out, he picks a player, who loses his active ability for the rest of the game.', 'If he picks the family\'s shooter, the family cannot shoot while that player sits at the table.', 'Triggers only on a vote.', 'Does not wake at night.'],
       lore: 'He sells dreams in a shop on Clock Street. Driven out of town, he takes someone else\'s gift with him, and that someone forgets forever how it was done.',
@@ -1995,10 +1995,10 @@ I18N.pl = {
       rules: ['Pierwszego dnia można zaliczyć przeciw niemu najwyżej 5 głosów, drugiego — 4, potem 3, 2, 1 i 0.', 'Głosy ponad limit się nie liczą: przy 6 rękach i limicie 5 zalicza mu się 5.', 'Prowadzący liczy po cichu, nic nie ogłaszając.', 'W nocy się nie budzi.'],
       lore: 'Robotnik z zakładów „Castelmar Stal”, człowiek, którego miasto przywykło nie zauważać. Ale im dłużej trwa gra, tym trudniej ruszyć go z miejsca.',
       tip: 'Twoja siła rośnie z każdym dniem. Dożyj czwartego — i prawie nie da się ciebie wyrzucić.' },
-    azazel: { name: 'Azazel', mono: 'Az', kind: 'Pasywna · przy odpadnięciu', short: 'Gdy wyrzucają go w głosowaniu, zabiera ze sobą jednego gracza.',
-      rules: ['Jeśli Azazel zostaje wyrzucony w głosowaniu, wybiera dowolnego gracza — ten odpada razem z nim.', 'Działa tylko przy odpadnięciu w głosowaniu, nie od nocnego strzału.', 'Jeśli zabrany gracz to Bomba, ona wybucha.', 'W nocy się nie budzi.'],
+    azazel: { name: 'Azazel', mono: 'Az', kind: 'Pasywna · przy odpadnięciu', short: 'Nie odchodzi sam: gdy wyrzucą go w głosowaniu albo zabiją w nocy, zabiera ze sobą jednego gracza.',
+      rules: ['Jeśli Azazel zostaje wyrzucony w głosowaniu, wybiera dowolnego gracza — ten odpada razem z nim.', 'Jeśli Azazel zginie w nocy, przy podsumowaniu następnego dnia może zabrać ze sobą dowolnego gracza (albo zrezygnować).', 'Jeśli zabrany gracz to Bomba, ona wybucha.', 'W nocy się nie budzi.'],
       lore: 'Mówią, że zawarł układ na długo przed tym, nim miasto poznało jego imię. Jeśli wypchną go na plac — nie odejdzie sam.',
-      tip: 'Niech miasto wie: wyrzucenie ciebie drogo kosztuje. Ale nie ujawniaj się mafii.' },
+      tip: 'Niech miasto wie: pozbycie się ciebie drogo kosztuje — w dzień i w nocy. Ale nie ujawniaj się mafii.' },
     morpheus: { name: 'Morfeusz', mono: 'Mo', kind: 'Pasywna · przy odpadnięciu', short: 'Gdy go wyrzucają, zabiera graczowi aktywną zdolność do końca gry.',
       rules: ['Jeśli Morfeusz zostaje wyrzucony w głosowaniu, wybiera gracza — ten traci aktywną zdolność do końca gry.', 'Jeśli wybrany jest strzelec rodziny, rodzina nie może strzelać, póki ten gracz siedzi przy stole.', 'Działa tylko przy odpadnięciu w głosowaniu.', 'W nocy się nie budzi.'],
       lore: 'Sprzedaje sny w sklepiku przy Zegarowej. Wygnany z miasta, zabiera ze sobą cudzy dar — i ktoś na zawsze zapomina, jak się to robiło.',
@@ -2210,10 +2210,10 @@ I18N.hy = {
       rules: ['Առաջին օրը նրա դեմ կարող են հաշվել ոչ ավելի, քան 5 ձայն, երկրորդ օրը՝ 4, ապա 3, 2, 1 և 0։', 'Սահմանից ավելի ձայները չեն հաշվվում. 6 բարձրացված ձեռքի և 5 սահմանի դեպքում նրան հաշվում են 5։', 'Վարողը հաշվում է լուռ, ոչինչ չհայտարարելով։', 'Գիշերը չի արթնանում։'],
       lore: '«Կաստելմար-Պողպատ» գործարանի բանվոր, մարդ, որին քաղաքը սովոր է չնկատել։ Բայց որքան երկար է խաղը, այնքան դժվար է նրան տեղից շարժել։',
       tip: 'Ձեր ուժն աճում է ամեն օր։ Ապրե՛ք մինչև չորրորդ օրը, և ձեզ գրեթե անհնար կլինի վռնդել։' },
-    azazel: { name: 'Ազազել', mono: 'Ազ', kind: 'Պասիվ · դուրս գալիս', short: 'Երբ նրան վռնդում են քվեարկությամբ, իր հետ տանում է մեկ խաղացողի։',
-      rules: ['Եթե Ազազելին վռնդում են քվեարկությամբ, նա ընտրում է ցանկացած խաղացողի. նա դուրս է գալիս նրա հետ։', 'Գործում է միայն քվեարկությամբ դուրս գալու դեպքում, ոչ գիշերային կրակոցից։', 'Եթե տարված խաղացողը Ռումբն է, այն պայթում է։', 'Գիշերը չի արթնանում։'],
+    azazel: { name: 'Ազազել', mono: 'Ազ', kind: 'Պասիվ · դուրս գալիս', short: 'Մենակ չի գնում․ եթե նրան վռնդում են քվեարկությամբ կամ սպանում գիշերը, իր հետ տանում է մեկ խաղացողի։',
+      rules: ['Եթե Ազազելին վռնդում են քվեարկությամբ, նա ընտրում է ցանկացած խաղացողի. նա դուրս է գալիս նրա հետ։', 'Եթե Ազազելին սպանել են գիշերը, հաջորդ օրվա արդյունքներում նա կարող է իր հետ տանել ցանկացած խաղացողի (կամ հրաժարվել)։', 'Եթե տարված խաղացողը Ռումբն է, այն պայթում է։', 'Գիշերը չի արթնանում։'],
       lore: 'Ասում են՝ նա գործարք է կնքել շատ ավելի վաղ, քան քաղաքն իմացել է նրա անունը։ Եթե նրան հրապարակ դուրս մղեն, նա մենակ չի գնա։',
-      tip: 'Թող քաղաքն իմանա՝ ձեզ վռնդելը թանկ է։ Բայց մաֆիային մի՛ բացվեք։' },
+      tip: 'Թող քաղաքն իմանա՝ ձեզնից ազատվելը թանկ է՝ և՛ ցերեկը, և՛ գիշերը։ Բայց մաֆիային մի՛ բացվեք։' },
     morpheus: { name: 'Մորփեոս', mono: 'Մր', kind: 'Պասիվ · դուրս գալիս', short: 'Երբ նրան վռնդում են, խաղացողից վերցնում է ակտիվ ունակությունը մինչև խաղի վերջ։',
       rules: ['Եթե Մորփեոսին վռնդում են քվեարկությամբ, նա ընտրում է խաղացողի. նա կորցնում է ակտիվ ունակությունը մինչև խաղի վերջ։', 'Եթե ընտրված է ընտանիքի կրակողը, ընտանիքը չի կարող կրակել, քանի դեռ այդ խաղացողը նստած է սեղանի շուրջ։', 'Գործում է միայն քվեարկությամբ դուրս գալու դեպքում։', 'Գիշերը չի արթնանում։'],
       lore: 'Նա երազներ է վաճառում Ժամացույցի փողոցի խանութում։ Քաղաքից վռնդված, նա իր հետ տանում է ուրիշի շնորհը, և ինչ-որ մեկն ընդմիշտ մոռանում է, թե ինչպես էր դա արվում։',
@@ -2875,6 +2875,42 @@ Object.assign(I18N.hy.ui, {
   sTie: 'Արդարացման խոսք', sTieD: 'Հավասար ձայների դեպքում՝ առաջատարներից յուրաքանչյուրին'
 });
 Object.assign(I18N.hy.e, { causeRevote: 'կրկնական քվեարկություն · {n} {votes}', causeRoulette: 'ռուլետկա · թիվ {n}', logTie: 'Հավասար ձայներ՝ {list}։ Արդարացման խոսքեր։', logRevote: 'Կրկնական քվեարկություն {list}-ի միջև։', logRoulette: 'Հավասար ձայներ կրկնական քվեարկությունում։ Ռուլետկա {list}-ի միջև, մտապահված է {n}։', logRouletteMiss: '{player}՝ {n} — վրիպում', logRouletteHit: '{player}՝ {n} — դիպուկ' });
+/* v46: Back over a finished night / day / vote; Azazel killed at night takes a player at the day's results */
+Object.assign(I18N.ru.ui, {
+  undoToNight: 'Назад к ночи', undoToDay: 'Назад ко дню', undoToVote: 'Назад к голосованию', undoDone: 'Вернулись на шаг назад',
+  trigAzazelNight: 'убит этой ночью — на итогах дня может забрать с собой любого игрока или отказаться', trigSkip: 'Не забирать',
+  azazelNightHint: 'Азазель №{seat} убит ночью — на итогах дня он может забрать с собой любого игрока',
+  tbAzazelNight: 'Вас убили ночью. Как Азазель вы можете забрать с собой любого игрока — или отказаться.'
+});
+Object.assign(I18N.ru.e, { logAzazelSkip: '{player} (Азазель) никого не забрал', logUndo: 'Ведущий вернул игру назад: {what}' });
+Object.assign(I18N.uk.ui, {
+  undoToNight: 'Назад до ночі', undoToDay: 'Назад до дня', undoToVote: 'Назад до голосування', undoDone: 'Повернулися на крок назад',
+  trigAzazelNight: 'убитий цієї ночі — на підсумках дня може забрати із собою будь-якого гравця або відмовитися', trigSkip: 'Не забирати',
+  azazelNightHint: 'Азазеля №{seat} убили вночі — на підсумках дня він може забрати із собою будь-якого гравця',
+  tbAzazelNight: 'Вас убили вночі. Як Азазель ви можете забрати із собою будь-якого гравця — або відмовитися.'
+});
+Object.assign(I18N.uk.e, { logAzazelSkip: '{player} (Азазель) нікого не забрав', logUndo: 'Ведучий повернув гру назад: {what}' });
+Object.assign(I18N.en.ui, {
+  undoToNight: 'Back to the night', undoToDay: 'Back to the day', undoToVote: 'Back to the vote', undoDone: 'Went one step back',
+  trigAzazelNight: 'was killed last night — at the day\'s results may take any player along, or let it go', trigSkip: 'Take no one',
+  azazelNightHint: 'Azazel (seat {seat}) was killed at night — at the day\'s results he may take any player along',
+  tbAzazelNight: 'You were killed at night. As Azazel you may take any player along — or let it go.'
+});
+Object.assign(I18N.en.e, { logAzazelSkip: '{player} (Azazel) took no one', logUndo: 'The host turned the game back: {what}' });
+Object.assign(I18N.pl.ui, {
+  undoToNight: 'Wróć do nocy', undoToDay: 'Wróć do dnia', undoToVote: 'Wróć do głosowania', undoDone: 'Cofnięto o krok',
+  trigAzazelNight: 'zginął tej nocy — przy podsumowaniu dnia może zabrać ze sobą dowolnego gracza albo zrezygnować', trigSkip: 'Nikogo nie zabierać',
+  azazelNightHint: 'Azazel (nr {seat}) zginął w nocy — przy podsumowaniu dnia może zabrać ze sobą dowolnego gracza',
+  tbAzazelNight: 'Zginąłeś w nocy. Jako Azazel możesz zabrać ze sobą dowolnego gracza — albo zrezygnować.'
+});
+Object.assign(I18N.pl.e, { logAzazelSkip: '{player} (Azazel) nikogo nie zabrał', logUndo: 'Prowadzący cofnął grę: {what}' });
+Object.assign(I18N.hy.ui, {
+  undoToNight: 'Հետ՝ գիշերին', undoToDay: 'Հետ՝ ցերեկին', undoToVote: 'Հետ՝ քվեարկությանը', undoDone: 'Վերադարձանք մեկ քայլ հետ',
+  trigAzazelNight: 'սպանվել է այս գիշեր — օրվա արդյունքներում կարող է իր հետ տանել ցանկացած խաղացողի կամ հրաժարվել', trigSkip: 'Ոչ ոքի չտանել',
+  azazelNightHint: 'Ազազելը (տեղ {seat}) սպանվել է գիշերը — օրվա արդյունքներում նա կարող է իր հետ տանել ցանկացած խաղացողի',
+  tbAzazelNight: 'Ձեզ սպանել են գիշերը։ Որպես Ազազել՝ կարող եք ձեզ հետ տանել ցանկացած խաղացողի կամ հրաժարվել։'
+});
+Object.assign(I18N.hy.e, { logAzazelSkip: '{player}-ը (Ազազել) ոչ ոքի չտարավ', logUndo: 'Վարողը խաղը հետ վերադարձրեց՝ {what}' });
 /* Vote stepper (voter by voter), journal lines for votes, post-game review and usefulness points */
 Object.assign(I18N.ru.ui, {
   addCand: 'Добавить кандидата', voterOf: 'Голосует {i} из {n}', votedFor: 'за №{seat}', voterPick: 'За кого поднял руку?', voterSkip: 'Пропустить', allVoted: 'Все проголосовали', tallyTitle: 'Счёт голосов', noVoters: 'Ещё не голосовали: {list}', votersOf: 'голосовали: {list}',
@@ -4310,22 +4346,22 @@ const PRESETS = {
 const BALANCE = {
   7: { mafia: 52, city: 48.1, maniac: 0, games: 2000, nights: 2, before: 40.3, weak: 54.4, strong: 47.4 },
   8: { mafia: 47.3, city: 52.8, maniac: 0, games: 2000, nights: 2.1, before: 39.3, weak: 48, strong: 41.9 },
-  9: { mafia: 52, city: 48, maniac: 0, games: 2000, nights: 2.9, before: 43.8, weak: 54.5, strong: 46 },
+  9: { mafia: 47.8, city: 52.2, maniac: 0, games: 4000, nights: 2.9, before: 43.8, weak: 54.5, strong: 46 },
   10: { mafia: 52.8, city: 43.2, maniac: 4.1, games: 2000, nights: 2.5, before: 55.7, weak: 56.5, strong: 45.1 },
   11: { mafia: 47.2, city: 47.2, maniac: 5.7, games: 2000, nights: 2.8, before: 40.7, weak: 52.3, strong: 40.5 },
-  12: { mafia: 50, city: 50, maniac: 0, games: 3000, nights: 3.6, before: 52.9, weak: 59.6, strong: 46.8 },
+  12: { mafia: 46.8, city: 53.2, maniac: 0, games: 4000, nights: 3.6, before: 52.9, weak: 59.6, strong: 46.8 },
   13: { mafia: 47, city: 49.3, maniac: 3.8, games: 2000, nights: 3, before: 57.9, weak: 50.8, strong: 40 },
   14: { mafia: 49.2, city: 48.8, maniac: 2, games: 2000, nights: 3.4, before: 33.1, weak: 51.1, strong: 43.9 },
-  15: { mafia: 49.7, city: 47.9, maniac: 2.4, games: 2000, nights: 3.4, before: 57.7, weak: 56.5, strong: 44.5 },
+  15: { mafia: 47.1, city: 50.6, maniac: 2.3, games: 4000, nights: 3.4, before: 57.7, weak: 56.5, strong: 44.5 },
   16: { mafia: 52.1, city: 47.9, maniac: 0, games: 2000, nights: 4.3, before: 54.6, weak: 58.3, strong: 50.3 },
-  17: { mafia: 51.4, city: 47.6, maniac: 1.1, games: 2000, nights: 4.1, before: 35.9, weak: 55.5, strong: 45.4 },
+  17: { mafia: 47.9, city: 51, maniac: 1.1, games: 4000, nights: 4, before: 35.9, weak: 55.5, strong: 45.4 },
   18: { mafia: 53.7, city: 46.3, maniac: 0, games: 2000, nights: 4.6, before: 65.7, weak: 55.9, strong: 46.6 },
-  19: { mafia: 47.5, city: 51.4, maniac: 1.1, games: 2000, nights: 4.6, before: 48.9, weak: 52.8, strong: 41.5 },
-  20: { mafia: 50.1, city: 50, maniac: 0, games: 2000, nights: 5.8, before: 40.7, weak: 58.4, strong: 38.5 },
-  21: { mafia: 50.7, city: 46.8, maniac: 2.5, games: 2000, nights: 5.1, before: 36.3, weak: 59.5, strong: 42.6 },
-  22: { mafia: 51.9, city: 46.1, maniac: 2.1, games: 2000, nights: 5.4, before: 45.5, weak: 57.9, strong: 41.6 },
-  23: { mafia: 47.4, city: 50.6, maniac: 2.1, games: 2000, nights: 5.8, before: 49.7, weak: 53.9, strong: 40.9 },
-  24: { mafia: 51.3, city: 47.1, maniac: 1.6, games: 2000, nights: 5.8, before: 53.2, weak: 58.4, strong: 43 },
+  19: { mafia: 46.5, city: 52.4, maniac: 1.1, games: 4000, nights: 4.5, before: 48.9, weak: 52.8, strong: 41.5 },
+  20: { mafia: 48.9, city: 51.2, maniac: 0, games: 4000, nights: 5.7, before: 40.7, weak: 58.4, strong: 38.5 },
+  21: { mafia: 49.7, city: 48, maniac: 2.3, games: 4000, nights: 5, before: 36.3, weak: 59.5, strong: 42.6 },
+  22: { mafia: 50.8, city: 47.2, maniac: 2, games: 4000, nights: 5.4, before: 45.5, weak: 57.9, strong: 41.6 },
+  23: { mafia: 46.7, city: 51.2, maniac: 2.1, games: 4000, nights: 5.7, before: 49.7, weak: 53.9, strong: 40.9 },
+  24: { mafia: 51.2, city: 47.4, maniac: 1.4, games: 4000, nights: 5.7, before: 53.2, weak: 58.4, strong: 43 },
 };
 
 const MIN_PLAYERS = 7, MAX_PLAYERS = 24, TWO_FAMILIES_FROM = 20;
@@ -4484,66 +4520,66 @@ const INTRO = {
   ],
   16: [
     ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,rabbi,drunk,altruist,thief,monk', 52.5, 47.5, 0, 4.2],
-    ['detective', 'don,gunsmith,balamut,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,thief,bomb,rabbi,altruist,azazel', 52.2, 47.8, 0, 4.5],
-    ['guard', 'don,kamikaze,executioner,gunsmith,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,mayor,journalist,drunk,thief,azazel', 47.1, 52.9, 0, 4],
+    ['detective', 'don,gunsmith,balamut,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,thief,bomb,rabbi,bodyguard,azazel', 50.3, 49.7, 0, 4.5],
+    ['guard', 'don,kamikaze,executioner,gunsmith,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,mayor,journalist,drunk,thief,azazel', 48.1, 52, 0, 4],
     ['trumps', 'don,gunsmith,kamikaze,mafia_doctor,executioner,sheriff,doctor,bodyguard,journalist,judge,bomb,miller,rabbi,altruist,thief,monk', 48.5, 51.5, 0, 4.1],
     ['third', 'don,gunsmith,mafia,mafia,mafia,sheriff,maniac,werewolf,mayor,journalist,judge,miller,rabbi,drunk,altruist,thief', 46.6, 51.3, 2.1, 3.7]
   ],
   17: [
-    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,monk,azazel', 52.6, 47.4, 0, 4.5],
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,monk,azazel', 48.8, 51.2, 0, 4.5],
     ['detective', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,altruist,monk', 48.5, 51.5, 0, 4.6],
-    ['guard', 'don,kamikaze,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,altruist,mayor,journalist,miller,drunk,thief,azazel', 53, 47, 0, 4.5],
+    ['guard', 'don,kamikaze,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,altruist,mayor,journalist,miller,drunk,thief,azazel', 52, 48.1, 0, 4.4],
     ['trumps', 'don,gunsmith,mafia_doctor,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief', 53.4, 46.6, 0, 4.6],
     ['third', 'don,gunsmith,mafia,mafia,mafia,sheriff,maniac,jester,werewolf,doctor,mayor,bodyguard,judge,bomb,rabbi,drunk,altruist', 46.2, 51.4, 2.4, 4.1]
   ],
   18: [
     ['first', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,bomb,miller,rabbi,drunk,altruist,monk', 47.1, 52.9, 0, 5.5],
-    ['detective', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,monk,azazel', 52.4, 47.6, 0, 4.8],
-    ['guard', 'don,executioner,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,mayor,journalist,miller,thief,azazel,morpheus', 49.4, 50.6, 0, 4.7],
-    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,sheriff,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 51.9, 48.1, 0, 4.7],
-    ['third', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,miller,altruist,monk,azazel', 48.7, 49.3, 2, 4.1]
+    ['detective', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,monk,azazel', 50.7, 49.3, 0, 4.8],
+    ['guard', 'don,executioner,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,mayor,journalist,miller,thief,azazel,morpheus', 47.8, 52.3, 0, 4.7],
+    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,sheriff,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 48.4, 51.6, 0, 4.7],
+    ['third', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,miller,altruist,monk,azazel', 48.3, 50.2, 1.5, 4]
   ],
   19: [
-    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,rabbi,drunk,altruist,thief,monk,azazel', 48.9, 51.1, 0, 4.9],
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,rabbi,drunk,altruist,thief,monk,azazel', 48.6, 51.4, 0, 4.9],
     ['detective', 'don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,rabbi,altruist,monk', 47, 53, 0, 5.3],
-    ['guard', 'don,kamikaze,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 51.6, 48.4, 0, 5],
-    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 48.4, 51.6, 0, 4.8],
-    ['third', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,rabbi,altruist,thief,azazel', 48.2, 50.6, 1.2, 4.5]
+    ['guard', 'don,kamikaze,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 49.8, 50.2, 0, 5],
+    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 48.7, 51.3, 0, 4.8],
+    ['third', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,rabbi,altruist,thief,azazel', 46.1, 52.1, 1.8, 4.5]
   ],
   20: [
-    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 49.4, 50.6, 0, 6.1],
-    ['detective', 'don,don,balamut,spy,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 52.7, 47.3, 0, 6.8],
-    ['guard', 'don,don,executioner,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,journalist,miller,thief,monk,azazel', 48.4, 51.6, 0, 5.9],
-    ['trumps', 'don,don,gunsmith,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 50.1, 49.9, 0, 5.9],
-    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,rabbi,drunk,altruist,thief,azazel,morpheus', 49.4, 48.5, 2.1, 5.3]
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 49, 51, 0, 6.2],
+    ['detective', 'don,don,balamut,spy,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 47.8, 52.2, 0, 6.8],
+    ['guard', 'don,don,executioner,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,journalist,miller,thief,monk,azazel', 48.2, 51.9, 0, 5.9],
+    ['trumps', 'don,don,gunsmith,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 47, 53.1, 0, 5.8],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,rabbi,drunk,altruist,thief,azazel,morpheus', 46.5, 50.7, 2.8, 5.2]
   ],
   21: [
-    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,monk,azazel', 48.6, 51.4, 0, 6.6],
-    ['detective', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,altruist,monk,azazel', 48.5, 51.5, 0, 6.1],
-    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,azazel,morpheus', 53.1, 46.9, 0, 6.3],
-    ['trumps', 'don,don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,altruist,thief,monk,azazel', 50.4, 49.6, 0, 6.3],
-    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,bodyguard,journalist,judge,bomb,miller,rabbi,thief,monk,azazel,morpheus', 51.5, 46.9, 1.6, 5.1]
+    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,azazel', 48.2, 51.8, 0, 6.3],
+    ['detective', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,altruist,monk,azazel', 50, 50, 0, 5.8],
+    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,azazel,morpheus', 49.7, 50.4, 0, 6.3],
+    ['trumps', 'don,don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,altruist,thief,monk,azazel', 49.7, 50.4, 0, 6.2],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,bodyguard,journalist,judge,bomb,miller,rabbi,thief,monk,azazel,morpheus', 50, 48, 2, 5]
   ],
   22: [
-    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,miller,rabbi,drunk,altruist,thief,monk,azazel', 53.1, 46.9, 0, 6.6],
-    ['detective', 'don,don,spy,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,altruist,monk,azazel,morpheus', 53.1, 46.9, 0, 6.9],
-    ['guard', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,monk,azazel', 49.4, 50.6, 0, 7],
-    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 49.2, 50.8, 0, 6.6],
-    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,journalist,judge,bomb,miller,drunk,thief,monk,azazel,morpheus', 45.6, 52.6, 1.8, 5.5]
+    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,miller,rabbi,drunk,altruist,thief,monk,azazel', 51.6, 48.4, 0, 6.4],
+    ['detective', 'don,don,spy,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,altruist,monk,azazel,morpheus', 52.1, 47.9, 0, 6.6],
+    ['guard', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,monk,azazel', 49.1, 50.9, 0, 6.8],
+    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 48.1, 51.9, 0, 6.5],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,journalist,judge,bomb,miller,drunk,thief,monk,azazel,morpheus', 45.7, 52.1, 2.2, 5.3]
   ],
   23: [
-    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 51.5, 48.5, 0, 7.4],
-    ['detective', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel', 51, 49, 0, 7.3],
-    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 52.4, 47.6, 0, 7],
-    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,monk,azazel,morpheus', 49.1, 50.9, 0, 6.8],
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 49.9, 50.1, 0, 7.4],
+    ['detective', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel', 48.3, 51.7, 0, 7.2],
+    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 49.5, 50.6, 0, 6.9],
+    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,monk,azazel,morpheus', 47.9, 52.1, 0, 6.6],
     ['third', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,bodyguard,journalist,miller,rabbi,drunk,altruist,thief,monk,morpheus', 48.5, 49.6, 1.9, 6.2]
   ],
   24: [
-    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,azazel,morpheus', 50.2, 49.8, 0, 7.9],
-    ['detective', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 49.1, 50.9, 0, 7.5],
-    ['guard', 'don,don,kamikaze,executioner,gunsmith,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,monk,azazel,morpheus', 47.9, 52.1, 0, 6.9],
-    ['trumps', 'don,don,gunsmith,kamikaze,mafia_doctor,executioner,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 49.2, 50.8, 0, 7.1],
-    ['third', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 46.8, 51.5, 1.7, 6.2]
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,azazel,morpheus', 49.4, 50.6, 0, 7.8],
+    ['detective', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 47.8, 52.3, 0, 7.5],
+    ['guard', 'don,don,kamikaze,executioner,gunsmith,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,monk,azazel,morpheus', 48.3, 51.7, 0, 6.9],
+    ['trumps', 'don,don,gunsmith,kamikaze,mafia_doctor,executioner,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 48.4, 51.6, 0, 6.9],
+    ['third', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 45.4, 52.3, 2.4, 6]
   ]
 };
 const introText = theme => (L.intro && L.intro[theme]) || I18N.ru.intro[theme];
@@ -5046,12 +5082,13 @@ function startNight(g) {
 }
 function startDay(g) {
   g.phase = 'day'; g.day += 1; g.dayStage = 'morning'; g.speechIdx = 0; g.ballot = { candidates: [], votes: {}, round: 1, nominatedBy: {} }; g.voteResult = null; g.pendingTriggers = [];
-  if (isClassic(g)) {
-    // sport rules: the first day has no night before it (straight to speeches); the first speaker shifts by one seat every day
-    g.dayFirstSeat = classicFirstSeat(g);
-    if (g.night === 0) g.dayStage = 'speeches';
-  }
+  // every day the minutes (and the vote stepper) start from the next living seat after the previous day's first speaker
+  g.dayFirstSeat = classicFirstSeat(g);
+  // sport rules: the first day has no night before it (straight to speeches)
+  if (isClassic(g) && g.night === 0) g.dayStage = 'speeches';
   addLog(g, tt(L.e.logDay, { n: g.day }));
+  // Azazel killed last night takes a player with him at the day's results (he may also let it go)
+  ((g.nightResult && g.nightResult.removed) || []).forEach(d => { const p = P(g, d.id); if (p && !p.alive && p.roleId === 'azazel') g.pendingTriggers.push({ type: 'azazel', actorId: p.id, night: true }); });
   // diplomacy: the Provocateur's victim is already on the ballot (unless under the Pastor's sanctuary)
   alive(g).filter(p => fxOn(g, 'forcedCand', p.id) && canNominate(g, p.id)).forEach(p => { g.ballot.candidates.push(p.id); g.ballot.forced = (g.ballot.forced || []).concat([p.id]); addLog(g, tt(L.e.logProvoked, { target: label(p) })); });
 }
@@ -5063,11 +5100,13 @@ function classicFirstSeat(g) {
   if (g.day <= 1 || !g.dayFirstSeat) return al[0].seat;
   const nxt = al.find(p => p.seat > g.dayFirstSeat) || al[0]; return nxt.seat;
 }
-/* order of day speeches: seat order, rotated in classic mode to start from the day's first speaker */
+/* order of day speeches: seat order, rotated to start from the day's first speaker */
 function speakOrder(g) {
-  const al = alive(g); if (!isClassic(g) || !g.dayFirstSeat) return al;
+  const al = alive(g); if (!g.dayFirstSeat) return al;
   const i = al.findIndex(p => p.seat >= g.dayFirstSeat); return i <= 0 ? al : al.slice(i).concat(al.slice(0, i));
 }
+/* the host asks the voters in the same order as the day's speeches */
+function voteOrder(g) { return speakOrder(g).filter(v => canVoteNow(g, v.id)); }
 /* classic: nominations happen inside speeches, one per speaker, voted in nomination order */
 function nominate(g, speakerId, candId) {
   const b = g.ballot; b.nominatedBy = b.nominatedBy || {};
@@ -5220,6 +5259,12 @@ function applyTrigger(g, trig, targetId) {
   if (trig.type === 'azazel') { eliminate(g, targetId, tt(L.e.causeAzazel, { player: label(actor) }), g.voteResult.removed); }
   if (trig.type === 'morpheus') { t.disabled = true; addLog(g, tt(L.e.logMorpheus, { actor: label(actor), target: label(t), role: ROLE[t.roleId].name })); }
   g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig);
+}
+/* a trigger the player may decline (Azazel killed at night) */
+function skipTrigger(g, trig) {
+  if (!trig || !trig.night) return false;
+  addLog(g, tt(L.e.logAzazelSkip, { player: label(P(g, trig.actorId)) }));
+  g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig); return true;
 }
 function useJudge(g, judgeId) {
   if (g.ballot.final) return false;
@@ -5656,7 +5701,7 @@ function nightBody(g) {
   if (!step) {
     return `${phaseHead(g, isFirst ? u.allMet : u.allActed, isFirst ? u.canWake : u.resolveHint)}
       ${isFirst ? `<button class="btn primary" data-a="day0">${u.cityWakes}</button>` : `<button class="btn primary" data-a="resolve">${u.resolveNight}</button>`}
-      <button class="btn ghost" data-a="prev">${u.backStep}</button>`;
+      ${g.steps.length ? `<button class="btn ghost" data-a="prev">${u.backStep}</button>` : ''}${undoBtnHTML(g)}`;
   }
   const role = ROLE[step.roleId];
   let inner = '';
@@ -5667,7 +5712,7 @@ function nightBody(g) {
   } else {
     inner = actStep(g, step);
   }
-  return `${phaseHead(g, isFirst ? u.meetRoles : u.activePhase, tt(u.stepOf, { i: g.stepIdx + 1, n: g.steps.length }))}${progressHTML(g)}${inner}`;
+  return `${phaseHead(g, isFirst ? u.meetRoles : u.activePhase, tt(u.stepOf, { i: g.stepIdx + 1, n: g.steps.length }))}${progressHTML(g)}${inner}${undoBtnHTML(g)}`;
 }
 
 function actStep(g, step) {
@@ -5719,7 +5764,7 @@ function day0Body(g) {
   return `${phaseHead(g, u.phDay0, tt(u.introOf, { i: g.speechIdx + 1, n: al.length }))}
     <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.secIntro, { s: S.settings.intro })}</div></div></div></div>
     ${timerHTML(S.settings.intro, `d0-${g.speechIdx}`)}
-    <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro}</button></div>`;
+    <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro}</button></div>${undoBtnHTML(g)}`;
 }
 
 function kamikazeHTML(g) {
@@ -5758,7 +5803,8 @@ function dayBody(g) {
   if (st === 'morning') {
     const r = g.nightResult || { removed: [], notes: [], quiet: [] };
     const deaths = r.removed.length ? r.removed.map(d => deathRow(g, d)).join('') : `<div class="okbox">${u.noDeaths}</div>`;
-    const extra = al.filter(p => p.roleId === 'contractor' && p.contractId && P(g, p.contractId)).map(p => tt(u.contractInfo, { seat: p.seat, target: P(g, p.contractId).seat }));
+    const extra = al.filter(p => p.roleId === 'contractor' && p.contractId && P(g, p.contractId)).map(p => tt(u.contractInfo, { seat: p.seat, target: P(g, p.contractId).seat }))
+      .concat((g.pendingTriggers || []).filter(x => x.night).map(x => tt(u.azazelNightHint, { seat: P(g, x.actorId).seat })));
     const secret = r.quiet.concat(r.shotLog || []).concat(extra).map(q => `<div class="quiet">${esc(q)}</div>`).join('');
     const w = checkWin(g); const classic = isClassic(g);
     const lastWords = classic && r.removed.length ? r.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lw-${g.day}-${i}`)}</div>`).join('') : '';
@@ -5766,7 +5812,7 @@ function dayBody(g) {
     return `${phaseHead(g, u.morning, r.removed.length ? tt(u.outN, { n: r.removed.length }) : u.noLoss)}${statusHTML(g)}
       <div class="stack-s">${deaths}</div>${lastWords}${bm}
       ${secret ? `<div class="panel"><div class="eyebrow">${u.hostSecret}</div><div class="stack-s" style="margin-top:8px">${secret}</div></div>` : ''}
-      ${w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : classic ? `<button class="btn primary" data-a="stage" data-id="speeches" ${bm && !g.bestMove ? 'disabled' : ''}>${u.toSpeeches}</button>` : `${kamikazeHTML(g)}<button class="btn primary" data-a="stage" data-id="balagan">${u.toBalagan}</button>`}`;
+      ${w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : classic ? `<button class="btn primary" data-a="stage" data-id="speeches" ${bm && !g.bestMove ? 'disabled' : ''}>${u.toSpeeches}</button>` : `${kamikazeHTML(g)}<button class="btn primary" data-a="stage" data-id="balagan">${u.toBalagan}</button>`}${undoBtnHTML(g)}`;
   }
   if (st === 'balagan') {
     return `${phaseHead(g, u.balagan, u.freeTalk)}${statusHTML(g)}${timerHTML(S.settings.balagan, `bal-${g.day}`)}${kamikazeHTML(g)}
@@ -5777,11 +5823,11 @@ function dayBody(g) {
     const nomList = classic && g.ballot.candidates.length ? `<div class="hint">${tt(u.nominatedList, { list: g.ballot.candidates.map(id => P(g, id).seat).join(', ') })}</div>` : '';
     if (!p) return `${phaseHead(g, u.speechesDone, u.goVote)}${nomList}${kamikazeHTML(g)}<button class="btn primary" data-a="stage" data-id="vote">${u.toVote}</button>`;
     const fouls = classic && p.fouls >= 3 ? `<div class="warnbox">${u.foulNoSpeech}</div>` : '';
-    return `${phaseHead(g, u.speeches, tt(u.introOf, { i: g.speechIdx + 1, n: order.length }) + (classic ? ' · ' + tt(u.firstSpeaker, { seat: order[0].seat }) : ''))}
+    return `${phaseHead(g, u.speeches, tt(u.introOf, { i: g.speechIdx + 1, n: order.length }) + ' · ' + tt(u.firstSpeaker, { seat: order[0].seat }))}
       <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.seconds, { s: S.settings.speech })}</div></div></div></div>${fouls}
       ${timerHTML(S.settings.speech, `sp-${g.day}-${g.speechIdx}`)}${classic ? nominateHTML(g, p) : ''}${nomList}${kamikazeHTML(g)}
       <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < order.length ? u.nextOne : u.toVote}</button></div>
-      <button class="btn ghost sm" data-a="stage" data-id="vote" style="align-self:center">${u.skipSpeeches}</button>`;
+      <button class="btn ghost sm" data-a="stage" data-id="vote" style="align-self:center">${u.skipSpeeches}</button>${undoBtnHTML(g)}`;
   }
   if (st === 'lift') return liftBody(g);
   if (st === 'vote') return voteBody(g);
@@ -5795,7 +5841,7 @@ function voteBody(g) {
   const u = U(); const al = alive(g); const b = g.ballot;
   const cands = b.candidates; const round2 = b.round === 2;
   const t = tally(g);
-  const voters = al.filter(v => canVoteNow(g, v.id));
+  const voters = voteOrder(g);
   // candidates strip (round 1: removable, addable)
   const candHTML = cands.length ? `<div class="cand-strip">${cands.map(cid => { const c = P(g, cid); const row = t.rows.find(r => r.cid === cid); return `<div class="cand-chip ${t.leaders.includes(cid) && t.max > 0 ? 'lead' : ''}"><span class="seat">${c.seat}</span><span class="nm">${esc(c.name)}</span><span class="cnt">${fmt(row.total)}${row.anon ? ` <small>${tt(u.anonTag, { n: row.anon })}</small>` : ''}${row.x2 ? ` <small>${u.x2Tag}</small>` : ''}</span>${round2 || (b.forced || []).includes(cid) ? '' : `<button class="x" data-a="vote-remove" data-id="${cid}" aria-label="${u.voteRemove}">×</button>`}</div>`; }).join('')}</div>` : '';
   const addable = round2 || (isClassic(g) && cands.length) ? [] : al.filter(p => !cands.includes(p.id) && canNominate(g, p.id));
@@ -5896,7 +5942,7 @@ function voterIndex(g, voters) {
 }
 function voterSet(g, idx) { S.ui.voter = { key: g.day + ':' + (g.ballot.round || 1), idx }; }
 function voterAdvance(g) {
-  const voters = alive(g).filter(v => canVoteNow(g, v.id)); const cur = voterIndex(g, voters);
+  const voters = voteOrder(g); const cur = voterIndex(g, voters);
   let i = voters.findIndex((v, k) => k > cur && !g.ballot.votes[v.id]);
   if (i < 0) i = voters.findIndex(v => !g.ballot.votes[v.id]);
   voterSet(g, i < 0 ? voters.length : i);
@@ -5931,10 +5977,10 @@ function resultBody(g) {
   let trigHTML = '';
   if (trig) {
     const a = P(g, trig.actorId); const sel = S.ui.pick;
-    const txt = trig.type === 'azazel' ? u.trigAzazel : u.trigMorpheus;
+    const txt = trig.type === 'azazel' ? (trig.night ? u.trigAzazelNight : u.trigAzazel) : u.trigMorpheus;
     trigHTML = `<div class="panel raised"><div class="eyebrow gold">${ROLE[a.roleId].name} ${a.seat}</div><div class="hint">${esc(a.name)} ${txt}.</div>
       <div class="picker" style="margin-top:10px">${alive(g).map(p => `<button class="pk ${sel[0] === p.id ? 'sel' : ''}" data-a="pick" data-id="${p.id}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>`).join('')}</div>
-      <button class="btn danger" style="margin-top:10px" data-a="trig-confirm" ${sel.length ? '' : 'disabled'}>${u.confirm}</button></div>`;
+      <div class="btn-row" style="margin-top:10px">${trig.night ? `<button class="btn ghost" data-a="trig-skip">${u.trigSkip}</button>` : ''}<button class="btn danger grow" data-a="trig-confirm" ${sel.length ? '' : 'disabled'}>${u.confirm}</button></div></div>`;
   }
   const w = checkWin(g);
   const jester = vr.eliminatedId && P(g, vr.eliminatedId).roleId === 'jester' ? `<div class="result diff"><div class="eyebrow">${u.attention}</div><div class="big">${u.jesterWon}</div><div class="gesture">${u.jesterText}</div></div>` : '';
@@ -5947,7 +5993,42 @@ function resultBody(g) {
   return `${phaseHead(g, title, vr.eliminatedId ? tt(u.leaves, { seat: P(g, vr.eliminatedId).seat }) : '')}${vr.round === 2 ? `<div class="eyebrow gold">${u.revoteTitle}</div>` : ''}${rows}${rl}${lift}${imm}${chair}${jester}${lastWords}
     ${removed ? `<div class="stack-s">${removed}</div>` : ''}
     ${trigHTML}
-    ${trig ? '' : (w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : `<button class="btn primary" data-a="night">${tt(u.sleepNightN, { n: g.night + 1 })}</button>`)}`;
+    ${trig ? '' : (w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : `<button class="btn primary" data-a="night">${tt(u.sleepNightN, { n: g.night + 1 })}</button>`)}${undoBtnHTML(g)}`;
+}
+
+/* ---------- Host "Back" over a finished step of the game: night → morning, day → night, vote → results ----------
+   Before each such transition the game is copied; on the very next screen a Back button puts that copy back.
+   Copies live in their own localStorage key (written only when they change, not on every render). */
+const UNDO_KEY = SAVE_KEY + '.undo'; const UNDO_MAX = 4;
+function undoList() { if (!S.gameUndo) { try { S.gameUndo = JSON.parse(localStorage.getItem(UNDO_KEY) || '[]') || []; } catch (e) { S.gameUndo = []; } } return S.gameUndo; }
+function undoStore() { try { localStorage.setItem(UNDO_KEY, JSON.stringify(S.gameUndo || [])); } catch (e) {} }
+function gameSig(g) { return [g.phase, g.day, g.night, g.phase === 'day' ? g.dayStage : '', g.stepIdx || 0, g.speechIdx || 0].join('|'); }
+/* run a step that moves the game on; remember the game as it was if the step really moved it */
+function undoTake(kind, fn) {
+  const g = S.game; if (!g || g.winner) return fn();
+  let json = null; const before = gameSig(g); try { json = JSON.stringify(g); } catch (e) {}
+  const r = fn();
+  const now = S.game; if (!json || now !== g || g.winner || gameSig(g) === before) return r;
+  const list = undoList().filter(x => x.gid === g.id); list.push({ gid: g.id, kind, at: gameSig(g), json });
+  while (list.length > UNDO_MAX) list.shift();
+  S.gameUndo = list; undoStore(); return r;
+}
+function undoTop(g) { if (!g || g.winner) return null; const l = undoList(); const x = l[l.length - 1]; return x && x.gid === g.id && x.at === gameSig(g) ? x : null; }
+function undoBtnHTML(g) {
+  const x = undoTop(g); if (!x) return ''; const u = U();
+  return `<button class="btn ghost sm undo-phase" data-a="undo-phase" style="align-self:center">↩ ${{ night: u.undoToNight, day: u.undoToDay, vote: u.undoToVote }[x.kind] || u.back}</button>`;
+}
+function undoPhase() {
+  const g = S.game; const x = undoTop(g); if (!x) return false;
+  let prev = null; try { prev = JSON.parse(x.json); } catch (e) { return false; }
+  if (!prev || prev.id !== g.id) return false;
+  // online: answers already fetched from the table stay fetched — the copy only moves the game back
+  if (g.onl && prev.onl) prev.onl.since = Math.max(prev.onl.since || 0, g.onl.since || 0);
+  if (g.tg && !prev.tg) prev.tg = g.tg;
+  S.gameUndo.pop(); undoStore();
+  addLog(prev, tt(L.e.logUndo, { what: { night: U().undoToNight, day: U().undoToDay, vote: U().undoToVote }[x.kind] || '' }), true);
+  S.game = prev; S.ui.pick = []; S.ui.result = null; S.ui.kamikaze = null; S.ui.candPick = false; S.ui.voter = null; S.ui.prosecute = null; S.ui.nomOpen = null;
+  return true;
 }
 
 /* ---------- End: post-game review ---------- */
@@ -6176,9 +6257,10 @@ const ACT = {
   },
   skip() { const g = S.game; const step = g.steps[g.stepIdx]; addLog(g, tt(L.e.logSkip, { role: ROLE[step.roleId].name, player: label(P(g, step.actorId)) }), true); ACT.next(); },
   undo() { const g = S.game; const step = g.steps[g.stepIdx]; const a = g.actions.find(x => x.stepId === step.id); if (a && a.ability === 'execute') P(g, a.actorId).executeUsed = false; if (a && a.ability === 'snipe') P(g, a.actorId).snipeUsed = false; if (a && a.ability === 'ignite') P(g, a.actorId).igniteUsed = false; if (a && a.ability === 'douse') g.doused = g.doused.filter(x => x !== a.targets[0]); if (a && a.ability === 'remember') return; g.actions = g.actions.filter(x => x.stepId !== step.id); S.ui.result = null; S.ui.pick = []; render(); },
-  resolve() { const g = S.game; resolveNight(g); startDay(g); S.ui.pick = []; window.scrollTo(0, 0); render(); },
-  day0() { const g = S.game; if (isClassic(g)) startDay(g); else startDay0(g); window.scrollTo(0, 0); render(); },
-  night() { startNight(S.game); S.ui.pick = []; S.ui.result = null; window.scrollTo(0, 0); render(); },
+  resolve() { const g = S.game; undoTake('night', () => { resolveNight(g); startDay(g); }); S.ui.pick = []; window.scrollTo(0, 0); render(); },
+  day0() { const g = S.game; undoTake('night', () => { if (isClassic(g)) startDay(g); else startDay0(g); }); window.scrollTo(0, 0); render(); },
+  night() { undoTake('day', () => startNight(S.game)); S.ui.pick = []; S.ui.result = null; window.scrollTo(0, 0); render(); },
+  'undo-phase'() { if (!undoPhase()) return; window.scrollTo(0, 0); render(); toast(U().undoDone); },
   speech(el) {
     const g = S.game; const d = +el.dataset.d; g.speechIdx = Math.max(0, g.speechIdx + d);
     if (g.phase === 'day' && g.speechIdx >= speakOrder(g).length) g.dayStage = 'vote';
@@ -6203,20 +6285,21 @@ const ACT = {
   'vote-open'(el) { S.ui.voteOpen = S.ui.voteOpen === el.dataset.id ? null : el.dataset.id; render(); },
   'vote-remove'(el) { const b = S.game.ballot; if ((b.forced || []).includes(el.dataset.id)) return; b.candidates = b.candidates.filter(c => c !== el.dataset.id); Object.keys(b.votes).forEach(v => { if (b.votes[v] === el.dataset.id) delete b.votes[v]; }); render(); },
   vote(el) { const g = S.game; const b = g.ballot; const v = el.dataset.v, c = el.dataset.c; if (b.votes[v] === c) delete b.votes[v]; else { b.votes[v] = c; voterAdvance(g); } render(); },
-  'voter-step'(el) { const g = S.game; const voters = alive(g).filter(v => canVoteNow(g, v.id)); voterSet(g, Math.max(0, Math.min(voters.length - 1, voterIndex(g, voters) + (+el.dataset.d)))); render(); },
+  'voter-step'(el) { const g = S.game; const voters = voteOrder(g); voterSet(g, Math.max(0, Math.min(voters.length - 1, voterIndex(g, voters) + (+el.dataset.d)))); render(); },
   'voter-go'(el) { voterSet(S.game, +el.dataset.i); render(); },
   'cand-pick'() { S.ui.candPick = !S.ui.candPick; render(); },
-  'vote-finish'(el) { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'leader' || o.id !== el.dataset.id) return; finishVote(g, el.dataset.id); S.ui.pick = []; window.scrollTo(0, 0); render(); },
-  'vote-none'() { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'empty' && o.kind !== 'skip1') return; finishVote(g, null); window.scrollTo(0, 0); render(); },
+  'vote-finish'(el) { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'leader' || o.id !== el.dataset.id) return; undoTake('vote', () => finishVote(g, el.dataset.id)); S.ui.pick = []; window.scrollTo(0, 0); render(); },
+  'vote-none'() { const g = S.game; const o = voteOutcome(g); if (o.kind !== 'empty' && o.kind !== 'skip1') return; undoTake('vote', () => finishVote(g, null)); window.scrollTo(0, 0); render(); },
   'vote-rest'() { voteRestToLast(S.game); render(); },
   'tie-start'() { const g = S.game; if (voteOutcome(g).kind !== 'tie') return; startTiebreak(g); S.ui.kamikaze = null; S.ui.pick = []; window.scrollTo(0, 0); render(); },
   'tie-speech'(el) { const g = S.game; g.speechIdx = Math.max(0, g.speechIdx + (+el.dataset.d)); if (g.speechIdx >= (g.ballot.tiedIds || []).length) startRevote(g); window.scrollTo(0, 0); render(); },
   revote() { startRevote(S.game); window.scrollTo(0, 0); render(); },
   'roulette-start'() { const g = S.game; const o = voteOutcome(g); if (g.ballot.round !== 2 || o.kind === 'leader') return; startRoulette(g); window.scrollTo(0, 0); render(); },
-  'roulette-guess'(el) { const g = S.game; const res = rouletteGuess(g, +el.dataset.n); if (!res) return; if (!res.hit) toast(tt(U().rouletteMiss, { seat: res.p.seat })); else window.scrollTo(0, 0); render(); },
-  judge(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; useJudge(g, el.dataset.id); window.scrollTo(0, 0); render(); },
-  lawyer(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; useLawyer(g, el.dataset.id, el.dataset.t); window.scrollTo(0, 0); render(); },
-  'trig-confirm'() { const g = S.game; applyTrigger(g, g.pendingTriggers[0], S.ui.pick[0]); S.ui.pick = []; render(); },
+  'roulette-guess'(el) { const g = S.game; const res = undoTake('vote', () => rouletteGuess(g, +el.dataset.n)); if (!res) return; if (!res.hit) toast(tt(U().rouletteMiss, { seat: res.p.seat })); else window.scrollTo(0, 0); render(); },
+  judge(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; undoTake('vote', () => useJudge(g, el.dataset.id)); window.scrollTo(0, 0); render(); },
+  lawyer(el) { const g = S.game; if (dayAbilityBlocked(g, el.dataset.id)) return; undoTake('vote', () => useLawyer(g, el.dataset.id, el.dataset.t)); window.scrollTo(0, 0); render(); },
+  'trig-confirm'() { const g = S.game; if (!g.pendingTriggers[0] || !S.ui.pick[0]) return; applyTrigger(g, g.pendingTriggers[0], S.ui.pick[0]); S.ui.pick = []; render(); },
+  'trig-skip'() { const g = S.game; if (!skipTrigger(g, g.pendingTriggers[0])) return; S.ui.pick = []; render(); },
   finish() { const g = S.game; finishGame(g, checkWin(g)); render(); },
   'classic-rules'() { S.ui.classicRules = !S.ui.classicRules; render(); },
   'nom-open'(el) { S.ui.nomOpen = el.dataset.id || null; render(); },
@@ -6225,9 +6308,9 @@ const ACT = {
   prosecute(el) { useProsecutor(S.game, el.dataset.id, el.dataset.c); S.ui.prosecute = null; render(); },
   nominate(el) { nominate(S.game, el.dataset.id, el.dataset.t); S.ui.nomOpen = null; render(); },
   unnominate(el) { unnominate(S.game, el.dataset.id); render(); },
-  'vote-close'() { const g = S.game; const o = voteOutcome(g); if (o.kind === 'empty' || o.kind === 'skip1') return; resolveVoteAuto(g); S.ui.pick = []; window.scrollTo(0, 0); render(); },
+  'vote-close'() { const g = S.game; const o = voteOutcome(g); if (o.kind === 'empty' || o.kind === 'skip1') return; undoTake('vote', () => resolveVoteAuto(g)); S.ui.pick = []; window.scrollTo(0, 0); render(); },
   'lift-toggle'(el) { liftToggle(S.game, el.dataset.id); render(); },
-  'lift-finish'() { finishLiftAll(S.game); window.scrollTo(0, 0); render(); },
+  'lift-finish'() { undoTake('vote', () => finishLiftAll(S.game)); window.scrollTo(0, 0); render(); },
   'bm-pick'(el) { const id = el.dataset.id; const i = S.ui.pick.indexOf(id); if (i >= 0) S.ui.pick.splice(i, 1); else if (S.ui.pick.length < 3) S.ui.pick.push(id); render(); },
   'bm-save'(el) { const g = S.game; const r = g.nightResult; if (!r || !r.removed.length) return; recordBestMove(g, r.removed[0].id, el.dataset.skip ? [] : S.ui.pick.slice()); S.ui.pick = []; render(); },
   'foul-add'(el) { const g = S.game; addFoul(g, el.dataset.id); render(); },
@@ -6243,7 +6326,7 @@ const ACT = {
     if (p.alive) { eliminate(g, p.id, L.e.causeHost); } else { p.alive = true; p.deadOn = null; addLog(g, tt(L.e.logReturn, { player: label(p) })); }
     S.ui.sheet = { type: 'players' }; render();
   },
-  'reset-confirm'() { S.game = null; S.ui.sheet = null; clearInterval(T.iv); T.key = null; S.screen = 'home'; render(); },
+  'reset-confirm'() { S.game = null; S.gameUndo = []; undoStore(); S.ui.sheet = null; clearInterval(T.iv); T.key = null; S.screen = 'home'; render(); },
   set(el) { const k = el.dataset.k, d = +el.dataset.d; S.settings[k] = Math.max(10, S.settings[k] + d); render(); },
   toggle(el) { const k = el.dataset.k; S.settings[k] = !S.settings[k]; render(); },
   lite(el) { S.settings.lite = el.dataset.v; applyLite(); render(); },
@@ -7547,7 +7630,7 @@ function buildAsks(g) {
   }
   if (st === 'lift' && b.lift) { const key = `${tag}:lift`; alive(g).forEach(v => { const id = tgOf(v); if (!id) return; const answered = onl.lift[key] && onl.lift[key][id] !== undefined; asks[id] = { key, kind: 'lift', yes: b.lift.yes.includes(v.id), done: !!answered, ids: b.lift.ids.map(x => P(g, x).seat) }; }); }
   if (st === 'roulette' && b.roulette && !b.roulette.hitId) { const cur = rouletteCurrent(g); const id = cur && tgOf(cur); if (id) asks[id] = { key: `${tag}:rou:${b.roulette.turn}`, kind: 'roulette', used: b.roulette.guesses.map(x => x.n), done: false }; }
-  if (st === 'result' && g.pendingTriggers && g.pendingTriggers[0]) { const tr = g.pendingTriggers[0]; const a = P(g, tr.actorId); const id = tgOf(a); if (id) asks[id] = { key: `${tag}:trig:${tr.type}:${tr.actorId}`, kind: 'trig', need: 1, trig: tr.type, targets: alive(g).map(p => ({ seat: p.seat, ok: true })), done: false }; }
+  if (st === 'result' && g.pendingTriggers && g.pendingTriggers[0]) { const tr = g.pendingTriggers[0]; const a = P(g, tr.actorId); const id = tgOf(a); if (id) asks[id] = { key: `${tag}:trig:${tr.type}:${tr.actorId}`, kind: 'trig', need: 1, trig: tr.type, optional: !!tr.night, targets: alive(g).map(p => ({ seat: p.seat, ok: true })), done: false }; }
   return asks;
 }
 function plainResult(g, res) { return { night: g.night, kind: res.kind, color: res.color || null, seat: res.who ? res.who.seat : null, roleId: res.role ? res.role.id : null, yes: res.yes === undefined ? null : res.yes, same: res.same === undefined ? null : res.same, text: res.kind === 'text' || res.kind === 'none' ? (res.text || '') : '' }; }
@@ -7581,7 +7664,7 @@ function applyTableAction(a) {
     case 'vote': { if (!ids.length || !g.ballot.candidates.includes(ids[0]) || ids[0] === me.id) return false; g.ballot.votes[me.id] = ids[0]; voterAdvance(g); return true; }
     case 'lift': { const want = !!pl.yes; const has = g.ballot.lift.yes.includes(me.id); if (want !== has) liftToggle(g, me.id); onl.lift[ask.key] = onl.lift[ask.key] || {}; onl.lift[ask.key][tgId] = want; return true; }
     case 'roulette': { const res = rouletteGuess(g, Number(pl.n)); if (!res) return false; if (!res.hit) toast(tt(U().rouletteMiss, { seat: res.p.seat })); return true; }
-    case 'trig': { if (!ids.length) return false; applyTrigger(g, g.pendingTriggers[0], ids[0]); S.ui.pick = []; return true; }
+    case 'trig': { if (pl.skip) return ask.optional ? skipTrigger(g, g.pendingTriggers[0]) : false; if (!ids.length) return false; applyTrigger(g, g.pendingTriggers[0], ids[0]); S.ui.pick = []; return true; }
     case 'bestmove': { recordBestMove(g, me.id, pl.skip ? [] : ids.slice(0, 3)); S.ui.pick = []; return true; }
   }
   return false;
@@ -7615,7 +7698,7 @@ function tablePub(g) {
     if (st === 'morning') { const r = g.nightResult || { removed: [] }; pub.dayInfo.removed = r.removed.map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined })); if (isClassic(g) && g.bestMove) pub.dayInfo.bestMove = { seat: seatOf(g.bestMove.by), picks: g.bestMove.picks.map(seatOf) }; }
     if (st === 'speeches') { const order = speakOrder(g); const p = order[g.speechIdx]; pub.dayInfo.speaker = p ? p.seat : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = order.length; pub.chatSeat = p ? p.seat : null; if (!p) pub.chat = false; }
     if (['speeches', 'vote', 'tie', 'roulette', 'lift', 'result'].includes(st)) pub.dayInfo.candidates = (b.candidates || []).map(seatOf);
-    if (st === 'vote') { const t = tally(g); pub.dayInfo.votes = Object.fromEntries(Object.entries(b.votes || {}).map(([v, c]) => [seatOf(v), seatOf(c)])); pub.dayInfo.tally = t.rows.map(r => ({ seat: seatOf(r.cid), total: r.total })); pub.dayInfo.voters = alive(g).filter(v => canVoteNow(g, v.id)).map(v => v.seat); }
+    if (st === 'vote') { const t = tally(g); pub.dayInfo.votes = Object.fromEntries(Object.entries(b.votes || {}).map(([v, c]) => [seatOf(v), seatOf(c)])); pub.dayInfo.tally = t.rows.map(r => ({ seat: seatOf(r.cid), total: r.total })); pub.dayInfo.voters = voteOrder(g).map(v => v.seat); }
     if (st === 'tie') { const tied = b.tiedIds || []; pub.dayInfo.tied = tied.map(seatOf); pub.dayInfo.speaker = tied[g.speechIdx] ? seatOf(tied[g.speechIdx]) : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = tied.length; pub.chatSeat = pub.dayInfo.speaker; if (!pub.chatSeat) pub.chat = false; }
     if (st === 'roulette' && b.roulette) { const cur = rouletteCurrent(g); pub.dayInfo.roulette = { order: b.roulette.order.map(seatOf), turn: cur ? cur.seat : null, guesses: b.roulette.guesses.map(x => ({ seat: seatOf(x.pid), n: x.n })) }; }
     if (st === 'lift' && b.lift) pub.dayInfo.lift = { ids: b.lift.ids.map(seatOf), yes: b.lift.yes.length, need: liftNeed(g) };
@@ -7779,8 +7862,8 @@ function tbAskHTML(ask, seats) {
   const mode = TB.mode || (ask.modes ? ask.modes[0] : null); const need = ask.targetsByMode && mode ? ask.targetsByMode[mode] : ask.need;
   const pk = (ask.targets || []).map(tg => { const i = TB.pick.indexOf(tg.seat); return `<button class="pk ${i >= 0 ? 'sel' : ''} ${i === 1 ? 'n2' : ''} ${tg.ok ? '' : 'dis'}" data-a="tb-pick" data-seat="${tg.seat}" ${tg.ok ? '' : 'disabled'}><span class="seat">${tg.seat}</span><span class="nm">${esc((seats.find(s => s.seat === tg.seat) || {}).name || '')}</span>${i >= 0 && need > 1 ? `<span class="mark ${i === 1 ? 'c' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
   const ready = ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need;
-  const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : '';
-  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
+  const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : ask.kind === 'trig' && ask.optional ? `<button class="btn ghost" data-a="tb-skip">${u.trigSkip}</button>` : '';
+  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? u.tbAzazelNight : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
     ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}
     <div class="btn-row" style="margin-top:10px">${skip}<button class="btn primary" data-a="tb-confirm" ${ready ? '' : 'disabled'}>${ask.kind === 'bestmove' ? u.tbBestSave : u.confirm}</button></div></div>`;
 }

@@ -741,6 +741,23 @@ const path = require('path'); const http = require('http');
   // ----- open / closed game: roles of the eliminated stay hidden in a closed game, except roles acting after death
   const closedPub = await S(() => { const g = newGame(10, presetFor(10), [], S.settings, [], {}); g.dealt = true; g.phase = 'day'; g.day = 1; g.dayStage = 'morning'; g.players[0].alive = false; g.players[0].roleId = 'sheriff'; g.players[1].alive = false; g.players[1].roleId = 'azazel'; g.players[1].votedOut = true; g.openRoles = false; const pub = tablePub(g); const open = (() => { g.openRoles = true; return tablePub(g); })(); return { closed: pub.seats.slice(0, 2).map(x => x.roleId || null), open: open.seats.slice(0, 2).map(x => x.roleId || null), flag: pub.openRoles }; });
   ok(closedPub.closed[0] === null && closedPub.closed[1] === 'azazel' && closedPub.open[0] === 'sheriff' && closedPub.flag === false, 'closed game hides the Sheriff’s card but shows Azazel (acts after leaving); open game shows both: ' + JSON.stringify(closedPub));
+  // ----- v46 online: Azazel killed at night gets an optional choice at the day's results; the vote order follows the day's first speaker
+  const az46 = await S(() => {
+    const g = newGame(10, ['don', 'mafia', 'mafia', 'sheriff', 'doctor', 'azazel', 'mayor', 'journalist', 'judge', 'bomb'], [], S.settings, [], {});
+    const az = g.players.find(p => p.roleId === 'azazel'); const map = {}; g.players.forEach(p => { map[9000 + p.seat] = p.seat; });
+    g.dealt = true; g.online = true; g.tg = { code: 'AZ46', map }; g.phase = 'night'; g.night = 1; g.day = 0; g.dayFirstSeat = 0;
+    g.nightResult = { removed: [{ id: az.id, cause: 'x' }], notes: [], quiet: [], shotLog: [] }; az.alive = false;
+    startDay(g); const order = voteOrder(g).map(p => p.seat);
+    g.ballot.candidates = []; g.voteResult = { tally: tally(g), eliminatedId: null, removed: [] }; g.dayStage = 'result';
+    const prev = S.game; S.game = g;
+    const ask = buildAsks(g)[9000 + az.seat]; const pub = tablePub(g);
+    const applied = applyTableAction({ tgId: 9000 + az.seat, key: ask && ask.key, payload: { skip: true } });
+    const left = g.pendingTriggers.length; const skipLog = g.log.some(x => (x.text || x).toString().includes(label(az)));
+    const html = tbAskHTML(Object.assign({}, ask), pub.seats);
+    S.game = prev;
+    return { optional: !!(ask && ask.optional), kind: ask && ask.kind, applied, left, skipLog, skipBtn: html.includes('data-a="tb-skip"'), hint: html.includes(U().tbAzazelNight), order, voters: pub.dayInfo ? pub.dayInfo.voters : null };
+  });
+  ok(az46.kind === 'trig' && az46.optional && az46.skipBtn && az46.hint && az46.applied && az46.left === 0 && az46.skipLog, 'night Azazel: optional pick with a "take no one" button at the results, skip clears it: ' + JSON.stringify(az46));
   await S(() => { S.game = null; S.lobby = null; S.setup.online = false; go('setup'); }); await p.waitForTimeout(300);
   ok(!!(await p.$('[data-a="open-roles"][data-id="closed"]')) && !!(await p.$('[data-a="open-roles"][data-id="open"].active')), 'open / closed chooser on the setup screen, open by default');
   await p.click('[data-a="open-roles"][data-id="closed"]'); await p.waitForTimeout(200);

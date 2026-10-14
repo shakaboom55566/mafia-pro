@@ -228,18 +228,19 @@ function runDay(g, K, cfg) {
   else if (t.leaders.length > 1) elim = t.leaders[Math.floor(rnd() * t.leaders.length)];
   // Judge veto
   const judge = al2.find(p => p.roleId === 'judge' && !p.judgeUsed);
-  if (judge && elim && (elim === judge.id || elim === K.claimed.sheriff || elim === K.claimed.journalist || K.known[elim] === 'red') && rnd() < 0.9) { E.useJudge(g, judge.id); return; }
-  E.finishVote(g, elim);
-  if (elim) {
-    const p = E.P(g, elim); markRevealed(g, K, elim, E.isBlack(p) ? 'black' : 'red');
-    while (g.pendingTriggers.length) {
-      const tr = g.pendingTriggers[0]; const cands = aliveOf(g);
-      if (!cands.length) { g.pendingTriggers.shift(); continue; }
-      const target = argmax(cands, x => S[x.id] + (K.priv[tr.actorId][x.id] || 0));
-      E.applyTrigger(g, tr, target.id);
-    }
-    g.voteResult.removed.forEach(d => { const q = E.P(g, d.id); markRevealed(g, K, d.id, E.isBlack(q) ? 'black' : 'red'); });
+  if (judge && elim && (elim === judge.id || elim === K.claimed.sheriff || elim === K.claimed.journalist || K.known[elim] === 'red') && rnd() < 0.9) E.useJudge(g, judge.id);
+  else {
+    E.finishVote(g, elim);
+    if (elim) { const p = E.P(g, elim); markRevealed(g, K, elim, E.isBlack(p) ? 'black' : 'red'); }
   }
+  // day results: Azazel voted out now or killed last night takes the most suspicious player along
+  while (g.pendingTriggers.length) {
+    const tr = g.pendingTriggers[0]; const cands = aliveOf(g);
+    if (!cands.length) { g.pendingTriggers.shift(); continue; }
+    const target = argmax(cands, x => S[x.id] + (K.priv[tr.actorId][x.id] || 0));
+    E.applyTrigger(g, tr, target.id);
+  }
+  g.voteResult.removed.forEach(d => { const q = E.P(g, d.id); markRevealed(g, K, d.id, E.isBlack(q) ? 'black' : 'red'); });
 }
 function markRevealed(g, K, pid, color) {
   K.known[pid] = color;

@@ -489,12 +489,13 @@ function startNight(g) {
 }
 function startDay(g) {
   g.phase = 'day'; g.day += 1; g.dayStage = 'morning'; g.speechIdx = 0; g.ballot = { candidates: [], votes: {}, round: 1, nominatedBy: {} }; g.voteResult = null; g.pendingTriggers = [];
-  if (isClassic(g)) {
-    // sport rules: the first day has no night before it (straight to speeches); the first speaker shifts by one seat every day
-    g.dayFirstSeat = classicFirstSeat(g);
-    if (g.night === 0) g.dayStage = 'speeches';
-  }
+  // every day the minutes (and the vote stepper) start from the next living seat after the previous day's first speaker
+  g.dayFirstSeat = classicFirstSeat(g);
+  // sport rules: the first day has no night before it (straight to speeches)
+  if (isClassic(g) && g.night === 0) g.dayStage = 'speeches';
   addLog(g, tt(L.e.logDay, { n: g.day }));
+  // Azazel killed last night takes a player with him at the day's results (he may also let it go)
+  ((g.nightResult && g.nightResult.removed) || []).forEach(d => { const p = P(g, d.id); if (p && !p.alive && p.roleId === 'azazel') g.pendingTriggers.push({ type: 'azazel', actorId: p.id, night: true }); });
   // diplomacy: the Provocateur's victim is already on the ballot (unless under the Pastor's sanctuary)
   alive(g).filter(p => fxOn(g, 'forcedCand', p.id) && canNominate(g, p.id)).forEach(p => { g.ballot.candidates.push(p.id); g.ballot.forced = (g.ballot.forced || []).concat([p.id]); addLog(g, tt(L.e.logProvoked, { target: label(p) })); });
 }
@@ -506,11 +507,13 @@ function classicFirstSeat(g) {
   if (g.day <= 1 || !g.dayFirstSeat) return al[0].seat;
   const nxt = al.find(p => p.seat > g.dayFirstSeat) || al[0]; return nxt.seat;
 }
-/* order of day speeches: seat order, rotated in classic mode to start from the day's first speaker */
+/* order of day speeches: seat order, rotated to start from the day's first speaker */
 function speakOrder(g) {
-  const al = alive(g); if (!isClassic(g) || !g.dayFirstSeat) return al;
+  const al = alive(g); if (!g.dayFirstSeat) return al;
   const i = al.findIndex(p => p.seat >= g.dayFirstSeat); return i <= 0 ? al : al.slice(i).concat(al.slice(0, i));
 }
+/* the host asks the voters in the same order as the day's speeches */
+function voteOrder(g) { return speakOrder(g).filter(v => canVoteNow(g, v.id)); }
 /* classic: nominations happen inside speeches, one per speaker, voted in nomination order */
 function nominate(g, speakerId, candId) {
   const b = g.ballot; b.nominatedBy = b.nominatedBy || {};
@@ -663,6 +666,12 @@ function applyTrigger(g, trig, targetId) {
   if (trig.type === 'azazel') { eliminate(g, targetId, tt(L.e.causeAzazel, { player: label(actor) }), g.voteResult.removed); }
   if (trig.type === 'morpheus') { t.disabled = true; addLog(g, tt(L.e.logMorpheus, { actor: label(actor), target: label(t), role: ROLE[t.roleId].name })); }
   g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig);
+}
+/* a trigger the player may decline (Azazel killed at night) */
+function skipTrigger(g, trig) {
+  if (!trig || !trig.night) return false;
+  addLog(g, tt(L.e.logAzazelSkip, { player: label(P(g, trig.actorId)) }));
+  g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig); return true;
 }
 function useJudge(g, judgeId) {
   if (g.ballot.final) return false;

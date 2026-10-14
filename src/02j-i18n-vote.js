@@ -53,3 +53,39 @@ Object.assign(I18N.hy.ui, {
   sTie: 'Արդարացման խոսք', sTieD: 'Հավասար ձայների դեպքում՝ առաջատարներից յուրաքանչյուրին'
 });
 Object.assign(I18N.hy.e, { causeRevote: 'կրկնական քվեարկություն · {n} {votes}', causeRoulette: 'ռուլետկա · թիվ {n}', logTie: 'Հավասար ձայներ՝ {list}։ Արդարացման խոսքեր։', logRevote: 'Կրկնական քվեարկություն {list}-ի միջև։', logRoulette: 'Հավասար ձայներ կրկնական քվեարկությունում։ Ռուլետկա {list}-ի միջև, մտապահված է {n}։', logRouletteMiss: '{player}՝ {n} — վրիպում', logRouletteHit: '{player}՝ {n} — դիպուկ' });
+/* v46: Back over a finished night / day / vote; Azazel killed at night takes a player at the day's results */
+Object.assign(I18N.ru.ui, {
+  undoToNight: 'Назад к ночи', undoToDay: 'Назад ко дню', undoToVote: 'Назад к голосованию', undoDone: 'Вернулись на шаг назад',
+  trigAzazelNight: 'убит этой ночью — на итогах дня может забрать с собой любого игрока или отказаться', trigSkip: 'Не забирать',
+  azazelNightHint: 'Азазель №{seat} убит ночью — на итогах дня он может забрать с собой любого игрока',
+  tbAzazelNight: 'Вас убили ночью. Как Азазель вы можете забрать с собой любого игрока — или отказаться.'
+});
+Object.assign(I18N.ru.e, { logAzazelSkip: '{player} (Азазель) никого не забрал', logUndo: 'Ведущий вернул игру назад: {what}' });
+Object.assign(I18N.uk.ui, {
+  undoToNight: 'Назад до ночі', undoToDay: 'Назад до дня', undoToVote: 'Назад до голосування', undoDone: 'Повернулися на крок назад',
+  trigAzazelNight: 'убитий цієї ночі — на підсумках дня може забрати із собою будь-якого гравця або відмовитися', trigSkip: 'Не забирати',
+  azazelNightHint: 'Азазеля №{seat} убили вночі — на підсумках дня він може забрати із собою будь-якого гравця',
+  tbAzazelNight: 'Вас убили вночі. Як Азазель ви можете забрати із собою будь-якого гравця — або відмовитися.'
+});
+Object.assign(I18N.uk.e, { logAzazelSkip: '{player} (Азазель) нікого не забрав', logUndo: 'Ведучий повернув гру назад: {what}' });
+Object.assign(I18N.en.ui, {
+  undoToNight: 'Back to the night', undoToDay: 'Back to the day', undoToVote: 'Back to the vote', undoDone: 'Went one step back',
+  trigAzazelNight: 'was killed last night — at the day\'s results may take any player along, or let it go', trigSkip: 'Take no one',
+  azazelNightHint: 'Azazel (seat {seat}) was killed at night — at the day\'s results he may take any player along',
+  tbAzazelNight: 'You were killed at night. As Azazel you may take any player along — or let it go.'
+});
+Object.assign(I18N.en.e, { logAzazelSkip: '{player} (Azazel) took no one', logUndo: 'The host turned the game back: {what}' });
+Object.assign(I18N.pl.ui, {
+  undoToNight: 'Wróć do nocy', undoToDay: 'Wróć do dnia', undoToVote: 'Wróć do głosowania', undoDone: 'Cofnięto o krok',
+  trigAzazelNight: 'zginął tej nocy — przy podsumowaniu dnia może zabrać ze sobą dowolnego gracza albo zrezygnować', trigSkip: 'Nikogo nie zabierać',
+  azazelNightHint: 'Azazel (nr {seat}) zginął w nocy — przy podsumowaniu dnia może zabrać ze sobą dowolnego gracza',
+  tbAzazelNight: 'Zginąłeś w nocy. Jako Azazel możesz zabrać ze sobą dowolnego gracza — albo zrezygnować.'
+});
+Object.assign(I18N.pl.e, { logAzazelSkip: '{player} (Azazel) nikogo nie zabrał', logUndo: 'Prowadzący cofnął grę: {what}' });
+Object.assign(I18N.hy.ui, {
+  undoToNight: 'Հետ՝ գիշերին', undoToDay: 'Հետ՝ ցերեկին', undoToVote: 'Հետ՝ քվեարկությանը', undoDone: 'Վերադարձանք մեկ քայլ հետ',
+  trigAzazelNight: 'սպանվել է այս գիշեր — օրվա արդյունքներում կարող է իր հետ տանել ցանկացած խաղացողի կամ հրաժարվել', trigSkip: 'Ոչ ոքի չտանել',
+  azazelNightHint: 'Ազազելը (տեղ {seat}) սպանվել է գիշերը — օրվա արդյունքներում նա կարող է իր հետ տանել ցանկացած խաղացողի',
+  tbAzazelNight: 'Ձեզ սպանել են գիշերը։ Որպես Ազազել՝ կարող եք ձեզ հետ տանել ցանկացած խաղացողի կամ հրաժարվել։'
+});
+Object.assign(I18N.hy.e, { logAzazelSkip: '{player}-ը (Ազազել) ոչ ոքի չտարավ', logUndo: 'Վարողը խաղը հետ վերադարձրեց՝ {what}' });

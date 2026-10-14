@@ -483,6 +483,63 @@ clearInterval(X.T.iv);
   const rv = X.reviewGame(g); const sapItems = rv.byId[sapper.id].items.length; if (sapItems < 2) { fails++; console.log('FAIL review lacks sapper items', sapItems); }
   console.log('counter game ok: day', g.day, 'alive', X.alive(g).length, 'sapper review items', sapItems);
 }
+// ---------------- v46: the first speaker moves every day (all modes), Back over a finished step, Azazel killed at night ----------------
+{
+  const RUN = vm.runInContext.bind(vm); const E = name => RUN(name, ctx);
+  const F = msg => { fails++; console.log('FAIL', msg); };
+  const hasUndo = () => app.innerHTML.includes('data-a="undo-phase"');
+  A.new(); S = X.S(); S.setup.n = 10; S.setup.scenario = null;
+  S.setup.comp = ['don', 'mafia', 'mafia', 'sheriff', 'doctor', 'azazel', 'mayor', 'citizen', 'citizen', 'citizen'];
+  X.render(); A.deal(); for (let i = 0; i < 10; i++) { A.flip(); A.hide(); }
+  A.start(); let g = S.game; let gd = 0; while (g.steps[g.stepIdx] && gd++ < 40) A.next();
+  A.day0(); check('v46 day0 with back');
+  if (!hasUndo()) F('day 0 should offer Back to the night');
+  A['undo-phase'](); g = S.game; check('v46 back to night 0');
+  if (g.phase !== 'night0' || hasUndo()) F('Back from day 0 should return to the meeting night (once)');
+  A.day0(); g = S.game; gd = 0; while (X.alive(g)[g.speechIdx] && gd++ < 40) A.speech(el('speech', { d: '1' }));
+  A.night(); g = S.game; check('v46 night 1 with back');
+  if (!hasUndo()) F('night step 1 should offer Back to the day');
+  A['undo-phase'](); g = S.game; if (g.phase !== 'day0') F('Back from the night should return to day 0');
+  A.night(); g = S.game;
+  const by = id => g.players.find(p => p.roleId === id); const az = by('azazel');
+  gd = 0; while (g.steps[g.stepIdx] && gd++ < 60) { const st = g.steps[g.stepIdx]; if (st.type === 'act' && !st.disabled) { const ok = E('stepTargets')(g, st).filter(x => x.ok).map(x => x.p.id); if (st.ability === 'shoot' && ok.includes(az.id)) { A.pick(el('pick', { id: az.id })); A.confirm(); } else { A.skip(); continue; } } A.next(); }
+  A.resolve(); g = S.game; check('v46 morning: Azazel killed');
+  if (by('azazel').alive) F('Azazel should be shot at night');
+  if (!g.pendingTriggers.some(x => x.night)) F('night Azazel trigger missing');
+  if (!app.innerHTML.includes(E('esc')(X.tt(X.U().azazelNightHint, { seat: az.seat })))) F('host hint about Azazel missing in the morning');
+  if (!hasUndo()) F('morning should offer Back to the night');
+  A['undo-phase'](); g = S.game; check('v46 back to the night');
+  if (g.phase !== 'night' || g.steps[g.stepIdx] || !g.players.find(p => p.roleId === 'azazel').alive) F('Back from the morning should return to the end of the night, Azazel alive');
+  A.resolve(); g = S.game; const first1 = E('speakOrder')(g)[0];
+  A.stage(el('stage', { id: 'balagan' })); A.stage(el('stage', { id: 'speeches' })); check('v46 day 1 speeches');
+  if (!app.innerHTML.includes(X.tt(X.U().firstSpeaker, { seat: first1.seat }))) F('first speaker hint should show in role mode');
+  if (E('voteOrder')(g)[0].id !== first1.id) F('the vote should start from the day\'s first speaker');
+  A.stage(el('stage', { id: 'vote' }));
+  const cand = X.alive(g).find(p => p.roleId === 'citizen'); A.cand(el('cand', { id: cand.id }));
+  X.alive(g).filter(p => p.id !== cand.id).forEach(p => A.vote(el('vote', { c: cand.id, v: p.id })));
+  A['vote-finish'](el('vote-finish', { id: cand.id })); g = S.game; check('v46 results: Azazel may take a player');
+  if (!app.innerHTML.includes('data-a="trig-skip"') || !app.innerHTML.includes(X.U().trigAzazelNight)) F('night Azazel choice (with skip) missing at the results');
+  if (!hasUndo()) F('results should offer Back to the vote');
+  A['trig-skip'](); g = S.game; check('v46 Azazel let it go');
+  if (g.pendingTriggers.length) F('skip should clear the night trigger');
+  A['undo-phase'](); g = S.game; check('v46 back to the vote');
+  if (g.dayStage !== 'vote' || !g.pendingTriggers.some(x => x.night) || !g.players.find(p => p.id === cand.id).alive) F('Back from the results should return to the vote');
+  A['vote-finish'](el('vote-finish', { id: cand.id })); g = S.game;
+  const victim = X.alive(g).find(p => p.roleId === 'mafia' || p.roleId === 'don');
+  A.pick(el('pick', { id: victim.id })); A['trig-confirm'](); g = S.game; check('v46 Azazel took a player');
+  if (g.players.find(p => p.id === victim.id).alive || g.pendingTriggers.length) F('Azazel should take the picked player');
+  if (!g.voteResult.removed.some(d => d.id === victim.id)) F('the taken player should be listed at the results');
+  // day 2: next living seat after day 1's first speaker
+  A.night(); g = S.game; gd = 0; while (g.steps[g.stepIdx] && gd++ < 60) { const st = g.steps[g.stepIdx]; if (st.type === 'act' && !st.disabled) { A.skip(); continue; } A.next(); }
+  A.resolve(); g = S.game; check('v46 morning 2');
+  if (g.pendingTriggers.length) F('Azazel acts only once');
+  const al2 = X.alive(g); const want = (al2.find(p => p.seat > first1.seat) || al2[0]).seat;
+  const first2 = E('speakOrder')(g)[0];
+  if (first2.seat !== want) F(`day 2 should start from seat ${want}, got ${first2.seat}`);
+  if (E('voteOrder')(g)[0].id !== first2.id) F('day 2 vote should start from the first speaker');
+  A.stage(el('stage', { id: 'balagan' })); A.stage(el('stage', { id: 'speeches' })); check('v46 day 2 speeches');
+  console.log('v46 ok: first speakers', first1.seat, '→', first2.seat);
+}
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
 process.exit(fails ? 1 : 0);

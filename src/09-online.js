@@ -42,7 +42,7 @@ function buildAsks(g) {
   }
   if (st === 'lift' && b.lift) { const key = `${tag}:lift`; alive(g).forEach(v => { const id = tgOf(v); if (!id) return; const answered = onl.lift[key] && onl.lift[key][id] !== undefined; asks[id] = { key, kind: 'lift', yes: b.lift.yes.includes(v.id), done: !!answered, ids: b.lift.ids.map(x => P(g, x).seat) }; }); }
   if (st === 'roulette' && b.roulette && !b.roulette.hitId) { const cur = rouletteCurrent(g); const id = cur && tgOf(cur); if (id) asks[id] = { key: `${tag}:rou:${b.roulette.turn}`, kind: 'roulette', used: b.roulette.guesses.map(x => x.n), done: false }; }
-  if (st === 'result' && g.pendingTriggers && g.pendingTriggers[0]) { const tr = g.pendingTriggers[0]; const a = P(g, tr.actorId); const id = tgOf(a); if (id) asks[id] = { key: `${tag}:trig:${tr.type}:${tr.actorId}`, kind: 'trig', need: 1, trig: tr.type, targets: alive(g).map(p => ({ seat: p.seat, ok: true })), done: false }; }
+  if (st === 'result' && g.pendingTriggers && g.pendingTriggers[0]) { const tr = g.pendingTriggers[0]; const a = P(g, tr.actorId); const id = tgOf(a); if (id) asks[id] = { key: `${tag}:trig:${tr.type}:${tr.actorId}`, kind: 'trig', need: 1, trig: tr.type, optional: !!tr.night, targets: alive(g).map(p => ({ seat: p.seat, ok: true })), done: false }; }
   return asks;
 }
 function plainResult(g, res) { return { night: g.night, kind: res.kind, color: res.color || null, seat: res.who ? res.who.seat : null, roleId: res.role ? res.role.id : null, yes: res.yes === undefined ? null : res.yes, same: res.same === undefined ? null : res.same, text: res.kind === 'text' || res.kind === 'none' ? (res.text || '') : '' }; }
@@ -76,7 +76,7 @@ function applyTableAction(a) {
     case 'vote': { if (!ids.length || !g.ballot.candidates.includes(ids[0]) || ids[0] === me.id) return false; g.ballot.votes[me.id] = ids[0]; voterAdvance(g); return true; }
     case 'lift': { const want = !!pl.yes; const has = g.ballot.lift.yes.includes(me.id); if (want !== has) liftToggle(g, me.id); onl.lift[ask.key] = onl.lift[ask.key] || {}; onl.lift[ask.key][tgId] = want; return true; }
     case 'roulette': { const res = rouletteGuess(g, Number(pl.n)); if (!res) return false; if (!res.hit) toast(tt(U().rouletteMiss, { seat: res.p.seat })); return true; }
-    case 'trig': { if (!ids.length) return false; applyTrigger(g, g.pendingTriggers[0], ids[0]); S.ui.pick = []; return true; }
+    case 'trig': { if (pl.skip) return ask.optional ? skipTrigger(g, g.pendingTriggers[0]) : false; if (!ids.length) return false; applyTrigger(g, g.pendingTriggers[0], ids[0]); S.ui.pick = []; return true; }
     case 'bestmove': { recordBestMove(g, me.id, pl.skip ? [] : ids.slice(0, 3)); S.ui.pick = []; return true; }
   }
   return false;
@@ -110,7 +110,7 @@ function tablePub(g) {
     if (st === 'morning') { const r = g.nightResult || { removed: [] }; pub.dayInfo.removed = r.removed.map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined })); if (isClassic(g) && g.bestMove) pub.dayInfo.bestMove = { seat: seatOf(g.bestMove.by), picks: g.bestMove.picks.map(seatOf) }; }
     if (st === 'speeches') { const order = speakOrder(g); const p = order[g.speechIdx]; pub.dayInfo.speaker = p ? p.seat : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = order.length; pub.chatSeat = p ? p.seat : null; if (!p) pub.chat = false; }
     if (['speeches', 'vote', 'tie', 'roulette', 'lift', 'result'].includes(st)) pub.dayInfo.candidates = (b.candidates || []).map(seatOf);
-    if (st === 'vote') { const t = tally(g); pub.dayInfo.votes = Object.fromEntries(Object.entries(b.votes || {}).map(([v, c]) => [seatOf(v), seatOf(c)])); pub.dayInfo.tally = t.rows.map(r => ({ seat: seatOf(r.cid), total: r.total })); pub.dayInfo.voters = alive(g).filter(v => canVoteNow(g, v.id)).map(v => v.seat); }
+    if (st === 'vote') { const t = tally(g); pub.dayInfo.votes = Object.fromEntries(Object.entries(b.votes || {}).map(([v, c]) => [seatOf(v), seatOf(c)])); pub.dayInfo.tally = t.rows.map(r => ({ seat: seatOf(r.cid), total: r.total })); pub.dayInfo.voters = voteOrder(g).map(v => v.seat); }
     if (st === 'tie') { const tied = b.tiedIds || []; pub.dayInfo.tied = tied.map(seatOf); pub.dayInfo.speaker = tied[g.speechIdx] ? seatOf(tied[g.speechIdx]) : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = tied.length; pub.chatSeat = pub.dayInfo.speaker; if (!pub.chatSeat) pub.chat = false; }
     if (st === 'roulette' && b.roulette) { const cur = rouletteCurrent(g); pub.dayInfo.roulette = { order: b.roulette.order.map(seatOf), turn: cur ? cur.seat : null, guesses: b.roulette.guesses.map(x => ({ seat: seatOf(x.pid), n: x.n })) }; }
     if (st === 'lift' && b.lift) pub.dayInfo.lift = { ids: b.lift.ids.map(seatOf), yes: b.lift.yes.length, need: liftNeed(g) };
@@ -274,8 +274,8 @@ function tbAskHTML(ask, seats) {
   const mode = TB.mode || (ask.modes ? ask.modes[0] : null); const need = ask.targetsByMode && mode ? ask.targetsByMode[mode] : ask.need;
   const pk = (ask.targets || []).map(tg => { const i = TB.pick.indexOf(tg.seat); return `<button class="pk ${i >= 0 ? 'sel' : ''} ${i === 1 ? 'n2' : ''} ${tg.ok ? '' : 'dis'}" data-a="tb-pick" data-seat="${tg.seat}" ${tg.ok ? '' : 'disabled'}><span class="seat">${tg.seat}</span><span class="nm">${esc((seats.find(s => s.seat === tg.seat) || {}).name || '')}</span>${i >= 0 && need > 1 ? `<span class="mark ${i === 1 ? 'c' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
   const ready = ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need;
-  const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : '';
-  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
+  const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : ask.kind === 'trig' && ask.optional ? `<button class="btn ghost" data-a="tb-skip">${u.trigSkip}</button>` : '';
+  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? u.tbAzazelNight : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
     ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}
     <div class="btn-row" style="margin-top:10px">${skip}<button class="btn primary" data-a="tb-confirm" ${ready ? '' : 'disabled'}>${ask.kind === 'bestmove' ? u.tbBestSave : u.confirm}</button></div></div>`;
 }
