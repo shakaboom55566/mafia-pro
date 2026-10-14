@@ -690,6 +690,11 @@ clearInterval(X.T.iv);
   S.game.winner = null; A.go(el('go', { to: 'tables' })); A.back(el('back')); if (S.screen !== 'game') F('Back during a live game returns to it');
   S.game = null; S.screen = 'home'; console.log('v51 ok');
 }
+// v52: the home menu no longer repeats the tab bar (cards, clubs, ratings)
+{ const S = X.S(); S.game = null; A.go(el('go', { to: 'home' })); check('v52 home');
+  const menu = (app.innerHTML.split('class="menu"')[1] || '').split('</nav>')[0].split('class="tabbar"')[0];
+  ['cards', 'clubs', 'ratings'].forEach(t => { if (menu.includes(`data-to="${t}"`)) { fails++; console.log('FAIL v52 home menu still has ' + t); } });
+  ['cards', 'clubs', 'ratings'].forEach(t => { if (!app.innerHTML.includes(`data-a="tab" data-id="${t}"`)) { fails++; console.log('FAIL v52 tab bar lost ' + t); } }); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
 process.exit(fails ? 1 : 0);
