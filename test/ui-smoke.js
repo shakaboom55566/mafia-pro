@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -73,6 +73,19 @@ A.go(el('go', { to: 'scenarios' })); check('scenarios (free tab)');
 A['scen-tab'](el('scen-tab', { id: 'paid' })); check('scenarios (paid tab)');
 { const h = app.innerHTML; if (!h.includes('scen-card premium') || h.includes('scen-card classic')) { fails++; console.log('FAIL paid tab must list premium scenarios only'); } }
 A.go(el('go', { to: 'home' })); A.go(el('go', { to: 'scenarios' })); if (X.S().ui.scenTab !== 'free') { fails++; console.log('FAIL reopening scenarios must reset to the free tab'); }
+// v43: intro scenarios for beginners — five per table, free cards only, no Citizen card, every table 7–24 covered
+{ const u = X.U(); const introFor = vm.runInContext('introFor', ctx); const ROLE = X.ROLE;
+  for (let n = 7; n <= 24; n++) { const list = introFor(n); const ids = list.map(s => s.id).join();
+    if (list.length !== 5 || ids !== 'first,detective,guard,trumps,third') { fails++; console.log('FAIL intro: five themed line-ups expected for', n, ids); }
+    list.forEach(s => { if (s.comp.length !== n || s.comp.includes('citizen') || s.comp.some(id => !ROLE[id] || ROLE[id].premium) || s.comp.filter(id => id === 'don').length !== (n >= 20 ? 2 : 1)) { fails++; console.log('FAIL intro: bad composition', n, s.id, s.comp.join()); }
+      if (!s.name || !s.lore || Math.abs(s.mafia + s.city + s.maniac - 100) > 1.5) { fails++; console.log('FAIL intro: text or balance missing', n, s.id); } }); }
+  A['intro-n'](el('intro-n', { n: '15' })); check('scenarios intro 15');
+  const h = app.innerHTML; if (!h.includes(u.introTitle) || (h.match(/scen-card intro/g) || []).length !== 5 || !h.includes(introFor(15)[2].name)) { fails++; console.log('FAIL intro section: title, five cards or theme names missing'); }
+  A['intro-use'](el('intro-use', { n: '15', id: 'guard' })); check('setup from intro 15');
+  const st = X.S().setup; if (X.S().screen !== 'setup' || st.n !== 15 || st.scenario || st.comp.join() !== introFor(15)[2].comp.join()) { fails++; console.log('FAIL intro-use must open setup with that line-up'); }
+  if (!app.innerHTML.includes('okbox') || !app.innerHTML.includes(X.tt(u.okSimIntro, { name: introFor(15)[2].name, m: introFor(15)[2].mafia, c: introFor(15)[2].city, x: '' }))) { fails++; console.log('FAIL setup must show the intro line-up balance note'); }
+  A.comp(el('comp', { id: 'mafia', d: '1' })); if (app.innerHTML.includes('okbox') || app.innerHTML.includes(u.okSimIntro.slice(1, 12))) { fails++; console.log('FAIL changed intro line-up must lose its balance note'); }
+  A.go(el('go', { to: 'scenarios' })); }
 A.go(el('go', { to: 'myprofile' })); check('my profile (none yet)');
 { const h = app.innerHTML; if (!h.includes('data-a="prof-new"')) { fails++; console.log('FAIL my profile should offer to create one'); } }
 A.go(el('go', { to: 'clubs' })); check('clubs (outside Telegram)');

@@ -208,3 +208,145 @@ function scenarioComp(sc, n) {
   });
   return comp;
 }
+
+/* ---------- Intro scenarios for beginners (v43): free cards only, no Citizen card — every seat is a role.
+   Five themes per table 7–24, compositions picked by simulation (test/montecarlo.js bots) and each checked on a
+   fresh 1000 games: [theme, composition, mafia %, city %, maniac %, average nights]. ---------- */
+const INTRO_THEMES = ['first', 'detective', 'guard', 'trumps', 'third'];
+const INTRO = {
+  7: [
+    ['first', 'don,mafia,sheriff,doctor,bodyguard,judge,bomb', 50.2, 49.8, 0, 2.1],
+    ['detective', 'don,gunsmith,sheriff,journalist,miller,doctor,thief', 49.7, 50.3, 0, 2.1],
+    ['guard', 'don,kamikaze,sheriff,bodyguard,bomb,rabbi,judge', 51.4, 48.6, 0, 2],
+    ['trumps', 'don,gunsmith,sheriff,doctor,bodyguard,judge,bomb', 56, 44, 0, 2],
+    ['third', 'don,mafia,sheriff,maniac,doctor,mayor,bomb', 43.8, 44.5, 11.7, 1.6]
+  ],
+  8: [
+    ['first', 'don,gunsmith,sheriff,doctor,mayor,bodyguard,journalist,judge', 46.9, 53.1, 0, 2.4],
+    ['detective', 'don,gunsmith,sheriff,journalist,miller,judge,drunk,thief', 51.2, 48.8, 0, 2.2],
+    ['guard', 'don,kamikaze,sheriff,bodyguard,bomb,doctor,judge,altruist', 47.2, 52.8, 0, 2.2],
+    ['trumps', 'don,gunsmith,sheriff,doctor,mayor,bodyguard,bomb,miller', 48.8, 51.2, 0, 2.1],
+    ['third', 'don,gunsmith,sheriff,maniac,mayor,journalist,bomb,miller', 47.8, 43.8, 8.4, 1.7]
+  ],
+  9: [
+    ['first', 'don,mafia,mafia,sheriff,doctor,bodyguard,journalist,judge,rabbi', 47.6, 52.4, 0, 2.9],
+    ['detective', 'don,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk', 53.4, 46.6, 0, 2.9],
+    ['guard', 'don,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,mayor', 46.8, 53.2, 0, 2.7],
+    ['trumps', 'don,gunsmith,mafia,sheriff,doctor,journalist,judge,bomb,rabbi', 52.9, 47.1, 0, 2.5],
+    ['third', 'don,gunsmith,sheriff,maniac,mayor,bodyguard,judge,miller,rabbi', 43.2, 49.8, 7, 2.2]
+  ],
+  10: [
+    ['first', 'don,gunsmith,mafia,sheriff,doctor,bodyguard,judge,bomb,rabbi,drunk', 48.7, 51.3, 0, 2.9],
+    ['detective', 'don,gunsmith,mafia,sheriff,journalist,miller,judge,doctor,thief,bodyguard', 50.5, 49.5, 0, 2.8],
+    ['guard', 'don,executioner,mafia,sheriff,bodyguard,bomb,doctor,altruist,mayor,journalist', 48.8, 51.2, 0, 2.8],
+    ['trumps', 'don,gunsmith,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi', 47.9, 52.1, 0, 2.8],
+    ['third', 'don,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,miller', 45.2, 46.4, 8.4, 2.7]
+  ],
+  11: [
+    ['first', 'don,mafia,mafia,mafia,sheriff,doctor,journalist,judge,bomb,rabbi,drunk', 48.7, 51.3, 0, 3.5],
+    ['detective', 'don,gunsmith,balamut,sheriff,journalist,miller,mayor,drunk,thief,bomb,rabbi', 50.6, 49.4, 0, 3],
+    ['guard', 'don,kamikaze,executioner,sheriff,bodyguard,bomb,rabbi,judge,altruist,journalist,drunk', 47.3, 52.7, 0, 3.1],
+    ['trumps', 'don,gunsmith,kamikaze,sheriff,journalist,judge,bomb,miller,rabbi,drunk,altruist', 49.2, 50.8, 0, 2.9],
+    ['third', 'don,gunsmith,mafia,sheriff,maniac,doctor,mayor,journalist,judge,miller,drunk', 44.2, 51.1, 4.7, 2.9]
+  ],
+  12: [
+    ['first', 'don,mafia,mafia,mafia,sheriff,bodyguard,judge,bomb,miller,rabbi,drunk,altruist', 49.2, 50.8, 0, 3.6],
+    ['detective', 'don,gunsmith,balamut,sheriff,journalist,miller,judge,mayor,drunk,bomb,rabbi,altruist', 48.9, 51.1, 0, 3.5],
+    ['guard', 'don,executioner,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,journalist,miller', 51.6, 48.4, 0, 3.5],
+    ['trumps', 'don,gunsmith,mafia,mafia,sheriff,doctor,mayor,journalist,bomb,miller,rabbi,drunk', 51, 49, 0, 3.4],
+    ['third', 'don,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,miller,rabbi,drunk', 48.6, 47.2, 4.2, 3.1]
+  ],
+  13: [
+    ['first', 'don,gunsmith,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,miller,altruist,thief', 46.7, 53.3, 0, 3.4],
+    ['detective', 'don,balamut,spy,mafia,sheriff,journalist,miller,judge,mayor,drunk,bomb,rabbi,altruist', 50.3, 49.7, 0, 4.1],
+    ['guard', 'don,kamikaze,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist', 46.7, 53.3, 0, 3.9],
+    ['trumps', 'don,gunsmith,executioner,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,miller,rabbi,altruist', 50.3, 49.7, 0, 3.8],
+    ['third', 'don,gunsmith,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,bodyguard,journalist,miller,rabbi', 46.2, 50.3, 3.5, 3.2]
+  ],
+  14: [
+    ['first', 'don,gunsmith,mafia,mafia,sheriff,mayor,bodyguard,journalist,judge,bomb,miller,drunk,altruist,thief', 48.4, 51.6, 0, 3.7],
+    ['detective', 'don,gunsmith,mafia,mafia,mafia,sheriff,journalist,miller,doctor,mayor,thief,bomb,rabbi,altruist', 47.9, 52.1, 0, 3.8],
+    ['guard', 'don,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,mayor,journalist,drunk', 48, 52, 0, 4.2],
+    ['trumps', 'don,gunsmith,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,rabbi,drunk,altruist,thief', 48.7, 51.3, 0, 4.1],
+    ['third', 'don,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,journalist,judge,bomb,miller,rabbi', 50.1, 46.5, 3.4, 3.5]
+  ],
+  15: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,judge,bomb,rabbi,drunk,altruist,thief', 48.8, 51.2, 0, 4.1],
+    ['detective', 'don,balamut,spy,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,bomb,rabbi,altruist', 50.7, 49.3, 0, 5],
+    ['guard', 'don,kamikaze,executioner,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,miller,thief,monk', 49, 51, 0, 4.1],
+    ['trumps', 'don,gunsmith,kamikaze,mafia_doctor,spy,sheriff,doctor,bodyguard,journalist,judge,rabbi,drunk,altruist,thief,monk', 50.1, 49.9, 0, 4.1],
+    ['third', 'don,mafia,mafia,mafia,mafia,sheriff,maniac,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,thief', 47.9, 49, 3.1, 3.5]
+  ],
+  16: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,rabbi,drunk,altruist,thief,monk', 52.5, 47.5, 0, 4.2],
+    ['detective', 'don,gunsmith,balamut,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,thief,bomb,rabbi,altruist,azazel', 52.2, 47.8, 0, 4.5],
+    ['guard', 'don,kamikaze,executioner,gunsmith,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,mayor,journalist,drunk,thief,azazel', 47.1, 52.9, 0, 4],
+    ['trumps', 'don,gunsmith,kamikaze,mafia_doctor,executioner,sheriff,doctor,bodyguard,journalist,judge,bomb,miller,rabbi,altruist,thief,monk', 48.5, 51.5, 0, 4.1],
+    ['third', 'don,gunsmith,mafia,mafia,mafia,sheriff,maniac,werewolf,mayor,journalist,judge,miller,rabbi,drunk,altruist,thief', 46.6, 51.3, 2.1, 3.7]
+  ],
+  17: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,monk,azazel', 52.6, 47.4, 0, 4.5],
+    ['detective', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,altruist,monk', 48.5, 51.5, 0, 4.6],
+    ['guard', 'don,kamikaze,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,altruist,mayor,journalist,miller,drunk,thief,azazel', 53, 47, 0, 4.5],
+    ['trumps', 'don,gunsmith,mafia_doctor,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief', 53.4, 46.6, 0, 4.6],
+    ['third', 'don,gunsmith,mafia,mafia,mafia,sheriff,maniac,jester,werewolf,doctor,mayor,bodyguard,judge,bomb,rabbi,drunk,altruist', 46.2, 51.4, 2.4, 4.1]
+  ],
+  18: [
+    ['first', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,bomb,miller,rabbi,drunk,altruist,monk', 47.1, 52.9, 0, 5.5],
+    ['detective', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,monk,azazel', 52.4, 47.6, 0, 4.8],
+    ['guard', 'don,executioner,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,mayor,journalist,miller,thief,azazel,morpheus', 49.4, 50.6, 0, 4.7],
+    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,sheriff,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 51.9, 48.1, 0, 4.7],
+    ['third', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,miller,altruist,monk,azazel', 48.7, 49.3, 2, 4.1]
+  ],
+  19: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,rabbi,drunk,altruist,thief,monk,azazel', 48.9, 51.1, 0, 4.9],
+    ['detective', 'don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,rabbi,altruist,monk', 47, 53, 0, 5.3],
+    ['guard', 'don,kamikaze,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 51.6, 48.4, 0, 5],
+    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 48.4, 51.6, 0, 4.8],
+    ['third', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,rabbi,altruist,thief,azazel', 48.2, 50.6, 1.2, 4.5]
+  ],
+  20: [
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 49.4, 50.6, 0, 6.1],
+    ['detective', 'don,don,balamut,spy,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 52.7, 47.3, 0, 6.8],
+    ['guard', 'don,don,executioner,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,journalist,miller,thief,monk,azazel', 48.4, 51.6, 0, 5.9],
+    ['trumps', 'don,don,gunsmith,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 50.1, 49.9, 0, 5.9],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,rabbi,drunk,altruist,thief,azazel,morpheus', 49.4, 48.5, 2.1, 5.3]
+  ],
+  21: [
+    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,monk,azazel', 48.6, 51.4, 0, 6.6],
+    ['detective', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,altruist,monk,azazel', 48.5, 51.5, 0, 6.1],
+    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,azazel,morpheus', 53.1, 46.9, 0, 6.3],
+    ['trumps', 'don,don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,altruist,thief,monk,azazel', 50.4, 49.6, 0, 6.3],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,bodyguard,journalist,judge,bomb,miller,rabbi,thief,monk,azazel,morpheus', 51.5, 46.9, 1.6, 5.1]
+  ],
+  22: [
+    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,miller,rabbi,drunk,altruist,thief,monk,azazel', 53.1, 46.9, 0, 6.6],
+    ['detective', 'don,don,spy,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,altruist,monk,azazel,morpheus', 53.1, 46.9, 0, 6.9],
+    ['guard', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,monk,azazel', 49.4, 50.6, 0, 7],
+    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 49.2, 50.8, 0, 6.6],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,journalist,judge,bomb,miller,drunk,thief,monk,azazel,morpheus', 45.6, 52.6, 1.8, 5.5]
+  ],
+  23: [
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 51.5, 48.5, 0, 7.4],
+    ['detective', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel', 51, 49, 0, 7.3],
+    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 52.4, 47.6, 0, 7],
+    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,monk,azazel,morpheus', 49.1, 50.9, 0, 6.8],
+    ['third', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,bodyguard,journalist,miller,rabbi,drunk,altruist,thief,monk,morpheus', 48.5, 49.6, 1.9, 6.2]
+  ],
+  24: [
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,azazel,morpheus', 50.2, 49.8, 0, 7.9],
+    ['detective', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 49.1, 50.9, 0, 7.5],
+    ['guard', 'don,don,kamikaze,executioner,gunsmith,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,monk,azazel,morpheus', 47.9, 52.1, 0, 6.9],
+    ['trumps', 'don,don,gunsmith,kamikaze,mafia_doctor,executioner,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 49.2, 50.8, 0, 7.1],
+    ['third', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 46.8, 51.5, 1.7, 6.2]
+  ]
+};
+const introText = theme => (L.intro && L.intro[theme]) || I18N.ru.intro[theme];
+function introFor(n) {
+  return (INTRO[n] || []).map(([id, comp, mafia, city, maniac, nights]) => ({
+    id, n, comp: comp.split(','), mafia, city, maniac, nights,
+    get name() { return introText(id).name; }, get lore() { return introText(id).lore; }
+  }));
+}
+/* the intro scenario whose composition is exactly this one (order-free), or null */
+function introMatch(n, comp) { const k = comp.slice().sort().join(); return introFor(n).find(s => s.comp.slice().sort().join() === k) || null; }

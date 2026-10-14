@@ -482,6 +482,11 @@ p { margin: 0; }
 .premium-pill.classic { background: #62a86f; color: #0a1a0e; }
 .scen-card .rules { margin: 8px 0 0 18px; font-size: 12.5px; color: var(--fg-2); line-height: 1.4; }
 .scen-card .rules li { margin-top: 4px; }
+.scen-card.intro { border-color: rgba(98,168,111,.3); }
+.scen-card.intro .t { padding-right: 0; }
+.scen-card.intro .m.sim { color: var(--fg-2); }
+.filters.intro-n { margin: 6px 0 2px; }
+.filters.intro-n .chip { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
 .rv-list { display: flex; flex-direction: column; gap: 8px; }
 .rv { border-radius: 14px; border: 1px solid var(--line); background: var(--bg-2); overflow: hidden; }
 .rv.win { border-color: rgba(98,168,111,.4); }
@@ -3826,6 +3831,72 @@ Object.assign(I18N.hy.ui, {
   dcRoom: 'Սեղանի ձայնային ալիքը', dcPlayerHint: 'Մտեք ձայնային ալիք և սեղմեք «Կապի մեջ եմ»։ Վարողը կբաժանի քարտերը, երբ բոլորը կապի մեջ լինեն։', dcConfirmedP: 'Վարողը հաստատեց կապը — շուտով բաժանում։',
   dcImOn: 'Կապի մեջ եմ', dcImOnDone: '✓ Կապի մեջ եմ', dcOnMark: 'կապի մեջ', dcTag: 'Discord', dcGame: 'Ձայն', dcTableLang: 'Սեղանի լեզու'
 });
+/* ---------------- Intro scenarios for beginners (v43), all languages ---------------- */
+Object.assign(I18N.ru.ui, {
+  introTitle: 'Для новичков', introPill: 'Новичкам',
+  introHint: 'Пять вводных составов на каждый стол: только бесплатные карты и без мирных жителей — у каждого за столом своя роль. Баланс каждого состава проверен симуляцией в 1000 партий.',
+  introPick: 'Сколько игроков', introSim: 'По симуляции: мафия {m}% · город {c}%{x} · {n} ночей', introSimManiac: ' · маньяк {v}%',
+  introUse: 'Создать игру', okSimIntro: ' Вводный состав «{name}». По симуляции: мафия {m}%, город {c}%{x}.'
+});
+I18N.ru.intro = {
+  first: { name: 'Первый вечер', lore: 'Самые простые карты: Дон и мафия против шерифа, доктора, мэра, телохранителя и журналиста.' },
+  detective: { name: 'Следствие', lore: 'Город ищет мафию: журналист сравнивает игроков, фрезеровщик путает проверки, судья спасает от ошибки.' },
+  guard: { name: 'Под охраной', lore: 'Защитники города: телохранитель, бомба, равин, альтруист. Мафия отвечает камикадзе и палачом.' },
+  trumps: { name: 'Козыри мафии', lore: 'Мафия с особыми картами: оружейник, камикадзе, доктор мафии, палач.' },
+  third: { name: 'Третья сила', lore: 'Кроме мафии и города — маньяк; на столах побольше шут и оборотень.' }
+};
+Object.assign(I18N.uk.ui, {
+  introTitle: 'Для новачків', introPill: 'Новачкам',
+  introHint: 'П\'ять вступних складів на кожен стіл: лише безплатні карти й без мирних жителів — у кожного за столом своя роль. Баланс кожного складу перевірено симуляцією в 1000 партій.',
+  introPick: 'Скільки гравців', introSim: 'За симуляцією: мафія {m}% · місто {c}%{x} · {n} ночей', introSimManiac: ' · маніяк {v}%',
+  introUse: 'Створити гру', okSimIntro: ' Вступний склад «{name}». За симуляцією: мафія {m}%, місто {c}%{x}.'
+});
+I18N.uk.intro = {
+  first: { name: 'Перший вечір', lore: 'Найпростіші карти: Дон і мафія проти шерифа, лікаря, мера, охоронця та журналіста.' },
+  detective: { name: 'Слідство', lore: 'Місто шукає мафію: журналіст порівнює гравців, фрезерувальник плутає перевірки, суддя рятує від помилки.' },
+  guard: { name: 'Під охороною', lore: 'Захисники міста: охоронець, бомба, рабин, альтруїст. Мафія відповідає камікадзе та катом.' },
+  trumps: { name: 'Козирі мафії', lore: 'Мафія з особливими картами: зброяр, камікадзе, лікар мафії, кат.' },
+  third: { name: 'Третя сила', lore: 'Крім мафії та міста — маніяк; на більших столах блазень і перевертень.' }
+};
+Object.assign(I18N.en.ui, {
+  introTitle: 'For beginners', introPill: 'Beginners',
+  introHint: 'Five starter line-ups for every table: free cards only and no Citizens — everyone at the table has a role. Each line-up was balance-checked by simulating 1,000 games.',
+  introPick: 'How many players', introSim: 'Simulation: mafia {m}% · town {c}%{x} · {n} nights', introSimManiac: ' · maniac {v}%',
+  introUse: 'Create game', okSimIntro: ' Starter line-up “{name}”. Simulation: mafia {m}%, town {c}%{x}.'
+});
+I18N.en.intro = {
+  first: { name: 'First night out', lore: 'The simplest cards: the Don and mafia against the Sheriff, Doctor, Mayor, Bodyguard and Journalist.' },
+  detective: { name: 'Investigation', lore: 'The town hunts the mafia: the Journalist compares players, the Machinist confuses checks, the Judge saves the town from a mistake.' },
+  guard: { name: 'Under guard', lore: 'The town’s protectors: Bodyguard, Bomb, Rabbi, Altruist. The mafia answers with the Kamikaze and the Executioner.' },
+  trumps: { name: 'Mafia’s trumps', lore: 'A mafia with special cards: Gunsmith, Kamikaze, Mafia Doctor, Executioner.' },
+  third: { name: 'Third force', lore: 'Besides the mafia and the town — a Maniac; at bigger tables a Jester and a Werewolf.' }
+};
+Object.assign(I18N.pl.ui, {
+  introTitle: 'Dla początkujących', introPill: 'Na start',
+  introHint: 'Pięć wprowadzających składów na każdy stół: tylko darmowe karty i bez mieszkańców — każdy przy stole ma swoją rolę. Balans każdego składu sprawdzono symulacją 1000 partii.',
+  introPick: 'Ilu graczy', introSim: 'Według symulacji: mafia {m}% · miasto {c}%{x} · {n} nocy', introSimManiac: ' · maniak {v}%',
+  introUse: 'Utwórz grę', okSimIntro: ' Skład wprowadzający „{name}”. Według symulacji: mafia {m}%, miasto {c}%{x}.'
+});
+I18N.pl.intro = {
+  first: { name: 'Pierwszy wieczór', lore: 'Najprostsze karty: Don i mafia przeciw Szeryfowi, Lekarzowi, Burmistrzowi, Ochroniarzowi i Dziennikarzowi.' },
+  detective: { name: 'Śledztwo', lore: 'Miasto szuka mafii: Dziennikarz porównuje graczy, Frezer myli sprawdzenia, Sędzia ratuje przed pomyłką.' },
+  guard: { name: 'Pod ochroną', lore: 'Obrońcy miasta: Ochroniarz, Bomba, Rabin, Altruista. Mafia odpowiada Kamikadze i Katem.' },
+  trumps: { name: 'Atuty mafii', lore: 'Mafia ze specjalnymi kartami: Rusznikarz, Kamikadze, Lekarz mafii, Kat.' },
+  third: { name: 'Trzecia siła', lore: 'Oprócz mafii i miasta — Maniak; przy większych stołach Błazen i Wilkołak.' }
+};
+Object.assign(I18N.hy.ui, {
+  introTitle: 'Սկսնակների համար', introPill: 'Սկսնակներին',
+  introHint: 'Հինգ ներածական կազմ յուրաքանչյուր սեղանի համար. միայն անվճար քարտեր և առանց խաղաղ բնակիչների՝ սեղանի շուրջ յուրաքանչյուրն իր դերն ունի։ Ամեն կազմի հավասարակշռությունը ստուգված է 1000 խաղի սիմուլյացիայով։',
+  introPick: 'Քանի՞ խաղացող', introSim: 'Սիմուլյացիայով. մաֆիա {m}% · քաղաք {c}%{x} · {n} գիշեր', introSimManiac: ' · մոլագար {v}%',
+  introUse: 'Ստեղծել խաղ', okSimIntro: ' Ներածական կազմ «{name}»։ Սիմուլյացիայով. մաֆիա {m}%, քաղաք {c}%{x}։'
+});
+I18N.hy.intro = {
+  first: { name: 'Առաջին երեկո', lore: 'Ամենապարզ քարտերը. Դոնն ու մաֆիան՝ ընդդեմ Շերիֆի, Բժշկի, Քաղաքապետի, Թիկնապահի և Լրագրողի։' },
+  detective: { name: 'Հետաքննություն', lore: 'Քաղաքը փնտրում է մաֆիային. Լրագրողը համեմատում է խաղացողներին, Ֆրեզերագործը շփոթեցնում է ստուգումները, Դատավորը փրկում է սխալից։' },
+  guard: { name: 'Պահպանության տակ', lore: 'Քաղաքի պաշտպանները. Թիկնապահ, Ռումբ, Ռաբբի, Ալտրուիստ։ Մաֆիան պատասխանում է Կամիկաձեով և Դահիճով։' },
+  trumps: { name: 'Մաֆիայի հաղթաթղթերը', lore: 'Մաֆիան հատուկ քարտերով. Զինագործ, Կամիկաձե, Մաֆիայի բժիշկ, Դահիճ։' },
+  third: { name: 'Երրորդ ուժ', lore: 'Մաֆիայից ու քաղաքից բացի՝ Մոլագար, իսկ մեծ սեղաններին՝ Ծաղրածու և Գայլամարդ։' }
+};
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
@@ -4317,6 +4388,148 @@ function scenarioComp(sc, n) {
   });
   return comp;
 }
+
+/* ---------- Intro scenarios for beginners (v43): free cards only, no Citizen card — every seat is a role.
+   Five themes per table 7–24, compositions picked by simulation (test/montecarlo.js bots) and each checked on a
+   fresh 1000 games: [theme, composition, mafia %, city %, maniac %, average nights]. ---------- */
+const INTRO_THEMES = ['first', 'detective', 'guard', 'trumps', 'third'];
+const INTRO = {
+  7: [
+    ['first', 'don,mafia,sheriff,doctor,bodyguard,judge,bomb', 50.2, 49.8, 0, 2.1],
+    ['detective', 'don,gunsmith,sheriff,journalist,miller,doctor,thief', 49.7, 50.3, 0, 2.1],
+    ['guard', 'don,kamikaze,sheriff,bodyguard,bomb,rabbi,judge', 51.4, 48.6, 0, 2],
+    ['trumps', 'don,gunsmith,sheriff,doctor,bodyguard,judge,bomb', 56, 44, 0, 2],
+    ['third', 'don,mafia,sheriff,maniac,doctor,mayor,bomb', 43.8, 44.5, 11.7, 1.6]
+  ],
+  8: [
+    ['first', 'don,gunsmith,sheriff,doctor,mayor,bodyguard,journalist,judge', 46.9, 53.1, 0, 2.4],
+    ['detective', 'don,gunsmith,sheriff,journalist,miller,judge,drunk,thief', 51.2, 48.8, 0, 2.2],
+    ['guard', 'don,kamikaze,sheriff,bodyguard,bomb,doctor,judge,altruist', 47.2, 52.8, 0, 2.2],
+    ['trumps', 'don,gunsmith,sheriff,doctor,mayor,bodyguard,bomb,miller', 48.8, 51.2, 0, 2.1],
+    ['third', 'don,gunsmith,sheriff,maniac,mayor,journalist,bomb,miller', 47.8, 43.8, 8.4, 1.7]
+  ],
+  9: [
+    ['first', 'don,mafia,mafia,sheriff,doctor,bodyguard,journalist,judge,rabbi', 47.6, 52.4, 0, 2.9],
+    ['detective', 'don,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk', 53.4, 46.6, 0, 2.9],
+    ['guard', 'don,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,mayor', 46.8, 53.2, 0, 2.7],
+    ['trumps', 'don,gunsmith,mafia,sheriff,doctor,journalist,judge,bomb,rabbi', 52.9, 47.1, 0, 2.5],
+    ['third', 'don,gunsmith,sheriff,maniac,mayor,bodyguard,judge,miller,rabbi', 43.2, 49.8, 7, 2.2]
+  ],
+  10: [
+    ['first', 'don,gunsmith,mafia,sheriff,doctor,bodyguard,judge,bomb,rabbi,drunk', 48.7, 51.3, 0, 2.9],
+    ['detective', 'don,gunsmith,mafia,sheriff,journalist,miller,judge,doctor,thief,bodyguard', 50.5, 49.5, 0, 2.8],
+    ['guard', 'don,executioner,mafia,sheriff,bodyguard,bomb,doctor,altruist,mayor,journalist', 48.8, 51.2, 0, 2.8],
+    ['trumps', 'don,gunsmith,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi', 47.9, 52.1, 0, 2.8],
+    ['third', 'don,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,miller', 45.2, 46.4, 8.4, 2.7]
+  ],
+  11: [
+    ['first', 'don,mafia,mafia,mafia,sheriff,doctor,journalist,judge,bomb,rabbi,drunk', 48.7, 51.3, 0, 3.5],
+    ['detective', 'don,gunsmith,balamut,sheriff,journalist,miller,mayor,drunk,thief,bomb,rabbi', 50.6, 49.4, 0, 3],
+    ['guard', 'don,kamikaze,executioner,sheriff,bodyguard,bomb,rabbi,judge,altruist,journalist,drunk', 47.3, 52.7, 0, 3.1],
+    ['trumps', 'don,gunsmith,kamikaze,sheriff,journalist,judge,bomb,miller,rabbi,drunk,altruist', 49.2, 50.8, 0, 2.9],
+    ['third', 'don,gunsmith,mafia,sheriff,maniac,doctor,mayor,journalist,judge,miller,drunk', 44.2, 51.1, 4.7, 2.9]
+  ],
+  12: [
+    ['first', 'don,mafia,mafia,mafia,sheriff,bodyguard,judge,bomb,miller,rabbi,drunk,altruist', 49.2, 50.8, 0, 3.6],
+    ['detective', 'don,gunsmith,balamut,sheriff,journalist,miller,judge,mayor,drunk,bomb,rabbi,altruist', 48.9, 51.1, 0, 3.5],
+    ['guard', 'don,executioner,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,journalist,miller', 51.6, 48.4, 0, 3.5],
+    ['trumps', 'don,gunsmith,mafia,mafia,sheriff,doctor,mayor,journalist,bomb,miller,rabbi,drunk', 51, 49, 0, 3.4],
+    ['third', 'don,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,miller,rabbi,drunk', 48.6, 47.2, 4.2, 3.1]
+  ],
+  13: [
+    ['first', 'don,gunsmith,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,miller,altruist,thief', 46.7, 53.3, 0, 3.4],
+    ['detective', 'don,balamut,spy,mafia,sheriff,journalist,miller,judge,mayor,drunk,bomb,rabbi,altruist', 50.3, 49.7, 0, 4.1],
+    ['guard', 'don,kamikaze,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist', 46.7, 53.3, 0, 3.9],
+    ['trumps', 'don,gunsmith,executioner,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,miller,rabbi,altruist', 50.3, 49.7, 0, 3.8],
+    ['third', 'don,gunsmith,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,bodyguard,journalist,miller,rabbi', 46.2, 50.3, 3.5, 3.2]
+  ],
+  14: [
+    ['first', 'don,gunsmith,mafia,mafia,sheriff,mayor,bodyguard,journalist,judge,bomb,miller,drunk,altruist,thief', 48.4, 51.6, 0, 3.7],
+    ['detective', 'don,gunsmith,mafia,mafia,mafia,sheriff,journalist,miller,doctor,mayor,thief,bomb,rabbi,altruist', 47.9, 52.1, 0, 3.8],
+    ['guard', 'don,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,mayor,journalist,drunk', 48, 52, 0, 4.2],
+    ['trumps', 'don,gunsmith,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,rabbi,drunk,altruist,thief', 48.7, 51.3, 0, 4.1],
+    ['third', 'don,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,journalist,judge,bomb,miller,rabbi', 50.1, 46.5, 3.4, 3.5]
+  ],
+  15: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,judge,bomb,rabbi,drunk,altruist,thief', 48.8, 51.2, 0, 4.1],
+    ['detective', 'don,balamut,spy,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,bomb,rabbi,altruist', 50.7, 49.3, 0, 5],
+    ['guard', 'don,kamikaze,executioner,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,miller,thief,monk', 49, 51, 0, 4.1],
+    ['trumps', 'don,gunsmith,kamikaze,mafia_doctor,spy,sheriff,doctor,bodyguard,journalist,judge,rabbi,drunk,altruist,thief,monk', 50.1, 49.9, 0, 4.1],
+    ['third', 'don,mafia,mafia,mafia,mafia,sheriff,maniac,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,thief', 47.9, 49, 3.1, 3.5]
+  ],
+  16: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,rabbi,drunk,altruist,thief,monk', 52.5, 47.5, 0, 4.2],
+    ['detective', 'don,gunsmith,balamut,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,thief,bomb,rabbi,altruist,azazel', 52.2, 47.8, 0, 4.5],
+    ['guard', 'don,kamikaze,executioner,gunsmith,mafia,sheriff,bodyguard,bomb,doctor,rabbi,altruist,mayor,journalist,drunk,thief,azazel', 47.1, 52.9, 0, 4],
+    ['trumps', 'don,gunsmith,kamikaze,mafia_doctor,executioner,sheriff,doctor,bodyguard,journalist,judge,bomb,miller,rabbi,altruist,thief,monk', 48.5, 51.5, 0, 4.1],
+    ['third', 'don,gunsmith,mafia,mafia,mafia,sheriff,maniac,werewolf,mayor,journalist,judge,miller,rabbi,drunk,altruist,thief', 46.6, 51.3, 2.1, 3.7]
+  ],
+  17: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,monk,azazel', 52.6, 47.4, 0, 4.5],
+    ['detective', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,altruist,monk', 48.5, 51.5, 0, 4.6],
+    ['guard', 'don,kamikaze,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,altruist,mayor,journalist,miller,drunk,thief,azazel', 53, 47, 0, 4.5],
+    ['trumps', 'don,gunsmith,mafia_doctor,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief', 53.4, 46.6, 0, 4.6],
+    ['third', 'don,gunsmith,mafia,mafia,mafia,sheriff,maniac,jester,werewolf,doctor,mayor,bodyguard,judge,bomb,rabbi,drunk,altruist', 46.2, 51.4, 2.4, 4.1]
+  ],
+  18: [
+    ['first', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,bomb,miller,rabbi,drunk,altruist,monk', 47.1, 52.9, 0, 5.5],
+    ['detective', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,monk,azazel', 52.4, 47.6, 0, 4.8],
+    ['guard', 'don,executioner,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,mayor,journalist,miller,thief,azazel,morpheus', 49.4, 50.6, 0, 4.7],
+    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,sheriff,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 51.9, 48.1, 0, 4.7],
+    ['third', 'don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,miller,altruist,monk,azazel', 48.7, 49.3, 2, 4.1]
+  ],
+  19: [
+    ['first', 'don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,rabbi,drunk,altruist,thief,monk,azazel', 48.9, 51.1, 0, 4.9],
+    ['detective', 'don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,rabbi,altruist,monk', 47, 53, 0, 5.3],
+    ['guard', 'don,kamikaze,gunsmith,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 51.6, 48.4, 0, 5],
+    ['trumps', 'don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,bodyguard,journalist,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 48.4, 51.6, 0, 4.8],
+    ['third', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,bomb,rabbi,altruist,thief,azazel', 48.2, 50.6, 1.2, 4.5]
+  ],
+  20: [
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,bomb,miller,rabbi,drunk,thief,azazel,morpheus', 49.4, 50.6, 0, 6.1],
+    ['detective', 'don,don,balamut,spy,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,drunk,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 52.7, 47.3, 0, 6.8],
+    ['guard', 'don,don,executioner,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,journalist,miller,thief,monk,azazel', 48.4, 51.6, 0, 5.9],
+    ['trumps', 'don,don,gunsmith,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 50.1, 49.9, 0, 5.9],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,mayor,bodyguard,journalist,judge,rabbi,drunk,altruist,thief,azazel,morpheus', 49.4, 48.5, 2.1, 5.3]
+  ],
+  21: [
+    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,monk,azazel', 48.6, 51.4, 0, 6.6],
+    ['detective', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,altruist,monk,azazel', 48.5, 51.5, 0, 6.1],
+    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,azazel,morpheus', 53.1, 46.9, 0, 6.3],
+    ['trumps', 'don,don,gunsmith,spy,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,altruist,thief,monk,azazel', 50.4, 49.6, 0, 6.3],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,doctor,bodyguard,journalist,judge,bomb,miller,rabbi,thief,monk,azazel,morpheus', 51.5, 46.9, 1.6, 5.1]
+  ],
+  22: [
+    ['first', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,miller,rabbi,drunk,altruist,thief,monk,azazel', 53.1, 46.9, 0, 6.6],
+    ['detective', 'don,don,spy,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bomb,altruist,monk,azazel,morpheus', 53.1, 46.9, 0, 6.9],
+    ['guard', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,miller,drunk,thief,monk,azazel', 49.4, 50.6, 0, 7],
+    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel', 49.2, 50.8, 0, 6.6],
+    ['third', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,journalist,judge,bomb,miller,drunk,thief,monk,azazel,morpheus', 45.6, 52.6, 1.8, 5.5]
+  ],
+  23: [
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 51.5, 48.5, 0, 7.4],
+    ['detective', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,judge,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel', 51, 49, 0, 7.3],
+    ['guard', 'don,don,gunsmith,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,azazel,morpheus', 52.4, 47.6, 0, 7],
+    ['trumps', 'don,don,gunsmith,mafia_doctor,executioner,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,thief,monk,azazel,morpheus', 49.1, 50.9, 0, 6.8],
+    ['third', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,doctor,mayor,bodyguard,journalist,miller,rabbi,drunk,altruist,thief,monk,morpheus', 48.5, 49.6, 1.9, 6.2]
+  ],
+  24: [
+    ['first', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,azazel,morpheus', 50.2, 49.8, 0, 7.9],
+    ['detective', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,journalist,miller,doctor,mayor,drunk,thief,bodyguard,bomb,rabbi,altruist,monk,azazel,morpheus', 49.1, 50.9, 0, 7.5],
+    ['guard', 'don,don,kamikaze,executioner,gunsmith,mafia,mafia,mafia,mafia,sheriff,bodyguard,bomb,doctor,rabbi,judge,altruist,mayor,journalist,miller,drunk,thief,monk,azazel,morpheus', 47.9, 52.1, 0, 6.9],
+    ['trumps', 'don,don,gunsmith,kamikaze,mafia_doctor,executioner,mafia,mafia,mafia,sheriff,doctor,mayor,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 49.2, 50.8, 0, 7.1],
+    ['third', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,maniac,werewolf,bodyguard,journalist,judge,bomb,miller,rabbi,drunk,altruist,thief,monk,azazel,morpheus', 46.8, 51.5, 1.7, 6.2]
+  ]
+};
+const introText = theme => (L.intro && L.intro[theme]) || I18N.ru.intro[theme];
+function introFor(n) {
+  return (INTRO[n] || []).map(([id, comp, mafia, city, maniac, nights]) => ({
+    id, n, comp: comp.split(','), mafia, city, maniac, nights,
+    get name() { return introText(id).name; }, get lore() { return introText(id).lore; }
+  }));
+}
+/* the intro scenario whose composition is exactly this one (order-free), or null */
+function introMatch(n, comp) { const k = comp.slice().sort().join(); return introFor(n).find(s => s.comp.slice().sort().join() === k) || null; }
 /* ============================================================
    ENGINE: game state, night resolution, voting, triggers, win check
    ============================================================ */
@@ -5286,9 +5499,10 @@ function setupScreen() {
   else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
   else {
     const isPreset = !sc && st.comp.slice().sort().join() === presetFor(st.n).sort().join(); const b = BALANCE[st.n];
-    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : u.okChanged;
+    const intro = !sc && !isPreset ? introMatch(st.n, st.comp) : null; // a beginners' line-up keeps its simulated balance note
+    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : intro ? tt(u.okSimIntro, { name: intro.name, m: intro.mafia, c: intro.city, x: intro.maniac ? tt(u.okSimManiac, { v: intro.maniac }) : '' }) : u.okChanged;
     const neut = st.comp.includes('maniac') ? u.okManiac : stats.neutral ? tt(u.okNeutralN, { n: stats.neutral }) : '';
-    warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
+    warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc || intro ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
   }
   const ok = !unowned.length && stats.total === st.n && (two2 ? dons === 2 : dons === 1);
   const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div>${sc.free ? '' : `<button class="btn xs ghost" data-a="scen-clear">×</button>`}</div></div>` : '';
@@ -5772,6 +5986,31 @@ function classicCardHTML() {
     ${open ? `<ul class="rules">${u.classicRules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
     <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="classic-rules">${u.classicRulesTitle}</button><button class="btn primary sm grow" data-a="scen-use" data-id="classic">${u.playClassic}</button></div></div>`;
 }
+/* Intro scenarios for beginners (v43): a player-count chooser and five starter line-ups for that table */
+function introN() { const n = S.ui.introN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
+function introCardHTML(sc) {
+  const u = U(); const st = compositionStats(sc.comp);
+  const counts = {}; sc.comp.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+  const names = Object.keys(counts).map(id => ROLE[id].name + (counts[id] > 1 ? ` ×${counts[id]}` : '')).join(', ');
+  const sim = tt(u.introSim, { m: sc.mafia, c: sc.city, n: sc.nights, x: sc.maniac ? tt(u.introSimManiac, { v: sc.maniac }) : '' });
+  return `<div class="scen-card intro"><div class="row"><span class="premium-pill classic">${u.introPill}</span><div class="t grow">${sc.name}</div></div>
+    <div class="l">${sc.lore}</div>
+    <div class="m">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: sc.n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div>
+    ${statsBar(st)}
+    <div class="m">${names}</div>
+    <div class="m sim">${sim}</div>
+    <div class="btn-row" style="margin-top:10px"><button class="btn primary sm grow" data-a="intro-use" data-n="${sc.n}" data-id="${sc.id}">${u.introUse}</button></div></div>`;
+}
+function introSectionHTML() {
+  const u = U(); const n = introN(); const list = introFor(n);
+  if (!list.length) return '';
+  const chips = []; for (let k = MIN_PLAYERS; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="intro-n" data-n="${k}">${k}</button>`);
+  return `<h2>${u.introTitle}</h2>
+  <p class="hint">${u.introHint}</p>
+  <div class="eyebrow">${u.introPick}</div>
+  <div class="filters intro-n">${chips.join('')}</div>
+  <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
+}
 function scenariosScreen() {
   const u = U(); const rows = [];
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
@@ -5784,6 +6023,7 @@ function scenariosScreen() {
   const tab = S.ui.scenTab === 'paid' ? 'paid' : 'free';
   const seg = `<div class="segment n2 scen-tabs"><button class="${tab === 'free' ? 'active' : ''}" data-a="scen-tab" data-id="free">${u.scenFreeTab}</button><button class="${tab === 'paid' ? 'active' : ''}" data-a="scen-tab" data-id="paid">${u.scenPaidTab}</button></div>`;
   const free = `${classicCardHTML()}
+  ${introSectionHTML()}
   <h2>${u.scenStd}</h2>
   <p class="hint">${tt(u.scenIntro, { note: u.balanceNote })}</p>
   <div class="scen">${rows.join('')}</div>`;
@@ -5869,6 +6109,8 @@ const ACT = {
   comp(el) { if (S.setup.scenario === 'classic') return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
   preset() { if (S.setup.scenario === 'classic') return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
+  'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
+  'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
     if (typeof creatorPlays === 'function' && creatorPlays()) { toast(U().dealNeedsHost); return; }

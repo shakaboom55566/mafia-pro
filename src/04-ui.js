@@ -273,9 +273,10 @@ function setupScreen() {
   else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
   else {
     const isPreset = !sc && st.comp.slice().sort().join() === presetFor(st.n).sort().join(); const b = BALANCE[st.n];
-    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : u.okChanged;
+    const intro = !sc && !isPreset ? introMatch(st.n, st.comp) : null; // a beginners' line-up keeps its simulated balance note
+    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : intro ? tt(u.okSimIntro, { name: intro.name, m: intro.mafia, c: intro.city, x: intro.maniac ? tt(u.okSimManiac, { v: intro.maniac }) : '' }) : u.okChanged;
     const neut = st.comp.includes('maniac') ? u.okManiac : stats.neutral ? tt(u.okNeutralN, { n: stats.neutral }) : '';
-    warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
+    warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc || intro ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
   }
   const ok = !unowned.length && stats.total === st.n && (two2 ? dons === 2 : dons === 1);
   const scenBanner = sc ? `<div class="panel" style="border-color:rgba(240,205,122,.5)"><div class="row"><span class="premium-pill ${sc.free ? 'classic' : ''}">${sc.free ? u.classicPill : u.premium}</span><div class="grow"><div style="font-weight:800">${tt(u.scenActive, { name: sc.name })}</div><div class="hint">${scenarioPlayers(sc)}${scenarioModsText(sc).length ? ' · ' + scenarioModsText(sc).join(' · ') : ''}</div></div>${sc.free ? '' : `<button class="btn xs ghost" data-a="scen-clear">×</button>`}</div></div>` : '';
@@ -759,6 +760,31 @@ function classicCardHTML() {
     ${open ? `<ul class="rules">${u.classicRules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
     <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="classic-rules">${u.classicRulesTitle}</button><button class="btn primary sm grow" data-a="scen-use" data-id="classic">${u.playClassic}</button></div></div>`;
 }
+/* Intro scenarios for beginners (v43): a player-count chooser and five starter line-ups for that table */
+function introN() { const n = S.ui.introN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
+function introCardHTML(sc) {
+  const u = U(); const st = compositionStats(sc.comp);
+  const counts = {}; sc.comp.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+  const names = Object.keys(counts).map(id => ROLE[id].name + (counts[id] > 1 ? ` ×${counts[id]}` : '')).join(', ');
+  const sim = tt(u.introSim, { m: sc.mafia, c: sc.city, n: sc.nights, x: sc.maniac ? tt(u.introSimManiac, { v: sc.maniac }) : '' });
+  return `<div class="scen-card intro"><div class="row"><span class="premium-pill classic">${u.introPill}</span><div class="t grow">${sc.name}</div></div>
+    <div class="l">${sc.lore}</div>
+    <div class="m">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: sc.n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div>
+    ${statsBar(st)}
+    <div class="m">${names}</div>
+    <div class="m sim">${sim}</div>
+    <div class="btn-row" style="margin-top:10px"><button class="btn primary sm grow" data-a="intro-use" data-n="${sc.n}" data-id="${sc.id}">${u.introUse}</button></div></div>`;
+}
+function introSectionHTML() {
+  const u = U(); const n = introN(); const list = introFor(n);
+  if (!list.length) return '';
+  const chips = []; for (let k = MIN_PLAYERS; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="intro-n" data-n="${k}">${k}</button>`);
+  return `<h2>${u.introTitle}</h2>
+  <p class="hint">${u.introHint}</p>
+  <div class="eyebrow">${u.introPick}</div>
+  <div class="filters intro-n">${chips.join('')}</div>
+  <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
+}
 function scenariosScreen() {
   const u = U(); const rows = [];
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
@@ -771,6 +797,7 @@ function scenariosScreen() {
   const tab = S.ui.scenTab === 'paid' ? 'paid' : 'free';
   const seg = `<div class="segment n2 scen-tabs"><button class="${tab === 'free' ? 'active' : ''}" data-a="scen-tab" data-id="free">${u.scenFreeTab}</button><button class="${tab === 'paid' ? 'active' : ''}" data-a="scen-tab" data-id="paid">${u.scenPaidTab}</button></div>`;
   const free = `${classicCardHTML()}
+  ${introSectionHTML()}
   <h2>${u.scenStd}</h2>
   <p class="hint">${tt(u.scenIntro, { note: u.balanceNote })}</p>
   <div class="scen">${rows.join('')}</div>`;
@@ -856,6 +883,8 @@ const ACT = {
   comp(el) { if (S.setup.scenario === 'classic') return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
   preset() { if (S.setup.scenario === 'classic') return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
+  'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
+  'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
   deal() {
     if (typeof creatorPlays === 'function' && creatorPlays()) { toast(U().dealNeedsHost); return; }
