@@ -675,6 +675,21 @@ clearInterval(X.T.iv);
   S.game = null;
   console.log('v50 ok');
 }
+// v51: a finished game does not pull the host back — Back and the Game tab lead home, the results are on the home screen
+{ const u = X.U(); const F = m => { fails++; console.log('FAIL v51 ' + m); }; const E = name => vm.runInContext(name, ctx);
+  const S = X.S(); A.go(el('go', { to: 'mini' })); A['mini-use'](el('mini-use', { id: 'bomb_hunt', n: '5' })); A.deal(); for (let i = 0; i < 5; i++) { A.flip(); A.hide(); } A.start();
+  const g = S.game; const bomb = g.players.find(p => p.roleId === 'bomb'); bomb.alive = false; bomb.defused = true; A.finish(); check('v51 finished');
+  if (!g.winner) F('game should be finished');
+  for (const scr of ['tables', 'mini', 'cards', 'scenarios', 'shop', 'game']) {
+    A.go(el('go', { to: scr })); A.back(el('back')); if (S.screen !== 'home') F(`Back from ${scr} after a finished game went to ${S.screen}`);
+  }
+  A.tab(el('tab', { id: 'game' })); if (S.screen !== 'home') F('the Game tab after a finished game should open home, got ' + S.screen);
+  check('v51 home'); if (!app.innerHTML.includes(u.lastGame) || !app.innerHTML.includes(X.tt(g.winner.title, {}))) F('home should offer the last game results');
+  A.continue(); if (S.screen !== 'game' || !app.innerHTML.includes('class="winner')) F('the results item opens the finished game'); check('v51 results again');
+  // a live game still comes back
+  S.game.winner = null; A.go(el('go', { to: 'tables' })); A.back(el('back')); if (S.screen !== 'game') F('Back during a live game returns to it');
+  S.game = null; S.screen = 'home'; console.log('v51 ok');
+}
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
 process.exit(fails ? 1 : 0);

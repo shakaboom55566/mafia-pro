@@ -224,6 +224,7 @@ try { window.addEventListener('resize', () => fitCards()); } catch (e) {}
 function homeScreen() {
   const g = S.game; const u = U();
   const cont = g && !g.winner ? `<button class="menu-item primary" data-a="continue"><div class="ico">${I.play}</div><div><div class="t">${u.continueGame}</div><div class="d">${phaseName(g)} · ${tt(u.aliveOf, { alive: alive(g).length, n: g.n })}</div></div><span class="chev">${I.chev}</span></button>` : '';
+  const last = g && g.winner ? `<button class="menu-item" data-a="continue"><div class="ico">${I.trophy}</div><div><div class="t">${u.lastGame}</div><div class="d">${esc(g.winner.title)}</div></div><span class="chev">${I.chev}</span></button>` : '';
   return `
   <div class="hero">
     <div class="row"><div class="eyebrow gold grow">${u.heroEyebrow}</div><button class="btn xs ghost" data-a="go" data-to="settings" aria-label="${u.language}">${I.globe} ${L.code.toUpperCase()}</button></div>
@@ -237,6 +238,7 @@ function homeScreen() {
     <button class="menu-item" data-a="scen-use" data-id="classic"><div class="ico">${I.users}</div><div><div class="t">${u.classicTitle}</div><div class="d">${u.classicSub}</div></div><span class="chev">${I.chev}</span></button>
     ${typeof tablesMenuItemHTML === 'function' ? tablesMenuItemHTML() : ''}
     <button class="menu-item" data-a="go" data-to="mini"><div class="ico">${I.person}</div><div><div class="t">${u.miniMenu}</div><div class="d">${u.miniMenuD}</div></div><span class="chev">${I.chev}</span></button>
+    ${last}
     <button class="menu-item" data-a="go" data-to="cards"><div class="ico">${I.cards}</div><div><div class="t">${u.cardsTitle}</div><div class="d">${tt(u.cardsD, { n: ROLES.length, roles: plural(ROLES.length, 'roles') })}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="scenarios"><div class="ico">${I.scen}</div><div><div class="t">${u.scenTitle}</div><div class="d">${u.scenD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
@@ -945,7 +947,9 @@ function sheetHTML(enter = true) {
 }
 
 /* ============================================================ ACTIONS */
-function goGameOrHome() { S.screen = S.game ? 'game' : 'home'; }
+/* a finished game is not a place to return to: Back and the Game tab lead home, the results stay one tap away there */
+const gameLive = () => !!(S.game && !S.game.winner);
+function goGameOrHome() { S.screen = gameLive() ? 'game' : 'home'; }
 function go(screen) {
   if (screen === 'scenarios') S.ui.scenTab = 'free'; // the free scenarios always come first
   if (['profile', 'myprofile', 'pstats'].includes(screen)) { if (!['profile', 'myprofile', 'pstats'].includes(S.screen)) S.ui.profileFrom = S.screen; } // remember where a profile was opened from
@@ -956,7 +960,7 @@ function profileBackTarget() { const f = S.ui.profileFrom; return f && !['profil
 
 const ACT = {
   privacy() { const l = ['ru', 'uk', 'en', 'pl', 'hy'].includes(S.settings.lang) ? S.settings.lang : 'en'; const url = 'https://mafiapro.app/' + l + '/privacy/'; try { const tw = window.Telegram && window.Telegram.WebApp; if (tw && tw.initData && tw.openLink) tw.openLink(url); else window.open(url, '_blank', 'noopener'); } catch (e) {} },
-  tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (S.game ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
+  tab(el) { const id = el.dataset.id; S.tab = id; S.screen = id === 'game' ? (gameLive() ? 'game' : 'home') : id; S.ui.sheet = null; window.scrollTo(0, 0); render(); },
   go(el) { go(el.dataset.to); },
   lang(el) { S.settings.lang = el.dataset.id; setLang(el.dataset.id); render(); },
   back() { if (S.screen === 'setup' && S.setup.scenario && SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini) { S.screen = 'mini'; } else if (S.screen === 'setup' || S.screen === 'deal') { S.screen = 'home'; } else if (S.screen === 'pstats' && ['myprofile', 'profile'].includes(S.ui.pstatsFrom)) { S.screen = S.ui.pstatsFrom; } else if (S.screen === 'profile' || S.screen === 'myprofile' || S.screen === 'pstats' || S.screen === 'profiles') { const to = profileBackTarget(); S.screen = to; S.tab = ['cards', 'settings', 'clubs', 'ratings', 'friends'].includes(to) ? to : (to === 'club' ? 'clubs' : 'game'); } else if (S.screen === 'club') { S.screen = 'clubs'; S.tab = 'clubs'; } else goGameOrHome(); S.ui.showAll = false; render(); },

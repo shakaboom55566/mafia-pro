@@ -184,6 +184,8 @@
       corruption: { name: 'Կոռուպցիա', lore: 'Այս քաղաքում չեն կրակում՝ այստեղ գնում են։ Կաշառողը հավաքագրում է մեկ առ մեկ, և ոչ ոք չգիտի, թե ով է արդեն վերցրել ծրարը։', rules: ['Կաշառողը մաֆիա է, բայց չի կրակում. ծանոթության գիշերը նա հավաքագրում է խաղացողի։', 'Հավաքագրվածը պահում է իր քարտը, բայց խաղում է մաֆիայի համար. չի քվեարկում Կաշառողի դեմ, չի կրակում նրա վրա և չի խոստովանում։', 'Եթե հավաքագրվածը դուրս է եկել, հաջորդ գիշերը Կաշառողը նորին է գնում։', 'Մոլագարը խաղում է ինքն իր համար. եթե հավաքագրել են նրան՝ կրակում է մաֆիայի համար։', '6 խաղացողի դեպքում սեղանի շուրջ կա նաև Նինձա. ամեն գիշեր խուսափում է մեկ կրակոցից։', 'Մաֆիան հաղթում է, երբ այն մնացածներից շատ է. քաղաքը՝ երբ չեն մնացել ոչ Կաշառողը, ոչ նրա մարդիկ։'] }
     }
   };
+  /* v51: the results of the last finished game on the home screen (Back and the Game tab no longer return to a finished game) */
+  R.ru.ui.lastGame = 'Итоги последней партии'; R.uk.ui.lastGame = 'Підсумки останньої партії'; R.en.ui.lastGame = 'Results of the last game'; R.pl.ui.lastGame = 'Wyniki ostatniej partii'; R.hy.ui.lastGame = 'Վերջին խաղի արդյունքները';
   Object.keys(R).forEach(code => {
     const p = I18N[code], d = R[code];
     Object.assign(p.roles, d.roles); Object.assign(p.hooks, d.hooks); Object.assign(p.abilities, d.abilities);
