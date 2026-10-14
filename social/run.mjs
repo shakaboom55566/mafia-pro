@@ -36,7 +36,12 @@ if (env.BOT_TOKEN) secret(env.BOT_TOKEN); if (env.GEMINI_API_KEY) secret(env.GEM
 async function backend(p, body) {
   if (!API) return { ok: false, error: 'no backend address (.mafia-api-url)' };
   if (!env.BOT_TOKEN) return { ok: false, error: 'BOT_TOKEN is not set' };
-  const r = await http(`${API}${p}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Social-Key': key() }, body: JSON.stringify(body || {}) }, { tries: 4, wait: 10000, label: p });
+  let r = null;
+  for (let i = 1; i <= 8; i++) { // 404: the backend may still be deploying in a parallel run (same push)
+    r = await http(`${API}${p}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Social-Key': key() }, body: JSON.stringify(body || {}) }, { tries: 4, wait: 10000, label: p });
+    if (r.status !== 404 || env.NOW) break;
+    log(`  ${p}: 404 — the backend may be deploying; retry in 30 s (${i}/8)`); await new Promise(res => setTimeout(res, 30000));
+  }
   return r.json || { ok: false, error: `HTTP ${r.status} ${short(r.text, 120)}` };
 }
 async function creds() {
