@@ -15,7 +15,10 @@ directory = "../_site"
 binding = "ASSETS"
 not_found_handling = "404-page"
 html_handling = "auto-trailing-slash"
-run_worker_first = true
+# v45: the worker runs only for the old GitHub Pages path; every other file is served straight from the assets —
+# free and outside the Workers daily limit (with true each page, card and image counted as a Workers request).
+# Headers (security, cache) come from _headers (site/_headers, copied into the build by pages.yml).
+run_worker_first = ["/mafia-pro", "/mafia-pro/*"]
 
 [observability]
 enabled = true

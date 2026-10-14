@@ -1,0 +1,62 @@
+name: Cloudflare usage
+
+# Watches the Cloudflare free-plan limits (ops/usage.mjs, ops/limits.json): Workers requests a day (all workers), D1 rows.
+# Hourly: a Telegram message to the admins when today's use crosses 70 / 90 / 100 % or the pace would run past the limit
+# before the reset (00:00 UTC = 03:00 Kyiv). Mondays: a 7-day summary. Manual run: mode "status" sends today's numbers now.
+# Numbers go only to Telegram — the repository and its logs are public.
+# Secrets: CLOUDFLARE_API_TOKEN (+ Account → Account Analytics: Read), CLOUDFLARE_ACCOUNT_ID, BOT_TOKEN.
+on:
+  schedule:
+    - cron: '13 * * * *'   # every hour
+    - cron: '22 5 * * 1'   # Mondays 08:22 Kyiv — weekly summary
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: check | status | weekly
+        default: status
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: usage
+  cancel-in-progress: false
+
+jobs:
+  usage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      STATE_FILE: ops/.usage-state.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests
+        run: node ops/test-usage.mjs
+      - name: Day (UTC)
+        id: day
+        run: echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+      - name: Which thresholds were already reported today
+        uses: actions/cache/restore@v4
+        with:
+          path: ops/.usage-state.json
+          key: usage-${{ steps.day.outputs.date }}-${{ github.run_id }}
+          restore-keys: usage-${{ steps.day.outputs.date }}-
+      - name: Check
+        run: |
+          MODE="${{ inputs.mode }}"
+          [ -z "$MODE" ] && { [ "${{ github.event.schedule }}" = "22 5 * * 1" ] && MODE=weekly || MODE=check; }
+          node ops/usage.mjs "$MODE"
+      - name: Remember the reported thresholds
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ops/.usage-state.json
+          key: usage-${{ steps.day.outputs.date }}-${{ github.run_id }}

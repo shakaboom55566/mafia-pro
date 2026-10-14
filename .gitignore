@@ -9,3 +9,4 @@ node_modules/
 backend/node_modules/
 backend/.wrangler/
 backend/*.log
+ops/.usage-state.json

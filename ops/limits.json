@@ -1,0 +1,8 @@
+{
+  "_": "Cloudflare plan limits watched by ops/usage.mjs. Free Workers plan: 100 000 requests a day (reset 00:00 UTC = 03:00 Kyiv), D1 free: 5 000 000 rows read and 100 000 rows written a day. After moving to Workers Paid set period to \"month\" and the monthly numbers (10 000 000 requests, 25 000 000 000 rows read, 50 000 000 rows written).",
+  "period": "day",
+  "workersRequests": 100000,
+  "d1RowsRead": 5000000,
+  "d1RowsWritten": 100000,
+  "thresholds": [70, 90, 100]
+}

@@ -1,0 +1,17 @@
+# Headers of mafiapro.app (v45) — the same the worker used to add (v44 security layer), now applied by Cloudflare to the static files
+# without invoking the worker. No X-Frame-Options: Telegram Web opens the Mini App in a frame — frame-ancestors allows only Telegram.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org; object-src 'none'; base-uri 'self'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+/cards/*
+  Cache-Control: public, max-age=86400
+
+/og/*
+  Cache-Control: public, max-age=86400
+
+/favicon.png
+  Cache-Control: public, max-age=86400

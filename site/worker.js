@@ -1,4 +1,5 @@
-/* Mafia Pro — mafiapro.app (v40). Everything is static (the _site build); the worker only:
+/* Mafia Pro — mafiapro.app (v40). Everything is static (the _site build). v45: the worker runs only for /mafia-pro/… (run_worker_first in
+   wrangler.toml) — all other files are served by the assets with the headers of site/_headers, outside the Workers daily limit. It does:
    - www.mafiapro.app → mafiapro.app, /mafia-pro/… (the old GitHub Pages path) → the same page at the root — 301
    - cache headers: pages and the app are revalidated every time (a deploy is seen at once), card images and previews for a day
    No X-Frame-Options: Telegram Web opens the Mini App in a frame — CSP frame-ancestors allows only Telegram (v44). */
