@@ -354,8 +354,12 @@ const path = require('path'); const http = require('http');
   await S(() => { ADM.partners = null; go('settings'); }); await p.waitForTimeout(600);
 
   console.log('global rating panel');
-  await S(() => { go('ratings'); }); await p.waitForTimeout(100);
-  if (await p.$('[data-a="tg-top"]')) { await p.click('[data-a="tg-top"]'); await p.waitForTimeout(400); ok(await S(() => Array.isArray(CLOUD.top) && CLOUD.top.length >= 1), 'leaderboard loaded');
+  await S(() => { go('ratings'); }); await p.waitForTimeout(700);
+  ok(!(await p.$('[data-a="tg-top"]')) && await S(() => Array.isArray(CLOUD.top) && CLOUD.top.length >= 1) && !!(await p.$('.rank-row[data-a="fr-open"]')) && (await p.$eval('#app', el => el.textContent)).includes(await S(() => U().tgTopAutoNo)), 'v49: the global rating is already on the ratings screen — no load button, refreshes by itself every 10 minutes: ' + await S(() => JSON.stringify({ top: CLOUD.top && CLOUD.top.length, at: CLOUD.topAt && Date.now() - CLOUD.topAt, fail: CLOUD.topFail })));
+  { await S(() => { CLOUD.top = [{ rank: 1, tgId: 1, name: 'old', username: '', photo: '', points: 1000, games: 1, wins: 0 }]; CLOUD.topAt = Date.now() - 11 * 60 * 1000; S.ui.sheet = null; });
+    let fresh = false; for (let i = 0; i < 130 && !fresh; i++) { await p.waitForTimeout(500); fresh = await S(() => CLOUD.top.length >= 1 && CLOUD.top[0].name !== 'old'); }
+    ok(fresh && !!(await p.$('.rank-row[data-a="fr-open"]')), 'v49: a rating older than 10 minutes refreshes by itself on the open screen, without a tap'); }
+  if (await S(() => Array.isArray(CLOUD.top) && CLOUD.top.length >= 1)) {
     await p.click('.rank-row[data-a="fr-open"]'); await p.waitForTimeout(600);
     const lb = await p.$eval('.sheet', el => el.textContent); const topId = await S(() => CLOUD.top[0].tgId);
     ok(await S(() => S.ui.sheet && S.ui.sheet.type === 'friend') && lb.includes(await S(() => U().frRecent)) && (await S(() => FRP[CLOUD.top[0].tgId].recent.length >= 1)), 'leaderboard row opens a profile with recent games (tgId ' + topId + ')');

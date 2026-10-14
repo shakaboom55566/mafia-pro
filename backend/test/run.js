@@ -387,7 +387,18 @@ await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_a
   eq(r.ratings['202'], { points: 31, games: 1, wins: 1, hosted: 0 }, 'sheriff rating'); eq(r.ratings['201'], { points: -10, games: 1, wins: 0, hosted: 0 }, 'don rating');
   const again = await (await post('/api/game/result', { initData: host, game })).json(); ok(again.ok && !again.recorded && again.ratings['202'].points === 31, 'resend is idempotent');
   const me = await (await post('/api/me', { initData: host })).json(); eq(me.rating.hosted, 1, 'host credited');
-  const lb = await (await call('/api/leaderboard?limit=5')).json(); ok(lb.ok && lb.top[0].tgId === 202 && lb.top[0].points === 1031 && lb.top[0].rank === 1, 'leaderboard'); }
+  const lb = await (await call('/api/leaderboard?limit=5')).json(); ok(lb.ok && lb.top[0].tgId === 202 && lb.top[0].points === 1031 && lb.top[0].rank === 1, 'leaderboard');
+  // v49: served from a 10-minute cache; a game result drops it at once; a stale cache is rebuilt on request
+  ok(lb.every === 600000 && lb.at > 0, 'leaderboard says when it was built and how often');
+  await env.DB.prepare('UPDATE ratings SET points = 900 WHERE tg_id = 201').run();
+  ok((await (await call('/api/leaderboard?limit=5')).json()).top[0].tgId === 202, 'leaderboard comes from the cache (a change without a game result waits for the rebuild)');
+  await env.DB.prepare("UPDATE discord_cfg SET updated_at = updated_at - 700 WHERE key = 'lb:top'").run();
+  ok((await (await call('/api/leaderboard?limit=5')).json()).top[0].tgId === 201, 'a cache older than 10 minutes is rebuilt on request');
+  await env.DB.prepare('UPDATE ratings SET points = -10 WHERE tg_id = 201').run();
+  ok((await (await call('/api/leaderboard?limit=5')).json()).top[0].tgId === 201, 'still the cached top within 10 minutes');
+  await post('/api/game/result', { initData: host, game: { id: 'g-lb', mode: 'classic', winner: 'city', players: [{ seat: 2, name: 'B', tgId: 202, roleId: 'sheriff', won: true, points: 1, side: 'city' }] } });
+  const lb3 = await (await call('/api/leaderboard?limit=5')).json(); ok(lb3.top[0].tgId === 202 && lb3.top[0].points === 1032, 'a new game result shows at once (the result drops the cache)');
+  await env.DB.prepare("DELETE FROM games WHERE game_id = 'g-lb'").run(); await env.DB.prepare('UPDATE ratings SET points = 31, games = 1, wins = 1 WHERE tg_id = 202').run(); await env.DB.prepare('UPDATE ratings SET hosted = 1 WHERE tg_id = 100').run(); await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:top'").run(); }
 
 await env.DB.prepare('DELETE FROM friends WHERE (tg_id = 100 AND friend_id IN (201, 202)) OR (friend_id = 100 AND tg_id IN (201, 202))').run();
 console.log('player profile');
@@ -794,6 +805,13 @@ console.log('channel posts (drafts → admin approval → channel)');
   ok(cm.params.reply_markup.inline_keyboard[0][0].text === '🎲 Грати' && cm.params.reply_markup.inline_keyboard[0][0].url === 'https://t.me/mafiapro_test_bot?start=post_p-12', 'play button in the post language, tracked link of this post');
   eq((await st('p-12')).status, 'posted', 'status posted');
   waits = []; await worker.scheduled({}, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits); eq(toChannel().length, 1, 'never posted twice');
+  // v49: the */5 cron rebuilds the leaderboard at :x0 only
+  await env.DB.prepare("INSERT INTO discord_cfg (key, value, updated_at) VALUES ('lb:top', '[]', ?1) ON CONFLICT(key) DO UPDATE SET value = '[]', updated_at = ?1").bind(Math.floor(Date.now() / 1000)).run();
+  const lbVal = async () => (await env.DB.prepare("SELECT value FROM discord_cfg WHERE key = 'lb:top'").first('value'));
+  waits = []; await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.UTC(2026, 9, 14, 20, 15) }, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
+  eq(await lbVal(), '[]', 'cron at :15 leaves the leaderboard alone');
+  waits = []; await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.UTC(2026, 9, 14, 20, 20) }, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
+  ok(JSON.parse(await lbVal()).length >= 1, 'cron at :20 rebuilds the leaderboard');
   d = await (await draft({ id: 'p-12', slot_at: future, lang: 'uk', text: 'changed' })).json(); ok(d.unchanged && d.status === 'posted', 'a posted post is not overwritten by the repo');
   // skip, undo, publish now
   await draft({ id: 'p-18', slot_at: future, lang: 'ru', rubric: 'Анонс', text: 'Вечером играем' });

@@ -272,3 +272,9 @@ Object.assign(I18N.hy.ui, { tabClubs: 'Ակումբներ', myProfileD: 'Ձեր 
 /* the scenarios screen: just "Scenarios" */
 I18N.ru.ui.scenTitle = 'Сценарии'; I18N.uk.ui.scenTitle = 'Сценарії'; I18N.en.ui.scenTitle = 'Scenarios'; I18N.pl.ui.scenTitle = 'Scenariusze'; I18N.hy.ui.scenTitle = 'Սցենարներ';
 I18N.ru.ui.tabPlayers = 'Мой профиль'; I18N.uk.ui.tabPlayers = 'Мій профіль'; I18N.en.ui.tabPlayers = 'My profile'; I18N.pl.ui.tabPlayers = 'Mój profil'; I18N.hy.ui.tabPlayers = 'Իմ պրոֆիլը';
+/* v49: the global rating loads by itself and refreshes every 10 minutes */
+Object.assign(I18N.ru.ui, { tgTopLoading: 'Загружаем рейтинг…', tgTopFail: 'Нет связи с сервером — попробуем ещё раз через полминуты.', tgTopAuto: 'Обновляется сам каждые 10 минут · последнее обновление в {time}', tgTopAutoNo: 'Обновляется сам каждые 10 минут' });
+Object.assign(I18N.uk.ui, { tgTopLoading: 'Завантажуємо рейтинг…', tgTopFail: 'Немає зв’язку із сервером — спробуємо ще раз за пів хвилини.', tgTopAuto: 'Оновлюється сам кожні 10 хвилин · останнє оновлення о {time}', tgTopAutoNo: 'Оновлюється сам кожні 10 хвилин' });
+Object.assign(I18N.en.ui, { tgTopLoading: 'Loading the rating…', tgTopFail: 'No connection to the server — trying again in half a minute.', tgTopAuto: 'Updates by itself every 10 minutes · last update at {time}', tgTopAutoNo: 'Updates by itself every 10 minutes' });
+Object.assign(I18N.pl.ui, { tgTopLoading: 'Wczytujemy ranking…', tgTopFail: 'Brak połączenia z serwerem — spróbujemy ponownie za pół minuty.', tgTopAuto: 'Aktualizuje się sam co 10 minut · ostatnia aktualizacja o {time}', tgTopAutoNo: 'Aktualizuje się sam co 10 minut' });
+Object.assign(I18N.hy.ui, { tgTopLoading: 'Բեռնում ենք վարկանիշը…', tgTopFail: 'Սերվերի հետ կապ չկա — կփորձենք կես րոպեից։', tgTopAuto: 'Թարմացվում է ինքնուրույն 10 րոպեն մեկ · վերջին թարմացումը՝ {time}', tgTopAutoNo: 'Թարմացվում է ինքնուրույն 10 րոպեն մեկ' });

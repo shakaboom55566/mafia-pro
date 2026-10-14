@@ -58,7 +58,21 @@ function tgHaptic(kind) {
    CLOUD — the bot backend (backend/ in the repo, deployed to Cloudflare). Address comes from window.MAFIA_API or
    <meta name="mafia-api"> injected at build time; without it everything below stays off and the app works locally.
    ============================================================ */
-const CLOUD = { me: null, top: null, busy: false };
+const CLOUD = { me: null, top: null, busy: false, topAt: 0, topSrv: 0, topBusy: false, topFail: false };
+/* the global rating is fetched on its own: when the app opens and then every 10 minutes, so the ratings screen already shows it */
+const TOP_EVERY = 10 * 60 * 1000;
+function topPoll(force) {
+  if (!TG.app || !apiBase() || CLOUD.topBusy) return;
+  if (!force && CLOUD.topAt && Date.now() - CLOUD.topAt < (CLOUD.topFail ? 30000 : TOP_EVERY)) return;
+  CLOUD.topBusy = true;
+  setTimeout(async () => {
+    let d = null; try { d = await api('/api/leaderboard?limit=30', null, { method: 'GET' }); } catch (e) { d = null; }
+    CLOUD.topBusy = false; CLOUD.topAt = Date.now(); CLOUD.topFail = !(d && d.ok);
+    if (d && d.ok) { CLOUD.top = d.top || []; CLOUD.topSrv = d.at || Date.now(); }
+    if (S.screen === 'ratings') render();
+  }, 0);
+}
+try { setInterval(() => { try { topPoll(); } catch (e) {} }, 60000); } catch (e) {}
 function apiBase() {
   if (window.MAFIA_API) return String(window.MAFIA_API).replace(/\/$/, '');
   try { const m = document.querySelector && document.querySelector('meta[name="mafia-api"]'); const c = m && m.content; return c && /^https?:\/\//.test(c) ? c.replace(/\/$/, '') : null; } catch (e) { return null; }
@@ -296,7 +310,7 @@ Object.assign(ACT, {
   'tg-seat'(el) { const g = S.game; if (!g || !g.tg) return; const seat = Number(el.value) || 0; Object.keys(g.tg.map).forEach(k => { if (seat && g.tg.map[k] === seat && k !== el.dataset.tg) g.tg.map[k] = 0; }); g.tg.map[el.dataset.tg] = seat; save(); render(); },
   async 'tg-deal'() { const g = S.game; if (!g || !g.tg) return; const n = await sendCards(g, true); if (n) { toast(tt(U().tgSent, { n })); tgHaptic('success'); } },
   'tg-deal-done'() { const g = S.game; if (!g) return; g.dealIdx = g.players.length; g.dealOpen = false; S.ui.showAll = false; save(); render(); },
-  async 'tg-top'() { const d = await api('/api/leaderboard?limit=30', null, { method: 'GET' }); CLOUD.top = d.ok ? d.top : []; if (!d.ok) toast(U().tgOffline); render(); },
+  async 'tg-top'() { topPoll(true); },
   'clubs-top-refresh'() { CLOUD.clubsAt = 0; render(); }
 });
 /* ---------- friends: invite link, list, invite to my table ---------- */
@@ -713,8 +727,11 @@ Object.assign(ACT, {
 function cloudTopHTML() {
   const u = U(); if (!TG.app || !apiBase()) return '';
   const av = r => r.photo ? `<img class="avatar sm" src="${esc(r.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((r.name || '?').slice(0, 1).toUpperCase())}</div>`;
-  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : '';
-  return `<div class="panel" style="margin-top:12px"><div class="row"><div class="eyebrow grow">${u.tgTop}</div><button class="btn xs ghost" data-a="tg-top">${CLOUD.top ? u.tgRefresh : u.tgLoad}</button></div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
+  // opening the ratings screen shows what is already loaded at once and quietly refreshes it in the background
+  if (!CLOUD.onRatings) { CLOUD.onRatings = true; topPoll(!!CLOUD.topAt && Date.now() - CLOUD.topAt > 10000); } else topPoll();
+  const when = CLOUD.topSrv ? new Date(CLOUD.topSrv).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) : '';
+  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  return `<div class="panel" style="margin-top:12px"><div class="eyebrow">${u.tgTop}</div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}${CLOUD.top ? `<div class="hint" style="margin-top:8px;font-size:11.5px">${when ? tt(u.tgTopAuto, { time: when }) : u.tgTopAutoNo}</div>` : ''}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
 }
 /* top of clubs by members (public endpoint), refreshed every minute while the ratings screen is open */
 function clubsTopHTML() {
@@ -737,7 +754,7 @@ function withClubBrand(html) { const b = clubBrandHTML(); if (!b) return html; c
   wrap('flip', 'impact'); wrap('confirm', 'light'); wrap('vote-finish', 'success'); wrap('vote-close', 'success'); wrap('kam-confirm', 'warning'); wrap('roulette-guess', 'light'); wrap('lift-finish', 'success'); wrap('finish', 'success');
   try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'fr-q') { e.preventDefault(); ACT['fr-search'](); } }); } catch (e) {}
   const origRender = render;
-  render = function () { origRender(); if (TG.app) { tgSync(); try { lobbyPoll(); clubPoll(); } catch (e) {} } if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
+  render = function () { origRender(); if (S.screen !== 'ratings') CLOUD.onRatings = false; if (TG.app) { tgSync(); try { lobbyPoll(); clubPoll(); topPoll(); } catch (e) {} } if (S.ui && S.ui.tgStart) { const st = S.ui.tgStart; S.ui.tgStart = null; if (ACT[st.a]) ACT[st.a]({ dataset: { id: st.id } }); } };
   // dealing screen: the "cards via Telegram" panel sits above the first card until dealing starts
   const origDeal = dealScreen;
   dealScreen = function () { const html = withClubBrand(origDeal()); const g = S.game; if (!TG.app || !apiBase() || !g || S.ui.showAll || (g.dealIdx > 0 && !g.tg) || g.dealIdx >= g.players.length) return html; const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + lobbyPanelHTML(g) + html.slice(i + 19); };

@@ -39,7 +39,7 @@
    - POST /api/lobby/discord   host: Discord voice room of an online table on / off / resize (seats + 1)
    - POST /api/lobby/voice-confirm  host: everyone is on voice → the deal opens
    - POST /api/table/voice     player: "I'm on voice"
-   - GET  /api/leaderboard    top ratings (public)
+   - GET  /api/leaderboard    top ratings (public; cached, rebuilt every 10 minutes)
    - GET  /                   health
    ============================================================ */
 import { Bot, verifyInitData, checkInitData, esc } from './tg.js';
@@ -129,6 +129,7 @@ async function bumpRating(env, tgId, dPoints, dGames, dWins, dHosted) {
   await env.DB.prepare(`INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
     ON CONFLICT(tg_id) DO UPDATE SET points = points + ?2, games = games + ?3, wins = wins + ?4, hosted = hosted + ?5, updated_at = ?6`)
     .bind(tgId, dPoints | 0, dGames | 0, dWins | 0, dHosted | 0, now()).run();
+  if (dPoints || dGames || dWins) await dropLeaderboard(env); // a new result shows on the next request, not after the 10-minute rebuild
 }
 
 const displayName = u => [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || String(u.id);
@@ -1595,10 +1596,26 @@ async function apiTableVoice(env, body) {
   else await env.DB.prepare('INSERT INTO table_voice_ok (code, tg_id, at) VALUES (?1, ?2, ?3) ON CONFLICT(code, tg_id) DO UPDATE SET at = ?3').bind(code, v.user.id, now()).run();
   return json({ ok: true, code, voice: await voiceInfo(env, code, v.user.id) });
 }
+/* the public leaderboard (top 100) is rebuilt by the cron every 10 minutes and served from discord_cfg 'lb:top';
+   a new game result or a deleted account drops the cache, so the next request rebuilds it */
+const LB_KEY = 'lb:top', LB_EVERY = 600, LB_MAX = 100;
+async function buildLeaderboard(env) {
+  const rows = (await env.DB.prepare('SELECT r.tg_id, r.points, r.games, r.wins, u.first_name, u.username, u.photo_url FROM ratings r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.games > 0 ORDER BY r.points DESC, r.wins DESC LIMIT ?1').bind(LB_MAX).all()).results || [];
+  const top = rows.map((r, i) => ({ rank: i + 1, tgId: r.tg_id, name: r.first_name || r.username || '—', username: r.username || '', photo: r.photo_url || '', points: 1000 + r.points, games: r.games, wins: r.wins }));
+  const at = now();
+  await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(LB_KEY, JSON.stringify(top), at).run();
+  return { top, at };
+}
+async function cachedLeaderboard(env) {
+  const r = await env.DB.prepare('SELECT value, updated_at FROM discord_cfg WHERE key = ?1').bind(LB_KEY).first();
+  if (r && r.value && now() - r.updated_at < LB_EVERY + 60) { try { return { top: JSON.parse(r.value), at: r.updated_at }; } catch (e) {} }
+  return buildLeaderboard(env);
+}
+async function dropLeaderboard(env) { await env.DB.prepare('DELETE FROM discord_cfg WHERE key = ?1').bind(LB_KEY).run(); }
 async function apiLeaderboard(env, url) {
-  const limit = Math.max(1, Math.min(100, Number(url.searchParams.get('limit')) || 20));
-  const rows = (await env.DB.prepare('SELECT r.tg_id, r.points, r.games, r.wins, u.first_name, u.username, u.photo_url FROM ratings r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.games > 0 ORDER BY r.points DESC, r.wins DESC LIMIT ?1').bind(limit).all()).results || [];
-  return json({ ok: true, top: rows.map((r, i) => ({ rank: i + 1, tgId: r.tg_id, name: r.first_name || r.username || '—', username: r.username || '', photo: r.photo_url || '', points: 1000 + r.points, games: r.games, wins: r.wins })) });
+  const limit = Math.max(1, Math.min(LB_MAX, Number(url.searchParams.get('limit')) || 20));
+  const { top, at } = await cachedLeaderboard(env);
+  return json({ ok: true, top: top.slice(0, limit), at: at * 1000, every: LB_EVERY * 1000 });
 }
 
 /* ---------- router ---------- */
@@ -1732,6 +1749,7 @@ export default {
   async scheduled(event, env, ctx) {
     const minute = !!(event && event.cron === '* * * * *'); // every minute: Discord members; every 5 minutes: channel posts
     if (!minute) ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
+    if (!minute && (!event || !event.scheduledTime || new Date(event.scheduledTime).getUTCMinutes() % 10 === 0)) ctx.waitUntil(buildLeaderboard(env).catch(e => console.error('leaderboard', e && e.stack || e))); // the rating every 10 minutes
     if (!minute) ctx.waitUntil(runGrowthCron(env, new Bot(env)).catch(e => console.error('growth cron', e && e.stack || e))); // new players: notice to admins, daily digest with the table
     if (!minute) ctx.waitUntil(runSocialCron(env, new Bot(env)).catch(e => console.error('social cron', e && e.stack || e))); // social media tokens: twice a day
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));

@@ -131,6 +131,7 @@ export async function deleteUser(env, id) {
     st('DELETE FROM invites WHERE tg_id = ?1'), st('DELETE FROM referrals WHERE tg_id = ?1'), st('UPDATE referrals SET ref_by = 0 WHERE ref_by = ?1'),
     st('DELETE FROM credits WHERE tg_id = ?1'), st('DELETE FROM milestones WHERE tg_id = ?1'), st('DELETE FROM grants WHERE tg_id = ?1'),
     st('DELETE FROM ratings WHERE tg_id = ?1'), st('DELETE FROM partners WHERE tg_id = ?1'),
+    env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:top'"), // the cached leaderboard is rebuilt without this player
     st('DELETE FROM club_members WHERE tg_id = ?1'), st('DELETE FROM club_requests WHERE tg_id = ?1'), st('DELETE FROM club_messages WHERE tg_id = ?1'),
     st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'),
     st('DELETE FROM broadcast_queue WHERE tg_id = ?1'), st('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_members SET inviter_tg = NULL WHERE inviter_tg = ?1'),
