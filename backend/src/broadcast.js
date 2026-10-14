@@ -23,70 +23,92 @@ export const channelUrl = env => { const c = String(env.CHANNEL_ID || '@mafiapro
 export const chatUrl = env => { const c = String(env.CHAT_URL || DEFAULT_CHAT).trim(); return /^https:\/\/t\.me\/\S{3,120}$/.test(c) ? c : DEFAULT_CHAT; };
 const batchSize = env => Math.max(1, Math.min(200, Number(env.BROADCAST_BATCH) || 30));
 
-/* the built-in invitation, per language: {channel} and {chat} are the links */
+/* the built-in invitation, per language: {channel} and {chat} are the links. Main goal — subscribe to the channel;
+   the players' chat is the second step. Keep the "fresh" line current before reusing (it names the latest news). */
 const INVITE = {
-  ru: `🃏 <b>Mafia Pro стала ближе</b>
+  ru: `📣 <b>У Mafia Pro появился свой канал</b>
 
-Вы уже раздавали карты в нашей игре, значит, сидите за одним столом с нами. Чтобы ничего не пропустить, у нас появились два места:
+Два коротких поста в день о том, что происходит в игре и за столом:
 
-📣 <b><a href="{channel}">Новостной канал</a></b> — обновления игры, новые роли и сценарии, советы ведущим, игровые ситуации с ответом под спойлером.
+🃏 роль дня: что умеет, когда просыпается, против кого слаба;
+🧩 ситуации за столом — ответ под спойлером, проверьте себя;
+🎩 советы ведущим и правила классики с примерами;
+🆕 обновления — первыми узнаёте о новых ролях, сценариях и функциях.
 
-💬 <b><a href="{chat}">Чат игроков</a></b> — найти стол на вечер, собрать компанию, спросить о правилах и ролях, поделиться партией.
+Из свежего: в игре появился раздел «Для новичков» — 90 готовых составов на 7–24 игрока и ни одного мирного жителя, у каждого своя роль.
 
-Сегодня, например, в игре появился раздел «Для новичков»: 90 готовых составов на 7–24 игрока, и ни одного мирного жителя за столом. В канале расскажем, что будет дальше.
+👉 Подписывайтесь: <a href="{channel}">@mafiaprof</a>
 
-До встречи за столом 🎲`,
-  uk: `🃏 <b>Mafia Pro стала ближчою</b>
+💬 Ищете, с кем сыграть? Заходите в <a href="{chat}">чат игроков</a> — там собирают столы на вечер.`,
+  uk: `📣 <b>У Mafia Pro з’явився свій канал</b>
 
-Ви вже роздавали карти в нашій грі, отже, сидите з нами за одним столом. Щоб нічого не пропустити, у нас з’явилися два місця:
+Два короткі пости на день про те, що відбувається в грі та за столом:
 
-📣 <b><a href="{channel}">Новинний канал</a></b> — оновлення гри, нові ролі та сценарії, поради ведучим, ігрові ситуації з відповіддю під спойлером.
+🃏 роль дня: що вміє, коли прокидається, проти кого слабка;
+🧩 ситуації за столом — відповідь під спойлером, перевірте себе;
+🎩 поради ведучим і правила класики з прикладами;
+🆕 оновлення — першими дізнаєтеся про нові ролі, сценарії та функції.
 
-💬 <b><a href="{chat}">Чат гравців</a></b> — знайти стіл на вечір, зібрати компанію, запитати про правила й ролі, поділитися партією.
+Зі свіжого: у грі з’явився розділ «Для новачків» — 90 готових складів на 7–24 гравців і жодного мирного жителя, у кожного своя роль.
 
-Сьогодні, наприклад, у грі з’явився розділ «Для новачків»: 90 готових складів на 7–24 гравців, і жодного мирного жителя за столом. У каналі розкажемо, що буде далі.
+👉 Підписуйтеся: <a href="{channel}">@mafiaprof</a>
 
-До зустрічі за столом 🎲`,
-  en: `🃏 <b>Mafia Pro, a little closer</b>
+💬 Шукаєте, з ким зіграти? Заходьте в <a href="{chat}">чат гравців</a> — там збирають столи на вечір.`,
+  en: `📣 <b>Mafia Pro now has its own channel</b>
 
-You have already dealt cards in our game, so you are sitting at our table. So you never miss a thing, we now have two places:
+Two short posts a day about what happens in the game and at the table:
 
-📣 <b><a href="{channel}">News channel</a></b> — game updates, new roles and scenarios, tips for hosts, game situations with the answer under a spoiler.
+🃏 role of the day: what it does, when it wakes up, what it is weak against;
+🧩 table situations — the answer under a spoiler, test yourself;
+🎩 tips for hosts and classic rules with examples;
+🆕 updates — be the first to hear about new roles, scenarios and features.
 
-💬 <b><a href="{chat}">Players’ chat</a></b> — find a table for tonight, gather a group, ask about rules and roles, share a game.
+Fresh: the game now has a “For beginners” section — 90 ready line-ups for 7–24 players and not a single Citizen: everyone gets a role.
 
-Today, for example, the game got a “For beginners” section: 90 ready line-ups for 7–24 players, and not a single Citizen at the table. We will tell you what comes next in the channel.
+Posts are in Ukrainian and Russian.
 
-See you at the table 🎲`,
-  pl: `🃏 <b>Mafia Pro jest bliżej</b>
+👉 Join: <a href="{channel}">@mafiaprof</a>
 
-Już grasz w Mafia Pro — siedzimy więc przy jednym stole. Żeby niczego nie przegapić, mamy teraz dwa miejsca:
+💬 Looking for people to play with? Come to the <a href="{chat}">players’ chat</a> — tables for tonight get together there.`,
+  pl: `📣 <b>Mafia Pro ma teraz własny kanał</b>
 
-📣 <b><a href="{channel}">Kanał z nowościami</a></b> — aktualizacje gry, nowe role i scenariusze, porady dla prowadzących, sytuacje z gry z odpowiedzią pod spoilerem.
+Dwa krótkie posty dziennie o tym, co dzieje się w grze i przy stole:
 
-💬 <b><a href="{chat}">Czat graczy</a></b> — znajdź stół na wieczór, zbierz ekipę, zapytaj o zasady i role, podziel się partią.
+🃏 rola dnia: co potrafi, kiedy się budzi, z kim sobie nie radzi;
+🧩 sytuacje przy stole — odpowiedź pod spoilerem, sprawdź się;
+🎩 porady dla prowadzących i zasady klasyki z przykładami;
+🆕 aktualizacje — jako pierwszy dowiesz się o nowych rolach, scenariuszach i funkcjach.
 
-Dziś na przykład w grze pojawiła się sekcja „Dla początkujących”: 90 gotowych składów na 7–24 graczy i ani jednego mieszkańca przy stole. Co dalej — opowiemy na kanale.
+Nowość: w grze pojawiła się sekcja „Dla początkujących” — 90 gotowych składów na 7–24 graczy i ani jednego Mieszkańca: każdy dostaje swoją rolę.
 
-Do zobaczenia przy stole 🎲`,
-  hy: `🃏 <b>Mafia Pro-ն ավելի մոտ է</b>
+Posty są po ukraińsku i rosyjsku.
 
-Դուք արդեն խաղացել եք մեր խաղը, ուրեմն նստած եք մեզ հետ նույն սեղանի շուրջ։ Որպեսզի ոչինչ բաց չթողնեք, մենք ունենք երկու վայր․
+👉 Dołącz: <a href="{channel}">@mafiaprof</a>
 
-📣 <b><a href="{channel}">Նորությունների ալիք</a></b> — խաղի թարմացումներ, նոր դերեր և սցենարներ, խորհուրդներ վարողներին, խաղային իրավիճակներ՝ պատասխանը սփոյլերի տակ։
+💬 Szukasz ludzi do gry? Wpadnij na <a href="{chat}">czat graczy</a> — tam zbierają się stoły na wieczór.`,
+  hy: `📣 <b>Mafia Pro-ն այժմ ունի իր ալիքը</b>
 
-💬 <b><a href="{chat}">Խաղացողների չատ</a></b> — գտեք սեղան երեկոյի համար, հավաքեք ընկերներին, հարցրեք կանոնների և դերերի մասին, կիսվեք խաղով։
+Օրական երկու կարճ գրառում խաղի և սեղանի շուրջ կատարվողի մասին․
 
-Այսօր, օրինակ, խաղում հայտնվեց «Սկսնակների համար» բաժինը՝ 90 պատրաստի կազմ 7–24 խաղացողի համար, և սեղանի շուրջ ոչ մի խաղաղ բնակիչ։ Ինչ կլինի հետո՝ կպատմենք ալիքում։
+🃏 օրվա դերը՝ ինչ է անում, երբ է արթնանում, ում դեմ է թույլ;
+🧩 իրավիճակներ սեղանի շուրջ՝ պատասխանը սփոյլերի տակ, ստուգեք ինքներդ ձեզ;
+🎩 խորհուրդներ վարողներին և դասական խաղի կանոններ՝ օրինակներով;
+🆕 թարմացումներ՝ առաջինը կիմանաք նոր դերերի, սցենարների և հնարավորությունների մասին։
 
-Կհանդիպենք սեղանի շուրջ 🎲`
+Թարմ նորություն․ խաղում հայտնվեց «Սկսնակների համար» բաժինը՝ 90 պատրաստի կազմ 7–24 խաղացողի համար, և ոչ մի խաղաղ բնակիչ․ յուրաքանչյուրն ունի իր դերը։
+
+Գրառումները ուկրաիներեն և ռուսերեն են։
+
+👉 Բաժանորդագրվեք՝ <a href="{channel}">@mafiaprof</a>
+
+💬 Փնտրո՞ւմ եք, ում հետ խաղալ։ Միացեք <a href="{chat}">խաղացողների չատին</a>՝ այնտեղ հավաքում են սեղաններ երեկոյի համար։`
 };
 const BTN = {
-  ru: { channel: '📣 Канал', chat: '💬 Чат игроков', play: '🎲 Играть' },
-  uk: { channel: '📣 Канал', chat: '💬 Чат гравців', play: '🎲 Грати' },
-  en: { channel: '📣 Channel', chat: '💬 Players’ chat', play: '🎲 Play' },
-  pl: { channel: '📣 Kanał', chat: '💬 Czat graczy', play: '🎲 Graj' },
-  hy: { channel: '📣 Ալիք', chat: '💬 Խաղացողների չատ', play: '🎲 Խաղալ' }
+  ru: { channel: '📣 Подписаться на канал', chat: '💬 Чат игроков', play: '🎲 Играть' },
+  uk: { channel: '📣 Підписатися на канал', chat: '💬 Чат гравців', play: '🎲 Грати' },
+  en: { channel: '📣 Join the channel', chat: '💬 Players’ chat', play: '🎲 Play' },
+  pl: { channel: '📣 Dołącz do kanału', chat: '💬 Czat graczy', play: '🎲 Graj' },
+  hy: { channel: '📣 Բաժանորդագրվել ալիքին', chat: '💬 Խաղացողների չատ', play: '🎲 Խաղալ' }
 };
 
 /* the message one player gets: text + buttons, in their language */
@@ -94,8 +116,10 @@ export function messageFor(env, b, lang) {
   const l = BTN[lang] ? lang : 'ru';
   const fill = s => s.replace(/\{channel\}/g, channelUrl(env)).replace(/\{chat\}/g, chatUrl(env));
   const text = b.kind === 'invite' ? fill(INVITE[l]) : b.text;
-  const kb = [[{ text: BTN[l].channel, url: channelUrl(env) }, { text: BTN[l].chat, url: chatUrl(env) }]];
-  if (env.APP_URL) kb.push([{ text: BTN[l].play, web_app: { url: env.APP_URL } }]);
+  // the channel gets a full-width first row: it is the main call to action; chat and play share the second row
+  const row2 = [{ text: BTN[l].chat, url: chatUrl(env) }];
+  if (env.APP_URL) row2.push({ text: BTN[l].play, web_app: { url: env.APP_URL } });
+  const kb = [[{ text: BTN[l].channel, url: channelUrl(env) }], row2];
   return { text, extra: { reply_markup: { inline_keyboard: kb } } };
 }
 

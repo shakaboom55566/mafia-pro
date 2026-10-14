@@ -1014,9 +1014,9 @@ console.log('/broadcast: preview → confirm → portions by cron → progress, 
   const toAdmin = tg.calls.slice(mark).filter(c => c.method === 'sendMessage' && c.params.chat_id === 777);
   ok(tg.calls.slice(mark).filter(c => c.method === 'sendMessage').every(c => c.params.chat_id === 777), 'preview goes to the admin only');
   const samples = toAdmin.filter(c => c.params.text.includes('🃏'));
-  ok(samples.some(c => c.params.text.includes('Mafia Pro стала ближе')) && samples.some(c => c.params.text.includes('Mafia Pro стала ближчою')), 'samples in ru and uk');
+  ok(samples.some(c => c.params.text.includes('У Mafia Pro появился свой канал')) && samples.some(c => c.params.text.includes('У Mafia Pro з’явився свій канал')), 'samples in ru and uk');
   const s0 = samples[0].params; const kb = s0.reply_markup.inline_keyboard;
-  ok(kb[0][0].url === 'https://t.me/mafiaprof' && kb[0][1].url === 'https://t.me/+3kRZICcUMyBjZDdi' && kb[1][0].web_app.url === env.APP_URL, 'buttons: channel, chat, play');
+  ok(kb[0].length === 1 && kb[0][0].url === 'https://t.me/mafiaprof' && kb[0][0].text.startsWith('📣 ') && kb[1][0].url === 'https://t.me/+3kRZICcUMyBjZDdi' && kb[1][1].web_app.url === env.APP_URL, 'buttons: channel on its own row, then chat + play');
   ok(s0.text.includes('href="https://t.me/mafiaprof"') && s0.text.includes('href="https://t.me/+3kRZICcUMyBjZDdi"') && s0.parse_mode === 'HTML', 'links in the text');
   const ctl = toAdmin[toAdmin.length - 1].params; ok(ctl.text.includes(`Получат: <b>${total}</b>`) && ctl.reply_markup.inline_keyboard[0][0].callback_data === `bc_go_${b.id}`, 'control card: recipients and the confirm button');
   // a non-admin pressing the button does nothing
@@ -1033,7 +1033,7 @@ console.log('/broadcast: preview → confirm → portions by cron → progress, 
   // portions
   const sentTo = () => tg.calls.slice(m2).filter(c => c.method === 'sendMessage' && c.params.chat_id !== 777 && c.params.chat_id !== '@mafiaprof' && (c.params.text || '').includes('href="https://t.me/+3kRZICcUMyBjZDdi"'));
   const s1 = sentTo().length; await tick(); ok(sentTo().length - s1 === 7, 'one portion = BROADCAST_BATCH messages: ' + (sentTo().length - s1));
-  const ukMsg = sentTo().find(c => c.params.chat_id === (ukUser && ukUser.tg_id)); if (ukMsg) ok(ukMsg.params.text.includes('ближчою') && ukMsg.params.reply_markup.inline_keyboard[1][0].text === '🎲 Грати', 'a uk player gets the uk text and buttons');
+  const ukMsg = sentTo().find(c => c.params.chat_id === (ukUser && ukUser.tg_id)); if (ukMsg) ok(ukMsg.params.text.includes('з’явився свій канал') && ukMsg.params.reply_markup.inline_keyboard[1][1].text === '🎲 Грати', 'a uk player gets the uk text and buttons');
   // stop and resume
   await cb(adm, `bc_stop_${b.id}`); eq((await bc()).status, 'stopped', 'stopped');
   const s2 = sentTo().length; await tick(); eq(sentTo().length, s2, 'stopped → cron sends nothing');
