@@ -5,3 +5,4 @@
 - 2026-10-13 · весь сайт · запуск: 295 страниц на 5 языках, sitemap, hreflang, JSON-LD, превью ссылок · — · сайт не в индексе
 - 2026-10-13 · весь сайт · IndexNow при каждом деплое, еженедельный отчёт `seo-report.yml`, правки агента через `seo/overrides.json` · — · —
 - 2026-10-13 · все страницы ролей · картинка карты: preload + fetchpriority=high · LCP · Lighthouse /ru/roles/don/: скорость 89, LCP 3.7 s
+- 2026-10-14 · весь сайт · переезд на https://mafiapro.app/ (Cloudflare), старый адрес — мост с canonical и редиректом на те же страницы, sitemap/robots в корне домена · — · сайт не в индексе
