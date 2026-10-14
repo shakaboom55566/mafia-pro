@@ -25,7 +25,7 @@ jobs:
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
       DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      APP_URL: https://shakaboom55566.github.io/mafia-pro/
+      APP_URL: https://mafiapro.app/
       LOG_FILE: /tmp/discord-setup.log
     steps:
       - name: Checkout

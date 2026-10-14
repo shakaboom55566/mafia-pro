@@ -1,5 +1,5 @@
 # Search engine ownership codes (v38). Paste the code from the HTML-tag method of Google Search Console
-# (property type "URL prefix": https://shakaboom55566.github.io/mafia-pro/) and/or Bing Webmaster Tools.
+# (best: property type "Domain" sc-domain:mafiapro.app, verified by a DNS TXT record in Cloudflare — then nothing is needed here) and/or Bing Webmaster Tools.
 # Only the content="…" value, e.g. google=AbCdEf123…
 google=
 bing=

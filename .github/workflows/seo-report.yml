@@ -3,7 +3,7 @@ name: SEO report
 # Weekly search data for the SEO agent (a Claude scheduled task reads seo/reports/latest.md, improves the site, pushes).
 # Secrets (all optional — a missing one is noted in the report):
 #   GSC_SA_KEY   — JSON key of a Google Cloud service account added as a user (Full) of the Search Console property
-#   GSC_PROPERTY — the property as Search Console names it: "sc-domain:mafiapro.app" or "https://shakaboom55566.github.io/mafia-pro/"
+#   GSC_PROPERTY — the property as Search Console names it: "sc-domain:mafiapro.app" (or the URL prefix "https://mafiapro.app/")
 #   BING_API_KEY — Bing Webmaster Tools → Settings → API access
 #   PSI_KEY      — Google API key for PageSpeed Insights (works without it, with a lower quota)
 

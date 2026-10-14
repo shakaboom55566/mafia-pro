@@ -12,10 +12,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const [src = '_site', out = '_gh', arg] = process.argv.slice(2);
 const NEW = String(arg || fs.readFileSync(path.join(ROOT, 'seo/site-url.txt'), 'utf8')).trim().replace(/\/?$/, '/');
 const tpl = fs.readFileSync(path.join(ROOT, 'seo/bridge.html'), 'utf8');
-const page = target => tpl.split('__NEW__').join(NEW).split('__TARGET__').join(target);
+// the app's own address: the redirect is the script (it carries the saved data); a meta refresh there could cut it short.
+// website pages: a plain meta refresh too, so crawlers without JavaScript move the page as well
+const page = (target, app) => tpl.split('__REFRESH__').join(app ? '<noscript><meta http-equiv="refresh" content="0;url=__TARGET__"></noscript>' : '<meta http-equiv="refresh" content="0;url=__TARGET__">').split('__NEW__').join(NEW).split('__TARGET__').join(target);
 fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
-fs.writeFileSync(path.join(out, 'index.html'), page(NEW));
-fs.writeFileSync(path.join(out, '404.html'), page(NEW));
+fs.writeFileSync(path.join(out, 'index.html'), page(NEW, true));
+fs.writeFileSync(path.join(out, '404.html'), page(NEW, true));
 fs.writeFileSync(path.join(out, '.nojekyll'), '');
 let n = 0;
 (function walk(d) {

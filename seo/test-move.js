@@ -75,6 +75,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
     ok(await p.title() !== '' && (await p.content()).includes('Mafia Pro'), 'E: the page itself');
     const stub = fs.readFileSync(path.join(gh, 'uk/roles/don/index.html'), 'utf8');
     ok(stub.includes('<link rel="canonical" href="https://mafiapro.app/uk/roles/don/">') && stub.includes('content="0;url=https://mafiapro.app/uk/roles/don/"'), 'E: canonical and meta refresh in the old page');
+    ok(/<noscript><meta http-equiv="refresh"/.test(fs.readFileSync(path.join(gh, 'index.html'), 'utf8')) && !/<noscript>/.test(stub), 'E: the app keeps the refresh in noscript, pages have a plain one');
     ok(fs.existsSync(path.join(gh, '404.html')) && !fs.existsSync(path.join(gh, 'sitemap.xml')), 'E: bridge has 404, no sitemap');
     await c.close(); }
   await b.close(); fs.rmSync(tmp, { recursive: true, force: true });

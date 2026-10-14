@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 : "${BOT_TOKEN:?BOT_TOKEN is not set}"
-APP_URL=${APP_URL:-https://shakaboom55566.github.io/mafia-pro/}
+APP_URL=${APP_URL:-https://mafiapro.app/}
 
 api() { # api <method> [curl args…] — prints the response and fails unless "ok":true
   local out

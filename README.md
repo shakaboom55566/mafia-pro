@@ -2,8 +2,12 @@
 
 Приложение ведущего для живой игры в мафию — Telegram Mini App. Один HTML-файл, без сервера: роли, 2D-иллюстрации карт, 3D-карта с рубашкой, ночь/день/голосование по правилам, разбор партии, профили и рейтинги, магазин. Пять языков: русский (по умолчанию), украинский, английский, польский, армянский.
 
-**Приложение:** https://shakaboom55566.github.io/mafia-pro/
-**Сайт для поисковиков:** https://shakaboom55566.github.io/mafia-pro/ru/ (и `uk/`, `en/`, `pl/`, `hy/`)
+**Приложение:** https://mafiapro.app/
+**Сайт для поисковиков:** https://mafiapro.app/ru/ (и `uk/`, `en/`, `pl/`, `hy/`)
+
+## Свой домен mafiapro.app (v40)
+
+Приложение и сайт публикует Pages-workflow на Cloudflare (Worker со статикой, `site/wrangler.toml`; домены mafiapro.app и www создаются сами — зона в том же аккаунте Cloudflare). Когда домен отдаёт текущую сборку (`build.txt`), GitHub Pages (`shakaboom55566.github.io/mafia-pro/`) публикует только мост (`seo/make-bridge.mjs`): любая старая ссылка открывает то же место на новом адресе. Данные игрока (профили, настройки, партия) лежат в хранилище браузера старого адреса — мост передаёт их в адресе, а приложение, открытое по новой кнопке в Telegram, один раз забирает их сам (`seo/app-migrate.js`; тест `seo/test-move.js`). Адрес сайта для сборки, IndexNow и SEO-отчёта — `seo/site-url.txt`.
 
 ## Сайт для поисковиков (v38)
 
@@ -15,7 +19,7 @@
 - Подтверждение владения в Google Search Console / Bing Webmaster: код из «HTML-тега» — в `seo/verify.txt` (`google=…`, `bing=…`), workflow вставит мета-тег на главную приложения.
 - **IndexNow** (v38.1): при каждом деплое Pages сравнивает страницы с живыми и отправляет изменённые в Bing / Yandex / Seznam / Naver (`seo/indexnow.mjs`, ключ — `seo/indexnow-key.txt`, файл ключа кладёт сборка).
 - **SEO-агент** (v38.1): workflow «SEO report» (`seo-report.yml`, понедельник 08:07 Киев) собирает Search Console, Bing Webmaster, PageSpeed и живые проверки в `seo/reports/latest.md`; scheduled task «Mafia Pro: SEO-агент» читает отчёт и правит сайт по `seo/AGENT.md` — через `seo/overrides.json` (title, description, абзац, FAQ на страницу) и `seo/keywords.json`; журнал правок — `seo/journal.md`.
-- **Подключить Search Console к отчёту:** Google Cloud Console → проект → включить «Google Search Console API» → IAM → Service accounts → создать → Keys → Add key → JSON. В Search Console → Настройки → Пользователи и разрешения → добавить e-mail сервисного аккаунта с полным доступом. В репозитории Settings → Secrets → Actions: `GSC_SA_KEY` (весь JSON) и `GSC_PROPERTY` (`https://shakaboom55566.github.io/mafia-pro/` или `sc-domain:<домен>`). Bing: Webmaster Tools → Настройки → API access → ключ в секрет `BING_API_KEY`.
+- **Подключить Search Console к отчёту:** Google Cloud Console → проект → включить «Google Search Console API» → IAM → Service accounts → создать → Keys → Add key → JSON. В Search Console → Настройки → Пользователи и разрешения → добавить e-mail сервисного аккаунта с полным доступом. В репозитории Settings → Secrets → Actions: `GSC_SA_KEY` (весь JSON) и `GSC_PROPERTY` (`sc-domain:mafiapro.app`). Bing: Webmaster Tools → Настройки → API access → ключ в секрет `BING_API_KEY`.
 - Свой домен: одна строка в `seo/site-url.txt` (`https://домен/`) — её читают сборка сайта, IndexNow и отчёт.
 - Проверка: `node seo/test-site.mjs` (уникальные title/description, canonical, hreflang, JSON-LD, ссылки, sitemap) — в шаге smoke-тестов Pages. Свой домен: `SITE_URL=https://домен/`.
 
@@ -81,14 +85,14 @@
 
 **2. Настройка бота одной кнопкой.** Вкладка **Actions → «Configure Telegram bot» → Run workflow**. Скрипт `bot/setup.sh` через Bot API ставит кнопку меню «Играть · Play», открывающую приложение, имя бота, короткое описание и описание на ru/uk/en/pl/hy (тексты — `bot/texts/`).
 
-**3. Только вручную в BotFather** (через API не делается): `/newapp` → выбрать бота → название **Mafia Pro** → описание → картинка 640×360 → **Web App URL:** `https://shakaboom55566.github.io/mafia-pro/` → короткое имя `app`. Это даёт прямую ссылку `https://t.me/<бот>/app` и рекламные ссылки ниже. Иконка бота — `/setuserpic`.
+**3. Только вручную в BotFather** (через API не делается): `/newapp` → выбрать бота → название **Mafia Pro** → описание → картинка 640×360 → **Web App URL:** `https://mafiapro.app/` (уже созданное приложение: `/myapps` → бот → Edit Web App URL) → короткое имя `app`. Это даёт прямую ссылку `https://t.me/<бот>/app` и рекламные ссылки ниже. Иконка бота — `/setuserpic`.
 
 ### Глубокие ссылки для рекламы
 
 | Ссылка | Что открывает |
 | --- | --- |
 | `t.me/mafiapro_bot/app?startapp=classic` | сразу стол классической мафии на 10 |
-| `shakaboom55566.github.io/mafia-pro/?startapp=classic` | то же из обычного браузера или с кнопки меню |
+| `mafiapro.app/?startapp=classic` | то же из обычного браузера или с кнопки меню |
 | `?startapp=shop` | магазин |
 | `?startapp=cards` | все карты |
 | `?startapp=card_<id>` | карта роли (`don`, `sheriff`, `kamikaze`, `sapper`, …) |

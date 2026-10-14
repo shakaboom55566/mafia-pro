@@ -352,7 +352,7 @@ export async function run(env, log = console.log) {
   if (!widget.enabled || widget.channel_id !== state.channels.welcome) { await api('PATCH', `/guilds/${guildId}/widget`, { enabled: true, channel_id: state.channels.welcome }); log('~ server widget on (invite → welcome)'); }
 
   // messages: the bot's own messages in each channel are edited in place, extras removed
-  const appUrl = env.APP_URL || 'https://shakaboom55566.github.io/mafia-pro/';
+  const appUrl = env.APP_URL || 'https://mafiapro.app/';
   let cardsBase = env.CARDS_BASE !== undefined ? env.CARDS_BASE : appUrl.replace(/\/?$/, '/') + 'cards/';
   if (cardsBase && !env.DISCORD_API) { // the Pages workflow renders the images (cards/<lang>/<role>.png) on the same push: wait for them (up to 8 minutes)
     let ok = false; for (let i = 0; i < 24 && !ok; i++) { try { ok = (await fetch(cardsBase + 'hy/don.png', { method: 'HEAD' })).ok; } catch (e) {} if (!ok) { if (!i) log('waiting for the card images on Pages…'); await sleep(20000); } }

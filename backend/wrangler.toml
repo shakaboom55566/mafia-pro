@@ -6,7 +6,7 @@ compatibility_date = "2025-09-01"
 workers_dev = true
 
 [vars]
-APP_URL = "https://shakaboom55566.github.io/mafia-pro/"
+APP_URL = "https://mafiapro.app/"
 ALLOWED_ORIGIN = "https://mafiapro.app,https://shakaboom55566.github.io"
 # Prices in Telegram Stars (≈ $2 / $9.99 / $35 for buyers)
 STARS_ROLE = "100"

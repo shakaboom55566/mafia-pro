@@ -8,7 +8,7 @@ on:
     inputs:
       app_url:
         description: Mini App URL (https)
-        default: https://shakaboom55566.github.io/mafia-pro/
+        default: https://mafiapro.app/
         required: true
 
 permissions:
