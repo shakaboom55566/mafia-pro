@@ -7,6 +7,9 @@ import { startMockTelegram } from './mock-telegram.js';
 import { startMockDiscord } from './mock-discord.js';
 import { signInitData } from '../src/tg.js';
 import { postsKey, entitiesToHtml } from '../src/posts.js';
+import { classify, kyiv, digest, DIGEST_HOUR } from '../src/growth.js';
+import { Bot } from '../src/tg.js';
+import { writeFileSync } from 'node:fs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const worker = (await import('../src/index.js')).default;
@@ -32,6 +35,9 @@ const lastTo = chatId => [...tg.calls].reverse().find(c => c.method === 'sendMes
 const user = (id, lang = 'ru', extra = {}) => Object.assign({ id, first_name: 'User' + id, username: 'user' + id, language_code: lang }, extra);
 const initData = (u, extra = {}) => signInitData(Object.assign({ auth_date: String(Math.floor(Date.now() / 1000)), query_id: 'AAE', user: u }, extra), 'test-token');
 const msg = (u, text) => ({ update_id: 1, message: { message_id: 1, from: u, chat: { id: u.id, type: 'private' }, text } });
+
+// growth.js runs in the 5-minute cron: keep its notices quiet until its own section
+await env.DB.prepare("INSERT INTO discord_cfg (key, value, updated_at) VALUES ('growth:live', 'off', 0), ('growth:digest_at', ?1, 0)").bind(String(now() + 86400 * 3)).run();
 
 console.log('health');
 { const r = await call('/'); const d = await r.json(); ok(r.status === 200 && d.ok && d.service === 'mafia-pro-api', 'health json'); }
@@ -781,7 +787,7 @@ console.log('channel posts (drafts → admin approval → channel)');
   let waits = []; await worker.scheduled({}, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
   eq(toChannel().length, 1, 'cron: due → posted to the channel');
   const cm = toChannel()[0]; ok(cm.params.text === '<b>Шериф</b> перевіряє вночі' && cm.params.parse_mode === 'HTML', 'channel gets the exact text');
-  ok(cm.params.reply_markup.inline_keyboard[0][0].text === '🎲 Грати' && cm.params.reply_markup.inline_keyboard[0][0].url === 'https://t.me/mafiapro_test_bot?start=channel', 'play button in the post language');
+  ok(cm.params.reply_markup.inline_keyboard[0][0].text === '🎲 Грати' && cm.params.reply_markup.inline_keyboard[0][0].url === 'https://t.me/mafiapro_test_bot?start=post_p-12', 'play button in the post language, tracked link of this post');
   eq((await st('p-12')).status, 'posted', 'status posted');
   waits = []; await worker.scheduled({}, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits); eq(toChannel().length, 1, 'never posted twice');
   d = await (await draft({ id: 'p-12', slot_at: future, lang: 'uk', text: 'changed' })).json(); ok(d.unchanged && d.status === 'posted', 'a posted post is not overwritten by the repo');
@@ -897,6 +903,91 @@ console.log('discord analytics: baseline, joins through whose invite, leaves, pe
   for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API', 'DISCORD_PUBLIC_KEY']) delete env[k];
   eq((await call('/api/discord/widget')).status, 503, 'no Discord configured → 503');
   await dc.close(); }
+
+console.log('player growth: where new players come from, tracked links, names in games, notices, .xlsx table, /players, post stats');
+{ env.CHANNEL_ID = '@mafiaprof';
+  const adm = user(777, 'ru'); const key = await postsKey('test-token');
+  const cfg = (k, v) => env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, 0) ON CONFLICT(key) DO UPDATE SET value = ?2').bind(k, String(v)).run();
+  const tr = id => env.DB.prepare('SELECT * FROM player_track WHERE tg_id = ?1').bind(id).first();
+  const cron5 = async () => { const w = []; await worker.scheduled({ cron: '*/5 * * * *' }, env, { waitUntil: p => w.push(p) }); await Promise.all(w); };
+  const docs = () => tg.calls.filter(c => c.method === 'sendDocument');
+  // classification of start parameters
+  eq(classify(''), { source: 'bot' }, 'no parameter → found the bot');
+  eq(classify('ref_ABC123'), { source: 'ref', code: 'ABC123' }, 'ref'); eq(classify('friend_abc123').source, 'friend', 'friend');
+  eq(classify('join_K7P2Q'), { source: 'table', detail: 'K7P2Q' }, 'table'); eq(classify('post_2026-10-14-12'), { source: 'post', detail: '2026-10-14-12' }, 'post');
+  eq(classify('ads_pl_ru'), { source: 'ads', detail: 'pl_ru' }, 'ads'); eq(classify('site_uk'), { source: 'site', detail: 'uk' }, 'site'); eq(classify('dc').source, 'discord', 'discord');
+  eq(classify('channel').source, 'channel', 'channel'); eq(classify('weird!').source, 'other', 'other');
+  ok(/^\d{4}-\d{2}-\d{2}$/.test(kyiv(now()).date) && kyiv(Date.UTC(2026, 9, 14, 18, 30) / 1000).time === '21:30', 'Kyiv time');
+  await env.DB.prepare('UPDATE users SET created_at = ?1').bind(now() - 5000).run(); // everyone so far joined before tracking
+  await cfg('growth:since', now() - 1000);
+  // an inviter, then new players from different places
+  const inv = await (await post('/api/referrals', { initData: await initData(user(9001)) })).json();
+  await hook(msg(user(9002), `/start ref_${inv.code}`));
+  await hook(msg(user(9003), '/start post_p-12'));
+  await hook(msg(user(9001), '/start post_p-12')); // an existing player through the same post
+  await hook(msg(user(9004, 'pl'), '/start ads_pl_ru'));
+  await hook(msg(user(9005, 'uk'), '/start'));
+  await post('/api/me', { initData: await initData(user(9006, 'uk'), { start_param: 'site_uk' }) });
+  await post('/api/me', { initData: await initData(user(9007, 'hy')) });
+  await post('/api/me', { initData: await initData(user(9002)) }); // opening the app later changes nothing
+  eq([(await tr(9002)).source, (await tr(9002)).detail], ['ref', '9001'], 'ref → the inviter id');
+  eq([(await tr(9003)).source, (await tr(9003)).detail], ['post', 'p-12'], 'channel post');
+  eq([(await tr(9004)).source, (await tr(9004)).detail], ['ads', 'pl_ru'], 'ads tag');
+  eq((await tr(9005)).source, 'bot', 'plain /start'); eq([(await tr(9006)).source, (await tr(9006)).detail], ['site', 'uk'], 'Mini App with startapp=site_uk');
+  eq((await tr(9007)).source, 'app', 'Mini App without a parameter'); eq(await tr(9001), null, 'first seen through another API call → source unknown');
+  const hits = (await env.DB.prepare("SELECT tg_id, is_new FROM start_hits WHERE param = 'post_p-12' ORDER BY tg_id").all()).results;
+  eq(hits.map(h => [h.tg_id, h.is_new]), [[9001, 0], [9003, 1]], 'post visitors: one new, one existing');
+  // the name a player had in a game
+  await post('/api/game/result', { initData: await initData(user(9001)), game: { id: 'g-growth-1', mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'Ваня-Шериф', tgId: 9002, roleId: 'sheriff', won: true, points: 30, side: 'city' }, { seat: 2, name: 'Гость', tgId: null, roleId: 'mafia' }] } });
+  eq((await tr(9002)).game_name, 'Ваня-Шериф', 'nick in the game remembered');
+  // live notice: after a minute, once
+  await env.DB.prepare('UPDATE users SET created_at = ?1 WHERE tg_id BETWEEN 9001 AND 9007').bind(now() - 120).run();
+  await cfg('growth:live', 'on'); await cfg('growth:mark', now() - 300);
+  let before = tg.calls.length; await cron5();
+  const note = tg.calls.slice(before).find(c => c.method === 'sendMessage' && c.params.chat_id === 777);
+  ok(note && note.params.text.includes('Новые игроки: +7'), 'notice: +7 ' + (note && note.params.text.slice(0, 80)));
+  ok(note && note.params.text.includes('@user9002') && note.params.text.includes('<code>9002</code>') && note.params.text.includes('ник «Ваня-Шериф»') && note.params.text.includes('Реферальная ссылка: User9001 @user9001'), 'notice: tag, id, nick, who invited');
+  ok(note && note.params.text.includes('Реклама Telegram Ads: pl_ru') && note.params.text.includes('Сайт mafiapro.app: uk') && note.params.text.includes('Нашёл бота сам'), 'notice: ads, site, found the bot');
+  before = tg.calls.length; await cron5(); ok(!tg.calls.slice(before).some(c => c.method === 'sendMessage' && c.params.chat_id === 777 && /Новы/.test(c.params.text)), 'no second notice for the same players');
+  // daily digest: only after 21:00 Kyiv, once a day; forced here
+  const b = new Bot(env); await cfg('growth:digest_at', now() - 3000);
+  if (kyiv(now()).hour < DIGEST_HOUR) eq(await digest(env, b, false), null, 'before 21:00 Kyiv → no digest');
+  before = tg.calls.length; const dg = await digest(env, b, true);
+  ok(dg && dg.n === 7 && dg.bytes > 2000, 'digest: 7 new, a table attached ' + JSON.stringify(dg));
+  const dmsg = tg.calls.slice(before).find(c => c.method === 'sendMessage' && c.params.chat_id === 777);
+  ok(dmsg && dmsg.params.text.includes('Приток игроков') && dmsg.params.text.includes('+7') && dmsg.params.text.includes('Пост в канале — 1'), 'digest text with sources');
+  ok(dmsg && dmsg.params.text.includes('Лучший пост за неделю') && dmsg.params.text.includes('перешли 2, новых 1'), 'digest: best post of the week');
+  const doc = docs().pop(); ok(doc && doc.params.chat_id === 777 && /^mafia-pro-players-\d{4}-\d{2}-\d{2}\.xlsx$/.test(doc.params.document.name), 'xlsx sent to the admin');
+  const bytes = doc.params.document.bytes; ok(bytes.slice(0, 2).toString() === 'PK', 'zip');
+  for (const s of ['Новые', 'Все игроки', 'Источники', 'Посты и ссылки', '@user9002', 'Ваня-Шериф', 'Реферальная ссылка', 'User9001 @user9001', 'post_p-12', 'До начала учёта', 't.me/user9004'])
+    ok(bytes.includes(Buffer.from(s.replace(/&/g, '&amp;'))), 'table contains ' + s);
+  if (process.env.XLSX_OUT) writeFileSync(process.env.XLSX_OUT, bytes);
+  before = tg.calls.length; ok(await digest(env, b, false) === null, 'one digest a day');
+  // /players for admins
+  before = docs().length; await hook(msg(adm, '/players')); ok(lastTo(777).params.text.includes('Новые игроки за сутки') && docs().length === before + 1, '/players → list + table');
+  await hook(msg(adm, '/players 7')); ok(lastTo(777).params.text.includes('за 7 дн.'), '/players 7');
+  await hook(msg(adm, '/players all')); ok(docs().length === before + 3 && docs().pop().params.caption.includes('Все игроки'), '/players all → table');
+  await hook(msg(adm, '/players live off')); ok(lastTo(777).params.text.includes('выключены'), 'live off');
+  await hook(msg(user(9008), '/start')); await env.DB.prepare('UPDATE users SET created_at = ?1 WHERE tg_id = 9008').bind(now() - 120).run();
+  before = tg.calls.length; await cron5(); ok(!tg.calls.slice(before).some(c => c.method === 'sendMessage' && c.params.chat_id === 777), 'live off → silence');
+  await hook(msg(user(9009), '/players')); ok(!docs().some(c => c.params.chat_id === 9009) && !lastTo(9009).params.text.includes('Новые'), '/players is admin-only');
+  // channel post: a picture above the text, tracked button, stats for the workflow
+  const draft = bd => post('/posts/draft', bd, { 'X-Posts-Key': key });
+  eq((await draft({ id: 'p-img', slot_at: now() + 3600, lang: 'ru', text: 'x', image: 'javascript:alert(1)' })).status, 400, 'bad image → 400');
+  let d = await (await draft({ id: 'p-img', slot_at: now() + 3600, lang: 'ru', rubric: 'Роль дня', text: '<b>Шериф</b>', image: 'cards/ru/sheriff.png' })).json();
+  ok(d.ok && d.image === env.APP_URL + 'cards/ru/sheriff.png', 'image path → app site URL');
+  const card = lastTo(777); ok(card.params.link_preview_options.url === env.APP_URL + 'cards/ru/sheriff.png' && card.params.link_preview_options.show_above_text, 'the admin sees the picture');
+  d = await (await draft({ id: 'p-img', slot_at: now() + 3600, lang: 'ru', rubric: 'Роль дня', text: '<b>Шериф</b>', image: 'cards/ru/sheriff.png' })).json(); ok(d.unchanged, 'same picture → unchanged');
+  await hook({ update_id: 700, callback_query: { id: 'qi', from: adm, data: 'cp_now_p-img', message: { message_id: 1, chat: { id: 777 } } } });
+  const cm = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === '@mafiaprof').pop();
+  ok(cm.params.link_preview_options.url.endsWith('cards/ru/sheriff.png') && cm.params.link_preview_options.prefer_large_media && cm.params.reply_markup.inline_keyboard[0][0].url.endsWith('?start=post_p-img'), 'post: picture above, tracked button');
+  eq((await post('/posts/stats', { days: 14 }, { 'X-Posts-Key': 'nope' })).status, 403, 'stats: wrong key → 403');
+  const stt = await (await post('/posts/stats', { days: 14 }, { 'X-Posts-Key': key })).json();
+  const p12 = stt.posts.find(x => x.id === 'p-12'); ok(stt.ok && p12 && p12.visitors === 2 && p12.newPlayers === 1 && p12.status === 'posted', 'stats per post ' + JSON.stringify(p12));
+  ok(!JSON.stringify(stt).includes('user900') && !JSON.stringify(stt).includes('9003'), 'stats carry no personal data');
+  await hook(msg(adm, '/posts')); ok(lastTo(777).params.text.includes('👥 2 перешли, 1 новых'), '/posts shows visitors of a published post');
+  await cfg('growth:live', 'off'); await cfg('growth:digest_at', now() + 86400 * 3);
+  delete env.CHANNEL_ID; }
 
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');

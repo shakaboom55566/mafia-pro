@@ -42,6 +42,16 @@ export class Bot {
     let d = null; try { d = await r.json(); } catch (e) { d = { ok: false, description: `HTTP ${r.status}` }; }
     return d;
   }
+  /* multipart upload (sendDocument and the like): fields + one file */
+  async upload(method, fields, field, filename, bytes, mime) {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(fields || {})) if (v != null) fd.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+    fd.append(field, new Blob([bytes], { type: mime || 'application/octet-stream' }), filename);
+    const r = await fetch(`${this.base}/bot${this.token}/${method}`, { method: 'POST', body: fd });
+    let d = null; try { d = await r.json(); } catch (e) { d = { ok: false, description: `HTTP ${r.status}` }; }
+    return d;
+  }
+  sendDocument(chatId, filename, bytes, caption, mime) { return this.upload('sendDocument', { chat_id: chatId, caption: caption || null, parse_mode: caption ? 'HTML' : null }, 'document', filename, bytes, mime); }
   send(chatId, text, extra) { return this.call('sendMessage', Object.assign({ chat_id: chatId, text, parse_mode: 'HTML', link_preview_options: { is_disabled: true } }, extra || {})); }
   playButton(label, url) { return { reply_markup: { inline_keyboard: [[{ text: label, web_app: { url } }]] } }; }
 }

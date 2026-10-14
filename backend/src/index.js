@@ -33,6 +33,7 @@
    - POST /api/lobbies         open tables I can see (friends, club mates, invitations, my seats)
    - POST /api/table/join      sit down at an open table by code
    - POST /posts/draft         channel post draft from the "Channel posts" workflow (X-Posts-Key); admins approve it in the bot, cron publishes (posts.js)
+   - POST /posts/stats         per channel post: people who came through its button, new players, played (X-Posts-Key; no personal data; growth.js)
    - POST /api/lobby/discord   host: Discord voice room of an online table on / off / resize (seats + 1)
    - POST /api/lobby/voice-confirm  host: everyone is on voice → the deal opens
    - POST /api/table/voice     player: "I'm on voice"
@@ -40,7 +41,8 @@
    - GET  /                   health
    ============================================================ */
 import { Bot, verifyInitData, esc } from './tg.js';
-import { apiPostDraft, onPostCallback, onPostReply, listPosts, runPostsCron } from './posts.js';
+import { apiPostDraft, onPostCallback, onPostReply, listPosts, runPostsCron, postsKey } from './posts.js';
+import { trackStart, trackApp, trackGameNames, runGrowthCron, onPlayersCommand, postStats } from './growth.js';
 import { t, pickLang } from './texts.js';
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
@@ -485,6 +487,7 @@ async function onText(env, bot, msg) {
   await touchUser(env, u);
   const play = bot.playButton(t(lang, 'play'), env.APP_URL);
   const m = /^\/start(?:@\w+)?(?:\s+(\S+))?/.exec(text);
+  await trackStart(env, u, m ? (m[1] || '') : '', isNew); // where new players come from; visitors of tracked links (growth.js)
   if (m) {
     const param = m[1] || '';
     const j = /^join_([A-Z0-9]{4,8})$/i.exec(param);
@@ -499,10 +502,11 @@ async function onText(env, bot, msg) {
     }
     return bot.send(chat, t(lang, 'welcome'), play);
   }
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') : t(lang, 'help'), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') : t(lang, 'help'), play);
   if (isAdmin(env, u.id)) {
     if (msg.reply_to_message && await onPostReply(env, bot, msg)) return;
     if (/^\/posts(?:@\w+)?$/.test(text)) return bot.send(chat, await listPosts(env));
+    if (/^\/players(?:@\w+)?(?:\s|$)/.test(text)) return onPlayersCommand(env, bot, msg);
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
       const target = await findUser(env, g[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(g[2]) }));
@@ -572,6 +576,7 @@ async function apiMe(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const [owned, rating, code, username] = await Promise.all([ownedFor(env, v.user.id), ratingFor(env, v.user.id), inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
   const u = v.user;
+  await trackApp(env, u, v.startParam);
   if (isAdmin(env, u.id)) owned.allUntil = Math.max(owned.allUntil || 0, Date.now() + 3650 * 86400000); // admins own everything
   const credits = await creditsFor(env, u.id); const club = await membershipOf(env, u.id);
   const partner = club && club.owner_id ? await env.DB.prepare('SELECT 1 FROM partners WHERE tg_id = ?1 AND status = ?2').bind(club.owner_id, 'active').first() : null;
@@ -804,6 +809,7 @@ async function apiResult(env, bot, body) {
   const ins = await env.DB.prepare('INSERT OR IGNORE INTO games (game_id, host_id, code, mode, players, winner, summary, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
     .bind(gameId, v.user.id, g.code ? String(g.code).slice(0, 8) : null, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), now()).run();
   const ratings = {};
+  await trackGameNames(env, players);
   if (ins.meta && ins.meta.changes > 0) { // first report of this game → credit the players
     await bumpRating(env, v.user.id, 0, 0, 0, 1);
     for (const p of players) {
@@ -1539,6 +1545,11 @@ export default {
         return new Response('ok'); // always 200 so Telegram does not retry forever
       }
       if (path === '/posts/draft' && req.method === 'POST') { const r = await apiPostDraft(env, bot, req); return json(r.body, r.status); }
+      if (path === '/posts/stats' && req.method === 'POST') { // aggregated per-post numbers for the posting agent (no personal data)
+        if (!env.BOT_TOKEN || (req.headers.get('X-Posts-Key') || '') !== await postsKey(env.BOT_TOKEN)) return json({ ok: false, error: 'forbidden' }, 403);
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        return json(await postStats(env, b && b.days));
+      }
       if (path === '/discord/interactions' && req.method === 'POST') { // Discord slash commands (Interactions Endpoint URL of the application)
         const raw = await req.text();
         if (!(await verifyInteraction(env, req.headers.get('X-Signature-Ed25519'), req.headers.get('X-Signature-Timestamp'), raw))) return new Response('invalid request signature', { status: 401 });
@@ -1621,10 +1632,11 @@ export default {
       return json({ ok: false, error: 'internal' }, 500);
     }
   },
-  /* cron (wrangler.toml [triggers]): channel posts whose time has come */
+  /* cron (wrangler.toml [triggers]): channel posts whose time has come, new players (growth.js), Discord members */
   async scheduled(event, env, ctx) {
     const minute = !!(event && event.cron === '* * * * *'); // every minute: Discord members; every 5 minutes: channel posts
     if (!minute) ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
+    if (!minute) ctx.waitUntil(runGrowthCron(env, new Bot(env)).catch(e => console.error('growth cron', e && e.stack || e))); // new players: notice to admins, daily digest with the table
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
   }
 };

@@ -4,6 +4,9 @@ name: Channel posts
 # the bot DMs it to the admins with "publish at the slot / now / skip" buttons, the worker's cron publishes approved posts to @mafiaprof.
 # Rules and content plan: posts/PLAN.md. Secret: BOT_TOKEN (the request key is derived from it, nothing new to set).
 # Manual: Actions → "Channel posts" → Run workflow (file = posts/2026-10-14-12.md, or empty for all upcoming posts).
+# Every run also appends "## stats": per post of the last 14 days — how many people opened the bot through its button, how many of them were new,
+# how many of those played (aggregates only, no personal data). stats=true runs only that (the posting agent reads it before writing):
+#   gh api -X POST repos/<owner>/<repo>/actions/workflows/posts.yml/dispatches -f ref=main -f 'inputs[stats]=true'
 on:
   push:
     branches: [main]
@@ -15,6 +18,10 @@ on:
         required: false
       force:
         description: 'Re-send even if unchanged'
+        type: boolean
+        default: false
+      stats:
+        description: 'Only the post statistics (no drafts)'
         type: boolean
         default: false
 
@@ -43,7 +50,9 @@ jobs:
           BEFORE: ${{ github.event.before }}
           INPUT_FILE: ${{ inputs.file }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ inputs.stats }}" = "true" ]; then
+            : > files.txt
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ -n "$INPUT_FILE" ]; then echo "$INPUT_FILE" > files.txt; else ls posts/*.md | grep -v '/PLAN.md$' > files.txt || true; fi
           elif [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
             ls posts/*.md | grep -v '/PLAN.md$' > files.txt || true
@@ -82,7 +91,7 @@ jobs:
                 if (slotAt < Date.now() / 1000 - 6 * 3600) { log(`${f}: slot ${meta.slot} is in the past — skipped`); continue; }
                 const text = m[2].trim();
                 if (/\*\*|^#{1,6} /m.test(text)) log(`${f}: warning — markdown found, Telegram HTML expected`);
-                const body = { id: f.replace(/^posts\//, "").replace(/\.md$/, ""), slot_at: slotAt, lang: meta.lang || "uk", rubric: meta.rubric || "", text, force: process.env.FORCE === "true" };
+                const body = { id: f.replace(/^posts\//, "").replace(/\.md$/, ""), slot_at: slotAt, lang: meta.lang || "uk", rubric: meta.rubric || "", image: meta.image || "", text, force: process.env.FORCE === "true" };
                 let res = null, out = "";
                 for (let i = 1; i <= 10; i++) { // the backend may still be deploying in a parallel run
                   try { res = await fetch(api + "/posts/draft", { method: "POST", headers: { "Content-Type": "application/json", "X-Posts-Key": key }, body: JSON.stringify(body) }); out = await res.text(); } catch (e) { out = String(e); res = null; }
@@ -98,17 +107,40 @@ jobs:
             })();
           '
 
+      - name: Post statistics (no personal data)
+        if: always()
+        continue-on-error: true
+        run: |
+          API=$(cat .mafia-api-url 2>/dev/null | tr -d '[:space:]'); export API
+          node -e '
+            const fs = require("fs"), crypto = require("crypto");
+            const key = crypto.createHash("sha256").update(process.env.BOT_TOKEN + ":mafia-pro-posts").digest("hex").slice(0, 48);
+            const log = s => { console.log(s); fs.appendFileSync(process.env.LOG, s + "\n"); };
+            (async () => {
+              let d = null;
+              for (let i = 1; i <= 3 && !d; i++) { try { const r = await fetch(process.env.API + "/posts/stats", { method: "POST", headers: { "Content-Type": "application/json", "X-Posts-Key": key }, body: JSON.stringify({ days: 14 }) }); if (r.ok) d = await r.json(); else log(`stats: HTTP ${r.status}`); } catch (e) { log("stats: " + e); } if (!d) await new Promise(r => setTimeout(r, 15000)); }
+              if (!d || !d.ok) return log("## stats\n(unavailable)");
+              log(`## stats (${d.days} days; people who opened the bot through the post button · of them new players · new who already played)`);
+              log("slot · lang · rubric · status · visitors · new · played · file");
+              for (const p of d.posts) log(`${p.slot} · ${p.lang} · ${p.rubric || "—"} · ${p.status} · ${p.visitors} · ${p.newPlayers} · ${p.played} · posts/${p.id}.md`);
+              if (!d.posts.length) log("(no posts in this period)");
+              log(`old "channel" button: ${d.channel.visitors} · new ${d.channel.newPlayers}`);
+            })();
+          '
+
       - name: Post the log as a commit comment
-        if: always() && steps.files.outputs.count != '0'
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
+          STATS_ONLY: ${{ inputs.stats }}
         run: |
           node -e '
             const fs = require("fs"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
             const v = process.env.BOT_TOKEN; if (v && v.length > 3) s = s.split(v).join("<BOT_TOKEN>");
             s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>");
-            const body = "**Channel posts** run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s.slice(-12000) + "\n```";
+            const title = process.env.STATS_ONLY === "true" ? "**Channel posts stats**" : "**Channel posts**";
+            const body = title + " run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s.slice(-12000) + "\n```";
             fs.writeFileSync(process.env.RUNNER_TEMP + "/comment.json", JSON.stringify({ body }));
           '
           gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input "$RUNNER_TEMP/comment.json" > /dev/null && echo "log posted"

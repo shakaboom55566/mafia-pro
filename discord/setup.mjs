@@ -83,7 +83,7 @@ export const LANG_CHANNELS = { lib: ['rules', 'howto', 'cardsMafia', 'cardsCity'
 export function buildContent(app, ctx, lang = 'ru') {
   const { L } = app; const t = T[lang]; const R = id => (L.roles[id] || {}).name || id;
   const ch = k => { const id = ctx.ids[k === 'language' ? k : LK(k, lang)]; return id ? `<#${id}>` : `#${k}`; };
-  const tgLink = ctx.botUsername ? `https://t.me/${ctx.botUsername}` : null;
+  const tgLink = ctx.botUsername ? `https://t.me/${ctx.botUsername}?start=dc` : null; // start=dc: the bot counts players who came from Discord
   const pack = app.PACKS.diplomacy; const packName = (L.ui && L.ui.packTitle) || 'Diplomacy';
   const buttons = linkButtons([{ label: t.btnTg, url: tgLink }, { label: t.btnWeb, url: ctx.appUrl }]);
   const compText = ids => { const c = {}; ids.forEach(id => { c[id] = (c[id] || 0) + 1; }); return Object.entries(c).map(([id, n]) => R(id) + (n > 1 ? ` ×${n}` : '')).join(', '); };
@@ -150,7 +150,7 @@ export function buildContent(app, ctx, lang = 'ru') {
 
 /* the channels everyone sees: welcome, the language chooser (buttons), news */
 export function buildShared(ctx) {
-  const tgLink = ctx.botUsername ? `https://t.me/${ctx.botUsername}` : null; const r = ctx.roleIds || {};
+  const tgLink = ctx.botUsername ? `https://t.me/${ctx.botUsername}?start=dc` : null; const r = ctx.roleIds || {}; // start=dc: the bot counts players who came from Discord
   const lang = ctx.ids.language ? `<#${ctx.ids.language}>` : '#language';
   const line = (l, s) => `${T[l].emoji || '▫️'} **${T[l].name}** — ${s}`;
   const welcome = { title: '🎩 Mafia Pro', color: COLOR.gold, description: LANG_ORDER.map(l => line(l, T[l].hello)).join('\n\n') + `\n\n🌐 → ${lang}` };

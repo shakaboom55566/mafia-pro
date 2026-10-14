@@ -347,3 +347,33 @@ CREATE TABLE IF NOT EXISTS discord_links (
   username    TEXT,
   created_at  INTEGER NOT NULL
 );
+-- player growth (v42): where each player came from (first contact with the bot or the app) and the name they play under
+CREATE TABLE IF NOT EXISTS player_track (
+  tg_id      INTEGER PRIMARY KEY,
+  source     TEXT,                   -- ref | friend | table | post | channel | ads | site | discord | app | bot | other; NULL = joined before tracking
+  detail     TEXT,                   -- inviter tg id / table code / channel post id / ad tag / site language
+  param      TEXT,                   -- the raw /start or startapp parameter
+  game_name  TEXT,                   -- the player's name in the last reported game
+  game_at    INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS player_track_source ON player_track (source);
+-- people who opened the bot through a tracked link (button under a channel post, ads, site, Discord): one row per link and person
+CREATE TABLE IF NOT EXISTS start_hits (
+  param      TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  is_new     INTEGER NOT NULL DEFAULT 0,   -- 1 = the person's first contact with the bot came through this link
+  hits       INTEGER NOT NULL DEFAULT 1,
+  first_at   INTEGER NOT NULL,
+  last_at    INTEGER NOT NULL,
+  PRIMARY KEY (param, tg_id)
+);
+CREATE INDEX IF NOT EXISTS start_hits_last ON start_hits (last_at);
+CREATE INDEX IF NOT EXISTS lobby_players_tg ON lobby_players (tg_id, joined_at);
+CREATE INDEX IF NOT EXISTS users_created ON users (created_at);
+-- a picture above a channel post (front matter "image:"), shown as a large link preview
+CREATE TABLE IF NOT EXISTS channel_post_media (
+  id         TEXT PRIMARY KEY,       -- channel_posts.id
+  image      TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

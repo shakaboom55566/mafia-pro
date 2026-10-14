@@ -1,6 +1,8 @@
 /* Channel posts (v34): drafts written daily into posts/ of the repository are sent here by the "Channel posts" workflow,
    the admins get each draft in a DM with buttons, and an approved post goes to the channel (CHANNEL_ID) at its slot time.
-   - POST /posts/draft  {id, slot_at, slot_label, lang, rubric, text}  header X-Posts-Key = sha256(BOT_TOKEN + ':mafia-pro-posts')[0..48]
+   - POST /posts/draft  {id, slot_at, slot_label, lang, rubric, text, image}  header X-Posts-Key = sha256(BOT_TOKEN + ':mafia-pro-posts')[0..48]
+     image (optional): a picture above the text — a path on the app's site (cards/uk/sheriff.png) or an https URL; shown as a large link preview
+   - the button under a published post opens the bot with start=post_<id>, so growth.js counts who came through which post
    - callbacks cp_ok_<id> (publish at the slot), cp_now_<id> (publish now), cp_skip_<id>, cp_retry_<id>
    - an admin's reply to a draft message replaces the draft text (formatting kept) and the draft is re-sent
    - /posts — the next drafts and their status
@@ -18,7 +20,15 @@ const MAX_TEXT = 3500;
 
 export async function postsKey(token) { return hex(await crypto.subtle.digest('SHA-256', enc(String(token) + ':mafia-pro-posts'))).slice(0, 48); }
 
-const row = (env, id) => env.DB.prepare('SELECT * FROM channel_posts WHERE id = ?1').bind(id).first();
+const row = (env, id) => env.DB.prepare('SELECT p.*, m.image FROM channel_posts p LEFT JOIN channel_post_media m ON m.id = p.id WHERE p.id = ?1').bind(id).first();
+/* a picture above the post: an https URL, or a path on the app's site (APP_URL), e.g. cards/uk/sheriff.png */
+function cleanImage(env, v) {
+  const s = String(v || '').trim(); if (!s) return null;
+  if (/^https:\/\/[^\s"'<>]{4,300}$/.test(s)) return s;
+  if (/^[A-Za-z0-9_][A-Za-z0-9_./-]{2,200}$/.test(s) && !s.includes('..')) return String(env.APP_URL || 'https://mafiapro.app/').replace(/\/?$/, '/') + s.replace(/^\/+/, '');
+  return null;
+}
+const preview = p => (p && p.image ? { link_preview_options: { url: p.image, prefer_large_media: true, show_above_text: true } } : {});
 const fmtSlot = ts => { try { return new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Kiev', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(ts * 1000)).replace(',', ''); } catch (e) { return new Date(ts * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; } };
 const STATUS = { draft: '📝 черновик', approved: '✅ одобрен — выйдет в срок', posted: '📣 опубликован', skipped: '⏭ пропущен', failed: '⚠️ не опубликован' };
 
@@ -54,8 +64,8 @@ function draftButtons(p) {
 async function sendCards(env, bot, p, warn) {
   const msgs = [];
   for (const adm of adminIds(env)) {
-    let r = await bot.send(adm, draftCard(p, warn), { reply_markup: draftButtons(p) });
-    if (!(r && r.ok)) r = await bot.call('sendMessage', { chat_id: adm, text: draftCard(p, warn).replace(/<[^>]+>/g, ''), reply_markup: draftButtons(p) }); // broken HTML in the draft
+    let r = await bot.send(adm, draftCard(p, warn), Object.assign({ reply_markup: draftButtons(p) }, preview(p)));
+    if (!(r && r.ok)) r = await bot.call('sendMessage', Object.assign({ chat_id: adm, text: draftCard(p, warn).replace(/<[^>]+>/g, ''), reply_markup: draftButtons(p) }, preview(p))); // broken HTML in the draft
     if (r && r.ok && r.result) msgs.push({ chat: adm, msg: r.result.message_id });
   }
   await env.DB.prepare('UPDATE channel_posts SET admin_msgs = ?1, updated_at = ?2 WHERE id = ?3').bind(JSON.stringify(msgs), now(), p.id).run();
@@ -64,8 +74,8 @@ async function sendCards(env, bot, p, warn) {
 async function refreshCards(env, bot, p) {
   let msgs = []; try { msgs = JSON.parse(p.admin_msgs || '[]'); } catch (e) {}
   for (const m of msgs) {
-    const r = await bot.call('editMessageText', { chat_id: m.chat, message_id: m.msg, text: draftCard(p), parse_mode: 'HTML', reply_markup: draftButtons(p), link_preview_options: { is_disabled: true } });
-    if (!(r && r.ok)) await bot.call('editMessageText', { chat_id: m.chat, message_id: m.msg, text: draftCard(p).replace(/<[^>]+>/g, ''), reply_markup: draftButtons(p) });
+    const r = await bot.call('editMessageText', Object.assign({ chat_id: m.chat, message_id: m.msg, text: draftCard(p), parse_mode: 'HTML', reply_markup: draftButtons(p), link_preview_options: { is_disabled: true } }, preview(p)));
+    if (!(r && r.ok)) await bot.call('editMessageText', Object.assign({ chat_id: m.chat, message_id: m.msg, text: draftCard(p).replace(/<[^>]+>/g, ''), reply_markup: draftButtons(p) }, preview(p)));
   }
 }
 
@@ -78,24 +88,27 @@ export async function apiPostDraft(env, bot, req) {
   if (!/^[A-Za-z0-9_-]{4,40}$/.test(id) || !text || !slot) return { status: 400, body: { ok: false, error: 'bad_post' } };
   if (text.length > MAX_TEXT) return { status: 400, body: { ok: false, error: 'too_long', max: MAX_TEXT } };
   const lang = /^(uk|ru|en|pl|hy)$/.test(b.lang) ? b.lang : 'uk'; const rubric = String(b.rubric || '').slice(0, 60);
+  const image = cleanImage(env, b.image); if (b.image && !image) return { status: 400, body: { ok: false, error: 'bad_image' } };
   const old = await row(env, id);
   if (old && old.status !== 'draft' && !b.force) return { status: 200, body: { ok: true, id, status: old.status, unchanged: true } };
-  if (old && old.status === 'draft' && old.text === text && old.slot_at === slot && !b.force) return { status: 200, body: { ok: true, id, status: 'draft', unchanged: true } };
+  if (old && old.status === 'draft' && old.text === text && old.slot_at === slot && (old.image || null) === image && !b.force) return { status: 200, body: { ok: true, id, status: 'draft', unchanged: true } };
   const ts = now();
   await env.DB.prepare(`INSERT INTO channel_posts (id, slot_at, lang, rubric, text, status, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, 'draft', ?6, ?6)
     ON CONFLICT(id) DO UPDATE SET slot_at = ?2, lang = ?3, rubric = ?4, text = ?5, status = 'draft', error = NULL, updated_at = ?6`).bind(id, slot, lang, rubric, text, ts).run();
+  if (image) await env.DB.prepare('INSERT INTO channel_post_media (id, image, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(id) DO UPDATE SET image = ?2, updated_at = ?3').bind(id, image, ts).run();
+  else await env.DB.prepare('DELETE FROM channel_post_media WHERE id = ?1').bind(id).run();
   if (old && old.admin_msgs) { try { for (const m of JSON.parse(old.admin_msgs)) await bot.call('deleteMessage', { chat_id: m.chat, message_id: m.msg }); } catch (e) {} }
   const p = await row(env, id);
   const warn = await channelProblem(env, bot);
   const sent = await sendCards(env, bot, p, warn);
-  return { status: 200, body: { ok: true, id, status: 'draft', sentTo: sent, channel: channelOf(env), channelProblem: warn || null } };
+  return { status: 200, body: { ok: true, id, status: 'draft', sentTo: sent, channel: channelOf(env), channelProblem: warn || null, image: image || null } };
 }
 
 /* publish one post now */
 async function publish(env, bot, p) {
   const lang = p.lang || 'uk';
   const user = await botUsernameOf(env, bot);
-  const extra = { reply_markup: { inline_keyboard: [[{ text: PLAY[lang] || PLAY.uk, url: `https://t.me/${user}?start=channel` }]] } };
+  const extra = Object.assign({ reply_markup: { inline_keyboard: [[{ text: PLAY[lang] || PLAY.uk, url: `https://t.me/${user}?start=post_${p.id}` }]] } }, preview(p)); // post_<id>: growth.js counts who came through this post
   // claim the post first so two cron runs never publish it twice
   const claim = await env.DB.prepare("UPDATE channel_posts SET status = 'posting', updated_at = ?1 WHERE id = ?2 AND status IN ('approved', 'draft', 'failed')").bind(now(), p.id).run();
   if (!(claim.meta && claim.meta.changes > 0)) return row(env, p.id);
@@ -169,16 +182,17 @@ export async function onPostReply(env, bot, msg) {
 
 /* /posts — upcoming and recent posts */
 export async function listPosts(env) {
-  const rows = (await env.DB.prepare('SELECT id, slot_at, lang, rubric, status FROM channel_posts WHERE slot_at > ?1 ORDER BY slot_at LIMIT 20').bind(now() - 2 * 86400).all()).results || [];
+  const rows = (await env.DB.prepare(`SELECT p.id, p.slot_at, p.lang, p.rubric, p.status, (SELECT COUNT(*) FROM start_hits h WHERE h.param = 'post_' || p.id) AS visitors,
+      (SELECT COUNT(*) FROM start_hits h WHERE h.param = 'post_' || p.id AND h.is_new = 1) AS newp FROM channel_posts p WHERE p.slot_at > ?1 ORDER BY p.slot_at LIMIT 20`).bind(now() - 3 * 86400).all()).results || [];
   if (!rows.length) return `Постов для канала ${esc(channelOf(env) || '—')} пока нет.`;
-  return `<b>Посты для ${esc(channelOf(env) || '—')}</b>\n` + rows.map(p => `• ${fmtSlot(p.slot_at)} · ${FLAG[p.lang] || esc(p.lang)} · ${esc(p.rubric || p.id)} — ${STATUS[p.status] || esc(p.status)}`).join('\n');
+  return `<b>Посты для ${esc(channelOf(env) || '—')}</b>\n` + rows.map(p => `• ${fmtSlot(p.slot_at)} · ${FLAG[p.lang] || esc(p.lang)} · ${esc(p.rubric || p.id)} — ${STATUS[p.status] || esc(p.status)}${p.status === 'posted' ? ` · 👥 ${p.visitors} перешли, ${p.newp} новых` : ''}`).join('\n');
 }
 
 /* cron: publish approved posts whose time has come; a post stuck in 'posting' for 10 minutes is retried */
 export async function runPostsCron(env, bot) {
   if (!channelOf(env)) return 0;
   await env.DB.prepare("UPDATE channel_posts SET status = 'approved' WHERE status = 'posting' AND updated_at < ?1").bind(now() - 600).run();
-  const due = (await env.DB.prepare("SELECT * FROM channel_posts WHERE status = 'approved' AND slot_at <= ?1 AND slot_at > ?2 ORDER BY slot_at LIMIT 5").bind(now(), now() - 2 * 86400).all()).results || [];
+  const due = (await env.DB.prepare("SELECT p.*, m.image FROM channel_posts p LEFT JOIN channel_post_media m ON m.id = p.id WHERE p.status = 'approved' AND p.slot_at <= ?1 AND p.slot_at > ?2 ORDER BY p.slot_at LIMIT 5").bind(now(), now() - 2 * 86400).all()).results || [];
   for (const p of due) await publish(env, bot, p);
   return due.length;
 }
