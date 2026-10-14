@@ -549,20 +549,26 @@ function voteBody(g) {
   // candidates strip (round 1: removable, addable)
   const candHTML = cands.length ? `<div class="cand-strip">${cands.map(cid => { const c = P(g, cid); const row = t.rows.find(r => r.cid === cid); return `<div class="cand-chip ${t.leaders.includes(cid) && t.max > 0 ? 'lead' : ''}"><span class="seat">${c.seat}</span><span class="nm">${esc(c.name)}</span><span class="cnt">${fmt(row.total)}${row.anon ? ` <small>${tt(u.anonTag, { n: row.anon })}</small>` : ''}${row.x2 ? ` <small>${u.x2Tag}</small>` : ''}</span>${round2 || (b.forced || []).includes(cid) ? '' : `<button class="x" data-a="vote-remove" data-id="${cid}" aria-label="${u.voteRemove}">×</button>`}</div>`; }).join('')}</div>` : '';
   const addable = round2 || (isClassic(g) && cands.length) ? [] : al.filter(p => !cands.includes(p.id) && canNominate(g, p.id));
-  const showPick = addable.length && (!cands.length || S.ui.candPick);
+  // the table picks players directly (they become candidates by the vote), so the big nomination picker opens only on request
+  const free = !round2 && !isClassic(g);
+  const showPick = addable.length && S.ui.candPick;
   const pickCand = !addable.length ? '' : showPick ? `<div class="hint">${u.nominated}</div><div class="picker">${addable.map(p => `<button class="pk" data-a="cand" data-id="${p.id}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>`).join('')}</div>` : `<button class="btn ghost sm" data-a="cand-pick" style="align-self:flex-start">+ ${u.addCand}</button>`;
-  // voter-by-voter stepper: the host asks each player in turn whom they vote for
-  let stepper = '', grid = '', tallyHTML = '';
+  // voting table: every voter in the day's order, one row each — "Player 1 votes → picks a player"
+  let table = '', tallyHTML = '';
+  if (cands.length || free) {
+    const idx = voterIndex(g, voters); const curV = voters[idx];
+    const open = S.ui.vtOpen && voters.some(v => v.id === S.ui.vtOpen) ? S.ui.vtOpen : (!cands.length && curV ? curV.id : null);
+    const rows = voters.map(v => {
+      const mine = b.votes[v.id]; const w = voteWeight(g, v.id);
+      const chips = cands.filter(c => c !== v.id).map(cid => `<button class="vt-c ${mine === cid ? 'sel' : ''}" data-a="vt-pick" data-v="${v.id}" data-c="${cid}" aria-label="${esc(P(g, cid).name)}">${P(g, cid).seat}</button>`).join('');
+      const others = free ? al.filter(p => p.id !== v.id && !cands.includes(p.id) && canNominate(g, p.id)) : [];
+      const more = others.length ? `<button class="vt-c more ${open === v.id ? 'on' : ''}" data-a="vt-more" data-v="${v.id}" aria-label="${u.vtOther}">${cands.length ? '+' : u.vtPick}</button>` : '';
+      const list = open === v.id && others.length ? `<div class="vt-more">${others.map(p => `<button class="vt-c" data-a="vt-pick" data-v="${v.id}" data-c="${p.id}" aria-label="${esc(p.name)}">${p.seat}</button>`).join('')}</div>` : '';
+      return `<div class="vt-row ${v === curV ? 'cur' : ''} ${mine ? 'on' : ''}"><div class="vt-who"><span class="seat">${v.seat}</span><span class="nm">${esc(v.name)}</span>${w !== 1 ? `<span class="w">×${fmt(w)}</span>` : ''}</div><div class="vt-picks">${chips}${more}</div>${list}</div>`;
+    }).join('');
+    table = `<div class="panel vote-table"><div class="eyebrow gold">${u.vtTitle}</div><div class="hint" style="margin:4px 0 8px">${free ? u.vtHintFree : u.vtHint}</div><div class="vt-list">${rows}</div>${curV ? '' : `<div class="okbox" style="margin-top:8px">${u.allVoted}</div>`}</div>`;
+  }
   if (cands.length) {
-    const idx = voterIndex(g, voters); const v = voters[idx];
-    if (v) {
-      const mine = b.votes[v.id];
-      stepper = `<div class="panel raised vote-step"><div class="speaker"><span class="seat">${v.seat}</span><div><div class="n">${esc(v.name)}</div><div class="s">${tt(u.voterOf, { i: idx + 1, n: voters.length })}${mine ? ' · ' + tt(u.votedFor, { seat: P(g, mine).seat }) : ''}</div></div></div>
-        <div class="hint" style="margin-top:8px">${u.voterPick}</div>
-        <div class="picker vote-pick" style="margin-top:8px">${cands.filter(c => c !== v.id).map(cid => { const c = P(g, cid); return `<button class="pk ${mine === cid ? 'sel' : ''}" data-a="vote" data-c="${cid}" data-v="${v.id}"><span class="seat">${c.seat}</span><span class="nm">${esc(c.name)}</span></button>`; }).join('')}</div>
-        <div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="voter-step" data-d="-1" ${idx === 0 ? 'disabled' : ''}>${u.back}</button><button class="btn ghost sm" data-a="voter-step" data-d="1" ${idx >= voters.length - 1 ? 'disabled' : ''}>${u.voterSkip}</button></div></div>`;
-    } else stepper = `<div class="okbox">${u.allVoted}</div>`;
-    grid = `<div class="voters-grid">${voters.map((p, i) => `<button class="vg ${b.votes[p.id] ? 'on' : ''} ${i === idx ? 'cur' : ''}" data-a="voter-go" data-i="${i}"><span class="s">${p.seat}</span><span class="t">${b.votes[p.id] ? '→ ' + P(g, b.votes[p.id]).seat : '—'}</span></button>`).join('')}</div>`;
     const nv = voters.filter(p => !b.votes[p.id]);
     tallyHTML = `<div class="panel"><div class="eyebrow">${u.tallyTitle}</div><div class="tally" style="margin-top:8px">${t.rows.map(r => { const c = P(g, r.cid); const who = Object.keys(b.votes).filter(x => b.votes[x] === r.cid).map(x => P(g, x).seat).sort((x, y) => x - y); return `<div class="tr ${t.leaders.includes(r.cid) && t.max > 0 ? 'lead' : ''}"><span class="n">${c.seat} · ${esc(c.name)}</span><span class="b"><i style="width:${t.max ? 100 * r.total / t.max : 0}%"></i></span><span class="v">${fmt(r.total)}${r.capped ? '*' : ''}</span><span class="who">${who.length ? tt(u.votersOf, { list: who.join(', ') }) : '—'}${r.anon ? ' · ' + tt(u.anonTag, { n: r.anon }) : ''}${r.x2 ? ' · ' + u.x2Tag : ''}</span></div>`; }).join('')}</div>${nv.length ? `<div class="hint" style="margin-top:8px">${tt(u.noVoters, { list: nv.map(p => p.seat).join(', ') })}</div>` : ''}</div>`;
   }
@@ -604,8 +610,8 @@ function voteBody(g) {
     <div class="panel"><div class="eyebrow">${u.hostOnlyShort}</div><div class="hint">${caps.length ? caps.join(' · ') : u.noMods}</div></div>
     ${kamikazeHTML(g)}
     ${candHTML}${pickCand}
-    ${cands.length ? '' : `<div class="hint">${u.addCands}</div>`}
-    ${stepper}${grid}${tallyHTML}
+    ${cands.length || free ? '' : `<div class="hint">${u.addCands}</div>`}
+    ${table}${tallyHTML}
     ${verdict}${judgeBtn || prosHTML || bailiffHTML ? `<div class="btn-row" style="flex-wrap:wrap">${judgeBtn}${prosHTML}${bailiffHTML}</div>` : ''}`;
 }
 /* classic: nomination inside the speech (one per speaker) */
@@ -986,8 +992,10 @@ const ACT = {
     render();
   },
   cand(el) { const g = S.game; if (!canNominate(g, el.dataset.id) || g.ballot.candidates.includes(el.dataset.id)) return; g.ballot.candidates.push(el.dataset.id); S.ui.candPick = false; render(); },
+  'vt-pick'(el) { const g = S.game; const id = el.dataset.v; if (!castVote(g, id, el.dataset.c)) return; S.ui.vtOpen = null; voterSet(g, voteOrder(g).findIndex(v => v.id === id)); if (g.ballot.votes[id]) voterAdvance(g); render(); },
+  'vt-more'(el) { const id = el.dataset.v; S.ui.vtOpen = S.ui.vtOpen === id ? null : id; render(); },
   'vote-open'(el) { S.ui.voteOpen = S.ui.voteOpen === el.dataset.id ? null : el.dataset.id; render(); },
-  'vote-remove'(el) { const b = S.game.ballot; if ((b.forced || []).includes(el.dataset.id)) return; b.candidates = b.candidates.filter(c => c !== el.dataset.id); Object.keys(b.votes).forEach(v => { if (b.votes[v] === el.dataset.id) delete b.votes[v]; }); render(); },
+  'vote-remove'(el) { const b = S.game.ballot; if ((b.forced || []).includes(el.dataset.id)) return; b.candidates = b.candidates.filter(c => c !== el.dataset.id); b.auto = (b.auto || []).filter(c => c !== el.dataset.id); Object.keys(b.votes).forEach(v => { if (b.votes[v] === el.dataset.id) delete b.votes[v]; }); render(); },
   vote(el) { const g = S.game; const b = g.ballot; const v = el.dataset.v, c = el.dataset.c; if (b.votes[v] === c) delete b.votes[v]; else { b.votes[v] = c; voterAdvance(g); } render(); },
   'voter-step'(el) { const g = S.game; const voters = voteOrder(g); voterSet(g, Math.max(0, Math.min(voters.length - 1, voterIndex(g, voters) + (+el.dataset.d)))); render(); },
   'voter-go'(el) { voterSet(S.game, +el.dataset.i); render(); },

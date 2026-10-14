@@ -540,6 +540,37 @@ clearInterval(X.T.iv);
   A.stage(el('stage', { id: 'balagan' })); A.stage(el('stage', { id: 'speeches' })); check('v46 day 2 speeches');
   console.log('v46 ok: first speakers', first1.seat, '→', first2.seat);
 }
+// ---------------- v47: the host's voting table — every voter picks a player, candidates appear by the vote ----------------
+{
+  const RUN = vm.runInContext.bind(vm); const E = name => RUN(name, ctx);
+  const F = msg => { fails++; console.log('FAIL', msg); };
+  A.new(); S = X.S(); S.setup.n = 10; S.setup.scenario = null;
+  S.setup.comp = ['don', 'mafia', 'mafia', 'sheriff', 'doctor', 'mayor', 'journalist', 'judge', 'bomb', 'drunk'];
+  X.render(); A.deal(); for (let i = 0; i < 10; i++) { A.flip(); A.hide(); }
+  A.start(); let g = S.game; let gd = 0; while (g.steps[g.stepIdx] && gd++ < 40) A.next();
+  A.day0(); gd = 0; while (X.alive(g)[g.speechIdx] && gd++ < 40) A.speech(el('speech', { d: '1' }));
+  A.night(); g = S.game; gd = 0; while (g.steps[g.stepIdx] && gd++ < 60) { const st = g.steps[g.stepIdx]; if (st.type === 'act' && !st.disabled) { A.skip(); continue; } A.next(); }
+  A.resolve(); g = S.game; A.stage(el('stage', { id: 'vote' })); check('v47 vote table empty');
+  const vs = E('voteOrder')(g); const h0 = app.innerHTML;
+  if ((h0.match(/class="vt-row/g) || []).length !== vs.length) F('one table row per voter expected');
+  if (!h0.includes(`data-a="vt-pick" data-v="${vs[0].id}"`)) F('first voter should have the player list open');
+  const a = vs[3], bb = vs[5];
+  A['vt-pick'](el('vt-pick', { v: vs[0].id, c: a.id })); check('v47 first vote');
+  if (!g.ballot.candidates.includes(a.id) || g.ballot.votes[vs[0].id] !== a.id) F('a vote should make the player a candidate');
+  A['vt-more'](el('vt-more', { v: vs[1].id })); check('v47 other player list');
+  A['vt-pick'](el('vt-pick', { v: vs[1].id, c: bb.id })); A['vt-pick'](el('vt-pick', { v: vs[2].id, c: a.id }));
+  A['vt-pick'](el('vt-pick', { v: vs[1].id, c: a.id })); check('v47 changed vote');
+  if (g.ballot.candidates.includes(bb.id)) F('a candidate nobody votes for any more (not nominated on purpose) should go');
+  A['vt-pick'](el('vt-pick', { v: vs[0].id, c: vs[0].id })); if (g.ballot.votes[vs[0].id] !== a.id) F('nobody votes for himself');
+  A['vt-pick'](el('vt-pick', { v: vs[2].id, c: a.id })); if (g.ballot.votes[vs[2].id]) F('tapping the chosen player again clears the vote');
+  A.cand(el('cand', { id: bb.id })); A['vt-pick'](el('vt-pick', { v: vs[2].id, c: bb.id })); A['vt-pick'](el('vt-pick', { v: vs[2].id, c: bb.id }));
+  if (!g.ballot.candidates.includes(bb.id)) F('a candidate nominated on purpose stays without votes');
+  vs.filter(v => v.id !== a.id && !g.ballot.votes[v.id]).forEach(v => A['vt-pick'](el('vt-pick', { v: v.id, c: a.id }))); A['vt-pick'](el('vt-pick', { v: a.id, c: bb.id })); check('v47 everyone voted');
+  if (!app.innerHTML.includes(X.U().allVoted)) F('all voted note missing');
+  if (X.voteOutcome(g).kind !== 'leader') F('expected a leader after the table vote');
+  A['vote-finish'](el('vote-finish', { id: a.id })); check('v47 result');
+  console.log('v47 ok: table rows', vs.length);
+}
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
 process.exit(fails ? 1 : 0);

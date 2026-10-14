@@ -420,6 +420,21 @@ p { margin: 0; }
 .voters-grid .vg.on { border-color: var(--gold-dim); }
 .voters-grid .vg.on .t { color: var(--gold-2); }
 .voters-grid .vg.cur { border-color: var(--gold); background: rgba(216,169,76,.14); }
+/* vote: the host's table — every voter in the day's order picks a player */
+.vt-list { display: flex; flex-direction: column; gap: 6px; }
+.vt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--line); }
+.vt-row.on { border-color: var(--line-2); }
+.vt-row.cur { border-color: var(--gold); background: rgba(216,169,76,.10); }
+.vt-who { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 96px; }
+.vt-who .seat { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-weight: 700; font-size: 13px; background: var(--bg-3); border: 1px solid var(--line-2); }
+.vt-who .nm { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-who .w { flex: none; font-family: var(--font-mono); font-size: 11px; color: var(--gold-2); }
+.vt-picks { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-left: auto; }
+.vt-c { min-width: 36px; height: 36px; padding: 0 9px; border-radius: 999px; background: var(--bg-3); border: 1px solid var(--line-2); color: var(--fg); font-family: var(--font-mono); font-weight: 700; font-size: 13.5px; }
+.vt-c.sel { background: var(--gold); border-color: transparent; color: #1a1206; }
+.vt-c.more { color: var(--muted); font-family: inherit; font-size: 12.5px; }
+.vt-c.more.on { border-color: var(--gold); color: var(--gold-2); }
+.vt-more { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--line-2); }
 /* post-game review */
 .counter-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .counter-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line-2); color: var(--fg); font-size: 12.5px; font-weight: 700; }

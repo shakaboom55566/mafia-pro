@@ -89,3 +89,9 @@ Object.assign(I18N.hy.ui, {
   tbAzazelNight: 'Ձեզ սպանել են գիշերը։ Որպես Ազազել՝ կարող եք ձեզ հետ տանել ցանկացած խաղացողի կամ հրաժարվել։'
 });
 Object.assign(I18N.hy.e, { logAzazelSkip: '{player}-ը (Ազազել) ոչ ոքի չտարավ', logUndo: 'Վարողը խաղը հետ վերադարձրեց՝ {what}' });
+/* v47: the host's voting table — "Player 1 votes → picks a player", row by row */
+Object.assign(I18N.ru.ui, { vtTitle: 'Кто за кого голосует', vtHint: 'Идите по списку: отметьте, за кого голосует каждый игрок.', vtHintFree: 'Идите по списку: каждый игрок называет, за кого голосует, — отметьте его выбор. Кандидаты появятся сами.', vtOther: 'Другой игрок', vtPick: 'Выбрать' });
+Object.assign(I18N.uk.ui, { vtTitle: 'Хто за кого голосує', vtHint: 'Ідіть за списком: позначте, за кого голосує кожен гравець.', vtHintFree: 'Ідіть за списком: кожен гравець називає, за кого голосує, — позначте його вибір. Кандидати з’являться самі.', vtOther: 'Інший гравець', vtPick: 'Обрати' });
+Object.assign(I18N.en.ui, { vtTitle: 'Who votes for whom', vtHint: 'Go down the list and mark whom each player votes for.', vtHintFree: 'Go down the list: each player names whom they vote for — mark the choice. Candidates appear by themselves.', vtOther: 'Another player', vtPick: 'Pick' });
+Object.assign(I18N.pl.ui, { vtTitle: 'Kto na kogo głosuje', vtHint: 'Idź po liście i zaznacz, na kogo głosuje każdy gracz.', vtHintFree: 'Idź po liście: każdy gracz mówi, na kogo głosuje — zaznacz jego wybór. Kandydaci pojawią się sami.', vtOther: 'Inny gracz', vtPick: 'Wybierz' });
+Object.assign(I18N.hy.ui, { vtTitle: 'Ով ում օգտին է քվեարկում', vtHint: 'Անցեք ցուցակով և նշեք, թե ում օգտին է քվեարկում յուրաքանչյուր խաղացող։', vtHintFree: 'Անցեք ցուցակով․ յուրաքանչյուր խաղացող ասում է, թե ում օգտին է քվեարկում, — նշեք նրա ընտրությունը։ Թեկնածուները կհայտնվեն ինքնըստինքյան։', vtOther: 'Այլ խաղացող', vtPick: 'Ընտրել' });

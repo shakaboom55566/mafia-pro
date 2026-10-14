@@ -657,6 +657,23 @@ function rouletteGuess(g, n) {
   addLog(g, tt(L.e.logRouletteMiss, { player: label(p), n }));
   r.turn += 1; return { hit: false, p };
 }
+/* the host's voting table: a voter picks a player; in the first round of a role game that player becomes a candidate by the vote itself
+   (and stops being one when nobody votes for him any more, unless he was nominated on purpose) */
+function castVote(g, voterId, candId) {
+  const b = g.ballot; const v = P(g, voterId); const c = P(g, candId);
+  if (!b || !v || !c || !v.alive || !c.alive || voterId === candId || !canVoteNow(g, voterId)) return false;
+  const prev = b.votes[voterId];
+  if (prev === candId) { delete b.votes[voterId]; dropAutoCand(g, candId); return true; }
+  if (!b.candidates.includes(candId)) {
+    if ((b.round || 1) !== 1 || isClassic(g) || !canNominate(g, candId)) return false;
+    b.candidates.push(candId); b.auto = (b.auto || []).concat([candId]);
+  }
+  b.votes[voterId] = candId; if (prev) dropAutoCand(g, prev); return true;
+}
+function dropAutoCand(g, candId) {
+  const b = g.ballot; if (!(b.auto || []).includes(candId) || Object.values(b.votes).includes(candId)) return;
+  b.auto = b.auto.filter(x => x !== candId); b.candidates = b.candidates.filter(x => x !== candId);
+}
 function voteRestToLast(g) {
   const b = g.ballot; const last = b.candidates[b.candidates.length - 1]; if (!last) return;
   alive(g).filter(v => v.id !== last && canVoteNow(g, v.id) && !b.votes[v.id]).forEach(v => { b.votes[v.id] = last; });
