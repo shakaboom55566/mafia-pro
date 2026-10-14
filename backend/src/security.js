@@ -406,7 +406,6 @@ export async function securityReport(env, hours = 24) {
   const bans = (await env.DB.prepare('SELECT key, until, reason, by FROM security_bans WHERE until > ?1 ORDER BY until DESC LIMIT 50').bind(ts).all()).results || [];
   const admin = (await env.DB.prepare("SELECT type, SUM(n) AS n, MAX(at) AS last FROM security_events WHERE at >= ?1 AND type LIKE 'admin:%' GROUP BY type ORDER BY n DESC").bind(ts - 7 * 86400).all()).results || [];
   const hookSrc = (await env.DB.prepare("SELECT type, detail, SUM(n) AS n FROM security_events WHERE at >= ?1 AND type LIKE 'webhook_%' GROUP BY type, detail ORDER BY n DESC LIMIT 20").bind(since).all()).results || [];
-  const users = { total: await env.DB.prepare('SELECT COUNT(*) AS n FROM users').first('n') || 0, new24h: await env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE created_at >= ?1').bind(ts - 86400).first('n') || 0 };
   const hashTg = async id => 'tg:' + await tgHash(env, id);
   return {
     ok: true, at: new Date(ts * 1000).toISOString(), hours, mode: c.lockdown ? 'lockdown' : c.guardUntil > ts ? 'guard' : 'normal',
@@ -418,7 +417,7 @@ export async function securityReport(env, hours = 24) {
     topAccounts: await Promise.all(topTg.map(async r => ({ account: await hashTg(r.tg_id), n: r.n, types: r.types }))),
     stats: statsRows.map(r => ({ key: r.key, total: r.n, peakPerMinute: r.peak })), requestsPerDay: perDay.map(r => ({ day: new Date(r.d * 86400000).toISOString().slice(0, 10), n: r.n })),
     bans: await Promise.all(bans.map(async b => ({ key: b.key.startsWith('tg:') ? await hashTg(b.key.slice(3)) : b.key, until: b.until, reason: b.reason, by: String(b.by || '').startsWith('admin:') ? 'admin' : b.by }))),
-    adminActions7d: admin.map(a => ({ type: a.type, n: a.n, last: a.last })), users,
+    adminActions7d: admin.map(a => ({ type: a.type, n: a.n, last: a.last })), // no audience numbers: the report is posted publicly
     webhookSources: hookSrc.map(h => { let d = {}; try { d = JSON.parse(h.detail || '{}') || {}; } catch (e) {} return { type: h.type, n: h.n, asn: d.asn || null, network: d.org || null }; }) // servers' networks, never a player
   };
 }

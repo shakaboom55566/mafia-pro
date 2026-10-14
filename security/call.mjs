@@ -54,7 +54,6 @@ function render(d) {
   if ((d.webhookSources || []).length) out.push('', '### Кто стучался в вебхук (сети серверов)', d.webhookSources.map(w => `${w.type} ×${w.n} · AS${w.asn || '?'} ${cell(w.network || '')}`).join('  \n'));
   out.push('', `### Блокировки: ${(d.bans || []).length}`); for (const b of (d.bans || []).slice(0, 20)) out.push(`- \`${b.key}\` до ${when(b.until)} — ${cell(b.reason)} (${cell(b.by)})`);
   out.push('', '### Админ-действия за 7 дней'); out.push((d.adminActions7d || []).length ? d.adminActions7d.map(a => `${a.type} ×${a.n} (последнее ${when(a.last)})`).join(' · ') : 'нет');
-  out.push('', `Игроков: ${d.users ? d.users.total : '?'} · новых за сутки: ${d.users ? d.users.new24h : '?'}`);
   out.push('', '<details><summary>JSON</summary>', '', '```json', JSON.stringify(d, null, 1).slice(0, 30000), '```', '</details>');
   return out.join('\n');
 }
