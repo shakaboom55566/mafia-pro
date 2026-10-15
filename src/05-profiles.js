@@ -40,7 +40,7 @@ function profStats(pr, since = 0) {
     const role = ROLE[x.roleId]; const side = role ? role.side : 'city'; const b = st.bySide[side] || st.bySide.city; b.g++; if (x.won) b.w++;
   });
   st.winRate = st.games ? Math.round(100 * st.wins / st.games) : 0;
-  st.rating = 1000 + pr.history.reduce((a, x) => a + (x.points || 0), 0);
+  st.rating = typeof localSeason === 'function' ? localSeason(pr.history).points : 1000 + pr.history.reduce((a, x) => a + (x.points || 0), 0); // v55: the season's rating
   return st;
 }
 function bestRoleOf(pr) {

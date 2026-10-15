@@ -83,6 +83,8 @@ export async function exportUser(env, id) {
     settings: await one('SELECT no_news, updated_at FROM user_prefs WHERE tg_id = ?1', id),
     rating: await one('SELECT points, games, wins, hosted, updated_at FROM ratings WHERE tg_id = ?1', id),
     rankAnnounced: await one('SELECT best, host, updated_at FROM rank_best WHERE tg_id = ?1', id), // v54: the highest rank / host badge the bot congratulated on
+    seasonBest: await all('SELECT season, peak, peak_at FROM season_peak WHERE tg_id = ?1 ORDER BY season', id), // v55: the best rating of each season (raw points)
+    seasons: await all('SELECT season, points, games, wins, peak, created_at FROM season_results WHERE tg_id = ?1 ORDER BY season', id), // v55: standings at the end of each season
     gamesPlayed: games,
     gamesHosted: await all('SELECT game_id, code, mode, players, winner, created_at FROM games WHERE host_id = ?1 ORDER BY created_at DESC LIMIT 500', id),
     friends: await all('SELECT friend_id, created_at FROM friends WHERE tg_id = ?1', id),
@@ -132,7 +134,7 @@ export async function deleteUser(env, id) {
     st('DELETE FROM friends WHERE tg_id = ?1 OR friend_id = ?1'), st('DELETE FROM friend_requests WHERE from_id = ?1 OR to_id = ?1'),
     st('DELETE FROM invites WHERE tg_id = ?1'), st('DELETE FROM referrals WHERE tg_id = ?1'), st('UPDATE referrals SET ref_by = 0 WHERE ref_by = ?1'),
     st('DELETE FROM credits WHERE tg_id = ?1'), st('DELETE FROM milestones WHERE tg_id = ?1'), st('DELETE FROM grants WHERE tg_id = ?1'),
-    st('DELETE FROM ratings WHERE tg_id = ?1'), st('DELETE FROM rank_best WHERE tg_id = ?1'), st('DELETE FROM partners WHERE tg_id = ?1'),
+    st('DELETE FROM ratings WHERE tg_id = ?1'), st('DELETE FROM rank_best WHERE tg_id = ?1'), st('DELETE FROM season_peak WHERE tg_id = ?1'), st('DELETE FROM season_results WHERE tg_id = ?1'), st('DELETE FROM partners WHERE tg_id = ?1'),
     env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:top'"), // the cached leaderboard is rebuilt without this player
     st('DELETE FROM club_members WHERE tg_id = ?1'), st('DELETE FROM club_requests WHERE tg_id = ?1'), st('DELETE FROM club_messages WHERE tg_id = ?1'),
     st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'), st('DELETE FROM ad_clicks WHERE tg_id = ?1'),

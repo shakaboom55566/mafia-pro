@@ -55,7 +55,7 @@ import { onSocialCommand, onSocialCallback, socialCallback, socialCreds, socialR
 import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, runAdsCron, adsKey } from './ads.js';
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
-import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS } from './ranks.js';
+import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
 
 const VERSION = '0.1.0';
 const KINDS = ['role', 'scenario', 'pack'];
@@ -134,6 +134,18 @@ async function bumpRating(env, tgId, dPoints, dGames, dWins, dHosted) {
     ON CONFLICT(tg_id) DO UPDATE SET points = points + ?2, games = games + ?3, wins = wins + ?4, hosted = hosted + ?5, updated_at = ?6`)
     .bind(tgId, dPoints | 0, dGames | 0, dWins | 0, dHosted | 0, now()).run();
   if (dPoints || dGames || dWins) await dropLeaderboard(env); // a new result shows on the next request, not after the 10-minute rebuild
+  if (dPoints > 0) await env.DB.prepare(`INSERT INTO season_peak (season, tg_id, peak, peak_at) SELECT ?1, tg_id, points, ?3 FROM ratings WHERE tg_id = ?2
+    ON CONFLICT(season, tg_id) DO UPDATE SET peak = excluded.peak, peak_at = excluded.peak_at WHERE excluded.peak > season_peak.peak`).bind(seasonNow(env).n, tgId, now()).run(); // v55: the season's best
+}
+/* ---------- v55 seasons (calendar in ranks.js): the season now, a player's best of the season ---------- */
+const seasonNow = env => seasonAt(Number(env.SEASON_NOW_MS) || Date.now()); // SEASON_NOW_MS: tests only
+const seasonInfo = sz => ({ n: sz.n, phase: sz.phase, start: sz.start, end: sz.end, next: sz.next });
+/* the best rating (1000-based) of the season: live — the higher of the stored peak and the rating now; in the break — what the season's results kept */
+async function peakOf(env, id, sz, rating) {
+  if (!rating || !rating.games) return null;
+  if (sz.phase === 'break') { const f = await env.DB.prepare('SELECT peak FROM season_results WHERE season = ?1 AND tg_id = ?2').bind(sz.n, id).first('peak'); if (f != null) return { points: 1000 + Math.max(0, f), season: sz.n, final: true }; }
+  const pk = await env.DB.prepare('SELECT peak FROM season_peak WHERE season = ?1 AND tg_id = ?2').bind(sz.n, id).first('peak');
+  const best = Math.max(pk == null ? 0 : pk, sz.phase === 'live' ? rating.points : 0, 0); return { points: 1000 + best, season: sz.n, final: sz.phase === 'break' }; // every season starts at 1000 — the best is never below it
 }
 
 const displayName = u => [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || String(u.id);
@@ -632,7 +644,8 @@ async function apiMe(env, bot, body) {
   const partner = club && club.owner_id ? await env.DB.prepare('SELECT 1 FROM partners WHERE tg_id = ?1 AND status = ?2').bind(club.owner_id, 'active').first() : null;
   if (typeof body.city === 'string') { const city = body.city.trim().slice(0, 48); await env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2, updated_at = ?3').bind(u.id, city, now()).run(); }
   const table = await tableOf(env, u.id); const invites = await pendingInvites(env, u.id);
-  return json({ ok: true, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  const sz = seasonNow(env); const peak = await peakOf(env, v.user.id, sz, rating);
+  return json({ ok: true, season: seasonInfo(sz), peak, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -738,7 +751,7 @@ async function profileData(env, id) {
   const ts = now();
   const club = await membershipOf(env, id);
   return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '' },
-    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id) };
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)) };
 }
 async function apiPlayers(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -878,7 +891,7 @@ async function apiResult(env, bot, body) {
   const ins = await env.DB.prepare('INSERT OR IGNORE INTO games (game_id, host_id, code, mode, players, winner, summary, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
     .bind(gameId, hostId, code, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), now()).run();
   if (flood && ins.meta && ins.meta.changes > 0) secEvent(env, 'result_flood', 'medium', { tg: hostId, path: '/api/game/result', detail: { last24h: recent.n } });
-  const ratings = {}; const rankUp = {};
+  const ratings = {}; const rankUp = {}; const sz = seasonNow(env); const live = sz.phase === 'live'; // v55: between seasons games count, the rating does not move
   await trackGameNames(env, players);
   if (ins.meta && ins.meta.changes > 0 && !flood) { // first report of this game → credit the players
     const hb = await ratingFor(env, hostId);
@@ -886,7 +899,7 @@ async function apiResult(env, bot, body) {
     if (hostLevel(hb.hosted + 1) > hostLevel(hb.hosted)) { try { await noteHostUp(env, bot, hostId, hostLevel(hb.hosted + 1)); } catch (e) { console.error('host up', e); } }
     for (const p of players) {
       const tgId = Number(p.tgId); if (!tgId) continue;
-      const pts = p.points; const before = await ratingFor(env, tgId);
+      const pts = live ? p.points : 0; const before = await ratingFor(env, tgId);
       await bumpRating(env, tgId, pts, 1, p.won ? 1 : 0, 0);
       // v54: a new rank → a mark in the results (rankUp) and, the first time this rank is reached, a message from the bot
       const a = rankIdx(1000 + before.points, before.games), b = rankIdx(1000 + before.points + pts, before.games + 1);
@@ -896,7 +909,7 @@ async function apiResult(env, bot, body) {
   }
   const streaks = {};
   for (const p of players) { const tgId = Number(p.tgId); if (!tgId) continue; if (!ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); const side = String(p.side || ''); if (side) streaks[tgId] = { side, n: (await streaksOf(env, tgId))[side] || 0 }; }
-  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp });
+  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp, season: seasonInfo(sz) });
 }
 /* v54: the bot congratulates on a rank reached for the first time (rank_best keeps the highest one announced: going down and back up
    near a threshold does not repeat the message) and on a new host badge */
@@ -1413,6 +1426,41 @@ async function sweepPosts(env, bot) {
   const rows = (await env.DB.prepare("SELECT p.code FROM discord_posts p JOIN lobbies l ON l.code = p.code WHERE p.kind = 'table' AND p.final = 0 AND l.status IN ('closed', 'finished') LIMIT 3").all()).results || [];
   for (const r of rows) { try { await announceTable(env, bot, r.code, { force: true }); } catch (e) { console.error('post sweep', e); } }
 }
+/* ---------- v55 seasons: closing a finished season (5-minute cron) ---------- */
+/* season 1 started with ratings already earned: its best so far is rebuilt once from the games (only where the games add up to the rating now) */
+async function backfillPeaks(env) {
+  const rows = (await env.DB.prepare('SELECT summary FROM games ORDER BY created_at, id LIMIT 50000').all()).results || [];
+  const cum = {}, best = {};
+  for (const g of rows) { let pl = []; try { pl = JSON.parse(g.summary || '[]'); } catch (e) { continue; } for (const p of pl) { const id = Number(p && p.tgId); if (!id) continue; cum[id] = (cum[id] || 0) + (Number(p.points) || 0); best[id] = Math.max(best[id] == null ? 0 : best[id], cum[id]); } }
+  const rat = (await env.DB.prepare('SELECT tg_id, points FROM ratings WHERE games > 0').all()).results || []; const ts = now(); const vals = [];
+  const int = x => { const v = Math.trunc(Number(x)); return Number.isSafeInteger(v) ? v : null; }; // numbers only go into the SQL text
+  for (const r of rat) { const id = int(r.tg_id), pts = int(r.points); if (id == null || pts == null) continue; const peak = cum[id] === pts ? Math.max(best[id], pts) : pts; vals.push(`(1, ${id}, ${int(peak)}, ${ts})`); }
+  for (let i = 0; i < vals.length; i += 800) await env.DB.prepare(`INSERT INTO season_peak (season, tg_id, peak, peak_at) VALUES ${vals.slice(i, i + 800).join(', ')} ON CONFLICT(season, tg_id) DO UPDATE SET peak = MAX(season_peak.peak, excluded.peak)`).run();
+  await cfgSet(env, 'season:peakfill:1', String(vals.length)); return vals.length;
+}
+const fmtDay = d => `${String(d.d).padStart(2, '0')}.${String(d.m).padStart(2, '0')}.${d.y}`;
+async function runSeasonCron(env, bot) {
+  const sz = seasonNow(env);
+  if (!(await cfgGet(env, 'season:peakfill:1'))) await backfillPeaks(env);
+  const last = sz.phase === 'break' ? sz.n : sz.n - 1; if (last < 1) return null;
+  const key = 'season:closed:' + last; if (await cfgGet(env, key)) return null;
+  const ts = now();
+  await env.DB.batch([ // one transaction: the results, every rating back to 1000, the mark
+    env.DB.prepare('INSERT OR IGNORE INTO season_results (season, tg_id, points, games, wins, peak, created_at) SELECT ?1, r.tg_id, r.points, r.games, r.wins, MAX(r.points, COALESCE(p.peak, r.points)), ?2 FROM ratings r LEFT JOIN season_peak p ON p.season = ?1 AND p.tg_id = r.tg_id WHERE r.games > 0').bind(last, ts),
+    env.DB.prepare('UPDATE ratings SET points = 0, updated_at = ?1 WHERE points != 0').bind(ts),
+    env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(key, String(ts), ts),
+    env.DB.prepare('DELETE FROM discord_cfg WHERE key = ?1').bind(LB_KEY)
+  ]);
+  const legends = (await env.DB.prepare('SELECT s.tg_id, s.points, u.first_name, u.last_name, u.username, u.lang FROM season_results s LEFT JOIN users u ON u.tg_id = s.tg_id WHERE s.season = ?1 AND s.games >= ?2 AND s.points >= ?3 ORDER BY s.points DESC').bind(last, RANK_NOVICE_GAMES, RANK_MIN[RANK_MIN.length - 1] - 1000).all()).results || [];
+  const nx = seasonAt(sz.next); const nextDay = fmtDay(sz.phase === 'break' ? sz.nextDay : nx.firstDay);
+  for (const l of legends.slice(0, 300)) { try { const lang = pickLang(l.lang); await bot.send(l.tg_id, t(lang, 'seasonLegend', { n: last, rating: 1000 + l.points, next: nextDay }), bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) { console.error('season legend', e); } }
+  const list = legends.map((l, i) => `${i + 1}. ${esc(rowName(l) || String(l.tg_id))}${l.username ? ' @' + esc(l.username) : ''} (id <code>${l.tg_id}</code>) — ${1000 + l.points}`);
+  const head = `🏁 <b>Сезон ${last} завершён.</b> Рейтинг всех игроков сброшен до 1000, межсезонье до начала сезона ${last + 1} — ${nextDay}.\n👑 Легенд в конце сезона: <b>${legends.length}</b>${legends.length ? ' — им обещан Epic-скин:' : '.'}`;
+  const chunks = [head]; for (const line of list) { if ((chunks[chunks.length - 1] + '\n' + line).length > 3800) chunks.push(line); else chunks[chunks.length - 1] += '\n' + line; }
+  const admins = String(env.ADMIN_IDS || '').split(',').map(x => Number(x.trim())).filter(Boolean);
+  for (const a of admins) for (const c of chunks) { try { await bot.send(a, c); } catch (e) { console.error('season admin', e); } }
+  return { closed: last, legends: legends.length };
+}
 /* ---------- v54 ranks on the Discord server ---------- */
 async function ranksOf(env, ids) {
   ids = [...new Set(ids)].slice(0, 40); const out = {}; if (!ids.length) return out;
@@ -1584,7 +1632,7 @@ async function statsEmbed(env, tgId, member) {
   const recent = (d.recent || []).slice(0, 5).map(g => (g.won ? '✅' : '❌')).join(' ');
   const ri = rankIdx(r.points, r.games); const nx = rankNext(r.points, r.games); const place = await topPlace(env, tgId);
   const rankVal = `**${rankLabel('ru', ri)}**${place ? ` · ${['', '🥇', '🥈', '🥉'][place]} №${place} в рейтинге` : ''}${nx && nx.games != null ? `\nещё ${nx.games} ${ruPl(nx.games, 'партия', 'партии', 'партий')} — и появится ранг` : nx ? `\nдо «${rankName('ru', nx.idx)}» — ${nx.points} ${ruPl(nx.points, 'очко', 'очка', 'очков')}` : ''}`;
-  const fields = [{ name: 'Ранг', value: rankVal }, { name: 'Рейтинг', value: String(r.points), inline: true }, { name: 'Игр', value: String(r.games || 0), inline: true }, { name: 'Побед', value: `${r.wins || 0} · ${pct(r.wins || 0, r.games || 0)}`, inline: true }];
+  const fields = [{ name: 'Ранг', value: rankVal }, { name: 'Рейтинг', value: String(r.points) + (d.peak ? ` · максимум сезона ${d.peak.season}: ${d.peak.points}` : ''), inline: true }, { name: 'Игр', value: String(r.games || 0), inline: true }, { name: 'Побед', value: `${r.wins || 0} · ${pct(r.wins || 0, r.games || 0)}`, inline: true }];
   if (r.hosted) fields.push({ name: 'Вёл партий', value: `${r.hosted}${hostLevel(r.hosted) ? ` · 🎩 ${t('ru', 'hostLvl' + hostLevel(r.hosted))}` : ''}`, inline: true });
   if (d.user.club) fields.push({ name: 'Клуб', value: dmd(d.user.club.slice(0, 100)), inline: true });
   if (best) fields.push({ name: 'Серия побед', value: best, inline: true });
@@ -1682,22 +1730,25 @@ async function apiTableVoice(env, body) {
    a new game result or a deleted account drops the cache, so the next request rebuilds it */
 const LB_KEY = 'lb:top', LB_EVERY = 600, LB_MAX = 100;
 async function buildLeaderboard(env) {
-  const rows = (await env.DB.prepare('SELECT r.tg_id, r.points, r.games, r.wins, r.hosted, u.first_name, u.username, u.photo_url FROM ratings r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.games > 0 ORDER BY r.points DESC, r.wins DESC LIMIT ?1').bind(LB_MAX).all()).results || [];
+  const sz = seasonNow(env); const final = sz.phase === 'break'; // v55: between seasons the top is the finished season's results
+  const rows = (await (final ? env.DB.prepare('SELECT s.tg_id, s.points, s.games, s.wins, r.hosted, u.first_name, u.username, u.photo_url FROM season_results s LEFT JOIN ratings r ON r.tg_id = s.tg_id LEFT JOIN users u ON u.tg_id = s.tg_id WHERE s.season = ?2 AND s.games > 0 ORDER BY s.points DESC, s.wins DESC LIMIT ?1').bind(LB_MAX, sz.n)
+    : env.DB.prepare('SELECT r.tg_id, r.points, r.games, r.wins, r.hosted, u.first_name, u.username, u.photo_url FROM ratings r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.games > 0 ORDER BY r.points DESC, r.wins DESC LIMIT ?1').bind(LB_MAX)).all()).results || [];
   const top = rows.map((r, i) => ({ rank: i + 1, tgId: r.tg_id, name: r.first_name || r.username || '—', username: r.username || '', photo: r.photo_url || '', points: 1000 + r.points, games: r.games, wins: r.wins, hosted: r.hosted || 0 }));
   const at = now();
-  await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(LB_KEY, JSON.stringify(top), at).run();
-  return { top, at };
+  await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(LB_KEY, JSON.stringify({ top, n: sz.n, final }), at).run();
+  return { top, at, final, season: seasonInfo(sz) };
 }
 async function cachedLeaderboard(env) {
   const r = await env.DB.prepare('SELECT value, updated_at FROM discord_cfg WHERE key = ?1').bind(LB_KEY).first();
-  if (r && r.value && now() - r.updated_at < LB_EVERY + 60) { try { return { top: JSON.parse(r.value), at: r.updated_at }; } catch (e) {} }
+  const sz = seasonNow(env);
+  if (r && r.value && now() - r.updated_at < LB_EVERY + 60) { try { const v = JSON.parse(r.value); if (v && !Array.isArray(v) && v.n === sz.n && v.final === (sz.phase === 'break')) return { top: v.top, at: r.updated_at, final: v.final, season: seasonInfo(sz) }; } catch (e) {} } // another season or phase: rebuild
   return buildLeaderboard(env);
 }
 async function dropLeaderboard(env) { await env.DB.prepare('DELETE FROM discord_cfg WHERE key = ?1').bind(LB_KEY).run(); }
 async function apiLeaderboard(env, url) {
   const limit = Math.max(1, Math.min(LB_MAX, Number(url.searchParams.get('limit')) || 20));
-  const { top, at } = await cachedLeaderboard(env);
-  return json({ ok: true, top: top.slice(0, limit), at: at * 1000, every: LB_EVERY * 1000 });
+  const { top, at, final, season } = await cachedLeaderboard(env);
+  return json({ ok: true, top: top.slice(0, limit), at: at * 1000, every: LB_EVERY * 1000, final: !!final, season });
 }
 
 /* ---------- router ---------- */
@@ -1842,6 +1893,7 @@ export default {
     if (!minute) ctx.waitUntil(runGrowthCron(env, new Bot(env)).catch(e => console.error('growth cron', e && e.stack || e))); // new players: notice to admins, daily digest with the table
     if (!minute) ctx.waitUntil(runSocialCron(env, new Bot(env)).catch(e => console.error('social cron', e && e.stack || e))); // social media tokens: twice a day
     if (!minute) ctx.waitUntil(runAdsCron(env).catch(e => console.error('ads cron', e && e.stack || e))); // ad clicks: Meta match data erased after 7 days
+    if (!minute) ctx.waitUntil(runSeasonCron(env, new Bot(env)).catch(e => console.error('season cron', e && e.stack || e))); // v55: a finished season → results, ratings back to 1000
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
     if (minute || !event || !event.cron) ctx.waitUntil(runBroadcastCron(env, new Bot(env)).catch(e => console.error('broadcast cron', e && e.stack || e))); // /broadcast: the next portion
     if (minute || !event || !event.cron) ctx.waitUntil(runSecurityWatch(env, new Bot(env)).catch(e => console.error('security watch', e && e.stack || e))); // incidents → response → alerts (security.js)

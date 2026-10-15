@@ -516,3 +516,22 @@ CREATE TABLE IF NOT EXISTS discord_rank (
   rank       INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+-- v55 seasons: the highest rating of a player in a season (raw points, like ratings.points)
+CREATE TABLE IF NOT EXISTS season_peak (
+  season     INTEGER NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  peak       INTEGER NOT NULL,
+  peak_at    INTEGER NOT NULL,
+  PRIMARY KEY (season, tg_id)
+);
+-- v55: the standings at the end of a season (written once by the cron, right before every rating goes back to 1000)
+CREATE TABLE IF NOT EXISTS season_results (
+  season     INTEGER NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  points     INTEGER NOT NULL,  -- raw, the rating was 1000 + points
+  games      INTEGER NOT NULL,
+  wins       INTEGER NOT NULL,
+  peak       INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (season, tg_id)
+);

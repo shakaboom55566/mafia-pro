@@ -38,3 +38,30 @@ export function rankNext(points, games) {
 export const hostLevel = hosted => HOST_LEVELS.filter(n => (Number(hosted) || 0) >= n).length;
 /* the Discord role of a rank: one name for the whole server, Russian (the server's main language) and English */
 export const rankRoleName = i => `${RANK_EMOJI[i]} ${RANK_NAMES.ru[i]} · ${RANK_NAMES.en[i]}`;
+
+/* season:begin — the same text in src/11-ranks.js and backend/src/ranks.js (backend/test/run.js compares them)
+   v55 seasons: season 1 runs 15.10.2026 – 15.12.2026 inclusive (Kyiv time); then the rating of everyone goes back to 1000 and
+   7 days of break follow (games count in the statistics, not in the rating); then the next season, again 2 months + 7 days. */
+const SEASON_FIRST = { y: 2026, m: 10, d: 15 }, SEASON_MONTHS = 2, SEASON_BREAK_DAYS = 7;
+function kyivMidnight(t) { // ms (UTC) of 00:00 in Kyiv on the date t = { y, m, d }: +3 from the last Sunday of March to the last Sunday of October, else +2
+  const lastSun = mo => { const x = new Date(Date.UTC(t.y, mo, 0)); return x.getUTCDate() - x.getUTCDay(); };
+  const base = Date.UTC(t.y, t.m - 1, t.d); const dst = base - 3 * 3600000 >= Date.UTC(t.y, 2, lastSun(3), 1) && base - 3 * 3600000 < Date.UTC(t.y, 9, lastSun(10), 1);
+  return base - (dst ? 3 : 2) * 3600000;
+}
+function seasonDay(t, months, days) { // a date + whole months (the day clamped to the month) + days
+  const mi = t.m - 1 + (months || 0); const y = t.y + Math.floor(mi / 12), m = ((mi % 12) + 12) % 12;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); const x = new Date(Date.UTC(y, m, Math.min(t.d, last)) + (days || 0) * 86400000);
+  return { y: x.getUTCFullYear(), m: x.getUTCMonth() + 1, d: x.getUTCDate() };
+}
+/* the season at a moment (ms): n, start, end (the first moment after its last day), next (the next season's start), phase live | break,
+   lastDay / nextDay as { y, m, d }; before season 1 began it counts as season 1 */
+function seasonAt(ts) {
+  let n = 1, sd = SEASON_FIRST;
+  for (;;) {
+    const lastDay = seasonDay(sd, SEASON_MONTHS, 0); const end = kyivMidnight(seasonDay(lastDay, 0, 1)); const nextDay = seasonDay(lastDay, 0, 1 + SEASON_BREAK_DAYS); const next = kyivMidnight(nextDay);
+    if (ts < next || n >= 500) return { n, start: kyivMidnight(sd), end, next, phase: ts < end ? 'live' : 'break', firstDay: sd, lastDay, nextDay };
+    n++; sd = nextDay;
+  }
+}
+/* season:end */
+export { SEASON_FIRST, SEASON_MONTHS, SEASON_BREAK_DAYS, kyivMidnight, seasonDay, seasonAt };

@@ -815,7 +815,7 @@ console.log('channel posts (drafts → admin approval → channel)');
   waits = []; await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.UTC(2026, 9, 14, 20, 15) }, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
   eq(await lbVal(), '[]', 'cron at :15 leaves the leaderboard alone');
   waits = []; await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.UTC(2026, 9, 14, 20, 20) }, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
-  ok(JSON.parse(await lbVal()).length >= 1, 'cron at :20 rebuilds the leaderboard');
+  ok(JSON.parse(await lbVal()).top.length >= 1, 'cron at :20 rebuilds the leaderboard');
   d = await (await draft({ id: 'p-12', slot_at: future, lang: 'uk', text: 'changed' })).json(); ok(d.unchanged && d.status === 'posted', 'a posted post is not overwritten by the repo');
   // skip, undo, publish now
   await draft({ id: 'p-18', slot_at: future, lang: 'ru', rubric: 'Анонс', text: 'Вечером играем' });
@@ -1481,6 +1481,55 @@ console.log('privacy: /privacy, /mydata, /unsubscribe, /support, /deletedata');
   const sm = JSON.parse(await env.DB.prepare("SELECT summary FROM games WHERE game_id = 'pv-1'").first('summary')); ok(sm[0].tgId === null && sm[0].name === 'Игрок' && sm[1].tgId === 42, 'game kept for the other player, this seat anonymised');
   eq(await env.DB.prepare("SELECT host_id FROM games WHERE game_id = 'pv-1'").first('host_id'), 0, 'hosted game no longer points to the player');
   ok(/видалено/.test(lastCall('editMessageText').params.text), 'confirmation shown'); }
+
+console.log('seasons (v55): one calendar in the app and the server, the best of the season, the end — results, ratings back to 1000, Legends, the break, season 2');
+{ const R = await import('../src/ranks.js'); const fs = await import('node:fs'); const vm = await import('node:vm');
+  const app = fs.readFileSync(path.join(here, '..', '..', 'src', '11-ranks.js'), 'utf8'); const srv = fs.readFileSync(path.join(here, '..', 'src', 'ranks.js'), 'utf8');
+  const block = t => t.slice(t.indexOf('/* season:begin'), t.indexOf('/* season:end */')); ok(block(app).length > 500 && block(app) === block(srv), 'the season code is the same text in the app and the server');
+  const c = vm.createContext({ Date, Math }); vm.runInContext(block(app) + '; this.seasonAt = seasonAt;', c);
+  const probes = ['2026-01-01T00:00:00Z', '2026-10-15T12:00:00Z', '2026-12-15T21:59:59Z', '2026-12-15T22:00:00Z', '2026-12-22T21:59:59Z', '2026-12-22T22:00:00Z', '2027-02-23T21:59:59Z', '2027-02-24T10:00:00Z', '2027-03-02T22:00:00Z', '2027-07-01T00:00:00Z'].map(Date.parse);
+  ok(probes.every(ts => JSON.stringify(c.seasonAt(ts)) === JSON.stringify(R.seasonAt(ts))), 'the app computes the same seasons');
+  const s1 = R.seasonAt(Date.parse('2026-10-15T12:00:00Z')); eq([s1.n, s1.phase, new Date(s1.start).toISOString(), new Date(s1.end).toISOString(), new Date(s1.next).toISOString()], [1, 'live', '2026-10-14T21:00:00.000Z', '2026-12-15T22:00:00.000Z', '2026-12-22T22:00:00.000Z'], 'season 1: 15.10 00:00 – 15.12 inclusive (Kyiv), season 2 from 23.12');
+  eq([R.seasonAt(Date.parse('2026-12-16T10:00:00Z')).phase, R.seasonAt(Date.parse('2026-12-23T10:00:00Z')).n], ['break', 2], 'a 7-day break, then season 2');
+  const s2 = R.seasonAt(Date.parse('2027-01-10T00:00:00Z')); eq([s2.lastDay, s2.nextDay], [{ y: 2027, m: 2, d: 23 }, { y: 2027, m: 3, d: 3 }], 'season 2: two months, the break, season 3');
+
+  const backup = (await env.DB.prepare('SELECT * FROM ratings').all()).results;
+  const H = 5501, A = 5502, B = 5503; await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (5501, 5502, 0), (5502, 5501, 0), (5501, 5503, 0), (5503, 5501, 0)').run();
+  for (const id of [H, A, B]) await hook(msg(user(id, id === A ? 'en' : 'ru'), '/start'));
+  const host = await initData(user(H));
+  const play = async (gid, rows) => (await post('/api/game/result', { initData: host, game: { id: gid, mode: 'classic', winner: 'city', players: rows.map(([tgId, pts], i) => ({ seat: i + 1, name: 'P' + i, tgId, roleId: 'sheriff', won: pts > 0, points: pts, side: 'city' })) } })).json();
+  await play('ss-1', [[A, 60], [B, 24]]); await play('ss-2', [[A, -60], [B, -10]]);
+  let pa = await (await post('/api/profile', { initData: host, tgId: A })).json();
+  ok(pa.rating.points === 1000 && pa.peak && pa.peak.points === 1060 && pa.peak.season === 1 && pa.season.n === 1 && pa.season.phase === 'live', 'the profile: rating now 1000, best of season 1 — 1060');
+  const me = await (await post('/api/me', { initData: await initData(user(A, 'en')) })).json(); ok(me.peak && me.peak.points === 1060 && me.season && me.season.n === 1, '/api/me carries the best and the season');
+  // A becomes a Legend (≥ 2900 after 5 games), B is a Master
+  await env.DB.prepare('UPDATE ratings SET points = 1950, games = 12 WHERE tg_id = ?1').bind(A).run(); await env.DB.prepare('UPDATE ratings SET points = 640, games = 9 WHERE tg_id = ?1').bind(B).run();
+  await play('ss-3', [[A, 30]]); ok((await (await post('/api/profile', { initData: host, tgId: A })).json()).peak.points === 2980, 'the best follows the rating up');
+  // the season ends
+  env.SEASON_NOW_MS = String(Date.parse('2026-12-16T10:00:00Z')); const tgN = tg.calls.length;
+  await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.parse('2026-12-16T10:05:00Z') }, env, ctx); await settle();
+  const fin = r => env.DB.prepare('SELECT * FROM season_results WHERE season = 1 AND tg_id = ?1').bind(r).first();
+  const fa = await fin(A), fb = await fin(B); ok(fa && fa.points === 1980 && fa.peak === 1980 && fb && fb.points === 640, 'season 1 results kept: rating and best');
+  ok(await env.DB.prepare('SELECT COUNT(*) AS n FROM ratings WHERE points != 0').first('n') === 0, 'every rating back to 1000');
+  const legendDM = tg.calls.slice(tgN).find(x => x.method === 'sendMessage' && x.params.chat_id === A); ok(legendDM && legendDM.params.text.includes('Legend') && legendDM.params.text.includes('Epic') && legendDM.params.text.includes('2980') && legendDM.params.text.includes('23.12.2026'), 'the Legend is congratulated in his language: ' + (legendDM && legendDM.params.text.slice(0, 80)));
+  ok(!tg.calls.slice(tgN).some(x => x.method === 'sendMessage' && x.params.chat_id === B), 'a Master gets no message');
+  const adm = tg.calls.slice(tgN).filter(x => x.method === 'sendMessage' && x.params.chat_id === 777).map(x => x.params.text).join('\n'); ok(adm.includes('Сезон 1 завершён') && adm.includes('User5502') && adm.includes('5502') && adm.includes('2980') && adm.includes('Epic'), 'the admin gets the list of Legends');
+  const n2 = tg.calls.length; await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.parse('2026-12-16T10:10:00Z') }, env, ctx); await settle(); ok(tg.calls.length === n2 && (await fin(A)).points === 1980, 'closed once');
+  // the break: the top is the final standings, games count but the rating stays
+  const lb = await (await call('/api/leaderboard?limit=10')).json(); ok(lb.final === true && lb.season.phase === 'break' && lb.top[0].tgId === A && lb.top[0].points === 2980, 'the break: the overall rating shows season 1 final standings');
+  let r = await play('ss-4', [[B, 60]]); ok(r.season.phase === 'break' && r.ratings[B].points === 0 && r.ratings[B].games === 10 && !Object.keys(r.rankUp).length, 'a game in the break: counted in the games, not in the rating');
+  pa = await (await post('/api/profile', { initData: host, tgId: A })).json(); ok(pa.rating.points === 1000 && pa.peak.points === 2980 && pa.peak.final === true, 'the profile in the break: rating 1000, best of season 1 — 2980');
+  // season 2
+  env.SEASON_NOW_MS = String(Date.parse('2026-12-23T10:00:00Z'));
+  const lb2 = await (await call('/api/leaderboard?limit=10')).json(); ok(lb2.final === false && lb2.season.n === 2 && lb2.season.phase === 'live', 'season 2: the live rating again (the cache of the break is dropped)');
+  r = await play('ss-5', [[B, 24]]); ok(r.ratings[B].points === 24, 'season 2: points count again');
+  const pb = await (await post('/api/profile', { initData: host, tgId: B })).json(); ok(pb.peak.season === 2 && pb.peak.points === 1024, 'the best of season 2 starts from scratch');
+  await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.parse('2026-12-23T10:05:00Z') }, env, ctx); await settle(); ok(await env.DB.prepare('SELECT COUNT(*) AS n FROM season_results WHERE season = 2').first('n') === 0, 'season 2 is not closed while it runs');
+  const ex = await exportUser(env, A); ok(ex.seasons && ex.seasons.length === 1 && ex.seasons[0].season === 1 && ex.seasonBest && ex.seasonBest.length >= 1, '/mydata includes the season results and bests');
+  delete env.SEASON_NOW_MS;
+  await env.DB.prepare('DELETE FROM ratings').run(); for (const b of backup) await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(b.tg_id, b.points, b.games, b.wins, b.hosted, b.updated_at).run();
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key IN ('lb:top', 'season:closed:1')").run(); await env.DB.prepare('DELETE FROM season_results').run(); await env.DB.prepare("DELETE FROM games WHERE game_id LIKE 'ss-%'").run();
+}
 
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');

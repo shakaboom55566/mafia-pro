@@ -1000,6 +1000,21 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .rk-up { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-weight: 800; color: var(--gold-2); font-size: 14px; }
 .rk-up.sm { justify-content: flex-start; margin-top: 2px; font-size: 11.5px; gap: 4px; }
 .pod-plaque .rk-up.sm { justify-content: center; }
+/* v55: the Ranks tab, the season banner, the Epic reward, the rating now and the best of the season */
+.rt-tabs { margin-bottom: 2px; }
+.rk-pts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.rk-pts span { display: inline-flex; align-items: center; gap: 4px; }
+.rk-pts b { color: var(--fg); font-size: 13px; }
+.ss-banner { padding: 12px 14px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--gold-dim); }
+.ss-banner.brk { border-color: var(--line-2); }
+.ss-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.ss-top b { font-family: var(--font-display); font-weight: 800; font-size: 16px; color: var(--gold-2); }
+.ss-top span { font-size: 12px; color: var(--fg-2); }
+.ss-left { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+.ss-reward { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(157,108,224,.6); background: linear-gradient(135deg, rgba(157,108,224,.18), var(--bg-2) 70%); }
+.ss-reward .rk-svg { flex: none; }
+.ss-epic { display: inline-block; font-family: var(--font-display); font-weight: 900; font-size: 10.5px; letter-spacing: .14em; color: #f3e8ff; background: linear-gradient(90deg, #7b3fe4, #b56cff); padding: 2px 8px; border-radius: 999px; margin-bottom: 4px; }
+.rk-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13px; color: var(--fg-2); line-height: 1.4; }
 </style>
 </head><body>
 <div id="app"></div>
@@ -4494,6 +4509,72 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
     Object.assign(p.forms = p.forms || {}, forms); Object.assign(p.ui, d);
   });
 })();
+/* v55: the Ranks tab on the ratings screen, seasons, the best rating of the season */
+(function () {
+  const R = {
+    ru: {
+      rtTabRating: 'Рейтинг', rtTabRanks: 'Ранги',
+      ssTitle: 'Сезон {n}', ssDates: '{from} — {to}', ssLeft: 'до конца сезона — {n} {days}',
+      ssBreakTitle: 'Межсезонье', ssBreakText: 'Сезон {n} завершён, рейтинг всех игроков сброшен до 1000. Партии идут и попадают в статистику, но рейтинг не меняется.', ssNext: 'Сезон {n} начнётся {date}',
+      ssRewardTitle: 'Награда сезона {n}: Epic-скин', ssReward: 'Все игроки, которые достигнут ранга «{rank}» и сохранят его до конца сезона {n} ({date}), получат Epic-скин.', ssRewardDone: 'Сезон {n} завершён: все, кто закончил его в ранге «{rank}», получают Epic-скин.',
+      rkMine: 'Ваш ранг', rkHowTitle: 'Как получить ранг',
+      rkHow: ['Победа — +24 очка, победа в одиночку (за нейтрала) — +40.', 'Дожили до конца партии и победили — ещё +4.', 'Поражение — −10.', 'Полезные ходы по разбору партии — от −20 до +25.', 'В общий рейтинг идут партии, которые ведущий провёл в Mafia Pro, а вы сидели за его столом через Telegram.', 'Первые 5 партий — «Новичок», дальше ранг зависит только от рейтинга.'],
+      rkLadder: 'Все ранги', rkSeasonTitle: 'Как устроен сезон',
+      rkSeasonRules: ['Сезон длится 2 месяца.', 'В конце сезона итоги сохраняются, а рейтинг всех игроков сбрасывается до 1000.', 'Потом 7 дней межсезонья: партии идут и попадают в статистику, но рейтинг не меняется.', 'Затем стартует новый сезон — и снова борьба за ранги.', 'В профиле видно рейтинг сейчас и лучший рейтинг сезона.'],
+      rkLegendsNow: 'Легенды сейчас', rkLegendsNone: 'Пока никого — станьте первой Легендой сезона.', rkFinalTop: 'Итоги сезона {n}',
+      rkNowShort: 'рейтинг сейчас', rkPeakShort: 'максимум сезона {n}', ssBreakNote: 'Межсезонье: до начала сезона {n} партии не меняют рейтинг.'
+    },
+    uk: {
+      rtTabRating: 'Рейтинг', rtTabRanks: 'Ранги',
+      ssTitle: 'Сезон {n}', ssDates: '{from} — {to}', ssLeft: 'до кінця сезону — {n} {days}',
+      ssBreakTitle: 'Міжсезоння', ssBreakText: 'Сезон {n} завершено, рейтинг усіх гравців скинуто до 1000. Партії йдуть і потрапляють у статистику, але рейтинг не змінюється.', ssNext: 'Сезон {n} почнеться {date}',
+      ssRewardTitle: 'Нагорода сезону {n}: Epic-скін', ssReward: 'Усі гравці, які досягнуть рангу «{rank}» і збережуть його до кінця сезону {n} ({date}), отримають Epic-скін.', ssRewardDone: 'Сезон {n} завершено: усі, хто закінчив його в ранзі «{rank}», отримують Epic-скін.',
+      rkMine: 'Ваш ранг', rkHowTitle: 'Як отримати ранг',
+      rkHow: ['Перемога — +24 очки, перемога наодинці (за нейтрала) — +40.', 'Дожили до кінця партії й перемогли — ще +4.', 'Поразка — −10.', 'Корисні ходи за розбором партії — від −20 до +25.', 'У загальний рейтинг ідуть партії, які ведучий провів у Mafia Pro, а ви сиділи за його столом через Telegram.', 'Перші 5 партій — «Новачок», далі ранг залежить лише від рейтингу.'],
+      rkLadder: 'Усі ранги', rkSeasonTitle: 'Як влаштований сезон',
+      rkSeasonRules: ['Сезон триває 2 місяці.', 'Наприкінці сезону підсумки зберігаються, а рейтинг усіх гравців скидається до 1000.', 'Потім 7 днів міжсезоння: партії йдуть і потрапляють у статистику, але рейтинг не змінюється.', 'Далі стартує новий сезон — і знову боротьба за ранги.', 'У профілі видно рейтинг зараз і найкращий рейтинг сезону.'],
+      rkLegendsNow: 'Легенди зараз', rkLegendsNone: 'Поки нікого — станьте першою Легендою сезону.', rkFinalTop: 'Підсумки сезону {n}',
+      rkNowShort: 'рейтинг зараз', rkPeakShort: 'максимум сезону {n}', ssBreakNote: 'Міжсезоння: до початку сезону {n} партії не змінюють рейтинг.'
+    },
+    en: {
+      rtTabRating: 'Rating', rtTabRanks: 'Ranks',
+      ssTitle: 'Season {n}', ssDates: '{from} — {to}', ssLeft: '{n} {days} to the end of the season',
+      ssBreakTitle: 'Off-season', ssBreakText: 'Season {n} is over, everyone\'s rating is back to 1000. Games go on and count in the statistics, but the rating does not move.', ssNext: 'Season {n} starts on {date}',
+      ssRewardTitle: 'Season {n} reward: an Epic skin', ssReward: 'Every player who reaches the «{rank}» rank and keeps it until the end of season {n} ({date}) gets an Epic skin.', ssRewardDone: 'Season {n} is over: everyone who finished it as «{rank}» gets an Epic skin.',
+      rkMine: 'Your rank', rkHowTitle: 'How to get a rank',
+      rkHow: ['A win — +24 points, a solo win (as a neutral) — +40.', 'Alive at the end of a won game — +4 more.', 'A loss — −10.', 'Useful moves in the game review — from −20 to +25.', 'The overall rating counts games the host ran in Mafia Pro while you sat at the table through Telegram.', 'The first 5 games — «Rookie»; after that the rank depends only on the rating.'],
+      rkLadder: 'All ranks', rkSeasonTitle: 'How a season works',
+      rkSeasonRules: ['A season lasts 2 months.', 'At the end the standings are kept and everyone\'s rating goes back to 1000.', 'Then 7 days of off-season: games go on and count in the statistics, but the rating does not move.', 'Then a new season starts — and the race for ranks again.', 'Your profile shows your rating now and your best rating of the season.'],
+      rkLegendsNow: 'Legends now', rkLegendsNone: 'Nobody yet — become the first Legend of the season.', rkFinalTop: 'Season {n} standings',
+      rkNowShort: 'rating now', rkPeakShort: 'best of season {n}', ssBreakNote: 'Off-season: games do not change the rating until season {n} starts.'
+    },
+    pl: {
+      rtTabRating: 'Ranking', rtTabRanks: 'Rangi',
+      ssTitle: 'Sezon {n}', ssDates: '{from} — {to}', ssLeft: 'do końca sezonu — {n} {days}',
+      ssBreakTitle: 'Przerwa między sezonami', ssBreakText: 'Sezon {n} zakończony, ranking wszystkich graczy wrócił do 1000. Partie trwają i wliczają się do statystyk, ale ranking się nie zmienia.', ssNext: 'Sezon {n} startuje {date}',
+      ssRewardTitle: 'Nagroda sezonu {n}: skórka Epic', ssReward: 'Wszyscy gracze, którzy zdobędą rangę «{rank}» i utrzymają ją do końca sezonu {n} ({date}), dostaną skórkę Epic.', ssRewardDone: 'Sezon {n} zakończony: wszyscy, którzy skończyli go z rangą «{rank}», dostają skórkę Epic.',
+      rkMine: 'Twoja ranga', rkHowTitle: 'Jak zdobyć rangę',
+      rkHow: ['Wygrana — +24 punkty, wygrana w pojedynkę (jako neutralny) — +40.', 'Przetrwałeś do końca wygranej partii — jeszcze +4.', 'Przegrana — −10.', 'Pożyteczne ruchy w analizie partii — od −20 do +25.', 'Do ogólnego rankingu liczą się partie, które prowadzący poprowadził w Mafia Pro, a Ty siedziałeś przy jego stole przez Telegram.', 'Pierwsze 5 partii — «Nowicjusz», potem ranga zależy tylko od rankingu.'],
+      rkLadder: 'Wszystkie rangi', rkSeasonTitle: 'Jak działa sezon',
+      rkSeasonRules: ['Sezon trwa 2 miesiące.', 'Na koniec sezonu wyniki są zapisywane, a ranking wszystkich graczy wraca do 1000.', 'Potem 7 dni przerwy: partie trwają i wliczają się do statystyk, ale ranking się nie zmienia.', 'Następnie startuje nowy sezon — i znowu walka o rangi.', 'W profilu widać ranking teraz i najlepszy ranking sezonu.'],
+      rkLegendsNow: 'Legendy teraz', rkLegendsNone: 'Na razie nikt — zostań pierwszą Legendą sezonu.', rkFinalTop: 'Wyniki sezonu {n}',
+      rkNowShort: 'ranking teraz', rkPeakShort: 'najlepszy w sezonie {n}', ssBreakNote: 'Przerwa: do startu sezonu {n} partie nie zmieniają rankingu.'
+    },
+    hy: {
+      rtTabRating: 'Վարկանիշ', rtTabRanks: 'Կոչումներ',
+      ssTitle: 'Սեզոն {n}', ssDates: '{from} — {to}', ssLeft: 'մինչև սեզոնի ավարտը՝ {n} {days}',
+      ssBreakTitle: 'Միջսեզոն', ssBreakText: 'Սեզոն {n}-ն ավարտվեց, բոլոր խաղացողների վարկանիշը վերադարձավ 1000-ի։ Խաղերը շարունակվում են և մտնում են վիճակագրության մեջ, բայց վարկանիշը չի փոխվում։', ssNext: 'Սեզոն {n}-ը կսկսվի {date}',
+      ssRewardTitle: 'Սեզոն {n}-ի պարգևը՝ Epic սքին', ssReward: 'Բոլոր խաղացողները, ովքեր կհասնեն «{rank}» կոչմանը և կպահեն այն մինչև սեզոն {n}-ի ավարտը ({date}), կստանան Epic սքին։', ssRewardDone: 'Սեզոն {n}-ն ավարտվեց. բոլոր նրանք, ովքեր այն ավարտեցին «{rank}» կոչմամբ, ստանում են Epic սքին։',
+      rkMine: 'Ձեր կոչումը', rkHowTitle: 'Ինչպես ստանալ կոչում',
+      rkHow: ['Հաղթանակ՝ +24 միավոր, միայնակ հաղթանակ (չեզոքի համար)՝ +40։', 'Ողջ մնացել եք մինչև հաղթած խաղի ավարտը՝ ևս +4։', 'Պարտություն՝ −10։', 'Օգտակար քայլեր խաղի վերլուծությամբ՝ −20-ից +25։', 'Ընդհանուր վարկանիշում հաշվվում են այն խաղերը, որոնք վարողն անցկացրել է Mafia Pro-ում, իսկ դուք նստած եք եղել նրա սեղանի շուրջ Telegram-ով։', 'Առաջին 5 խաղերը՝ «Սկսնակ», հետո կոչումը կախված է միայն վարկանիշից։'],
+      rkLadder: 'Բոլոր կոչումները', rkSeasonTitle: 'Ինչպես է կառուցված սեզոնը',
+      rkSeasonRules: ['Սեզոնը տևում է 2 ամիս։', 'Սեզոնի վերջում արդյունքները պահպանվում են, իսկ բոլոր խաղացողների վարկանիշը վերադառնում է 1000-ի։', 'Հետո 7 օր միջսեզոն՝ խաղերը շարունակվում են և մտնում են վիճակագրության մեջ, բայց վարկանիշը չի փոխվում։', 'Ապա սկսվում է նոր սեզոն՝ և կրկին պայքար կոչումների համար։', 'Պրոֆիլում երևում են ընթացիկ վարկանիշը և սեզոնի լավագույն վարկանիշը։'],
+      rkLegendsNow: 'Լեգենդներն այժմ', rkLegendsNone: 'Դեռ ոչ ոք․ դարձեք սեզոնի առաջին Լեգենդը։', rkFinalTop: 'Սեզոն {n}-ի արդյունքները',
+      rkNowShort: 'վարկանիշն այժմ', rkPeakShort: 'սեզոն {n}-ի առավելագույնը', ssBreakNote: 'Միջսեզոն. մինչև սեզոն {n}-ի մեկնարկը խաղերը չեն փոխում վարկանիշը։'
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
+})();
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
@@ -7192,7 +7273,7 @@ function profStats(pr, since = 0) {
     const role = ROLE[x.roleId]; const side = role ? role.side : 'city'; const b = st.bySide[side] || st.bySide.city; b.g++; if (x.won) b.w++;
   });
   st.winRate = st.games ? Math.round(100 * st.wins / st.games) : 0;
-  st.rating = 1000 + pr.history.reduce((a, x) => a + (x.points || 0), 0);
+  st.rating = typeof localSeason === 'function' ? localSeason(pr.history).points : 1000 + pr.history.reduce((a, x) => a + (x.points || 0), 0); // v55: the season's rating
   return st;
 }
 function bestRoleOf(pr) {
@@ -7656,7 +7737,7 @@ function topPoll(force) {
   setTimeout(async () => {
     let d = null; try { d = await api('/api/leaderboard?limit=30', null, { method: 'GET' }); } catch (e) { d = null; }
     CLOUD.topBusy = false; CLOUD.topAt = Date.now(); CLOUD.topFail = !(d && d.ok);
-    if (d && d.ok) { CLOUD.top = d.top || []; CLOUD.topSrv = d.at || Date.now(); }
+    if (d && d.ok) { CLOUD.top = d.top || []; CLOUD.topSrv = d.at || Date.now(); CLOUD.topFinal = !!d.final; }
     if (S.screen === 'ratings') render();
   }, 0);
 }
@@ -7689,7 +7770,7 @@ async function cloudSync() {
       (CLOUD.bought || []).forEach(k => { const i = k.indexOf(':'); const kind = k.slice(0, i), id = k.slice(i + 1); const key = kind === 'role' ? 'roles' : kind === 'pack' ? 'packs' : 'scenarios'; if (!next[key].includes(id)) next[key].push(id); });
       ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
       S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
-    } S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || '';
+    } S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -8033,7 +8114,7 @@ function friendSheetHTML(id) {
     const r = d.rating; const wr = r.games ? Math.round(100 * r.wins / r.games) : 0;
     const roles = d.roles.slice(0, 3).map(x => { const role = ROLE[x.roleId]; return role ? `<div class="fav">${sealHTML(role)}<div class="grow" style="min-width:0"><div class="n">${role.name}</div><div class="hint" style="margin:0">${tt(u.bestRoleText, { wins: x.wins, games: x.games })}</div></div><span class="num" style="color:var(--gold-2)">${x.points > 0 ? '+' : ''}${x.points}</span></div>` : ''; }).join('');
     const recent = d.recent.slice(0, 8).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div class="grow"><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.frPlayers, { n: h.n })} · ${fmt(h.at)}</div></div><span class="num" style="color:${h.won ? '#9fe0ab' : 'var(--crimson-2)'}">${h.won ? u.frWon : u.frLost} ${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
-    body = `<div style="margin-top:14px">${rankBlockHTML(Object.assign({ tgId: id }, r))}</div><div class="status" style="margin-top:10px">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate)}</div>
+    body = `<div style="margin-top:14px">${rankBlockHTML(cloudRankObj(d, id))}</div><div class="status" style="margin-top:10px">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate)}</div>
       ${usr.since ? `<div class="hint" style="text-align:center;margin-top:6px">${tt(u.frSince, { date: fmt(usr.since) })}</div>` : ''}
       ${roles ? `<div class="eyebrow" style="margin-top:12px">${u.frBestRoles}</div><div class="stack-s">${roles}</div>` : ''}
       <div class="eyebrow" style="margin-top:12px">${u.frRecent}</div>${recent ? `<div class="hist">${recent}</div>` : `<div class="hint">${u.frNoGames}</div>`}`;
@@ -8058,7 +8139,7 @@ function cloudStatsHTML(d, opts = {}) { // tiles + roles + by side + recent game
   const recent = d.recent.slice(0, opts.recent || 12).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmt(h.at) })}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
   const st = d.streaks || {}; const streakKeys = ['city', 'mafia', 'neutral'].filter(k => st[k] >= 2);
   const streaks = streakKeys.length && u.streakLine ? `<div class="panel" style="text-align:center;border-color:rgba(240,205,122,.5)"><div class="eyebrow gold">${u.streakTitle}</div>${streakKeys.map(k => `<div class="pod-streak" style="font-size:14px;margin-top:4px">${tt(u.streakLine, { n: st[k], wins: plural(st[k], 'wins'), side: (u.streakFor || {})[k] || '' })}</div>`).join('')}</div>` : '';
-  return `${opts.rank === false ? '' : rankBlockHTML(Object.assign({ tgId: d.user && d.user.tgId }, r))}<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>${streaks}
+  return `${opts.rank === false ? '' : rankBlockHTML(cloudRankObj(d, d.user && d.user.tgId))}<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>${streaks}
     ${roles ? `<div class="eyebrow">${opts.allRoles ? u.psAllRoles : u.frBestRoles}</div><div class="stack-s">${roles}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
     ${opts.sides && d.roles.length ? `<div class="eyebrow">${u.bySide}</div><div class="stack-s">${sideRow('city', u.sideCity)}${sideRow('mafia', u.sideMafia)}${sideRow('self', u.sideSolo)}</div>` : ''}
     <div class="eyebrow">${u.frRecent}</div>${recent ? `<div class="hist">${recent}</div>` : `<p class="hint">${u.frNoGames}</p>`}`;
@@ -8073,7 +8154,7 @@ function playerStatsScreen() {
   if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
   else {
     const best = d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = best || ROLE.sheriff;
-    body = `${rankBlockHTML(Object.assign({ tgId: id }, d.rating))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole, 'pstats')}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
+    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole, 'pstats')}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
   const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
@@ -8319,7 +8400,7 @@ function cloudTopHTML() {
   if (!CLOUD.onRatings) { CLOUD.onRatings = true; topPoll(!!CLOUD.topAt && Date.now() - CLOUD.topAt > 10000); } else topPoll();
   const when = CLOUD.topSrv ? new Date(CLOUD.topSrv).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) : '';
   const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${rankIco(r)}${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
-  return `<div class="panel" style="margin-top:12px"><div class="eyebrow">${u.tgTop}</div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}${CLOUD.top ? `<div class="hint" style="margin-top:8px;font-size:11.5px">${when ? tt(u.tgTopAuto, { time: when }) : u.tgTopAutoNo}</div>` : ''}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
+  return `<div class="panel" style="margin-top:12px"><div class="eyebrow">${CLOUD.topFinal && typeof seasonAt === 'function' ? tt(u.rkFinalTop, { n: seasonAt(Date.now()).n }) : u.tgTop}</div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}${CLOUD.top ? `<div class="hint" style="margin-top:8px;font-size:11.5px">${when ? tt(u.tgTopAuto, { time: when }) : u.tgTopAutoNo}</div>` : ''}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
 }
 /* top of clubs by members (public endpoint), refreshed every minute while the ratings screen is open */
 function clubsTopHTML() {
@@ -8892,7 +8973,8 @@ function podiumHTML(rows, keyPrefix = 'pod') {
   const u = U(); if (!rows || !rows.length) return '';
   const top = rows.slice(0, 3); const rest = rows.slice(3);
   const order = [top[1], top[0], top[2]].filter(Boolean);
-  return `<div class="panel pod-panel"><div class="eyebrow gold" style="text-align:center">${u.podium}</div><div class="hint" style="text-align:center;margin:4px 0 10px">${u.podiumHint}</div>
+  const brk = typeof seasonAt === 'function' && seasonAt(Date.now()).phase === 'break' ? `<div class="hint" style="text-align:center;margin:0 0 10px;color:var(--gold-2)">${tt(u.ssBreakNote, { n: seasonAt(Date.now()).n + 1 })}</div>` : ''; // v55
+  return `<div class="panel pod-panel"><div class="eyebrow gold" style="text-align:center">${u.podium}</div><div class="hint" style="text-align:center;margin:4px 0 10px">${u.podiumHint}</div>${brk}
     <div class="podium n${order.length}">${order.map(r => podiumCardHTML(r, keyPrefix, true)).join('')}</div>
     ${rest.length ? `<div class="eyebrow" style="margin-top:14px">${u.podiumRest}</div><div class="pod-grid">${rest.map(r => podiumCardHTML(r, keyPrefix, false)).join('')}</div>` : ''}</div>`;
 }
@@ -9381,6 +9463,31 @@ function dcWidgetHTML() {
    profiles, the results. №1–3 of the overall rating get a gold / silver / bronze wreath, hosts — a top hat for games hosted.
    The same table is on the server (backend/src/ranks.js: the bot's message, Discord roles); backend/test/run.js checks they match.
    ============================================================ */
+/* season:begin — the same text in src/11-ranks.js and backend/src/ranks.js (backend/test/run.js compares them)
+   v55 seasons: season 1 runs 15.10.2026 – 15.12.2026 inclusive (Kyiv time); then the rating of everyone goes back to 1000 and
+   7 days of break follow (games count in the statistics, not in the rating); then the next season, again 2 months + 7 days. */
+const SEASON_FIRST = { y: 2026, m: 10, d: 15 }, SEASON_MONTHS = 2, SEASON_BREAK_DAYS = 7;
+function kyivMidnight(t) { // ms (UTC) of 00:00 in Kyiv on the date t = { y, m, d }: +3 from the last Sunday of March to the last Sunday of October, else +2
+  const lastSun = mo => { const x = new Date(Date.UTC(t.y, mo, 0)); return x.getUTCDate() - x.getUTCDay(); };
+  const base = Date.UTC(t.y, t.m - 1, t.d); const dst = base - 3 * 3600000 >= Date.UTC(t.y, 2, lastSun(3), 1) && base - 3 * 3600000 < Date.UTC(t.y, 9, lastSun(10), 1);
+  return base - (dst ? 3 : 2) * 3600000;
+}
+function seasonDay(t, months, days) { // a date + whole months (the day clamped to the month) + days
+  const mi = t.m - 1 + (months || 0); const y = t.y + Math.floor(mi / 12), m = ((mi % 12) + 12) % 12;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); const x = new Date(Date.UTC(y, m, Math.min(t.d, last)) + (days || 0) * 86400000);
+  return { y: x.getUTCFullYear(), m: x.getUTCMonth() + 1, d: x.getUTCDate() };
+}
+/* the season at a moment (ms): n, start, end (the first moment after its last day), next (the next season's start), phase live | break,
+   lastDay / nextDay as { y, m, d }; before season 1 began it counts as season 1 */
+function seasonAt(ts) {
+  let n = 1, sd = SEASON_FIRST;
+  for (;;) {
+    const lastDay = seasonDay(sd, SEASON_MONTHS, 0); const end = kyivMidnight(seasonDay(lastDay, 0, 1)); const nextDay = seasonDay(lastDay, 0, 1 + SEASON_BREAK_DAYS); const next = kyivMidnight(nextDay);
+    if (ts < next || n >= 500) return { n, start: kyivMidnight(sd), end, next, phase: ts < end ? 'live' : 'break', firstDay: sd, lastDay, nextDay };
+    n++; sd = nextDay;
+  }
+}
+/* season:end */
 const RANK_NOVICE_GAMES = 5;
 const RANK_MIN = [0, 0, 1150, 1350, 1600, 1900, 2300, 2900];
 const HOST_LEVELS = [10, 50, 200];
@@ -9464,7 +9571,8 @@ function rankIco(o, size = 16) {
   const u = U(); const title = [rankName(i), place ? tt(u.rkPlace, { n: place }) : '', hl ? hostTitle(hl) : ''].filter(Boolean).join(' · ');
   return `<span class="rk" title="${esc(title)}" aria-label="${esc(title)}">${rankSVG(i, size, place)}${hl ? hostSVG(hl, Math.round(size * 0.85)) : ''}</span>`;
 }
-/* the rank card on a profile: the big badge, the title, the way to the next rank; a tap opens all ranks */
+/* the rank card on a profile: the big badge, the title, the way to the next rank, the rating now and the best of the season
+   (o.peak — 1000-based, o.peakSeason); a tap opens all ranks */
 function rankBlockHTML(o) {
   if (!o || o.points == null) return '';
   const u = U(); const i = rankIdx(o.points, o.games); const place = o.tgId ? topPlaceOf(o.tgId) : 0; const hl = hostLevel(o.hosted); const nx = rankNext(o.points, o.games);
@@ -9472,20 +9580,67 @@ function rankBlockHTML(o) {
   if (nx && nx.games != null) { pct = 100 * (Number(o.games) || 0) / RANK_NOVICE_GAMES; next = tt(u.rkNextGames, { n: nx.games, games: plural(nx.games, 'games') }); }
   else if (nx) { const lo = i <= 1 ? 1000 : RANK_MIN[i]; pct = Math.max(0, Math.min(100, 100 * (o.points - lo) / (RANK_MIN[nx.idx] - lo))); next = tt(u.rkNextPts, { rank: rankName(nx.idx), n: nx.points, pts: plural(nx.points, 'points') }); }
   const sub = [place ? tt(u.rkPlace, { n: place }) : '', hl ? `${hostSVG(hl, 13)} ${hostTitle(hl)}` : ''].filter(Boolean).join(' · ');
-  return `<div class="rk-card r${i}" role="button" tabindex="0" data-a="ranks" data-i="${i}">${rankSVG(i, 46, place)}<div class="grow" style="min-width:0"><div class="rk-nm">${rankName(i)}</div>${sub ? `<div class="rk-sub">${sub}</div>` : ''}<div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div><div class="rk-next">${next}</div></div><span class="rk-chev">›</span></div>`;
+  const pk = o.peak != null && Number(o.games) > 0 ? Math.max(Number(o.peak) || 0, 1000) : null; const pkSeason = o.peakSeason || seasonAt(Date.now()).n;
+  const pts = `<div class="rk-pts"><span><b class="num">${esc(String(o.points))}</b> ${u.rkNowShort}</span>${pk != null ? `<span>${rankSVG(rankIdx(pk, Math.max(Number(o.games) || 0, RANK_NOVICE_GAMES)), 14)} <b class="num">${pk}</b> ${tt(u.rkPeakShort, { n: pkSeason })}</span>` : ''}</div>`;
+  return `<div class="rk-card r${i}" role="button" tabindex="0" data-a="ranks" data-i="${i}">${rankSVG(i, 46, place)}<div class="grow" style="min-width:0"><div class="rk-nm">${rankName(i)}</div>${sub ? `<div class="rk-sub">${sub}</div>` : ''}<div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div><div class="rk-next">${next}</div>${pts}</div><span class="rk-chev">›</span></div>`;
 }
-/* all ranks: thresholds, where the viewer is, the wreath and the host's hat */
-function ranksSheetHTML(cur) {
+/* ---------- v55 seasons in the app: dates, the season banner, the Legend's reward ---------- */
+function seasonDayText(d) { try { return new Date(Date.UTC(d.y, d.m - 1, d.d)).toLocaleDateString(locale(), { day: 'numeric', month: 'long', timeZone: 'UTC' }); } catch (e) { return `${d.d}.${d.m}.${d.y}`; } }
+function seasonBannerHTML() {
+  const u = U(); const sz = seasonAt(Date.now());
+  if (sz.phase === 'break') {
+    return `<div class="ss-banner brk"><div class="ss-top"><b>${u.ssBreakTitle}</b><span>${tt(u.ssNext, { n: sz.n + 1, date: seasonDayText(sz.nextDay) })}</span></div><div class="hint" style="margin:6px 0 0">${tt(u.ssBreakText, { n: sz.n })}</div></div>`; }
+  const d = Math.max(1, Math.ceil((sz.end - Date.now()) / 86400000)); const total = sz.end - sz.start; const pct = Math.max(0, Math.min(100, 100 * (Date.now() - sz.start) / total));
+  return `<div class="ss-banner"><div class="ss-top"><b>${tt(u.ssTitle, { n: sz.n })}</b><span>${tt(u.ssDates, { from: seasonDayText(sz.firstDay), to: seasonDayText(sz.lastDay) })}</span></div><div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div><div class="ss-left">${tt(u.ssLeft, { n: d, days: plural(d, 'days') })}</div></div>`;
+}
+/* season 1's promise: an Epic skin for everyone who ends it as a Legend */
+function seasonRewardHTML() {
+  const u = U(); const sz = seasonAt(Date.now()); if (sz.n !== 1) return '';
+  const top = RANK_MIN.length - 1; const text = sz.phase === 'break' ? tt(u.ssRewardDone, { n: sz.n, rank: rankName(top) }) : tt(u.ssReward, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay) });
+  return `<div class="ss-reward">${rankSVG(top, 48)}<div class="grow" style="min-width:0"><div class="ss-epic">EPIC</div><b>${tt(u.ssRewardTitle, { n: sz.n })}</b><div class="hint" style="margin:4px 0 0">${text}</div></div></div>`;
+}
+/* all ranks: thresholds, where the viewer is */
+function ranksLadderHTML(cur) {
   const u = U(); const c = Number(cur);
-  const rows = RANK_LOOK.map((x, i) => {
+  return `<div class="stack-s">${RANK_LOOK.map((x, i) => {
     const rule = i === 0 ? tt(u.rkNovice, { n: RANK_NOVICE_GAMES }) : i === 1 ? tt(u.rkBelow, { n: RANK_MIN[2] }) : tt(u.rkFrom, { n: RANK_MIN[i] });
     return `<div class="rk-row ${i === c ? 'cur' : ''}">${rankSVG(i, 34)}<div class="grow"><b>${rankName(i)}</b><div class="hint" style="margin:0">${rule}</div></div>${i === c ? `<span class="rk-you">${u.rkYou}</span>` : ''}</div>`;
-  }).reverse().join('');
+  }).reverse().join('')}</div>`;
+}
+function ranksExtrasHTML(cur) { // the wreath of the top three, the host's top hat
+  const u = U(); const c = Number(cur);
   const hosts = HOST_LEVELS.map((n, k) => `<div class="rk-row">${hostSVG(k + 1, 30)}<div class="grow"><b>${hostTitle(k + 1)}</b><div class="hint" style="margin:0">${tt(u.rkHostRule, { n })}</div></div></div>`).join('');
   const wreaths = [1, 2, 3].map(p => `<span title="№${p}">${rankSVG(Number.isFinite(c) && c > 0 ? c : 7, 34, p)}</span>`).join('');
-  return `<h2>${u.rkTitle}</h2><p class="hint" style="margin:4px 0 10px">${u.rkHint}</p><div class="stack-s">${rows}</div>
-    <div class="eyebrow" style="margin-top:14px">${u.rkWreath}</div><div class="rk-wreaths">${wreaths}</div><p class="hint" style="margin:6px 0 0">${u.rkWreathHint}</p>
+  return `<div class="eyebrow" style="margin-top:14px">${u.rkWreath}</div><div class="rk-wreaths">${wreaths}</div><p class="hint" style="margin:6px 0 0">${u.rkWreathHint}</p>
     <div class="eyebrow" style="margin-top:14px">${u.rkHost}</div><p class="hint" style="margin:4px 0 8px">${u.rkHostHint}</p><div class="stack-s">${hosts}</div>`;
+}
+const listHTML = items => `<ul class="rk-list">${(items || []).map(x => `<li>${x}</li>`).join('')}</ul>`;
+function ranksHowHTML() { const u = U(); return `<div class="eyebrow" style="margin-top:14px">${u.rkHowTitle}</div>${listHTML(u.rkHow)}`; }
+function seasonRulesHTML() { const u = U(); return `<div class="eyebrow" style="margin-top:14px">${u.rkSeasonTitle}</div>${listHTML(u.rkSeasonRules)}`; }
+/* the sheet from a rank card: everything about ranks */
+function ranksSheetHTML(cur) {
+  const u = U();
+  return `<h2>${u.rkTitle}</h2><div class="stack-s" style="margin-top:8px">${seasonBannerHTML()}${seasonRewardHTML()}</div><p class="hint" style="margin:10px 0">${u.rkHint}</p>${ranksLadderHTML(cur)}${ranksHowHTML()}${ranksExtrasHTML(cur)}${seasonRulesHTML()}`;
+}
+/* the player's own rank: the account's when in Telegram, else the profile of this device */
+function myRankObj() {
+  try {
+    if (S.cloud && S.cloud.user && S.cloud.rating) { const id = S.cloud.user.id; const f = FRP[id]; if (f && f.rating) return cloudRankObj(f, id); const r = S.cloud.rating; return { points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, tgId: id, peak: S.cloud.peak ? S.cloud.peak.points : null, peakSeason: S.cloud.peak ? S.cloud.peak.season : null }; }
+  } catch (e) {}
+  const me = S.meId ? profById(S.meId) : null; return me ? profRank(me) : null;
+}
+const cloudRankObj = (d, id) => Object.assign({ tgId: id }, d.rating, d.peak ? { peak: d.peak.points, peakSeason: d.peak.season } : {});
+/* the Ranks tab at the top of the ratings screen */
+function ranksTabHTML() {
+  const u = U(); const me = myRankObj(); const cur = me ? rankIdx(me.points, me.games) : '';
+  let legends = '';
+  if (TG.app && apiBase()) {
+    const top = RANK_MIN.length - 1; const list = (CLOUD.top || []).filter(r => rankIdx(r.points, r.games) === top);
+    legends = `<div class="eyebrow" style="margin-top:14px">${CLOUD.topFinal ? tt(u.rkFinalTop, { n: seasonAt(Date.now()).n }) + ' · ' + rankName(top) : u.rkLegendsNow}</div>${list.length ? `<div class="stack-s">${list.map(r => `<div class="fr-row" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos" style="width:22px;color:var(--gold-2);font-weight:800">${r.rank}</span><div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(r)}${esc(r.name)}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${r.points}</span></div>`).join('')}</div>` : `<p class="hint">${CLOUD.top ? u.rkLegendsNone : u.tgTopLoading}</p>`}`;
+  }
+  return `<div class="stack-s">${seasonBannerHTML()}${seasonRewardHTML()}</div>
+    ${me ? `<div class="eyebrow" style="margin-top:14px">${u.rkMine}</div>${rankBlockHTML(me)}` : ''}
+    ${ranksHowHTML()}<div class="eyebrow" style="margin-top:14px;margin-bottom:8px">${u.rkLadder}</div>${ranksLadderHTML(cur)}${legends}${ranksExtrasHTML(cur)}${seasonRulesHTML()}`;
 }
 /* a rank-up mark for the results: the rank before and after this game */
 function rankUpOf(before, after) {
@@ -9493,19 +9648,38 @@ function rankUpOf(before, after) {
   const a = rankIdx(before.points, before.games), b = rankIdx(after.points, after.games); return b > a ? b : 0;
 }
 function rankUpHTML(idx) { idx = Math.max(0, Math.min(RANK_LOOK.length - 1, Number(idx) || 0)); if (!idx) return ''; const u = U(); return `<div class="rk-up">${rankSVG(idx, 18)} ${tt(u.rkUp, { rank: rankName(idx) })}</div>`; }
+/* the season's rating of a device profile: 1000 + the points of its games in this season (all of season 1; none in the break)
+   and the best of the season (the highest the running total reached, never below the starting 1000) */
+function localSeason(history, at) {
+  const sz = seasonAt(at || Date.now()); const from = sz.n === 1 ? 0 : sz.start; const live = sz.phase === 'live';
+  const list = (history || []).filter(x => x && x.date >= from && x.date < sz.end).sort((a, b) => a.date - b.date);
+  let sum = 0, best = 0; list.forEach(x => { sum += x.points || 0; if (sum > best) best = sum; });
+  return { points: live ? 1000 + sum : 1000, peak: 1000 + best, season: sz.n, games: list.length };
+}
 /* the rating of a profile kept on this device (offline games) — or the account's, when it is the Telegram player himself */
 function profRank(pr) {
   if (!pr) return null;
   try {
     if (pr.tgId && S.cloud && S.cloud.user && S.cloud.user.id === pr.tgId) {
-      const f = FRP[pr.tgId]; if (f && f.rating) return Object.assign({ tgId: pr.tgId }, f.rating); // the freshest: the profile just loaded
-      if (S.cloud.rating) { const r = S.cloud.rating; return { points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, tgId: pr.tgId }; }
+      const f = FRP[pr.tgId]; if (f && f.rating) return cloudRankObj(f, pr.tgId); // the freshest: the profile just loaded
+      if (S.cloud.rating) { const r = S.cloud.rating; return { points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, tgId: pr.tgId, peak: S.cloud.peak ? S.cloud.peak.points : null, peakSeason: S.cloud.peak ? S.cloud.peak.season : null }; }
     }
   } catch (e) {}
-  const st = profStats(pr); return { points: st.rating, games: st.games, tgId: pr.tgId || null };
+  const st = profStats(pr); const ls = localSeason(pr.history); return { points: st.rating, games: st.games, tgId: pr.tgId || null, peak: st.games ? ls.peak : null, peakSeason: ls.season };
 }
+/* the Ranks tab: a segment «Rating | Ranks» at the top of the ratings screen */
+(function () {
+  const orig = ratingsScreen;
+  ratingsScreen = function () {
+    const u = U(); const tab = S.ui.rtTab === 'ranks' ? 'ranks' : 'rating';
+    const seg = `<div class="segment rt-tabs">${[['rating', u.rtTabRating], ['ranks', u.rtTabRanks]].map(([id, l]) => `<button class="${tab === id ? 'active' : ''}" data-a="rt-tab" data-v="${id}">${l}</button>`).join('')}</div>`;
+    if (tab === 'ranks') return `${topbar(u.tabRatings, u.ratingsD, false)}<div class="stack">${seg}${ranksTabHTML()}</div>`;
+    const html = orig(); const k = html.indexOf('<div class="stack">'); return k < 0 ? html : html.slice(0, k + 19) + seg + html.slice(k + 19);
+  };
+})();
 Object.assign(ACT, {
-  ranks(el) { S.ui.sheet = { type: 'ranks', i: el && el.dataset ? el.dataset.i : '' }; render(); }
+  ranks(el) { S.ui.sheet = { type: 'ranks', i: el && el.dataset ? el.dataset.i : '' }; render(); },
+  'rt-tab'(el) { S.ui.rtTab = el.dataset.v === 'ranks' ? 'ranks' : 'rating'; S.ui.sheet = null; render(); }
 });
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,

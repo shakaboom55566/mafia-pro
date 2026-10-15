@@ -4,6 +4,31 @@
    profiles, the results. №1–3 of the overall rating get a gold / silver / bronze wreath, hosts — a top hat for games hosted.
    The same table is on the server (backend/src/ranks.js: the bot's message, Discord roles); backend/test/run.js checks they match.
    ============================================================ */
+/* season:begin — the same text in src/11-ranks.js and backend/src/ranks.js (backend/test/run.js compares them)
+   v55 seasons: season 1 runs 15.10.2026 – 15.12.2026 inclusive (Kyiv time); then the rating of everyone goes back to 1000 and
+   7 days of break follow (games count in the statistics, not in the rating); then the next season, again 2 months + 7 days. */
+const SEASON_FIRST = { y: 2026, m: 10, d: 15 }, SEASON_MONTHS = 2, SEASON_BREAK_DAYS = 7;
+function kyivMidnight(t) { // ms (UTC) of 00:00 in Kyiv on the date t = { y, m, d }: +3 from the last Sunday of March to the last Sunday of October, else +2
+  const lastSun = mo => { const x = new Date(Date.UTC(t.y, mo, 0)); return x.getUTCDate() - x.getUTCDay(); };
+  const base = Date.UTC(t.y, t.m - 1, t.d); const dst = base - 3 * 3600000 >= Date.UTC(t.y, 2, lastSun(3), 1) && base - 3 * 3600000 < Date.UTC(t.y, 9, lastSun(10), 1);
+  return base - (dst ? 3 : 2) * 3600000;
+}
+function seasonDay(t, months, days) { // a date + whole months (the day clamped to the month) + days
+  const mi = t.m - 1 + (months || 0); const y = t.y + Math.floor(mi / 12), m = ((mi % 12) + 12) % 12;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); const x = new Date(Date.UTC(y, m, Math.min(t.d, last)) + (days || 0) * 86400000);
+  return { y: x.getUTCFullYear(), m: x.getUTCMonth() + 1, d: x.getUTCDate() };
+}
+/* the season at a moment (ms): n, start, end (the first moment after its last day), next (the next season's start), phase live | break,
+   lastDay / nextDay as { y, m, d }; before season 1 began it counts as season 1 */
+function seasonAt(ts) {
+  let n = 1, sd = SEASON_FIRST;
+  for (;;) {
+    const lastDay = seasonDay(sd, SEASON_MONTHS, 0); const end = kyivMidnight(seasonDay(lastDay, 0, 1)); const nextDay = seasonDay(lastDay, 0, 1 + SEASON_BREAK_DAYS); const next = kyivMidnight(nextDay);
+    if (ts < next || n >= 500) return { n, start: kyivMidnight(sd), end, next, phase: ts < end ? 'live' : 'break', firstDay: sd, lastDay, nextDay };
+    n++; sd = nextDay;
+  }
+}
+/* season:end */
 const RANK_NOVICE_GAMES = 5;
 const RANK_MIN = [0, 0, 1150, 1350, 1600, 1900, 2300, 2900];
 const HOST_LEVELS = [10, 50, 200];
@@ -87,7 +112,8 @@ function rankIco(o, size = 16) {
   const u = U(); const title = [rankName(i), place ? tt(u.rkPlace, { n: place }) : '', hl ? hostTitle(hl) : ''].filter(Boolean).join(' · ');
   return `<span class="rk" title="${esc(title)}" aria-label="${esc(title)}">${rankSVG(i, size, place)}${hl ? hostSVG(hl, Math.round(size * 0.85)) : ''}</span>`;
 }
-/* the rank card on a profile: the big badge, the title, the way to the next rank; a tap opens all ranks */
+/* the rank card on a profile: the big badge, the title, the way to the next rank, the rating now and the best of the season
+   (o.peak — 1000-based, o.peakSeason); a tap opens all ranks */
 function rankBlockHTML(o) {
   if (!o || o.points == null) return '';
   const u = U(); const i = rankIdx(o.points, o.games); const place = o.tgId ? topPlaceOf(o.tgId) : 0; const hl = hostLevel(o.hosted); const nx = rankNext(o.points, o.games);
@@ -95,20 +121,67 @@ function rankBlockHTML(o) {
   if (nx && nx.games != null) { pct = 100 * (Number(o.games) || 0) / RANK_NOVICE_GAMES; next = tt(u.rkNextGames, { n: nx.games, games: plural(nx.games, 'games') }); }
   else if (nx) { const lo = i <= 1 ? 1000 : RANK_MIN[i]; pct = Math.max(0, Math.min(100, 100 * (o.points - lo) / (RANK_MIN[nx.idx] - lo))); next = tt(u.rkNextPts, { rank: rankName(nx.idx), n: nx.points, pts: plural(nx.points, 'points') }); }
   const sub = [place ? tt(u.rkPlace, { n: place }) : '', hl ? `${hostSVG(hl, 13)} ${hostTitle(hl)}` : ''].filter(Boolean).join(' · ');
-  return `<div class="rk-card r${i}" role="button" tabindex="0" data-a="ranks" data-i="${i}">${rankSVG(i, 46, place)}<div class="grow" style="min-width:0"><div class="rk-nm">${rankName(i)}</div>${sub ? `<div class="rk-sub">${sub}</div>` : ''}<div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div><div class="rk-next">${next}</div></div><span class="rk-chev">›</span></div>`;
+  const pk = o.peak != null && Number(o.games) > 0 ? Math.max(Number(o.peak) || 0, 1000) : null; const pkSeason = o.peakSeason || seasonAt(Date.now()).n;
+  const pts = `<div class="rk-pts"><span><b class="num">${esc(String(o.points))}</b> ${u.rkNowShort}</span>${pk != null ? `<span>${rankSVG(rankIdx(pk, Math.max(Number(o.games) || 0, RANK_NOVICE_GAMES)), 14)} <b class="num">${pk}</b> ${tt(u.rkPeakShort, { n: pkSeason })}</span>` : ''}</div>`;
+  return `<div class="rk-card r${i}" role="button" tabindex="0" data-a="ranks" data-i="${i}">${rankSVG(i, 46, place)}<div class="grow" style="min-width:0"><div class="rk-nm">${rankName(i)}</div>${sub ? `<div class="rk-sub">${sub}</div>` : ''}<div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div><div class="rk-next">${next}</div>${pts}</div><span class="rk-chev">›</span></div>`;
 }
-/* all ranks: thresholds, where the viewer is, the wreath and the host's hat */
-function ranksSheetHTML(cur) {
+/* ---------- v55 seasons in the app: dates, the season banner, the Legend's reward ---------- */
+function seasonDayText(d) { try { return new Date(Date.UTC(d.y, d.m - 1, d.d)).toLocaleDateString(locale(), { day: 'numeric', month: 'long', timeZone: 'UTC' }); } catch (e) { return `${d.d}.${d.m}.${d.y}`; } }
+function seasonBannerHTML() {
+  const u = U(); const sz = seasonAt(Date.now());
+  if (sz.phase === 'break') {
+    return `<div class="ss-banner brk"><div class="ss-top"><b>${u.ssBreakTitle}</b><span>${tt(u.ssNext, { n: sz.n + 1, date: seasonDayText(sz.nextDay) })}</span></div><div class="hint" style="margin:6px 0 0">${tt(u.ssBreakText, { n: sz.n })}</div></div>`; }
+  const d = Math.max(1, Math.ceil((sz.end - Date.now()) / 86400000)); const total = sz.end - sz.start; const pct = Math.max(0, Math.min(100, 100 * (Date.now() - sz.start) / total));
+  return `<div class="ss-banner"><div class="ss-top"><b>${tt(u.ssTitle, { n: sz.n })}</b><span>${tt(u.ssDates, { from: seasonDayText(sz.firstDay), to: seasonDayText(sz.lastDay) })}</span></div><div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div><div class="ss-left">${tt(u.ssLeft, { n: d, days: plural(d, 'days') })}</div></div>`;
+}
+/* season 1's promise: an Epic skin for everyone who ends it as a Legend */
+function seasonRewardHTML() {
+  const u = U(); const sz = seasonAt(Date.now()); if (sz.n !== 1) return '';
+  const top = RANK_MIN.length - 1; const text = sz.phase === 'break' ? tt(u.ssRewardDone, { n: sz.n, rank: rankName(top) }) : tt(u.ssReward, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay) });
+  return `<div class="ss-reward">${rankSVG(top, 48)}<div class="grow" style="min-width:0"><div class="ss-epic">EPIC</div><b>${tt(u.ssRewardTitle, { n: sz.n })}</b><div class="hint" style="margin:4px 0 0">${text}</div></div></div>`;
+}
+/* all ranks: thresholds, where the viewer is */
+function ranksLadderHTML(cur) {
   const u = U(); const c = Number(cur);
-  const rows = RANK_LOOK.map((x, i) => {
+  return `<div class="stack-s">${RANK_LOOK.map((x, i) => {
     const rule = i === 0 ? tt(u.rkNovice, { n: RANK_NOVICE_GAMES }) : i === 1 ? tt(u.rkBelow, { n: RANK_MIN[2] }) : tt(u.rkFrom, { n: RANK_MIN[i] });
     return `<div class="rk-row ${i === c ? 'cur' : ''}">${rankSVG(i, 34)}<div class="grow"><b>${rankName(i)}</b><div class="hint" style="margin:0">${rule}</div></div>${i === c ? `<span class="rk-you">${u.rkYou}</span>` : ''}</div>`;
-  }).reverse().join('');
+  }).reverse().join('')}</div>`;
+}
+function ranksExtrasHTML(cur) { // the wreath of the top three, the host's top hat
+  const u = U(); const c = Number(cur);
   const hosts = HOST_LEVELS.map((n, k) => `<div class="rk-row">${hostSVG(k + 1, 30)}<div class="grow"><b>${hostTitle(k + 1)}</b><div class="hint" style="margin:0">${tt(u.rkHostRule, { n })}</div></div></div>`).join('');
   const wreaths = [1, 2, 3].map(p => `<span title="№${p}">${rankSVG(Number.isFinite(c) && c > 0 ? c : 7, 34, p)}</span>`).join('');
-  return `<h2>${u.rkTitle}</h2><p class="hint" style="margin:4px 0 10px">${u.rkHint}</p><div class="stack-s">${rows}</div>
-    <div class="eyebrow" style="margin-top:14px">${u.rkWreath}</div><div class="rk-wreaths">${wreaths}</div><p class="hint" style="margin:6px 0 0">${u.rkWreathHint}</p>
+  return `<div class="eyebrow" style="margin-top:14px">${u.rkWreath}</div><div class="rk-wreaths">${wreaths}</div><p class="hint" style="margin:6px 0 0">${u.rkWreathHint}</p>
     <div class="eyebrow" style="margin-top:14px">${u.rkHost}</div><p class="hint" style="margin:4px 0 8px">${u.rkHostHint}</p><div class="stack-s">${hosts}</div>`;
+}
+const listHTML = items => `<ul class="rk-list">${(items || []).map(x => `<li>${x}</li>`).join('')}</ul>`;
+function ranksHowHTML() { const u = U(); return `<div class="eyebrow" style="margin-top:14px">${u.rkHowTitle}</div>${listHTML(u.rkHow)}`; }
+function seasonRulesHTML() { const u = U(); return `<div class="eyebrow" style="margin-top:14px">${u.rkSeasonTitle}</div>${listHTML(u.rkSeasonRules)}`; }
+/* the sheet from a rank card: everything about ranks */
+function ranksSheetHTML(cur) {
+  const u = U();
+  return `<h2>${u.rkTitle}</h2><div class="stack-s" style="margin-top:8px">${seasonBannerHTML()}${seasonRewardHTML()}</div><p class="hint" style="margin:10px 0">${u.rkHint}</p>${ranksLadderHTML(cur)}${ranksHowHTML()}${ranksExtrasHTML(cur)}${seasonRulesHTML()}`;
+}
+/* the player's own rank: the account's when in Telegram, else the profile of this device */
+function myRankObj() {
+  try {
+    if (S.cloud && S.cloud.user && S.cloud.rating) { const id = S.cloud.user.id; const f = FRP[id]; if (f && f.rating) return cloudRankObj(f, id); const r = S.cloud.rating; return { points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, tgId: id, peak: S.cloud.peak ? S.cloud.peak.points : null, peakSeason: S.cloud.peak ? S.cloud.peak.season : null }; }
+  } catch (e) {}
+  const me = S.meId ? profById(S.meId) : null; return me ? profRank(me) : null;
+}
+const cloudRankObj = (d, id) => Object.assign({ tgId: id }, d.rating, d.peak ? { peak: d.peak.points, peakSeason: d.peak.season } : {});
+/* the Ranks tab at the top of the ratings screen */
+function ranksTabHTML() {
+  const u = U(); const me = myRankObj(); const cur = me ? rankIdx(me.points, me.games) : '';
+  let legends = '';
+  if (TG.app && apiBase()) {
+    const top = RANK_MIN.length - 1; const list = (CLOUD.top || []).filter(r => rankIdx(r.points, r.games) === top);
+    legends = `<div class="eyebrow" style="margin-top:14px">${CLOUD.topFinal ? tt(u.rkFinalTop, { n: seasonAt(Date.now()).n }) + ' · ' + rankName(top) : u.rkLegendsNow}</div>${list.length ? `<div class="stack-s">${list.map(r => `<div class="fr-row" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos" style="width:22px;color:var(--gold-2);font-weight:800">${r.rank}</span><div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(r)}${esc(r.name)}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${r.points}</span></div>`).join('')}</div>` : `<p class="hint">${CLOUD.top ? u.rkLegendsNone : u.tgTopLoading}</p>`}`;
+  }
+  return `<div class="stack-s">${seasonBannerHTML()}${seasonRewardHTML()}</div>
+    ${me ? `<div class="eyebrow" style="margin-top:14px">${u.rkMine}</div>${rankBlockHTML(me)}` : ''}
+    ${ranksHowHTML()}<div class="eyebrow" style="margin-top:14px;margin-bottom:8px">${u.rkLadder}</div>${ranksLadderHTML(cur)}${legends}${ranksExtrasHTML(cur)}${seasonRulesHTML()}`;
 }
 /* a rank-up mark for the results: the rank before and after this game */
 function rankUpOf(before, after) {
@@ -116,17 +189,36 @@ function rankUpOf(before, after) {
   const a = rankIdx(before.points, before.games), b = rankIdx(after.points, after.games); return b > a ? b : 0;
 }
 function rankUpHTML(idx) { idx = Math.max(0, Math.min(RANK_LOOK.length - 1, Number(idx) || 0)); if (!idx) return ''; const u = U(); return `<div class="rk-up">${rankSVG(idx, 18)} ${tt(u.rkUp, { rank: rankName(idx) })}</div>`; }
+/* the season's rating of a device profile: 1000 + the points of its games in this season (all of season 1; none in the break)
+   and the best of the season (the highest the running total reached, never below the starting 1000) */
+function localSeason(history, at) {
+  const sz = seasonAt(at || Date.now()); const from = sz.n === 1 ? 0 : sz.start; const live = sz.phase === 'live';
+  const list = (history || []).filter(x => x && x.date >= from && x.date < sz.end).sort((a, b) => a.date - b.date);
+  let sum = 0, best = 0; list.forEach(x => { sum += x.points || 0; if (sum > best) best = sum; });
+  return { points: live ? 1000 + sum : 1000, peak: 1000 + best, season: sz.n, games: list.length };
+}
 /* the rating of a profile kept on this device (offline games) — or the account's, when it is the Telegram player himself */
 function profRank(pr) {
   if (!pr) return null;
   try {
     if (pr.tgId && S.cloud && S.cloud.user && S.cloud.user.id === pr.tgId) {
-      const f = FRP[pr.tgId]; if (f && f.rating) return Object.assign({ tgId: pr.tgId }, f.rating); // the freshest: the profile just loaded
-      if (S.cloud.rating) { const r = S.cloud.rating; return { points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, tgId: pr.tgId }; }
+      const f = FRP[pr.tgId]; if (f && f.rating) return cloudRankObj(f, pr.tgId); // the freshest: the profile just loaded
+      if (S.cloud.rating) { const r = S.cloud.rating; return { points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, tgId: pr.tgId, peak: S.cloud.peak ? S.cloud.peak.points : null, peakSeason: S.cloud.peak ? S.cloud.peak.season : null }; }
     }
   } catch (e) {}
-  const st = profStats(pr); return { points: st.rating, games: st.games, tgId: pr.tgId || null };
+  const st = profStats(pr); const ls = localSeason(pr.history); return { points: st.rating, games: st.games, tgId: pr.tgId || null, peak: st.games ? ls.peak : null, peakSeason: ls.season };
 }
+/* the Ranks tab: a segment «Rating | Ranks» at the top of the ratings screen */
+(function () {
+  const orig = ratingsScreen;
+  ratingsScreen = function () {
+    const u = U(); const tab = S.ui.rtTab === 'ranks' ? 'ranks' : 'rating';
+    const seg = `<div class="segment rt-tabs">${[['rating', u.rtTabRating], ['ranks', u.rtTabRanks]].map(([id, l]) => `<button class="${tab === id ? 'active' : ''}" data-a="rt-tab" data-v="${id}">${l}</button>`).join('')}</div>`;
+    if (tab === 'ranks') return `${topbar(u.tabRatings, u.ratingsD, false)}<div class="stack">${seg}${ranksTabHTML()}</div>`;
+    const html = orig(); const k = html.indexOf('<div class="stack">'); return k < 0 ? html : html.slice(0, k + 19) + seg + html.slice(k + 19);
+  };
+})();
 Object.assign(ACT, {
-  ranks(el) { S.ui.sheet = { type: 'ranks', i: el && el.dataset ? el.dataset.i : '' }; render(); }
+  ranks(el) { S.ui.sheet = { type: 'ranks', i: el && el.dataset ? el.dataset.i : '' }; render(); },
+  'rt-tab'(el) { S.ui.rtTab = el.dataset.v === 'ranks' ? 'ranks' : 'rating'; S.ui.sheet = null; render(); }
 });

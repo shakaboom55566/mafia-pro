@@ -508,7 +508,8 @@ function podiumHTML(rows, keyPrefix = 'pod') {
   const u = U(); if (!rows || !rows.length) return '';
   const top = rows.slice(0, 3); const rest = rows.slice(3);
   const order = [top[1], top[0], top[2]].filter(Boolean);
-  return `<div class="panel pod-panel"><div class="eyebrow gold" style="text-align:center">${u.podium}</div><div class="hint" style="text-align:center;margin:4px 0 10px">${u.podiumHint}</div>
+  const brk = typeof seasonAt === 'function' && seasonAt(Date.now()).phase === 'break' ? `<div class="hint" style="text-align:center;margin:0 0 10px;color:var(--gold-2)">${tt(u.ssBreakNote, { n: seasonAt(Date.now()).n + 1 })}</div>` : ''; // v55
+  return `<div class="panel pod-panel"><div class="eyebrow gold" style="text-align:center">${u.podium}</div><div class="hint" style="text-align:center;margin:4px 0 10px">${u.podiumHint}</div>${brk}
     <div class="podium n${order.length}">${order.map(r => podiumCardHTML(r, keyPrefix, true)).join('')}</div>
     ${rest.length ? `<div class="eyebrow" style="margin-top:14px">${u.podiumRest}</div><div class="pod-grid">${rest.map(r => podiumCardHTML(r, keyPrefix, false)).join('')}</div>` : ''}</div>`;
 }

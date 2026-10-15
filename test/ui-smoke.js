@@ -788,6 +788,27 @@ clearInterval(X.T.iv);
   const pod = E('podiumHTML')(rows, 'pod'); app.innerHTML = pod; check('v54 podium'); if (!pod.includes(X.tt(u.rkUp, { rank: u.rankNames[1] }))) F('the podium says «new rank»');
   S.profiles = S.profiles.filter(x => x.id !== pr.id && x.id !== p5.id); S.screen = 'home'; S.ui.profileId = null; X.render(); console.log('v54 ok');
 }
+// v55: the Ranks tab on the ratings screen, seasons, the best of the season in the profile
+{ const u = X.U(); const F = m => { fails++; console.log('FAIL v55 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  const pr = E('newProfile')({ name: 'Сезон' }); const t0 = Date.parse('2026-10-20T12:00:00Z');
+  [[24, 0], [24, 1], [-10, 2], [24, 3], [24, 4], [-60, 5]].forEach(([pts, k]) => pr.history.push({ id: 's' + k, date: t0 + k * 3600000, gameId: 'sg' + k, n: 7, roleId: 'sheriff', won: pts > 0, points: pts }));
+  S.profiles.push(pr); S.meId = pr.id;
+  const ls = E('localSeason'); const live = ls(pr.history, Date.parse('2026-11-01T00:00:00Z')); if (live.points !== 1026 || live.peak !== 1086 || live.season !== 1) F('season 1 on this device: rating 1026, best 1086: ' + JSON.stringify(live));
+  const brk = ls(pr.history, Date.parse('2026-12-18T00:00:00Z')); if (brk.points !== 1000 || brk.peak !== 1086) F('the break: rating 1000, the best of season 1 kept: ' + JSON.stringify(brk));
+  pr.history.push({ id: 's9', date: Date.parse('2026-12-25T10:00:00Z'), gameId: 'sg9', n: 7, roleId: 'sheriff', won: true, points: 28 });
+  const s2 = ls(pr.history, Date.parse('2027-01-05T00:00:00Z')); if (s2.points !== 1028 || s2.season !== 2 || s2.peak !== 1028) F('season 2 counts only its own games: ' + JSON.stringify(s2));
+  pr.history.pop();
+  A.go(el('go', { to: 'ratings' })); A['rt-tab'](el('rt-tab', { v: 'ranks' })); check('v55 ranks tab');
+  const h = app.innerHTML; const sz = E('seasonAt')(Date.now());
+  if (!h.includes('data-a="rt-tab" data-v="ranks"') || !h.includes(X.tt(u.ssTitle, { n: sz.n })) || !h.includes('EPIC') || !h.includes(u.rkHowTitle) || !u.rkHow.every(x => h.includes(x)) || !u.rkSeasonRules.every(x => h.includes(x))) F('the Ranks tab: season, Epic reward, how to get a rank, season rules');
+  if (!h.includes(X.tt(u.ssRewardTitle, { n: 1 })) || !h.includes(u.rankNames[7])) F('the reward names the Legend rank');
+  if (!h.includes(u.rkMine) || !h.includes('class="rk-card') || !h.includes(X.tt(u.rkPeakShort, { n: 1 }))) F('your rank with the best of the season');
+  if (!u.rankNames.every(n => h.includes(n)) || !u.hostNames.every(n => h.includes(n))) F('the ladder and the host badges');
+  A['rt-tab'](el('rt-tab', { v: 'rating' })); check('v55 rating tab'); if (!app.innerHTML.includes('data-a="rt-set"') || !app.innerHTML.includes('data-a="rt-tab"')) F('back to the rating, the tabs stay on top');
+  S.ui.profileId = pr.id; S.screen = 'profile'; X.render(); check('v55 profile'); if (!app.innerHTML.includes(u.rkNowShort) || !app.innerHTML.includes('1026') || !app.innerHTML.includes('1086')) F('the profile: the rating now and the best of the season');
+  A.ranks(el('ranks', { i: '1' })); check('v55 sheet'); if (!app.innerHTML.includes('EPIC') || !app.innerHTML.includes(u.rkHowTitle)) F('the sheet from the rank card tells the same');
+  S.ui.sheet = null; S.profiles = S.profiles.filter(x => x.id !== pr.id); S.meId = null; S.ui.rtTab = 'rating'; S.screen = 'home'; X.render(); console.log('v55 ok');
+}
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
 process.exit(fails ? 1 : 0);
