@@ -7,14 +7,23 @@ export class VeoBlocked extends Error {}
 
 export async function veoGenerate({ apiKey, base = 'https://generativelanguage.googleapis.com/v1beta', model, prompt, image, refs, resolution = '1080p', pollMs = 10000, timeoutMs = 12 * 60000 }) {
   base = base.replace(/\/$/, '');
-  const instance = { prompt };
-  if (refs && refs.length) instance.referenceImages = refs.slice(0, 3).map(b => ({ image: { inlineData: { mimeType: 'image/png', data: b.toString('base64') } }, referenceType: 'asset' })); // our characters (Veo 3.1 only)
-  else if (image) instance.image = { inlineData: { mimeType: 'image/png', data: image.toString('base64') } };
-  const parameters = { aspectRatio: '9:16', resolution };
-  if (image || (refs && refs.length)) parameters.personGeneration = 'allow_adult'; // the only value allowed with images
-  if (refs && refs.length) parameters.durationSeconds = '8';                      // required with reference images
+  // pictures go as { bytesBase64Encoded, mimeType } (the predictLongRunning format); if the model wants the other spelling, it says so and we retry
+  const pic = (b, fmt) => (fmt === 'inline' ? { inlineData: { mimeType: 'image/png', data: b.toString('base64') } } : { bytesBase64Encoded: b.toString('base64'), mimeType: 'image/png' });
+  const build = fmt => {
+    const instance = { prompt };
+    if (refs && refs.length) instance.referenceImages = refs.slice(0, 3).map(b => ({ image: pic(b, fmt), referenceType: 'asset' })); // our characters (Veo 3.1 only)
+    else if (image) instance.image = pic(image, fmt);
+    const parameters = { aspectRatio: '9:16', resolution };
+    if (image || (refs && refs.length)) parameters.personGeneration = 'allow_adult'; // the only value allowed with images
+    if (refs && refs.length) parameters.durationSeconds = '8';                      // required with reference images
+    return { instances: [instance], parameters };
+  };
   const headers = { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' };
-  const start = await http(`${base}/models/${model}:predictLongRunning`, { method: 'POST', headers, body: JSON.stringify({ instances: [instance], parameters }) }, { tries: 4, wait: 15000, label: 'veo start' });
+  let start = await http(`${base}/models/${model}:predictLongRunning`, { method: 'POST', headers, body: JSON.stringify(build('bytes')) }, { tries: 4, wait: 15000, label: 'veo start' });
+  if (start.status === 400 && (image || (refs && refs.length)) && /bytesBase64Encoded|inlineData|unknown name|Invalid JSON payload/i.test(short(start.json && start.json.error ? start.json.error.message : start.text, 400))) {
+    log('  veo: picture format refused — retrying with inlineData');
+    start = await http(`${base}/models/${model}:predictLongRunning`, { method: 'POST', headers, body: JSON.stringify(build('inline')) }, { tries: 2, wait: 10000, label: 'veo start' });
+  }
   if (!start.json || !start.json.name) throw new Error(`Veo did not start: HTTP ${start.status} ${short(start.json && start.json.error ? start.json.error.message : start.text)}`);
   const op = start.json.name; log(`  veo: ${model}, ${resolution}${refs && refs.length ? `, ${refs.length} reference image(s)` : image ? ', first frame' : ''}, operation started`);
   const t0 = Date.now(); let d = null;

@@ -32,7 +32,8 @@ const server = http.createServer((req, res) => {
     const send = (code, o, type = 'application/json') => { res.writeHead(code, { 'Content-Type': type }); res.end(type === 'application/json' ? JSON.stringify(o) : o); };
     // Gemini
     let m;
-    if ((m = /^\/v1beta\/models\/([\w.-]+):predictLongRunning$/.exec(p))) { if (req.headers['x-goog-api-key'] !== 'gem-key') return send(403, { error: { message: 'API key not valid' } }); const op = 'operations/op' + S.calls.length; S.polls[op] = { n: 0, prompt: body.instances[0].prompt }; return send(200, { name: op }); }
+    if ((m = /^\/v1beta\/models\/([\w.-]+):predictLongRunning$/.exec(p))) { if (req.headers['x-goog-api-key'] !== 'gem-key') return send(403, { error: { message: 'API key not valid' } });
+      const inst = body.instances[0]; const firstPic = inst.image || (inst.referenceImages && inst.referenceImages[0].image); if (S.picInline && firstPic && firstPic.bytesBase64Encoded) return send(400, { error: { message: '`bytesBase64Encoded` isn\'t supported by this model.' } }); const op = 'operations/op' + S.calls.length; S.polls[op] = { n: 0, prompt: body.instances[0].prompt }; return send(200, { name: op }); }
     if ((m = /^\/v1beta\/(operations\/op\d+)$/.exec(p))) { const o = S.polls[m[1]]; o.n++; if (o.n < 2) return send(200, { name: m[1], done: false });
       if (S.block && !/family-friendly/.test(o.prompt)) return send(200, { name: m[1], done: true, response: { generateVideoResponse: { raiMediaFilteredCount: 1, raiMediaFilteredReasons: ['Unsafe content'] } } });
       return send(200, { name: m[1], done: true, response: { generateVideoResponse: { generatedSamples: [{ video: { uri: `${base}/v1beta/files/vid:download?alt=media` } }] } } }); }
@@ -152,13 +153,15 @@ console.log('pause, lockdown, Veo safety block, Instagram refuses a field, uploa
 console.log('first frame from a picture on the site; our characters as reference images; voice-over failure');
 { fs.rmSync(path.join(pub, '2026-10-15.json'), { force: true }); write('2026-10-15.md', GOOD('2026-10-15', 'image: cards/uk/sheriff.png\n')); reset(); S.creds = CREDS();
   let r = await run(['publish', path.join(posts, '2026-10-15.md')]); let v = calls(/predictLongRunning/)[0];
-  ok(v && v.body.instances[0].image && v.body.instances[0].image.inlineData.mimeType === 'image/png' && v.body.parameters.personGeneration === 'allow_adult' && r.code === 0, 'image-to-video: first frame + allow_adult');
+  ok(v && v.body.instances[0].image && v.body.instances[0].image.mimeType === 'image/png' && v.body.instances[0].image.bytesBase64Encoded.length > 1000 && v.body.parameters.personGeneration === 'allow_adult' && r.code === 0, 'image-to-video: first frame + allow_adult');
   fs.rmSync(path.join(pub, '2026-10-15.json'), { force: true }); write('2026-10-15.md', GOOD('2026-10-15', 'refs: don, doctor\n')); reset(); S.ttsFail = true;
   r = await run(['publish', path.join(posts, '2026-10-15.md')]); v = calls(/predictLongRunning/)[0];
   const refs = v && v.body.instances[0].referenceImages;
-  ok(refs && refs.length === 2 && refs.every(x => x.referenceType === 'asset' && x.image.inlineData.mimeType === 'image/png' && x.image.inlineData.data.length > 1000) && !v.body.instances[0].image && v.body.parameters.durationSeconds === '8' && v.body.parameters.personGeneration === 'allow_adult', 'our characters: card art as reference images, 8 s, allow_adult');
+  ok(refs && refs.length === 2 && refs.every(x => x.referenceType === 'asset' && x.image.mimeType === 'image/png' && x.image.bytesBase64Encoded.length > 1000) && !v.body.instances[0].image && v.body.parameters.durationSeconds === '8' && v.body.parameters.personGeneration === 'allow_adult', 'our characters: card art as reference images, 8 s, allow_adult');
   ok(calls(/\/cards\/uk\/(don|doctor)\.png/).length === 2 && /references: don, doctor/.test(r.log), 'card pictures fetched from the site');
-  ok(r.code === 0 && /voice-over: TTS/.test(r.log) && /no voice/.test(r.log) && calls(/sendVideo/).length === 1, 'TTS down → video still made and published, without the voice'); S.ttsFail = false; }
+  ok(r.code === 0 && /voice-over: TTS/.test(r.log) && /no voice/.test(r.log) && calls(/sendVideo/).length === 1, 'TTS down → video still made and published, without the voice'); S.ttsFail = false;
+  fs.rmSync(path.join(pub, '2026-10-15.json'), { force: true }); reset(); S.picInline = true; r = await run(['publish', path.join(posts, '2026-10-15.md')]);
+  const vs = calls(/predictLongRunning/); ok(vs.length === 2 && vs[1].body.instances[0].referenceImages[0].image.inlineData && r.code === 0 && /retrying with inlineData/.test(r.log), 'picture format refused → retried with inlineData'); S.picInline = false; }
 
 console.log('status and stats (no tokens printed)');
 { reset(); S.creds = CREDS(); let r = await run(['status']); ok(r.code === 0 && /facebook: page "Mafia Pro"/.test(r.log) && /instagram: @mafiapro\.app/.test(r.log) && /tiktok: connected/.test(r.log) && /ready: yes/.test(r.log) && !/page-token|tt-access/.test(r.log + r.out), 'status');
