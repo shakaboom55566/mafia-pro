@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- A looped showcase of several skins for a channel post: each card tilts in 3D (depth parallax), then flips to the next one.
+     Rendered frame by frame by anim-series.js (Playwright): renderAt(t) draws the moment t (0..1) of the loop.
+     The cards: ?f=lilac-doctor,violet-flare,... (skins/<file>.webp and <file>-depth.png next to this page when served). -->
+<style>
+html, body { margin: 0; width: 720px; height: 900px; overflow: hidden; background: #0c0812; }
+#stage { position: relative; width: 720px; height: 900px; overflow: hidden; perspective: 1300px;
+  background: radial-gradient(60% 46% at 50% 47%, rgba(157, 92, 240, .42), rgba(157, 92, 240, 0) 70%), radial-gradient(120% 80% at 50% 20%, #2a1840 0%, #0c0812 68%); }
+.rays { position: absolute; inset: -20%; background: repeating-conic-gradient(from var(--ra, 0deg) at 50% 46%, rgba(217, 194, 255, .07) 0deg 6deg, rgba(217, 194, 255, 0) 6deg 18deg); -webkit-mask-image: radial-gradient(closest-side at 50% 46%, #000 30%, transparent 100%); }
+.spark { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #e3c9ff; box-shadow: 0 0 10px 2px rgba(157, 92, 240, .9); }
+.card { position: absolute; left: 50%; top: 50%; width: 520px; aspect-ratio: 2 / 3; transform-style: preserve-3d; border-radius: 16px; overflow: hidden;
+  transform: translate(-50%, -50%) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--sc, 1));
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .85), 0 0 40px rgba(157, 92, 240, .45); }
+.card canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.glare, .foil, .sweep { position: absolute; inset: 0; pointer-events: none; }
+.glare { background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 255, 255, .34), rgba(255, 255, 255, 0) 45%); mix-blend-mode: soft-light; }
+.foil { background: repeating-linear-gradient(115deg, rgba(255, 120, 230, 0) 0%, rgba(255, 120, 230, .55) 6%, rgba(120, 200, 255, .5) 12%, rgba(255, 230, 140, .5) 18%, rgba(160, 110, 255, 0) 26%);
+  background-size: 260% 260%; background-position: var(--fx, 50%) var(--fy, 50%); mix-blend-mode: color-dodge; opacity: .35;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 48%, transparent 52%, #000 74%); }
+</style>
+<div id="stage"><div class="rays" id="rays"></div><div id="sparks"></div>
+  <div class="card" id="card"><canvas id="gl"></canvas><div class="foil"></div><div class="glare"></div></div></div>
+<script>
+const FILES = (new URLSearchParams(location.search).get('f') || 'amethyst-don').split(',');
+const VS = 'attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
+const FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off;varying vec2 v;void main(){vec2 uv=v;for(int i=0;i<6;i++){float d=texture2D(dep,uv).r;uv=v+off*(d-.9);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
+const card = document.getElementById('card'), cv = document.getElementById('gl'), rays = document.getElementById('rays');
+let gl, uOff, TEX = [];
+const load = src => new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = src; });
+function tex(im) { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); return t; }
+const SP = Array.from({ length: 26 }, (_, i) => { const r = n => { const x = Math.sin((i + 1) * 9301 + n * 49297) * 233280; return x - Math.floor(x); }; return { x: 60 + r(1) * 600, y0: 240 + r(2) * 640, ph: r(3), sz: .5 + r(4) * 1.1, amp: 10 + r(5) * 24 }; });
+const spBox = document.getElementById('sparks'); const spEl = SP.map(() => { const d = document.createElement('i'); d.className = 'spark'; spBox.appendChild(d); return d; });
+window.ready = (async () => {
+  cv.width = 800; cv.height = 1200;
+  gl = cv.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true, antialias: true });
+  const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); return x; };
+  const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); gl.useProgram(prog);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1); uOff = gl.getUniformLocation(prog, 'off'); gl.viewport(0, 0, 800, 1200);
+  for (const f of FILES) { const [a, d] = await Promise.all([load(f + '.webp'), load(f + '-depth.png')]); TEX.push([tex(a), tex(d)]); }
+  return TEX.length;
+})();
+/* t in 0..1: every card gets an equal slot; inside its slot it swings, and the last 18 % of the slot is the flip to the next card */
+window.renderAt = t => {
+  const n = TEX.length, pos = t * n, i = Math.floor(pos) % n, k = pos - Math.floor(pos);
+  const flip = k > .82 ? (k - .82) / .18 : 0; // 0..1 during the flip
+  const showNext = flip > .5; const idx = showNext ? (i + 1) % n : i;
+  const sw = Math.sin(k * Math.PI * 2) * .8, cy = Math.sin(k * Math.PI * 4) * .25;
+  const ry = flip ? (showNext ? -90 + (flip - .5) * 2 * 90 : flip * 2 * 90) : sw * 16; // turn away to 90°, come back from -90°
+  card.style.setProperty('--ry', ry.toFixed(2) + 'deg'); card.style.setProperty('--rx', (-cy * 10).toFixed(2) + 'deg');
+  card.style.setProperty('--sc', (1 - Math.sin(flip * Math.PI) * .06).toFixed(3));
+  const tx = flip ? 0 : sw, ty = flip ? 0 : cy;
+  card.style.setProperty('--gx', (50 + tx * 40) + '%'); card.style.setProperty('--gy', (35 + ty * 35) + '%');
+  card.style.setProperty('--fx', (50 + tx * 50) + '%'); card.style.setProperty('--fy', (50 + ty * 50) + '%');
+  rays.style.setProperty('--ra', (t * 36).toFixed(2) + 'deg');
+  SP.forEach((p, j) => { const q = (t * 3 + p.ph) % 1; const el = spEl[j]; el.style.transform = `translate(${(p.x + Math.sin(q * Math.PI * 2) * p.amp).toFixed(1)}px, ${(p.y0 - q * 260).toFixed(1)}px) scale(${p.sz.toFixed(2)})`; el.style.opacity = (Math.sin(q * Math.PI) * .9).toFixed(3); });
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, TEX[idx][0]); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, TEX[idx][1]);
+  gl.uniform2f(uOff, -tx * .045, -ty * .035); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+};
+</script>

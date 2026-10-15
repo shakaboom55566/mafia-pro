@@ -10,3 +10,4 @@ backend/node_modules/
 backend/.wrangler/
 backend/*.log
 ops/.usage-state.json
+skins/tools/*.onnx

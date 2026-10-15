@@ -4,10 +4,52 @@
    - wearing: user_skins (tg_id, role) → skin; one skin per role; the app shows it wherever this player is that character
    - season rewards: SEASON_SKIN[n] goes to everyone who ends season n as a Legend (runSeasonCron), and is put on at once */
 export const SKINS = {
-  amethyst_don: { role: 'don', rarity: 'epic', season: 1 }
+  amethyst_don: { role: 'don', rarity: 'epic', season: 1 },
+  // v57: the Epic series — a skin for every free card, the first 7 (how to get them is decided later; admins own them all)
+  lilac_doctor: { role: 'doctor', rarity: 'epic' },
+  orchid_surgeon: { role: 'mafia_doctor', rarity: 'epic' },
+  violet_armorer: { role: 'gunsmith', rarity: 'epic' },
+  violet_flare: { role: 'kamikaze', rarity: 'epic' },
+  lilac_whisper: { role: 'balamut', rarity: 'epic' },
+  velvet_gloves: { role: 'executioner', rarity: 'epic' },
+  iris_shadow: { role: 'spy', rarity: 'epic' }
 };
 export const SEASON_SKIN = { 1: 'amethyst_don' };
-export const SKIN_NAMES = { amethyst_don: { ru: 'Аметистовый Дон', uk: 'Аметистовий Дон', en: 'Amethyst Don', pl: 'Ametystowy Don', hy: 'Ամեթիստե Դոն' } };
+export const SKIN_NAMES = {
+  amethyst_don: { ru: 'Аметистовый Дон', uk: 'Аметистовий Дон', en: 'Amethyst Don', pl: 'Ametystowy Don', hy: 'Ամեթիստե Դոն' },
+  lilac_doctor: { ru: 'Доктор Сирень', uk: 'Лікарка Бузок', en: 'Doctor Lilac', pl: 'Doktor Lila', hy: 'Բժշկուհի Յասաման' },
+  orchid_surgeon: { ru: 'Хирург Орхидея', uk: 'Хірургиня Орхідея', en: 'Orchid Surgeon', pl: 'Chirurg Orchidea', hy: 'Վիրաբույժ Խոլորձ' },
+  violet_armorer: { ru: 'Фиалковый оружейник', uk: 'Фіалковий зброяр', en: 'Violet Armorer', pl: 'Fiołkowy Rusznikarz', hy: 'Մանուշակագույն զինագործ' },
+  violet_flare: { ru: 'Фиолетовая вспышка', uk: 'Фіолетовий спалах', en: 'Violet Flare', pl: 'Fioletowa Raca', hy: 'Մանուշակագույն բռնկում' },
+  lilac_whisper: { ru: 'Сиреневый шёпот', uk: 'Бузковий шепіт', en: 'Lilac Whisper', pl: 'Liliowy Szept', hy: 'Յասամանե շշուկ' },
+  velvet_gloves: { ru: 'Бархатные перчатки', uk: 'Оксамитові рукавички', en: 'Velvet Gloves', pl: 'Aksamitne Rękawiczki', hy: 'Թավշյա ձեռնոցներ' },
+  iris_shadow: { ru: 'Тень Ирис', uk: 'Тінь Ірис', en: 'Iris Shadow', pl: 'Cień Iris', hy: 'Իրիսի ստվեր' },
+  lavender_wolf: { ru: 'Лавандовая волчица', uk: 'Лавандова вовчиця', en: 'Lavender Wolf', pl: 'Lawendowa Wilczyca', hy: 'Լավանդայի գայլուհի' },
+  violet_soldier: { ru: 'Фиолетовый солдат', uk: 'Фіолетовий солдат', en: 'Violet Soldier', pl: 'Fioletowy Żołnierz', hy: 'Մանուշակագույն զինվոր' },
+  lights_out: { ru: 'Гаситель', uk: 'Гаситель', en: 'Lights Out', pl: 'Gaszący Światło', hy: 'Լույսերը մարողը' },
+  mauve_jester: { ru: 'Лиловая шутиха', uk: 'Лілова блазниця', en: 'Mauve Jester', pl: 'Liliowa Błaznica', hy: 'Մանուշակագույն ծաղրածու' },
+  velvet_cat: { ru: 'Бархатная кошка', uk: 'Оксамитова кішка', en: 'Velvet Cat', pl: 'Aksamitna Kotka', hy: 'Թավշյա կատու' },
+  lavender_vow: { ru: 'Лавандовый обет', uk: 'Лавандова обітниця', en: 'Lavender Vow', pl: 'Lawendowe Ślubowanie', hy: 'Լավանդայի ուխտ' },
+  violet_badge: { ru: 'Фиолетовый значок', uk: 'Фіолетовий жетон', en: 'Violet Badge', pl: 'Fioletowa Odznaka', hy: 'Մանուշակագույն կրծքանշան' },
+  violet_ink: { ru: 'Фиолетовые чернила', uk: 'Фіолетове чорнило', en: 'Violet Ink', pl: 'Fioletowy Atrament', hy: 'Մանուշակագույն թանաք' },
+  orchid_mayor: { ru: 'Мэр Орхидея', uk: 'Мерка Орхідея', en: 'Orchid Mayor', pl: 'Burmistrzyni Orchidea', hy: 'Քաղաքապետ Խոլորձ' },
+  plum_brandy: { ru: 'Сливовый бренди', uk: 'Сливовий бренді', en: 'Plum Brandy', pl: 'Śliwowica', hy: 'Սալորի օղի' },
+  lavender_heart: { ru: 'Лавандовое сердце', uk: 'Лавандове серце', en: 'Lavender Heart', pl: 'Lawendowe Serce', hy: 'Լավանդայի սիրտ' },
+  iron_violet: { ru: 'Железная фиалка', uk: 'Залізна фіалка', en: 'Iron Violet', pl: 'Żelazny Fiołek', hy: 'Երկաթե մանուշակ' },
+  night_pact: { ru: 'Ночной договор', uk: 'Нічна угода', en: 'Night Pact', pl: 'Nocny Pakt', hy: 'Գիշերային դաշինք' },
+  dream_merchant: { ru: 'Торговец снами', uk: 'Торговець снами', en: 'Dream Merchant', pl: 'Handlarz Snów', hy: 'Երազների վաճառական' },
+  the_shelter: { ru: 'Убежище', uk: 'Прихисток', en: 'The Shelter', pl: 'Schronienie', hy: 'Ապաստան' },
+  tick_tock: { ru: 'Тик-Так', uk: 'Тік-Так', en: 'Tick-Tock', pl: 'Tik-Tak', hy: 'Տիկ-Տակ' },
+  violet_shield: { ru: 'Фиолетовый щит', uk: 'Фіолетовий щит', en: 'Violet Shield', pl: 'Fioletowa Tarcza', hy: 'Մանուշակագույն վահան' },
+  violet_verdict: { ru: 'Фиолетовый вердикт', uk: 'Фіолетовий вирок', en: 'Violet Verdict', pl: 'Fioletowy Wyrok', hy: 'Մանուշակագույն դատավճիռ' },
+  lavender_baker: { ru: 'Лавандовая пекарша', uk: 'Лавандова пекарка', en: 'Lavender Baker', pl: 'Lawendowa Piekarka', hy: 'Լավանդայի հացթուխ' },
+  steady_hands: { ru: 'Твёрдая рука', uk: 'Тверда рука', en: 'Steady Hands', pl: 'Pewna Ręka', hy: 'Հաստատուն ձեռքեր' },
+  final_stamp: { ru: 'Последняя печать', uk: 'Остання печатка', en: 'Final Stamp', pl: 'Ostatnia Pieczęć', hy: 'Վերջին կնիք' },
+  violet_ledger: { ru: 'Фиолетовый гроссбух', uk: 'Фіолетовий гросбух', en: 'Violet Ledger', pl: 'Fioletowa Księga', hy: 'Մանուշակագույն մատյան' },
+  purple_knuckles: { ru: 'Фиолетовый кастет', uk: 'Фіолетовий кастет', en: 'Purple Knuckles', pl: 'Fioletowy Kastet', hy: 'Մանուշակագույն կաստետ' },
+  silent_petal: { ru: 'Тихий лепесток', uk: 'Тиха пелюстка', en: 'Silent Petal', pl: 'Cichy Płatek', hy: 'Լուռ թերթիկ' },
+  velvet_envelope: { ru: 'Бархатный конверт', uk: 'Оксамитовий конверт', en: 'Velvet Envelope', pl: 'Aksamitna Koperta', hy: 'Թավշյա ծրար' }
+};
 export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_NAMES[id] || {}).ru) || id;
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;
 export const isSkin = id => typeof id === 'string' && SKIN_RE.test(id) && Object.prototype.hasOwnProperty.call(SKINS, id);

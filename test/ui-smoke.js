@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -845,8 +845,8 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   S.game = null; S.meId = me.id; me.history.push({ id: 'h1', date: Date.now(), gameId: 'x', n: 7, roleId: 'don', won: true, points: 24 }); S.ui.profileId = me.id; S.screen = 'profile'; X.render(); check('v56 profile');
   h = app.innerHTML; if (!h.includes('skin-layer') || !h.includes('skin-seal')) F('my profile shows my skin on the Don');
   // the role sheet lists the Don's skins; the Ranks tab shows the reward with the skin
-  A.role(el('role', { id: 'don' })); check('v56 role sheet'); if (!app.innerHTML.includes(u.skForRole) || !app.innerHTML.includes('data-a="skins-open"')) F('the Don card lists its skins'); S.ui.sheet = null;
-  A.role(el('role', { id: 'sheriff' })); if (app.innerHTML.includes(u.skForRole)) F('a card without skins lists none'); S.ui.sheet = null;
+  A.role(el('role', { id: 'don' })); check('v56 role sheet'); if (!app.innerHTML.includes(u.skForRole) || !app.innerHTML.includes('data-a="skin-sheet" data-id="amethyst_don"')) F('the Don card lists its skins'); S.ui.sheet = null;
+  A.role(el('role', { id: 'witch' })); if (app.innerHTML.includes(u.skForRole)) F('a card without skins lists none'); S.ui.sheet = null;
   A.go(el('go', { to: 'ratings' })); A['rt-tab'](el('rt-tab', { v: 'ranks' })); check('v56 ranks'); if (!app.innerHTML.includes('ss-skin') || !app.innerHTML.includes(X.tt(u.ssRewardSkin, { n: 1, skin: name }))) F('the season reward is the skin');
   A['skins-open'](); if (S.screen !== 'cards' || S.ui.cardsTab !== 'skins') F('the reward opens the Skins tab');
   // taking it off: the request goes to the server; a refusal puts it back
@@ -856,6 +856,21 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   X.render(); await A['skin-wear'](el('skin-wear', { id: 'amethyst_don', on: '0' })); if (!calls.length || calls[0][0] !== '/api/skin/equip' || calls[0][1].skin !== null || S.skins.equipped.don) F('taking the skin off asks the server and clears it');
   vm.runInContext('api = async (p, b) => { __calls.push([p, b]); return { ok: false }; }', ctx); await A['skin-wear'](el('skin-wear', { id: 'amethyst_don', on: '1' })); if (S.skins.equipped.don) F('a refused request leaves the skin off');
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
+  // v57: the Epic series (free cards; the first 7 now, the rest follow) as tiles; a tile opens the skin's sheet
+  const SK = E('SKINS'); const free = E('ROLES').filter(r => !r.premium); const nSeries = SK.filter(x => !x.season).length;
+  if (nSeries < 7 || !SK.every(x => free.some(r => r.id === x.role)) || new Set(SK.map(x => x.role)).size !== SK.length) F('v57: the series — free cards only, one skin per card (' + SK.length + ')');
+  if (SK.some(x => !x.name || x.name === x.id || !x.lore || x.lore === x.id)) F('v57: every skin has a name and a story in this language');
+  S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.skinFilter = 'all'; A.go(el('go', { to: 'cards' })); A['cards-tab'](el('cards-tab', { v: 'skins' })); check('v57 skins tab'); h = app.innerHTML;
+  if ((h.match(/class="sk-tile /g) || []).length !== nSeries || !h.includes('lilac-doctor-thumb.webp') || !h.includes(X.tt(u.skSeriesTitle, { n: nSeries })) || !h.includes('skin-item')) F('v57: the season skin on top and a tile with a thumbnail for every skin of the series');
+  A['skin-filter'](el('skin-filter', { id: 'black' })); check('v57 filter mafia'); h = app.innerHTML;
+  if (h.includes('data-id="lilac_doctor"') || !h.includes('data-id="orchid_surgeon"') || h.includes('skin-item')) F('v57: the Mafia filter keeps only mafia skins');
+  A['skin-filter'](el('skin-filter', { id: 'all' })); A['skin-sheet'](el('skin-sheet', { id: 'lilac_doctor' })); check('v57 skin sheet'); h = app.innerHTML;
+  if (!h.includes('sk-sheet') || !h.includes('lilac-doctor.webp') || !h.includes(u.skHowSoon) || h.includes('data-a="skin-wear"') || !h.includes(E('SKIN.lilac_doctor.name'))) F('v57: the sheet of a skin not owned: card, story, coming soon, no button');
+  S.ui.sheet = null; S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: SK.map(x => x.id), equipped: { doctor: 'lilac_doctor' } }; X.render(); check('v57 owned'); h = app.innerHTML;
+  if (!h.includes(u.skMine + ' · ' + SK.length) || !h.includes('sk-tile epic own worn')) F('v57: an admin owns all — the Mine filter, the worn tile marked');
+  A['skin-sheet'](el('skin-sheet', { id: 'lilac_doctor' })); h = app.innerHTML; if (!h.includes('data-a="skin-wear" data-id="lilac_doctor" data-on="0"') || h.includes(u.skHowSoon)) F('v57: the sheet of my worn skin offers to take it off');
+  S.ui.sheet = null; A.role(el('role', { id: 'spy' })); h = app.innerHTML; if (!h.includes('data-a="skin-sheet" data-id="iris_shadow"')) F('v57: the Spy card lists Iris Shadow'); S.ui.sheet = null;
+  S.ui.skinFilter = 'all';
   S.profiles = S.profiles.filter(x => x !== me && x !== fr); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v56 ok');
 })().catch(e => { fails++; console.log('FAIL v56 crashed', e && e.stack || e); });
 v56.then(() => {

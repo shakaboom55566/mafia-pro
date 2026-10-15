@@ -10,14 +10,22 @@
    ============================================================ */
 /* skins:begin — the same ids and roles as SKINS in backend/src/skins.js */
 const SKINS = [
-  { id: 'amethyst_don', role: 'don', rarity: 'epic', season: 1, file: 'amethyst-don' }
+  { id: 'amethyst_don', role: 'don', rarity: 'epic', season: 1, file: 'amethyst-don' },
+  // v57: the Epic series — a skin for every free card; the first 7 are here, the rest follow (names and stories of all: src/02w-i18n-skins-epic.js)
+  { id: 'lilac_doctor', role: 'doctor', rarity: 'epic', file: 'lilac-doctor' },
+  { id: 'orchid_surgeon', role: 'mafia_doctor', rarity: 'epic', file: 'orchid-surgeon' },
+  { id: 'violet_armorer', role: 'gunsmith', rarity: 'epic', file: 'violet-armorer' },
+  { id: 'violet_flare', role: 'kamikaze', rarity: 'epic', file: 'violet-flare' },
+  { id: 'lilac_whisper', role: 'balamut', rarity: 'epic', file: 'lilac-whisper' },
+  { id: 'velvet_gloves', role: 'executioner', rarity: 'epic', file: 'velvet-gloves' },
+  { id: 'iris_shadow', role: 'spy', rarity: 'epic', file: 'iris-shadow' }
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
 ['name', 'lore'].forEach(k => SKINS.forEach(s => Object.defineProperty(s, k, { get() { const p = (L.skins && L.skins[s.id]) || (I18N.ru.skins || {})[s.id] || {}; return p[k] || s.id; }, enumerable: true })));
 /* the pictures live on the app's site: the same origin in the app (WebGL may read them), the full address anywhere else */
 const SKIN_BASE = (() => { try { return /(^|\.)mafiapro\.app$/.test(location.hostname) ? '/skins/' : 'https://mafiapro.app/skins/'; } catch (e) { return 'https://mafiapro.app/skins/'; } })();
-const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : '.webp');
+const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : kind === 'thumb' ? '-thumb.webp' : '.webp');
 S.skins = S.skins && typeof S.skins === 'object' ? S.skins : { owned: [], equipped: {} };
 
 /* ---------- who wears what ---------- */
@@ -96,8 +104,9 @@ function skglInit() {
     SKGL.gl = gl; SKGL.cv = cv; SKGL.off = gl.getUniformLocation(prog, 'off'); return true;
   } catch (e) { SKGL.failed = true; return false; }
 }
-function skglTexture(url) { // { ready, t } — the picture is uploaded once per session
-  const c = SKGL.tex[url]; if (c) return c; const gl = SKGL.gl; const rec = SKGL.tex[url] = { ready: false, t: null };
+function skglTexture(url) { // { ready, t } — uploaded once and kept while used; v57: at most 8 pictures stay on the GPU (33 skins would not fit a phone)
+  const c = SKGL.tex[url]; if (c) { c.used = Date.now(); return c; } const gl = SKGL.gl; const rec = SKGL.tex[url] = { ready: false, t: null, used: Date.now() };
+  const keys = Object.keys(SKGL.tex); if (keys.length > 8) keys.sort((a, b) => SKGL.tex[a].used - SKGL.tex[b].used).slice(0, keys.length - 8).forEach(k => { const o = SKGL.tex[k]; if (o === rec || Date.now() - o.used < 1500) return; try { if (o.t) gl.deleteTexture(o.t); } catch (e) {} delete SKGL.tex[k]; });
   const im = new Image(); if (!/^\//.test(url)) im.crossOrigin = 'anonymous';
   im.onload = () => { try { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v)); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); rec.t = t; rec.ready = true; } catch (e) { rec.bad = true; } };
   im.onerror = () => { rec.bad = true; }; im.src = url; return rec;
@@ -135,7 +144,7 @@ setInterval(() => { try { skinsAfterRender(); } catch (e) {} }, 700); // screens
 /* ---------- the Skins tab of the Cards screen ---------- */
 function skinStatus(s) { const own = (S.skins.owned || []).includes(s.id); return { own, worn: own && mySkin(s.role) === s.id }; }
 function skinHowText(s) {
-  const u = U(); if (!s.season) return '';
+  const u = U(); if (!s.season) return (S.skins.owned || []).includes(s.id) ? '' : u.skHowSoon; // v57: the Epic series — how to get it comes later
   const sz = seasonAt(Date.now()); const top = RANK_MIN.length - 1;
   return sz.n < s.season || (sz.n === s.season && sz.phase === 'live') ? tt(u.skHowSeason, { n: s.season, rank: rankName(top), date: seasonDayText(sz.n === s.season ? sz.lastDay : seasonAt(sz.next).lastDay) }) : tt(u.skHowSeasonDone, { n: s.season, rank: rankName(top) });
 }
@@ -152,14 +161,41 @@ function skinItemHTML(s) {
       <p class="sk-lore">${esc(s.lore)}</p><div class="hint" style="margin:0">${skinHowText(s)}</div>${rank}
       ${btn ? `<div class="btn-row" style="margin-top:10px">${btn}</div>` : ''}</div></div>`;
 }
+/* v57: 33 skins — the season reward on top, then the series as tiles (a tile opens the skin's sheet with the 3D card and the button) */
+function skinTileHTML(s) {
+  const u = U(); const st = skinStatus(s); const role = ROLE[s.role];
+  return `<div class="sk-tile ${s.rarity} ${st.own ? 'own' : 'locked'} ${st.worn ? 'worn' : ''}" role="button" tabindex="0" data-a="skin-sheet" data-id="${s.id}">
+    <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${st.worn ? `<span class="sk-badge">${u.skWorn}</span>` : ''}</div>
+    <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role.name)}</div></div>`;
+}
 function skinsTabHTML() {
-  const u = U();
-  return `<p class="hint">${u.skHint}</p><div class="stack">${SKINS.map(skinItemHTML).join('')}</div>`;
+  const u = U(); const f = ['all', 'mine', 'black', 'city', 'neutral'].includes(S.ui.skinFilter) ? S.ui.skinFilter : 'all';
+  const own = id => (S.skins.owned || []).includes(id);
+  const team = s => { const t = ROLE[s.role].team; return t === 'red' || t === 'ww' ? 'city' : t; };
+  const season = SKINS.filter(s => s.season), series = SKINS.filter(s => !s.season);
+  const list = series.filter(s => f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f));
+  const chip = (id, t) => `<button class="chip ${f === id ? 'active' : ''}" data-a="skin-filter" data-id="${id}">${t}</button>`;
+  const mine = SKINS.filter(s => own(s.id)).length;
+  return `<p class="hint">${u.skHint}</p>
+    ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
+    <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}</div>
+    <div class="filters">${chip('all', u.fAll)}${mine ? chip('mine', u.skMine + ' · ' + mine) : ''}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div>
+    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : `<p class="hint">${u.skNone}</p>`}`;
+}
+/* the sheet of one skin: the 3D card, its story, how to get it, put on / take off */
+function skinSheetHTML(id) {
+  const u = U(); const s = SKIN[id]; if (!s) return ''; const st = skinStatus(s); const role = ROLE[s.role];
+  const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'}" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>` : '';
+  return `<div class="sk-sheet">${card3dFor(role, 'sksheet-' + s.id, s.id)}
+    <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px"><span class="ss-epic">${s.rarity.toUpperCase()}</span><span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span></div>
+    <h2 class="sk-name" style="text-align:center">${esc(s.name)}</h2><div class="hint" style="margin:0;text-align:center">${tt(u.skFor, { role: role.name })}</div>
+    <p class="sk-lore" style="text-align:center">${esc(s.lore)}</p>${skinHowText(s) ? `<div class="hint" style="margin:0;text-align:center">${skinHowText(s)}</div>` : ''}
+    ${btn ? `<div class="btn-row" style="margin-top:12px">${btn}</div>` : ''}</div>`;
 }
 /* the role's own skins under its card (the role sheet) */
 function roleSkinsHTML(r) {
   const u = U(); const list = SKINS.filter(s => s.role === r.id); if (!list.length) return '';
-  return `<div class="section"><div class="eyebrow gold">${u.skForRole}</div><div class="stack-s" style="margin-top:8px">${list.map(s => { const st = skinStatus(s); return `<div class="fav sk-row" role="button" tabindex="0" data-a="skins-open">${sealFor(r, s.id)}<div class="grow" style="min-width:0"><div class="n">${esc(s.name)} <span class="ss-epic" style="margin:0 0 0 4px">${s.rarity.toUpperCase()}</span></div><div class="s">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</div></div><span class="rk-chev">›</span></div>`; }).join('')}</div></div>`;
+  return `<div class="section"><div class="eyebrow gold">${u.skForRole}</div><div class="stack-s" style="margin-top:8px">${list.map(s => { const st = skinStatus(s); return `<div class="fav sk-row" role="button" tabindex="0" data-a="skin-sheet" data-id="${s.id}">${sealFor(r, s.id)}<div class="grow" style="min-width:0"><div class="n">${esc(s.name)} <span class="ss-epic" style="margin:0 0 0 4px">${s.rarity.toUpperCase()}</span></div><div class="s">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</div></div><span class="rk-chev">›</span></div>`; }).join('')}</div></div>`;
 }
 /* the Cards screen gets a «Cards | Skins» switch at the top */
 (function () {
@@ -170,11 +206,18 @@ function roleSkinsHTML(r) {
     if (tab === 'skins') return `${topbar(u.skTitle, u.skSegSkins + ' · ' + SKINS.length, false)}<div class="stack">${seg}${skinsTabHTML()}</div>`;
     const html = orig(); const k = html.indexOf('<div class="stack">'); return k < 0 ? html : html.slice(0, k + 19) + seg + html.slice(k + 19);
   };
+  const origSheet = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || sh.type !== 'skin') return origSheet.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${skinSheetHTML(sh.id)}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
+  };
   const origRender = render;
   render = function () { origRender.apply(this, arguments); try { if (S.game && !S.game.skinsAt) skinsLoad(S.game); skinsAfterRender(); } catch (e) {} };
 })();
 Object.assign(ACT, {
   'cards-tab'(el) { S.ui.cardsTab = el.dataset.v === 'skins' ? 'skins' : 'cards'; render(); },
+  'skin-filter'(el) { S.ui.skinFilter = el.dataset.id; render(); },
+  'skin-sheet'(el) { if (SKIN[el.dataset.id]) { S.ui.sheet = { type: 'skin', id: el.dataset.id }; render(); } },
   'skins-open'() { S.ui.sheet = null; S.ui.cardsTab = 'skins'; if (typeof go === 'function') go('cards'); else { S.screen = 'cards'; render(); } },
   async 'skin-wear'(el) {
     const u = U(); const s = SKIN[el.dataset.id]; if (!s) return; const on = el.dataset.on === '1';

@@ -972,6 +972,17 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .sk-rank { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-2); margin-top: 4px; }
 .sk-row .seal { width: 44px; height: 44px; }
 @media (max-width: 460px) { .skin-item { grid-template-columns: 1fr; justify-items: center; text-align: center; } .skin-item .card3d-wrap { max-width: 230px; } .sk-info .row, .sk-rank { justify-content: center; } }
+/* v57: the Skins tab — tiles of the Epic series (thumbnails), a sheet per skin */
+.sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.sk-tile { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 6px 6px 8px; border-radius: 14px; border: 1px solid rgba(157,108,224,.35); background: linear-gradient(180deg, rgba(157,92,240,.14), var(--bg-2)); cursor: pointer; min-width: 0; }
+.sk-tile.worn { border-color: rgba(157,108,224,.95); box-shadow: 0 0 0 1px rgba(185,140,255,.5), 0 6px 22px -10px rgba(157,92,240,.9); }
+.sk-thumb { position: relative; aspect-ratio: 2 / 3; border-radius: 9px; overflow: hidden; background: #120b1c; }
+.sk-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sk-tile.locked .sk-thumb img { filter: saturate(.75) brightness(.86); }
+.sk-badge { position: absolute; right: 5px; top: 5px; padding: 2px 7px; border-radius: 999px; background: rgba(10,6,16,.8); color: #d9c2ff; font-size: 10.5px; font-weight: 800; }
+.sk-tn { margin-top: 5px; font-weight: 800; font-size: 12.5px; line-height: 1.2; overflow-wrap: anywhere; }
+.sk-tr { font-size: 11px; color: var(--fg-2); line-height: 1.2; }
+.sk-sheet .card3d-wrap { width: min(250px, 70vw); }
 html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .skin-gl { display: none !important; } }
 </style>
