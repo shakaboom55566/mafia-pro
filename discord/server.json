@@ -73,7 +73,12 @@
     "lfg_hy": "1559495830640005171",
     "results_hy": "1559495833177694308",
     "chat_hy": "1559495835123982336",
-    "ideas_hy": "1559495837007224902"
+    "ideas_hy": "1559495837007224902",
+    "socials": "1560225024827203659",
+    "socials_uk": "1560225027922726984",
+    "socials_en": "1560225030300897390",
+    "socials_pl": "1560225032553369652",
+    "socials_hy": "1560225034700595271"
   },
   "roles": {
     "host": "1559482119439253556",
@@ -147,7 +152,7 @@
     }
   },
   "tablesCategory": "1559482164825952332",
-  "updatedAt": "2026-10-15T07:11:38.424Z",
+  "updatedAt": "2026-10-15T09:37:59.785Z",
   "bot": {
     "id": "1559473078558392390",
     "username": "Mafia Pro"
@@ -157,7 +162,8 @@
   "publicKey": "0043fbf602abd13573ec140afe6ed1e9cc5978c4806e18f5068f42a951faff76",
   "commandsHash": "515160fe",
   "permissions": {
-    "checked": 75,
+    "checked": 80,
     "problems": 0
-  }
+  },
+  "invite": "3ePpCrKFYH"
 }
