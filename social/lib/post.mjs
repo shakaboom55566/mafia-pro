@@ -6,7 +6,7 @@
    hook: таємниця
    refs: sheriff, don                 (our characters: up to 3 role ids — the art of their cards (uk) goes to Veo as reference images)
    title: Шериф не спить              (Ukrainian text on screen for the first seconds, ≤ 34 characters)
-   voice: Шериф не спить. Одна перевірка за ніч — і хтось за столом уже нервує.   (Ukrainian voice-over, ≤ 140 characters; "none" = no voice)
+   voice: Шериф не спить. Одна перевірка за ніч. Кого перевіриш ти?   (Ukrainian voice-over, ≤ 85 characters; "none" = no voice)
    image: og/uk.png                   (optional first frame instead of refs; not together with refs)
    model: fast                        (optional: fast | lite | standard; default fast)
    ---
@@ -28,7 +28,8 @@ export const MAX_CAPTION = 2200;  // Instagram, TikTok
 export const MAX_TAGS = 5;        // Instagram (since Dec 2025)
 export const AI_LINE = '🎬 AI-відео · AI-generated video';
 export const MAX_REFS = 3;        // Veo 3.1 reference images
-export const MAX_VOICE = 140;     // characters of Ukrainian voice-over that fit into ~7 seconds
+export const MAX_VOICE = 85;      // characters of Ukrainian voice-over that fit into ~7 seconds (measured: ~10 characters a second)
+export const SOFT_VOICE = 72;
 export const MAX_TITLE = 34;
 const MODELS = { fast: 'veo-3.1-fast-generate-preview', lite: 'veo-3.1-lite-generate-preview', standard: 'veo-3.1-generate-preview' };
 export const PRICE = { fast: { '720p': 0.10, '1080p': 0.12 }, lite: { '720p': 0.05, '1080p': 0.08 }, standard: { '720p': 0.40, '1080p': 0.40 } };
@@ -56,6 +57,7 @@ export function parsePost(file) {
   if (p.voice && !CYR.test(p.voice)) errors.push('voice: must be Ukrainian');
   if (p.voice && /[A-Za-z]{3,}/.test(p.voice)) warnings.push('voice: Latin words in the voice-over may be read with an accent');
   if (p.voice.length > MAX_VOICE) errors.push(`voice: ${p.voice.length} characters — ${MAX_VOICE} at most (it must fit into 8 seconds)`);
+  else if (p.voice.length > SOFT_VOICE) warnings.push(`voice: ${p.voice.length} characters — above ${SOFT_VOICE} the voice is sped up to fit`);
   if (p.title && !CYR.test(p.title)) errors.push('title: must be Ukrainian');
   if (p.title.length > MAX_TITLE) errors.push(`title: ${p.title.length} characters — ${MAX_TITLE} at most`);
   if (/[А-Яа-яЁёІіЇїЄєҐґ]/.test(p.prompt) === false && /\b(text|caption|subtitle|words? on screen|sign reading|says|speaks|dialogue)\b/i.test(p.prompt)) warnings.push('## prompt: text or speech inside the clip — Veo misspells Ukrainian; the title and voice come from the front matter instead');

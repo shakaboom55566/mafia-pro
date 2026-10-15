@@ -11,7 +11,7 @@ export const fontFile = () => FONTS.find(f => fs.existsSync(f)) || null;
 export const CARD = { seconds: 2.2, bg: '0x0d0c14', gold: '0xf0cd7a', light: '0xefe7d6', lines: ['Грай у Telegram', 'Play in Telegram', '@mafiaprof_bot'] };
 const TITLE = { size: 66, maxChars: 19, y: 230, from: 0.3, to: 4.2 };          // the hook on screen while the scene opens
 const SUB = { size: 50, maxChars: 26, y: 1480 };                              // subtitles of the voice-over
-const VOICE = { start: 0.6, bed: 0.4, maxTempo: 1.3 };                        // voice starts after 0.6 s; the clip's own sound drops to 40 % under it
+const VOICE = { start: 0.5, bed: 0.4, maxTempo: 1.25 };                        // voice starts after 0.6 s; the clip's own sound drops to 40 % under it
 
 export function hasFfmpeg() { try { execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' }); return true; } catch (e) { return false; } }
 export function probe(file) {

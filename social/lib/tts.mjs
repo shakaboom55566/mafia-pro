@@ -3,7 +3,7 @@ import { http, short, log } from './util.mjs';
 
 export const TTS_MODEL = 'gemini-3.8-flash-tts';
 export const TTS_VOICE = 'Orus';            // firm, low — a noir narrator; others: Charon (informative), Algenib (gravelly), Kore (firm, female)
-const STYLE = 'low, calm, intriguing film-noir narrator; natural Ukrainian pronunciation; unhurried';
+const STYLE = 'low, calm, intriguing film-noir narrator; natural Ukrainian pronunciation; moderate pace, no long pauses';
 
 export async function ttsWav({ apiKey, base = 'https://generativelanguage.googleapis.com/v1beta', text, voice = TTS_VOICE, model = TTS_MODEL, style = STYLE }) {
   base = base.replace(/\/$/, '');

@@ -116,7 +116,7 @@ async function publish(file, { force = false, preview = false } = {}) {
   }
   const fin = finishVideo(raw, { logo: LOGO, voice, title: p.title, subtitles: voice ? p.subtitles : [] });
   log(`  video: ${fin.info.width}×${fin.info.height}, ${fin.info.duration.toFixed(1)} s, ${(fin.bytes.length / 1e6).toFixed(1)} MB, sound ${fin.info.audio ? 'yes' : 'no'}${fin.voice ? `, voice ${fin.voice.seconds} s${fin.voice.tempo > 1 ? ` (sped up ×${fin.voice.tempo})` : ''}` : ', no voice'}${p.title ? `, title "${p.title}"` : ''}${fin.font ? '' : ', no font: text not drawn'}`);
-  if (fin.voice && fin.voice.tempo >= 1.3) log('::warning::the voice text is too long for 8 seconds — shorten voice: next time');
+  if (fin.voice && fin.voice.tempo >= 1.25) log('::warning::the voice text is too long for 8 seconds and its end may be cut — shorten voice: next time');
   const res = {}; const poll = Number(env.POLL_MS) || undefined;
   if (!preview) {
     const g = c.meta ? graphClient({ base: env.META_GRAPH_BASE, version: c.graph, token: c.meta.pageToken }) : null;
