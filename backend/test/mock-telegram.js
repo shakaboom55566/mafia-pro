@@ -28,6 +28,9 @@ export function startMockTelegram(port = 8790) {
           if (state.failChats.has(String(params.chat_id))) return send(400, { ok: false, error_code: 400, description: 'Bad Request: need administrator rights in the channel chat' });
           if (blocked.has(Number(params.chat_id))) return send(403, { ok: false, error_code: 403, description: 'Forbidden: bot was blocked by the user' });
           return send(200, { ok: true, result: { message_id: calls.length, chat: { id: params.chat_id }, text: params.text } });
+        case 'sendAnimation': // v56 channel posts with a skin's animation
+          if (state.failChats.has(String(params.chat_id))) return send(400, { ok: false, error_code: 400, description: 'Bad Request: need administrator rights in the channel chat' });
+          return send(200, { ok: true, result: { message_id: calls.length, chat: { id: params.chat_id }, caption: params.caption, animation: { file_id: 'anim' } } });
         case 'sendDocument': return send(200, { ok: true, result: { message_id: calls.length, chat: { id: params.chat_id }, document: { file_name: params.document && params.document.name } } });
         case 'getChatMember': return send(200, { ok: true, result: Object.assign({ user: { id: params.user_id } }, state.member) });
         case 'createInvoiceLink': return send(200, { ok: true, result: 'https://t.me/$' + Buffer.from(params.payload).toString('base64url') });

@@ -91,6 +91,11 @@ jobs:
                 if (slotAt < Date.now() / 1000 - 6 * 3600) { log(`${f}: slot ${meta.slot} is in the past — skipped`); continue; }
                 const text = m[2].trim();
                 if (/\*\*|^#{1,6} /m.test(text)) log(`${f}: warning — markdown found, Telegram HTML expected`);
+                if (meta.image) { // a new picture / animation may still be on its way to the site (Pages deploys in a parallel run): Telegram must be able to fetch it
+                  const url = /^https:\/\//.test(meta.image) ? meta.image : "https://mafiapro.app/" + meta.image.replace(/^\/+/, "");
+                  let st = 0; for (let i = 1; i <= 30; i++) { try { st = (await fetch(url, { method: "HEAD" })).status; } catch (e) { st = 0; } if (st === 200) break; if (i === 1) log(`${f}: waiting for ${url} (HTTP ${st || "—"})`); await sleep(20000); }
+                  if (st !== 200) log(`::warning::${f}: ${url} is not reachable (HTTP ${st || "—"}) — the draft goes without it being checked`);
+                }
                 const body = { id: f.replace(/^posts\//, "").replace(/\.md$/, ""), slot_at: slotAt, lang: meta.lang || "uk", rubric: meta.rubric || "", image: meta.image || "", text, force: process.env.FORCE === "true" };
                 let res = null, out = "";
                 for (let i = 1; i <= 10; i++) { // the backend may still be deploying in a parallel run

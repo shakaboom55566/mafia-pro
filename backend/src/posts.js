@@ -1,7 +1,9 @@
 /* Channel posts (v34): drafts written daily into posts/ of the repository are sent here by the "Channel posts" workflow,
    the admins get each draft in a DM with buttons, and an approved post goes to the channel (CHANNEL_ID) at its slot time.
    - POST /posts/draft  {id, slot_at, slot_label, lang, rubric, text, image}  header X-Posts-Key = sha256(BOT_TOKEN + ':mafia-pro-posts')[0..48]
-     image (optional): a picture above the text — a path on the app's site (cards/uk/sheriff.png) or an https URL; shown as a large link preview
+     image (optional): a picture above the text — a path on the app's site (cards/uk/sheriff.png) or an https URL; shown as a large link preview.
+       A .mp4 / .gif (skins/amethyst-don.mp4) is an animation (v56): it goes out as a looping GIF-like video with the text as its caption
+       (if the text is longer than a caption may be, the animation goes first and the text right after it)
    - the button under a published post opens the bot with start=post_<id>, so growth.js counts who came through which post
    - callbacks cp_ok_<id> (publish at the slot), cp_now_<id> (publish now), cp_skip_<id>, cp_retry_<id>
    - an admin's reply to a draft message replaces the draft text (formatting kept) and the draft is re-sent
@@ -28,7 +30,24 @@ function cleanImage(env, v) {
   if (/^[A-Za-z0-9_][A-Za-z0-9_./-]{2,200}$/.test(s) && !s.includes('..')) return String(env.APP_URL || 'https://mafiapro.app/').replace(/\/?$/, '/') + s.replace(/^\/+/, '');
   return null;
 }
-const preview = p => (p && p.image ? { link_preview_options: { url: p.image, prefer_large_media: true, show_above_text: true } } : {});
+const isAnim = p => !!(p && p.image && /\.(mp4|gif)(\?|#|$)/i.test(p.image));
+const preview = p => (p && p.image && !isAnim(p) ? { link_preview_options: { url: p.image, prefer_large_media: true, show_above_text: true } } : {});
+const CAPTION_MAX = 1024; // Telegram counts the caption without its HTML tags
+const plainLen = html => String(html).replace(/<[^>]+>/g, '').replace(/&(lt|gt|amp|quot|#39);/g, '_').length;
+/* a message with the post's animation: the text as its caption when it fits; else the animation alone, then the text.
+   Returns { r, msgs } — r: the Telegram answer of the message that carries the text (and the buttons), msgs: every message sent */
+async function sendWithAnim(bot, chat, p, html, extra) {
+  if (plainLen(html) <= CAPTION_MAX) {
+    let r = await bot.call('sendAnimation', Object.assign({ chat_id: chat, animation: p.image, caption: html, parse_mode: 'HTML' }, extra));
+    if (!(r && r.ok) && /parse|entit|tag/i.test((r && r.description) || '')) r = await bot.call('sendAnimation', Object.assign({ chat_id: chat, animation: p.image, caption: html.replace(/<[^>]+>/g, '') }, extra));
+    return { r, msgs: r && r.ok && r.result ? [{ chat, msg: r.result.message_id, cap: 1 }] : [] };
+  }
+  const a = await bot.call('sendAnimation', { chat_id: chat, animation: p.image });
+  if (!(a && a.ok)) return { r: a, msgs: [] };
+  const r = await bot.send(chat, html, extra);
+  const msgs = [{ chat, msg: a.result.message_id, media: 1 }]; if (r && r.ok && r.result) msgs.push({ chat, msg: r.result.message_id });
+  return { r, msgs };
+}
 const fmtSlot = ts => { try { return new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Kiev', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(ts * 1000)).replace(',', ''); } catch (e) { return new Date(ts * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; } };
 const STATUS = { draft: '📝 черновик', approved: '✅ одобрен — выйдет в срок', posted: '📣 опубликован', skipped: '⏭ пропущен', failed: '⚠️ не опубликован' };
 
@@ -64,16 +83,27 @@ function draftButtons(p) {
 async function sendCards(env, bot, p, warn) {
   const msgs = [];
   for (const adm of adminIds(env)) {
+    if (isAnim(p)) { // the admin sees the post as it will look: the animation with the text
+      let s = await sendWithAnim(bot, adm, p, draftCard(p, warn), { reply_markup: draftButtons(p) });
+      if (!s.msgs.length) { const r0 = await bot.send(adm, `⚠️ Анимация не отправилась (${esc((s.r && s.r.description) || 'нет ответа')}): ${esc(p.image)}\n\n` + draftCard(p, warn), { reply_markup: draftButtons(p) }); s = { msgs: r0 && r0.ok && r0.result ? [{ chat: adm, msg: r0.result.message_id }] : [] }; }
+      msgs.push(...s.msgs); continue;
+    }
     let r = await bot.send(adm, draftCard(p, warn), Object.assign({ reply_markup: draftButtons(p) }, preview(p)));
     if (!(r && r.ok)) r = await bot.call('sendMessage', Object.assign({ chat_id: adm, text: draftCard(p, warn).replace(/<[^>]+>/g, ''), reply_markup: draftButtons(p) }, preview(p))); // broken HTML in the draft
     if (r && r.ok && r.result) msgs.push({ chat: adm, msg: r.result.message_id });
   }
   await env.DB.prepare('UPDATE channel_posts SET admin_msgs = ?1, updated_at = ?2 WHERE id = ?3').bind(JSON.stringify(msgs), now(), p.id).run();
-  return msgs.length;
+  return new Set(msgs.map(m => m.chat)).size; // admins reached
 }
 async function refreshCards(env, bot, p) {
   let msgs = []; try { msgs = JSON.parse(p.admin_msgs || '[]'); } catch (e) {}
   for (const m of msgs) {
+    if (m.media) continue; // the animation alone: nothing to change
+    if (m.cap) { // a card that is an animation with a caption
+      const r = await bot.call('editMessageCaption', { chat_id: m.chat, message_id: m.msg, caption: draftCard(p), parse_mode: 'HTML', reply_markup: draftButtons(p) });
+      if (!(r && r.ok)) await bot.call('editMessageCaption', { chat_id: m.chat, message_id: m.msg, caption: draftCard(p).replace(/<[^>]+>/g, ''), reply_markup: draftButtons(p) });
+      continue;
+    }
     const r = await bot.call('editMessageText', Object.assign({ chat_id: m.chat, message_id: m.msg, text: draftCard(p), parse_mode: 'HTML', reply_markup: draftButtons(p), link_preview_options: { is_disabled: true } }, preview(p)));
     if (!(r && r.ok)) await bot.call('editMessageText', Object.assign({ chat_id: m.chat, message_id: m.msg, text: draftCard(p).replace(/<[^>]+>/g, ''), reply_markup: draftButtons(p) }, preview(p)));
   }
@@ -112,7 +142,7 @@ async function publish(env, bot, p) {
   // claim the post first so two cron runs never publish it twice
   const claim = await env.DB.prepare("UPDATE channel_posts SET status = 'posting', updated_at = ?1 WHERE id = ?2 AND status IN ('approved', 'draft', 'failed')").bind(now(), p.id).run();
   if (!(claim.meta && claim.meta.changes > 0)) return row(env, p.id);
-  const r = await bot.send(channelOf(env), p.text, extra);
+  const r = isAnim(p) ? (await sendWithAnim(bot, channelOf(env), p, p.text, extra)).r : await bot.send(channelOf(env), p.text, extra);
   if (r && r.ok) await env.DB.prepare("UPDATE channel_posts SET status = 'posted', channel_msg = ?1, error = NULL, updated_at = ?2 WHERE id = ?3").bind(r.result && r.result.message_id || null, now(), p.id).run();
   else {
     const why = (await channelProblem(env, bot)) || (r && r.description) || 'нет ответа от Telegram';

@@ -1014,6 +1014,34 @@ console.log('player growth: where new players come from, tracked links, names in
   const p12 = stt.posts.find(x => x.id === 'p-12'); ok(stt.ok && p12 && p12.visitors === 2 && p12.newPlayers === 1 && p12.status === 'posted', 'stats per post ' + JSON.stringify(p12));
   ok(!JSON.stringify(stt).includes('user900') && !JSON.stringify(stt).includes('9003'), 'stats carry no personal data');
   await hook(msg(adm, '/posts')); ok(lastTo(777).params.text.includes('👥 2 перешли, 1 новых'), '/posts shows visitors of a published post');
+  // v56: an animation (a skin's GIF) above the post — sent as an animation with the text as its caption
+  const lastAnim = chat => [...tg.calls].reverse().find(c => c.method === 'sendAnimation' && c.params.chat_id === chat);
+  let nA = tg.calls.length;
+  d = await (await draft({ id: 'p-gif', slot_at: now() + 3600, lang: 'ru', rubric: 'Обновление', text: '<b>Новый скин</b>\nАметистовый Дон', image: 'skins/amethyst-don.mp4' })).json();
+  const an = lastAnim(777);
+  ok(d.ok && d.sentTo === 1 && d.image === env.APP_URL + 'skins/amethyst-don.mp4' && an && an.params.animation === d.image && an.params.caption.includes('<b>Новый скин</b>') && an.params.parse_mode === 'HTML' && an.params.reply_markup.inline_keyboard[0][0].callback_data === 'cp_ok_p-gif', 'admin draft: the animation with the text as caption ' + JSON.stringify(d));
+  ok(!tg.calls.slice(nA).some(c => c.method === 'sendMessage' && c.params.chat_id === 777), 'no separate text card for a short post');
+  await hook({ update_id: 701, callback_query: { id: 'qg', from: adm, data: 'cp_ok_p-gif', message: { message_id: 1, chat: { id: 777 } } } });
+  const ec = lastCall('editMessageCaption'); ok(ec && ec.params.caption.includes('одобрен') && ec.params.reply_markup.inline_keyboard[0][1].callback_data === 'cp_undo_p-gif', 'approved: the caption of the card is updated');
+  await hook({ update_id: 702, callback_query: { id: 'qg2', from: adm, data: 'cp_now_p-gif', message: { message_id: 1, chat: { id: 777 } } } });
+  const ca = lastAnim('@mafiaprof'); ok(ca && ca.params.animation.endsWith('skins/amethyst-don.mp4') && ca.params.caption === '<b>Новый скин</b>\nАметистовый Дон' && ca.params.reply_markup.inline_keyboard[0][0].url.endsWith('?start=post_p-gif') && !ca.params.link_preview_options, 'channel: the animation, the caption, the tracked button');
+  eq(await env.DB.prepare("SELECT status FROM channel_posts WHERE id = 'p-gif'").first('status'), 'posted', 'animated post published');
+  // a text longer than a caption: the animation first, then the text with the button
+  const longText = '<b>Длинный пост</b>\n' + 'Скин меняет вид карты. '.repeat(50);
+  nA = tg.calls.length;
+  d = await (await draft({ id: 'p-gif2', slot_at: now() + 3600, lang: 'ru', rubric: 'Обновление', text: longText, image: 'skins/amethyst-don.mp4' })).json();
+  const two = tg.calls.slice(nA).filter(c => c.params.chat_id === 777 && /^send(Animation|Message)$/.test(c.method));
+  ok(d.sentTo === 1 && two.length === 2 && two[0].method === 'sendAnimation' && !two[0].params.caption && two[1].method === 'sendMessage' && two[1].params.text.includes('Длинный пост'), 'long draft: animation, then the text card ' + JSON.stringify(two.map(c => c.method)));
+  await hook({ update_id: 703, callback_query: { id: 'qg3', from: adm, data: 'cp_ok_p-gif2', message: { message_id: 1, chat: { id: 777 } } } });
+  ok(!tg.calls.slice(nA).some(c => c.method === 'editMessageCaption'), 'the lone animation is not edited');
+  nA = tg.calls.length; await hook({ update_id: 704, callback_query: { id: 'qg4', from: adm, data: 'cp_now_p-gif2', message: { message_id: 1, chat: { id: 777 } } } });
+  const ch2 = tg.calls.slice(nA).filter(c => c.params.chat_id === '@mafiaprof');
+  ok(ch2.length === 2 && ch2[0].method === 'sendAnimation' && ch2[1].method === 'sendMessage' && ch2[1].params.reply_markup.inline_keyboard[0][0].url.endsWith('?start=post_p-gif2'), 'long post in the channel: animation, then the text with the button');
+  // a reply to the animated draft replaces its text and re-sends it as an animation
+  await draft({ id: 'p-gif3', slot_at: now() + 3600, lang: 'ru', text: 'старый текст', image: 'skins/amethyst-don.mp4' });
+  const a3 = lastAnim(777); const mid3 = Number(JSON.parse(await env.DB.prepare("SELECT admin_msgs FROM channel_posts WHERE id = 'p-gif3'").first('admin_msgs'))[0].msg);
+  await hook({ update_id: 705, message: { message_id: 50, from: adm, chat: { id: 777, type: 'private' }, text: 'новый текст', reply_to_message: { message_id: mid3 } } });
+  ok(a3 && lastAnim(777) !== a3 && lastAnim(777).params.caption.includes('новый текст') && lastCall('deleteMessage').params.message_id === mid3, 'reply to the animated draft → new text, re-sent');
   await cfg('growth:live', 'off'); await cfg('growth:digest_at', now() + 86400 * 3);
   delete env.CHANNEL_ID; }
 
@@ -1515,6 +1543,24 @@ console.log('seasons (v55): one calendar in the app and the server, the best of 
   ok(!tg.calls.slice(tgN).some(x => x.method === 'sendMessage' && x.params.chat_id === B), 'a Master gets no message');
   const adm = tg.calls.slice(tgN).filter(x => x.method === 'sendMessage' && x.params.chat_id === 777).map(x => x.params.text).join('\n'); ok(adm.includes('Сезон 1 завершён') && adm.includes('User5502') && adm.includes('5502') && adm.includes('2980') && adm.includes('Epic'), 'the admin gets the list of Legends');
   const n2 = tg.calls.length; await worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.parse('2026-12-16T10:10:00Z') }, env, ctx); await settle(); ok(tg.calls.length === n2 && (await fin(A)).points === 1980, 'closed once');
+  // v56: the Legend's skin — owned, worn at once; the others have none; equip / take off; what a table sees; the export
+  { const meA = await (await post('/api/me', { initData: await initData(user(A, 'en')) })).json(); const meB = await (await post('/api/me', { initData: await initData(user(B)) })).json();
+    ok(meA.skins && meA.skins.owned.includes('amethyst_don') && meA.skins.equipped.don === 'amethyst_don' && !meA.owned.packs.includes('amethyst_don'), 'the Legend owns and wears the Amethyst Don: ' + JSON.stringify(meA.skins));
+    ok(meB.skins && !meB.skins.owned.length && !Object.keys(meB.skins.equipped).length, 'a Master gets no skin');
+    ok(legendDM.params.text.includes('Amethyst Don'), 'the Legend is told the skin by name');
+    ok(adm.includes('Аметистовый Дон'), 'the admin is told the skin was given');
+    const of = await (await post('/api/skins', { initData: host, ids: [A, B, 'x', -1] })).json(); ok(of.ok && of.skins[A] && of.skins[A].don === 'amethyst_don' && !of.skins[B], 'a host sees what each player wears');
+    ok((await (await post('/api/profile', { initData: host, tgId: A })).json()).skins.don === 'amethyst_don', 'the public profile carries the worn skins');
+    const ia = await initData(user(A, 'en')), ib = await initData(user(B));
+    let e = await post('/api/skin/equip', { initData: ib, role: 'don', skin: 'amethyst_don' }); ok(e.status === 400 && (await e.json()).error === 'not_owned', 'a skin nobody gave cannot be worn');
+    e = await post('/api/skin/equip', { initData: ia, role: 'sheriff', skin: 'amethyst_don' }); ok(e.status === 400 && (await e.json()).error === 'bad_skin', 'a skin goes only on its own card');
+    e = await post('/api/skin/equip', { initData: ia, role: 'don', skin: 'no_such' }); ok(e.status === 400, 'an unknown skin is refused');
+    let d = await (await post('/api/skin/equip', { initData: ia, role: 'don', skin: null })).json(); ok(d.ok && !d.equipped.don, 'taken off');
+    d = await (await post('/api/skin/equip', { initData: ia, role: 'don', skin: 'amethyst_don' })).json(); ok(d.ok && d.equipped.don === 'amethyst_don', 'put back on');
+    ok((await (await post('/api/skins', { initData: host })).json()).error === 'bad_ids', 'ids are required');
+    const adminMe = await (await post('/api/me', { initData: await initData(user(777)) })).json(); ok(adminMe.skins.owned.includes('amethyst_don'), 'admins own every skin (to try them on)');
+    ok((await exportUser(env, A)).skinsWorn.some(x => x.skin === 'amethyst_don'), '/mydata includes the worn skins');
+    ok((await env.DB.prepare("SELECT COUNT(*) AS n FROM purchases WHERE kind = 'skin' AND tg_id = ?1").bind(A).first('n')) === 1, 'the reward is given once'); }
   // the break: the top is the final standings, games count but the rating stays
   const lb = await (await call('/api/leaderboard?limit=10')).json(); ok(lb.final === true && lb.season.phase === 'break' && lb.top[0].tgId === A && lb.top[0].points === 2980, 'the break: the overall rating shows season 1 final standings');
   let r = await play('ss-4', [[B, 60]]); ok(r.season.phase === 'break' && r.ratings[B].points === 0 && r.ratings[B].games === 10 && !Object.keys(r.rankUp).length, 'a game in the break: counted in the games, not in the rating');
@@ -1528,8 +1574,18 @@ console.log('seasons (v55): one calendar in the app and the server, the best of 
   const ex = await exportUser(env, A); ok(ex.seasons && ex.seasons.length === 1 && ex.seasons[0].season === 1 && ex.seasonBest && ex.seasonBest.length >= 1, '/mydata includes the season results and bests');
   delete env.SEASON_NOW_MS;
   await env.DB.prepare('DELETE FROM ratings').run(); for (const b of backup) await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(b.tg_id, b.points, b.games, b.wins, b.hosted, b.updated_at).run();
+  await env.DB.prepare("DELETE FROM purchases WHERE kind = 'skin'").run(); await env.DB.prepare('DELETE FROM user_skins').run();
   await env.DB.prepare("DELETE FROM discord_cfg WHERE key IN ('lb:top', 'season:closed:1')").run(); await env.DB.prepare('DELETE FROM season_results').run(); await env.DB.prepare("DELETE FROM games WHERE game_id LIKE 'ss-%'").run();
 }
+
+console.log('skins (v56): the same catalog in the app and the server');
+{ const fs = await import('node:fs'); const vm = await import('node:vm'); const SK = await import('../src/skins.js');
+  const app = fs.readFileSync(path.join(here, '..', '..', 'src', '12-skins.js'), 'utf8'); const block = app.slice(app.indexOf('/* skins:begin'), app.indexOf('/* skins:end */'));
+  const c = vm.createContext({}); vm.runInContext(block + '; this.SKINS = SKINS;', c);
+  eq(c.SKINS.map(x => [x.id, x.role, x.rarity, x.season || 0]), Object.entries(SK.SKINS).map(([id, x]) => [id, x.role, x.rarity, x.season || 0]), 'every skin has the same id, card, rarity and season');
+  ok(Object.entries(SK.SEASON_SKIN).every(([n, id]) => SK.SKINS[id] && SK.SKINS[id].season === Number(n)), 'a season reward is a skin of that season');
+  const files = c.SKINS.flatMap(x => [x.file + '.webp', x.file + '-depth.png', x.file + '-seal.webp']); ok(files.every(f => fs.existsSync(path.join(here, '..', '..', 'skins', f))), 'every skin has its face, depth map and portrait in skins/');
+  ok(Object.keys(SK.SKINS).every(id => ['ru', 'uk', 'en', 'pl', 'hy'].every(l => SK.skinName(id, l) && SK.skinName(id, l) !== id)), 'every skin is named in five languages'); }
 
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');

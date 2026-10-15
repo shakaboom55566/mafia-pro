@@ -137,7 +137,14 @@ function seasonBannerHTML() {
 /* season 1's promise: an Epic skin for everyone who ends it as a Legend */
 function seasonRewardHTML() {
   const u = U(); const sz = seasonAt(Date.now()); if (sz.n !== 1) return '';
-  const top = RANK_MIN.length - 1; const text = sz.phase === 'break' ? tt(u.ssRewardDone, { n: sz.n, rank: rankName(top) }) : tt(u.ssReward, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay) });
+  const top = RANK_MIN.length - 1;
+  // v56: the reward is a real skin now — its portrait, its name and a way to look at it
+  const sk = typeof SKINS !== 'undefined' ? SKINS.find(x => x.season === sz.n) : null;
+  if (sk) {
+    const text = sz.phase === 'break' ? tt(u.ssRewardSkinDone, { n: sz.n, rank: rankName(top), skin: sk.name }) : tt(u.ssRewardSkinText, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay), skin: sk.name });
+    return `<div class="ss-reward" role="button" tabindex="0" data-a="skins-open">${sealFor(ROLE[sk.role], sk.id, 'ss-skin')}<div class="grow" style="min-width:0"><div class="ss-epic">EPIC</div><b>${tt(u.ssRewardSkin, { n: sz.n, skin: esc(sk.name) })}</b><div class="hint" style="margin:4px 0 0">${text}</div><div class="ss-see">${rankSVG(top, 16)} ${u.ssRewardSee} ›</div></div></div>`;
+  }
+  const text = sz.phase === 'break' ? tt(u.ssRewardDone, { n: sz.n, rank: rankName(top) }) : tt(u.ssReward, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay) });
   return `<div class="ss-reward">${rankSVG(top, 48)}<div class="grow" style="min-width:0"><div class="ss-epic">EPIC</div><b>${tt(u.ssRewardTitle, { n: sz.n })}</b><div class="hint" style="margin:4px 0 0">${text}</div></div></div>`;
 }
 /* all ranks: thresholds, where the viewer is */

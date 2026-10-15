@@ -14,8 +14,8 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const safeImg = u => typeof u === 'string' && /^(data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(u);
 const U = () => L.ui;
 const SAVE_KEY = 'mafiapro.v1';
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; if (d.tgUser) S.tgUser = d.tgUser; } } catch (e) {} }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, skins: S.skins || null, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
+function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; if (d.tgUser) S.tgUser = d.tgUser; if (d.skins && typeof d.skins === 'object') S.skins = Object.assign({ owned: [], equipped: {} }, d.skins); } } catch (e) {} }
 
 let toastT = null;
 function toast(msg) { const old = $('.toast'); if (old) old.remove(); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2800); }
@@ -347,7 +347,7 @@ function dealScreen() {
     <div class="panel raised" style="text-align:center"><div class="eyebrow">${u.passPhone}</div><div style="font-family:var(--font-display);font-weight:900;font-size:22px;margin-top:4px">${esc(p.name)}</div><div class="hint">${tt(u.seatHint, { seat: p.seat })}</div></div>
     <div class="card-wrap"><div class="flip ${(S.ui.flipAnim ? !g.dealOpen : g.dealOpen) ? 'open' : ''}" data-a="flip">
       <div class="face cardback ${r.premium ? 'premium' : ''}">${cardBackHTML(!!r.premium, `${r.premium ? u.premium + ' · ' : ''}${u.tapToOpen}`)}</div>
-      <div class="face front">${cardHTML(r, { seat: p.seat, fam: p.family })}</div>
+      <div class="face front">${skinCardHTML(r, { seat: p.seat, fam: p.family }, skinOfPlayer(g, p))}</div>
     </div></div>
     ${g.dealOpen ? `<button class="btn primary" data-a="hide">${u.hidePass}</button>` : `<button class="btn" data-a="flip">${u.openCard}</button>`}
     <button class="btn ghost sm" data-a="showall" style="align-self:center">${u.hostTable}</button>
@@ -417,7 +417,7 @@ function nightBody(g) {
   const role = ROLE[step.roleId];
   let inner = '';
   if (step.type === 'meet') {
-    inner = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title}</div><div class="s">${step.members.length} ${plural(step.members.length, 'players')}</div></div></div>
+    inner = `<div class="wake"><div class="who">${step.members.length === 1 ? sealFor(role, skinOfPlayer(g, step.members[0])) : sealHTML(role)}<div><div class="n">${step.title}</div><div class="s">${step.members.length} ${plural(step.members.length, 'players')}</div></div></div>
       <div class="script">${step.script}</div>${membersHTML(step.members)}</div>
       <div class="btn-row">${g.stepIdx > 0 ? `<button class="btn ghost" data-a="prev">${u.back}</button>` : ''}<button class="btn primary" data-a="next">${u.sleepNext}</button></div>`;
   } else {
@@ -430,7 +430,7 @@ function actStep(g, step) {
   const u = U(); const actor = P(g, step.actorId); const role = ROLE[step.roleId];
   const recorded = g.actions.find(a => a.stepId === step.id);
   const stolen = stolenFrom(g, step.actorId);
-  const head = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title || role.name}</div><div class="s">${esc(label(actor))}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
+  const head = `<div class="wake"><div class="who">${sealFor(role, skinOfPlayer(g, actor))}<div><div class="n">${step.title || role.name}</div><div class="s">${esc(label(actor))}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
     <div class="script">${step.script}</div>${step.members ? membersHTML(step.members) : ''}${step.note ? `<div class="hint" style="margin-top:8px">${esc(step.note)}</div>` : ''}`;
   const nav = (primary) => `<div class="btn-row"><button class="btn ghost" data-a="prev">${u.back}</button>${primary}</div>`;
   if (step.disabled) return `${head}<div class="quiet" style="margin-top:10px">${u.disabledNote}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
@@ -506,7 +506,7 @@ function revealDeadIn(g) { if (!g) return typeof S.setup.openRoles === 'boolean'
 function roleShown(g, p) { return revealDeadIn(g) || (!p.alive && AFTER_DEATH_ROLES.includes(p.roleId)); }
 function deathRow(g, d) {
   const p = P(g, d.id); const role = ROLE[p.roleId]; const shown = roleShown(g, p);
-  return `<div class="death">${shown ? sealHTML(role) : `<div class="seal hidden-role" title="?">?</div>`}<div><div class="n">${esc(label(p))}</div><div class="c">${shown ? role.name + ' · ' : ''}${esc(d.cause)}</div></div></div>`;
+  return `<div class="death">${shown ? sealFor(role, skinOfPlayer(g, p)) : `<div class="seal hidden-role" title="?">?</div>`}<div><div class="n">${esc(label(p))}</div><div class="c">${shown ? role.name + ' · ' : ''}${esc(d.cause)}</div></div></div>`;
 }
 
 function dayBody(g) {
@@ -758,7 +758,7 @@ function reviewHTML(g) {
   const open = S.ui.rvOpen || {};
   return `<div class="panel"><div class="eyebrow gold">${u.reviewTitle}</div><p class="hint" style="margin:6px 0 10px">${u.reviewHint}</p>
     <div class="rv-list">${rows.map((x, i) => { const role = ROLE[x.p.roleId]; const isOpen = !!open[x.p.id]; return `<div class="rv ${x.res.won ? 'win' : 'loss'}">
-      <button class="rv-head" data-a="rv-toggle" data-id="${x.p.id}">${sealHTML(role)}<div class="grow"><div class="n">${x.p.seat} · ${esc(x.p.name)} ${i === 0 && x.total > 0 ? `<span class="mvp">${u.mvp}</span>` : ''}</div><div class="d">${role.name} · ${x.res.won ? u.won : u.lost} · ${tt(u.rvStats, { good: x.r.good, bad: x.r.bad })}</div></div><div class="pts"><b>${x.total > 0 ? '+' : ''}${x.total}</b><small>${u.ptsResult} ${x.pts > 0 ? '+' : ''}${x.pts} · ${u.ptsUseful} ${x.r.useful > 0 ? '+' : ''}${x.r.useful}</small></div></button>
+      <button class="rv-head" data-a="rv-toggle" data-id="${x.p.id}">${sealFor(role, skinOfPlayer(g, x.p))}<div class="grow"><div class="n">${x.p.seat} · ${esc(x.p.name)} ${i === 0 && x.total > 0 ? `<span class="mvp">${u.mvp}</span>` : ''}</div><div class="d">${role.name} · ${x.res.won ? u.won : u.lost} · ${tt(u.rvStats, { good: x.r.good, bad: x.r.bad })}</div></div><div class="pts"><b>${x.total > 0 ? '+' : ''}${x.total}</b><small>${u.ptsResult} ${x.pts > 0 ? '+' : ''}${x.pts} · ${u.ptsUseful} ${x.r.useful > 0 ? '+' : ''}${x.r.useful}</small></div></button>
       ${isOpen ? `<div class="rv-items">${x.r.items.length ? x.r.items.map(it => `<div class="it ${it.verdict}"><span class="mark">${it.verdict === 'good' ? '✓' : it.verdict === 'bad' ? '✗' : '•'}</span><div><div class="w">${it.when} · ${esc(it.action)} ${esc(it.target)}</div><div class="r">${it.verdict === 'good' ? u.rvGood : it.verdict === 'bad' ? u.rvBad : u.rvNeutral}${it.reason ? ' — ' + esc(it.reason) : ''} <span class="p">${it.pts > 0 ? '+' : ''}${it.pts || 0}</span></div>${it.better ? `<div class="b">${tt(u.rvBetter, { text: esc(it.better) })}</div>` : ''}</div></div>`).join('') : `<div class="hint">${u.rvNoItems}</div>`}</div>` : ''}</div>`; }).join('')}</div></div>`;
 }
 
@@ -799,7 +799,7 @@ function roleDoc(r) {
   return `<div class="roledoc">
     ${card3dHTML(r, 'sheet')}<div class="spin-hint">${u.spinHint}</div>${buy}
     <div class="facts"><div class="fact"><div class="k">${u.side}</div><div class="v">${TEAM_LABEL[r.team]}</div></div><div class="fact"><div class="k">${u.forChecks}</div><div class="v">${COLOR_LABEL[r.color]}</div></div><div class="fact"><div class="k">${u.type}</div><div class="v">${r.kind}</div></div><div class="fact"><div class="k">${u.order}</div><div class="v">${wakeTxt}</div></div></div>
-    ${countersHTML(r)}
+    ${typeof roleSkinsHTML === 'function' ? roleSkinsHTML(r) : ''}${countersHTML(r)}
     <div class="section"><div class="eyebrow gold">${u.howWorks}</div><ul>${r.rules.map(x => `<li>${x}</li>`).join('')}</ul></div>
     <div class="section"><div class="eyebrow gold">${u.lore}</div><p class="lore" style="margin-top:6px">${r.lore}</p></div>
     <div class="section"><div class="eyebrow gold">${u.tip}</div><p style="margin-top:6px;font-size:14px">${r.tip}</p></div>
@@ -937,7 +937,7 @@ function sheetHTML(enter = true) {
   if (sh.type === 'playerEdit') {
     const g = S.game; const p = P(g, sh.id); const r = ROLE[p.roleId];
     const fouls = isClassic(g) ? `<div class="setting" style="margin-top:12px"><div><div class="t">${u.fouls}</div><div class="d">${p.fouls >= 4 ? u.foulOut : p.fouls >= 3 ? u.foulNoSpeech : u.foulsN.replace('{n}', p.fouls || 0)}</div></div><div class="ctl"><button data-a="foul-remove" data-id="${p.id}" aria-label="${u.foulRemove}">−</button><span class="v">${p.fouls || 0}</span><button data-a="foul-add" data-id="${p.id}" aria-label="${u.foulAdd}">+</button></div></div>` : '';
-    body = `<div class="row">${sealHTML(r)}<div class="grow"><h2>${esc(label(p))}</h2><div class="hint">${r.name} · ${p.alive ? u.inGame : u.outGame}</div></div></div>${fouls}
+    body = `<div class="row">${sealFor(r, skinOfPlayer(g, p))}<div class="grow"><h2>${esc(label(p))}</h2><div class="hint">${r.name} · ${p.alive ? u.inGame : u.outGame}</div></div></div>${fouls}
       <div class="btn-row" style="margin-top:14px"><button class="btn ghost" data-a="sheet" data-id="players">${u.back}</button><button class="btn ${p.alive ? 'danger' : 'primary'}" data-a="toggle-alive" data-id="${p.id}">${p.alive ? u.removePlayer : u.returnPlayer}</button></div>`;
   }
   if (sh.type === 'log') {

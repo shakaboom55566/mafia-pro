@@ -55,6 +55,8 @@ jobs:
           V=""; [ -n "$G" ] && V="$V<meta name=\"google-site-verification\" content=\"$G\">"; [ -n "$B" ] && V="$V<meta name=\"msvalidate.01\" content=\"$B\">"
           [ -n "$V" ] && sed -i "s#<!--GSC_VERIFY-->#$V#" _site/index.html && echo "verification tags: ${G:+google }${B:+bing}"
           cp 404.html _site/
+          # v56 card skins: the faces, depth maps, portraits and the animation for the channel post (skins/STYLE.md)
+          mkdir -p _site/skins && cp skins/*.webp skins/*.png _site/skins/ && (cp skins/*.mp4 skins/*.gif _site/skins/ 2>/dev/null || true)
           touch _site/.nojekyll
           grep -o '<meta name="mafia-api" content="[^"]*">' _site/index.html
 

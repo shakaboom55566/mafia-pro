@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+html, body { margin: 0; width: 720px; height: 900px; overflow: hidden; background: #0c0812; }
+#stage { position: relative; width: 720px; height: 900px; overflow: hidden; perspective: 1300px;
+  background: radial-gradient(60% 46% at 50% 47%, rgba(157, 92, 240, .42), rgba(157, 92, 240, 0) 70%), radial-gradient(120% 80% at 50% 20%, #2a1840 0%, #0c0812 68%); }
+.rays { position: absolute; inset: -20%; background: repeating-conic-gradient(from var(--ra, 0deg) at 50% 46%, rgba(217, 194, 255, .07) 0deg 6deg, rgba(217, 194, 255, 0) 6deg 18deg); -webkit-mask-image: radial-gradient(closest-side at 50% 46%, #000 30%, transparent 100%); }
+.spark { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #e3c9ff; box-shadow: 0 0 10px 2px rgba(157, 92, 240, .9); }
+.card { position: absolute; left: 50%; top: 50%; width: 540px; aspect-ratio: 1200 / 1789; transform-style: preserve-3d;
+  transform: translate(-50%, -50%) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  filter: drop-shadow(0 30px 34px rgba(0, 0, 0, .75)) drop-shadow(0 0 30px rgba(157, 92, 240, .5)); }
+.card { --in: 2.61% 3.77% 2.53% 3.77%; }
+.card canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.glare, .foil, .sweep { position: absolute; inset: var(--in); border-radius: 12px; pointer-events: none; }
+.glare { background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 255, 255, .34), rgba(255, 255, 255, 0) 45%); mix-blend-mode: soft-light; transform: translateZ(1px); }
+.foil { background: repeating-linear-gradient(115deg, rgba(255, 120, 230, 0) 0%, rgba(255, 120, 230, .55) 6%, rgba(120, 200, 255, .5) 12%, rgba(255, 230, 140, .5) 18%, rgba(160, 110, 255, 0) 26%);
+  background-size: 260% 260%; background-position: var(--fx, 50%) var(--fy, 50%); mix-blend-mode: color-dodge; opacity: .38;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 48%, transparent 52%, #000 74%); transform: translateZ(2px); }
+.sweep { background: linear-gradient(105deg, rgba(255, 255, 255, 0) calc(var(--sw, -40%) - 9%), rgba(255, 244, 220, .5) var(--sw, -40%), rgba(255, 255, 255, 0) calc(var(--sw, -40%) + 9%)); mix-blend-mode: overlay; transform: translateZ(3px); }
+</style>
+<div id="stage">
+  <div class="rays" id="rays"></div>
+  <div id="sparks"></div>
+  <div class="card" id="card"><canvas id="gl"></canvas><div class="foil"></div><div class="glare"></div><div class="sweep"></div></div>
+</div>
+<script>
+/* a looped turn of the skin card for the channel post: renderAt(t) draws the moment t (0..1) of the loop */
+const VS = 'attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
+const FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off;varying vec2 v;void main(){vec2 uv=v;for(int i=0;i<6;i++){float d=texture2D(dep,uv).r;uv=v+off*(d-.9);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
+const card = document.getElementById('card'), cv = document.getElementById('gl'), rays = document.getElementById('rays');
+let gl, uOff;
+function load(src) { return new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = src; }); }
+function tex(im, unit) { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+  [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); }
+/* sparks: fixed seeds, each rises once per loop so the loop is seamless */
+const SP = Array.from({ length: 26 }, (_, i) => { const r = n => { const x = Math.sin((i + 1) * 9301 + n * 49297) * 233280; return x - Math.floor(x); }; return { x: 60 + r(1) * 600, y0: 240 + r(2) * 640, ph: r(3), sz: .5 + r(4) * 1.1, amp: 10 + r(5) * 24 }; });
+const spBox = document.getElementById('sparks'); const spEl = SP.map(() => { const d = document.createElement('i'); d.className = 'spark'; spBox.appendChild(d); return d; });
+window.ready = (async () => {
+  const [img, dep] = await Promise.all([load('card.webp'), load('depth.png')]);
+  cv.width = 1080; cv.height = Math.round(1080 * 1789 / 1200);
+  gl = cv.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true, antialias: true, alpha: true });
+  const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); return x; };
+  const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); gl.useProgram(prog);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  tex(img, 0); tex(dep, 1); gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1);
+  uOff = gl.getUniformLocation(prog, 'off'); gl.viewport(0, 0, cv.width, cv.height);
+  return true;
+})();
+window.renderAt = t => {
+  const th = t * Math.PI * 2;
+  const cx = Math.sin(th) * .85, cy = Math.sin(th * 2) * .32;
+  card.style.setProperty('--ry', (cx * 17).toFixed(3) + 'deg'); card.style.setProperty('--rx', (-cy * 12).toFixed(3) + 'deg');
+  card.style.setProperty('--gx', (50 + cx * 40) + '%'); card.style.setProperty('--gy', (35 + cy * 35) + '%');
+  card.style.setProperty('--fx', (50 + cx * 50) + '%'); card.style.setProperty('--fy', (50 + cy * 50) + '%');
+  /* one light sweep across the card per loop, in the first part of it */
+  const s = (t * 1.6) % 1.6; card.style.setProperty('--sw', (-40 + s * 130).toFixed(1) + '%');
+  rays.style.setProperty('--ra', (t * 36).toFixed(2) + 'deg');
+  SP.forEach((p, i) => { const k = (t + p.ph) % 1; const el = spEl[i]; const y = p.y0 - k * 260; el.style.transform = `translate(${(p.x + Math.sin(k * Math.PI * 2) * p.amp).toFixed(1)}px, ${y.toFixed(1)}px) scale(${p.sz.toFixed(2)})`; el.style.opacity = (Math.sin(k * Math.PI) * .9).toFixed(3); });
+  gl.uniform2f(uOff, -cx * .045, -cy * .035); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+};
+</script>

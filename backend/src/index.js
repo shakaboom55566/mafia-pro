@@ -16,7 +16,9 @@
    - POST /api/friends/requests incoming / outgoing requests
    - POST /api/friends/respond accept or decline a request in the app
    - POST /api/ping            presence heartbeat (online = seen in the last few minutes)
-   - POST /api/profile         a player's public game profile (rating, per-role stats, recent games)
+   - POST /api/profile         a player's public game profile (rating, per-role stats, recent games, worn skins)
+   - POST /api/skin/equip      v56: put a card skin on / take it off (role, skin | null; the player must own it)
+   - POST /api/skins           v56: the skins several players wear (ids) — the host's table shows each player's own card face
    - POST /api/players         everyone who opened the bot: name, @username, presence, rating (paged, optional prefix filter)
    - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
    - POST /api/referrals       my referral link, invited / qualified counts, milestones, credits
@@ -56,6 +58,7 @@ import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, r
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
+import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName } from './skins.js';
 
 const VERSION = '0.1.0';
 const KINDS = ['role', 'scenario', 'pack'];
@@ -103,7 +106,7 @@ async function grantFor(env, tgId) { const g = await env.DB.prepare('SELECT unti
 async function ownedFor(env, tgId) {
   const rows = (await env.DB.prepare("SELECT kind, item FROM purchases WHERE tg_id = ?1 AND status IN ('paid', 'reward')").bind(tgId).all()).results || [];
   const owned = { roles: [], scenarios: [], packs: [], allUntil: 0 };
-  for (const r of rows) { const k = r.kind === 'role' ? 'roles' : r.kind === 'scenario' ? 'scenarios' : 'packs'; if (!owned[k].includes(r.item)) owned[k].push(r.item); }
+  for (const r of rows) { if (r.kind === 'skin') continue; const k = r.kind === 'role' ? 'roles' : r.kind === 'scenario' ? 'scenarios' : 'packs'; if (!owned[k].includes(r.item)) owned[k].push(r.item); } // skins: ownedSkins (skins.js)
   const g = await grantFor(env, tgId); if (g) owned.allUntil = g.until * 1000;
   return owned;
 }
@@ -645,7 +648,8 @@ async function apiMe(env, bot, body) {
   if (typeof body.city === 'string') { const city = body.city.trim().slice(0, 48); await env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2, updated_at = ?3').bind(u.id, city, now()).run(); }
   const table = await tableOf(env, u.id); const invites = await pendingInvites(env, u.id);
   const sz = seasonNow(env); const peak = await peakOf(env, v.user.id, sz, rating);
-  return json({ ok: true, season: seasonInfo(sz), peak, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  const skins = { owned: await ownedSkins(env, u.id, isAdmin(env, u.id)), equipped: await equippedSkins(env, u.id) }; // v56
+  return json({ ok: true, season: seasonInfo(sz), peak, skins, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -751,7 +755,19 @@ async function profileData(env, id) {
   const ts = now();
   const club = await membershipOf(env, id);
   return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '' },
-    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)) };
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id) };
+}
+/* ---------- v56 card skins (skins.js) ---------- */
+async function apiSkinEquip(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const r = await equipSkin(env, v.user.id, body.role, body.skin == null ? null : String(body.skin), isAdmin(env, v.user.id), now());
+  if (!r.ok) return json(r, 400);
+  return json({ ok: true, equipped: await equippedSkins(env, v.user.id) });
+}
+async function apiSkinsOf(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!Array.isArray(body.ids)) return json({ ok: false, error: 'bad_ids' }, 400);
+  return json({ ok: true, skins: await equippedOf(env, body.ids) });
 }
 async function apiPlayers(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -1453,13 +1469,14 @@ async function runSeasonCron(env, bot) {
   ]);
   const legends = (await env.DB.prepare('SELECT s.tg_id, s.points, u.first_name, u.last_name, u.username, u.lang FROM season_results s LEFT JOIN users u ON u.tg_id = s.tg_id WHERE s.season = ?1 AND s.games >= ?2 AND s.points >= ?3 ORDER BY s.points DESC').bind(last, RANK_NOVICE_GAMES, RANK_MIN[RANK_MIN.length - 1] - 1000).all()).results || [];
   const nx = seasonAt(sz.next); const nextDay = fmtDay(sz.phase === 'break' ? sz.nextDay : nx.firstDay);
-  for (const l of legends.slice(0, 300)) { try { const lang = pickLang(l.lang); await bot.send(l.tg_id, t(lang, 'seasonLegend', { n: last, rating: 1000 + l.points, next: nextDay }), bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) { console.error('season legend', e); } }
+  const skin = await grantSeasonSkin(env, last, legends.map(l => l.tg_id), ts); // v56: the season's skin — owned and worn at once
+  for (const l of legends.slice(0, 300)) { try { const lang = pickLang(l.lang); await bot.send(l.tg_id, t(lang, skin ? 'seasonLegendSkin' : 'seasonLegend', { n: last, rating: 1000 + l.points, next: nextDay, skin: skin ? skinName(skin, lang) : '' }), bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) { console.error('season legend', e); } }
   const list = legends.map((l, i) => `${i + 1}. ${esc(rowName(l) || String(l.tg_id))}${l.username ? ' @' + esc(l.username) : ''} (id <code>${l.tg_id}</code>) — ${1000 + l.points}`);
-  const head = `🏁 <b>Сезон ${last} завершён.</b> Рейтинг всех игроков сброшен до 1000, межсезонье до начала сезона ${last + 1} — ${nextDay}.\n👑 Легенд в конце сезона: <b>${legends.length}</b>${legends.length ? ' — им обещан Epic-скин:' : '.'}`;
+  const head = `🏁 <b>Сезон ${last} завершён.</b> Рейтинг всех игроков сброшен до 1000, межсезонье до начала сезона ${last + 1} — ${nextDay}.\n👑 Легенд в конце сезона: <b>${legends.length}</b>${legends.length ? (skin ? ` — им выдан и надет Epic-скин «${esc(skinName(skin, 'ru'))}»:` : ' — им обещан Epic-скин:') : '.'}`;
   const chunks = [head]; for (const line of list) { if ((chunks[chunks.length - 1] + '\n' + line).length > 3800) chunks.push(line); else chunks[chunks.length - 1] += '\n' + line; }
   const admins = String(env.ADMIN_IDS || '').split(',').map(x => Number(x.trim())).filter(Boolean);
   for (const a of admins) for (const c of chunks) { try { await bot.send(a, c); } catch (e) { console.error('season admin', e); } }
-  return { closed: last, legends: legends.length };
+  return { closed: last, legends: legends.length, skin };
 }
 /* ---------- v54 ranks on the Discord server ---------- */
 async function ranksOf(env, ids) {
@@ -1828,6 +1845,8 @@ export default {
           case '/api/friends/respond': return wrap(apiFriendRespond(env, bot, body));
           case '/api/ping': return wrap(apiPing(env, bot, body));
           case '/api/profile': return wrap(apiProfile(env, body));
+          case '/api/skin/equip': return wrap(apiSkinEquip(env, body));
+          case '/api/skins': return wrap(apiSkinsOf(env, body));
           case '/api/players': return wrap(apiPlayers(env, body));
           case '/api/admin/grant': return wrap(apiAdmin(env, bot, body, 'grant'));
           case '/api/admin/revoke': return wrap(apiAdmin(env, bot, body, 'revoke'));

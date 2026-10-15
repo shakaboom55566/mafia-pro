@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -801,7 +801,7 @@ clearInterval(X.T.iv);
   A.go(el('go', { to: 'ratings' })); A['rt-tab'](el('rt-tab', { v: 'ranks' })); check('v55 ranks tab');
   const h = app.innerHTML; const sz = E('seasonAt')(Date.now());
   if (!h.includes('data-a="rt-tab" data-v="ranks"') || !h.includes(X.tt(u.ssTitle, { n: sz.n })) || !h.includes('EPIC') || !h.includes(u.rkHowTitle) || !u.rkHow.every(x => h.includes(x)) || !u.rkSeasonRules.every(x => h.includes(x))) F('the Ranks tab: season, Epic reward, how to get a rank, season rules');
-  if (!h.includes(X.tt(u.ssRewardTitle, { n: 1 })) || !h.includes(u.rankNames[7])) F('the reward names the Legend rank');
+  if (!h.includes(X.tt(u.ssRewardSkin, { n: 1, skin: vm.runInContext('SKIN.amethyst_don.name', ctx) })) || !h.includes(u.rankNames[7])) F('the reward names the Legend rank and the skin (v56)');
   if (!h.includes(u.rkMine) || !h.includes('class="rk-card') || !h.includes(X.tt(u.rkPeakShort, { n: 1 }))) F('your rank with the best of the season');
   if (!u.rankNames.every(n => h.includes(n)) || !u.hostNames.every(n => h.includes(n))) F('the ladder and the host badges');
   A['rt-tab'](el('rt-tab', { v: 'rating' })); check('v55 rating tab'); if (!app.innerHTML.includes('data-a="rt-set"') || !app.innerHTML.includes('data-a="rt-tab"')) F('back to the rating, the tabs stay on top');
@@ -809,6 +809,57 @@ clearInterval(X.T.iv);
   A.ranks(el('ranks', { i: '1' })); check('v55 sheet'); if (!app.innerHTML.includes('EPIC') || !app.innerHTML.includes(u.rkHowTitle)) F('the sheet from the rank card tells the same');
   S.ui.sheet = null; S.profiles = S.profiles.filter(x => x.id !== pr.id); S.meId = null; S.ui.rtTab = 'rating'; S.screen = 'home'; X.render(); console.log('v55 ok');
 }
-console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
-console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
-process.exit(fails ? 1 : 0);
+// v56: card skins — the Skins tab, wearing a skin, the player's skin wherever he is that character, the season reward
+const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.log('FAIL v56 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  const name = E('SKIN.amethyst_don.name'); if (!name || name === 'amethyst_don') F('the skin has a name in this language');
+  // not signed in: the tab shows the skin as not earned, putting it on says why it cannot
+  S.cloud = null; S.skins = { owned: [], equipped: {} };
+  A.go(el('go', { to: 'cards' })); check('v56 cards'); if (!app.innerHTML.includes('data-a="cards-tab" data-v="skins"') || !app.innerHTML.includes('class="gallery"')) F('the Cards screen has a Cards | Skins switch over the gallery');
+  A['cards-tab'](el('cards-tab', { v: 'skins' })); check('v56 skins tab'); let h = app.innerHTML;
+  if (!h.includes('skin-item') || !h.includes(name) || !h.includes(u.skLocked) || !h.includes('amethyst-don.webp') || h.includes('data-a="skin-wear"')) F('the Skins tab: the skin, its picture, not earned, no button');
+  if (!h.includes(X.tt(u.skHowSeason, { n: 1, rank: u.rankNames[7], date: E('seasonDayText')(E('seasonAt')(Date.now()).lastDay) }))) F('how to get it: the end of season 1 as a Legend');
+  // signed in, the skin owned: put on (the server answer is mocked through api)
+  S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: ['amethyst_don'], equipped: {} }; X.render(); check('v56 owned'); h = app.innerHTML;
+  if (!h.includes(u.skOwned) || !h.includes('data-a="skin-wear" data-id="amethyst_don" data-on="1"')) F('an owned skin can be put on');
+  // the player's own card shows his skin: the deal, the night step of his role, the dead list, the review, the podium
+  const me = E('newProfile')({ name: 'Я', tgId: 500 }); const fr = E('newProfile')({ name: 'Друг', tgId: 600 }); S.profiles.push(me, fr); S.meId = null; // the host never sits: «me» is a seated profile linked to my Telegram account
+  S.skins.equipped = { don: 'amethyst_don' };
+  A.go(el('go', { to: 'setup' })); S.setup.scenario = null; S.setup.n = 7; S.setup.comp = E('presetFor')(7); S.setup.seatProfiles = [me.id, fr.id];
+  A.deal(); const g = S.game; const pm = g.players.find(p => p.profileId === me.id), pf = g.players.find(p => p.profileId === fr.id);
+  const don = g.players.find(p => p.roleId === 'don'); const oth = g.players.find(p => p.roleId !== 'don' && p !== pm && p !== pf);
+  // the Don is me; my friend is a sheriff with a Don skin on (it must not show on his sheriff card)
+  [don.roleId, pm.roleId] = [pm.roleId, 'don']; if (pf.roleId === 'don') pf.roleId = 'sheriff';
+  g.skinsOf = { 600: { don: 'amethyst_don' } }; g.skinsAt = Date.now();
+  if (E('skinOfPlayer')(g, pm) !== 'amethyst_don' || E('skinOfPlayer')(g, pf) || E('skinOfPlayer')(g, oth)) F('who wears what: me — the Don skin, the friend (not the Don) and a stranger — none');
+  g.dealIdx = pm.seat - 1; A.flip(); check('v56 deal me'); h = app.innerHTML; if (!h.includes('card skinned') || !h.includes('skin-layer') || !h.includes('amethyst-don.webp') || !h.includes('skin-gl')) F('my Don card at the deal is my skin (with the 3D canvas)');
+  A.hide(); g.dealIdx = pf.seat - 1; A.flip(); check('v56 deal friend'); if (app.innerHTML.includes('skin-layer')) F('a sheriff card never shows a Don skin');
+  A.hide(); pf.roleId = 'don'; pm.roleId = 'sheriff'; g.dealIdx = pf.seat - 1; A.flip(); check('v56 deal friend don'); if (!app.innerHTML.includes('skin-layer')) F('the friend dealt the Don shows the skin he wears');
+  pf.roleId = 'sheriff'; pm.roleId = 'don'; A.hide();
+  g.dealIdx = g.players.length; A.start(); let gd = 0; while (g.steps[g.stepIdx] && gd++ < 30) A.next(); A.day0(); A.night(); check('v56 night');
+  const famStep = g.steps.findIndex(st => st.roleId === 'don' && st.actorId === pm.id); if (famStep >= 0) { g.stepIdx = famStep; X.render(); check('v56 night don'); if (!app.innerHTML.includes('skin-seal')) F('the night step of my Don shows my skin'); }
+  pm.alive = false; g.phase = 'day'; g.dayStage = 'morning'; g.nightResult = { removed: [{ id: pm.id, cause: 'x' }], notes: [], quiet: [] }; g.openRoles = true; X.render(); check('v56 morning'); if (!app.innerHTML.includes('skin-seal')) F('the dead list shows my skin');
+  g.winner = { side: 'city', title: 'T', text: 'x' }; g.extraWinners = []; X.render(); check('v56 end');
+  h = app.innerHTML; if (!h.includes('skin-seal') || !h.includes('skin-layer')) F('the review and the podium show my skin');
+  const rows = E('resultRows')(g); if (rows.find(r => r.seat === pm.seat).sk !== 'amethyst_don' || rows.find(r => r.seat === pf.seat).sk) F('the result rows carry the skin for the online players');
+  // my profile: the best role card and my Don games show the skin
+  S.game = null; S.meId = me.id; me.history.push({ id: 'h1', date: Date.now(), gameId: 'x', n: 7, roleId: 'don', won: true, points: 24 }); S.ui.profileId = me.id; S.screen = 'profile'; X.render(); check('v56 profile');
+  h = app.innerHTML; if (!h.includes('skin-layer') || !h.includes('skin-seal')) F('my profile shows my skin on the Don');
+  // the role sheet lists the Don's skins; the Ranks tab shows the reward with the skin
+  A.role(el('role', { id: 'don' })); check('v56 role sheet'); if (!app.innerHTML.includes(u.skForRole) || !app.innerHTML.includes('data-a="skins-open"')) F('the Don card lists its skins'); S.ui.sheet = null;
+  A.role(el('role', { id: 'sheriff' })); if (app.innerHTML.includes(u.skForRole)) F('a card without skins lists none'); S.ui.sheet = null;
+  A.go(el('go', { to: 'ratings' })); A['rt-tab'](el('rt-tab', { v: 'ranks' })); check('v56 ranks'); if (!app.innerHTML.includes('ss-skin') || !app.innerHTML.includes(X.tt(u.ssRewardSkin, { n: 1, skin: name }))) F('the season reward is the skin');
+  A['skins-open'](); if (S.screen !== 'cards' || S.ui.cardsTab !== 'skins') F('the reward opens the Skins tab');
+  // taking it off: the request goes to the server; a refusal puts it back
+  let calls = []; vm.runInContext('TG.app = TG.app || { initData: "" }', ctx); const apiOrig = E('api'); const apiB = E('apiBase');
+  vm.runInContext('globalThis.__api = api; globalThis.__apiBase = apiBase', ctx);
+  ctx.__calls = calls; vm.runInContext('api = async (p, b) => { __calls.push([p, b]); return { ok: true, equipped: {} }; }; apiBase = () => "https://x.test"', ctx);
+  X.render(); await A['skin-wear'](el('skin-wear', { id: 'amethyst_don', on: '0' })); if (!calls.length || calls[0][0] !== '/api/skin/equip' || calls[0][1].skin !== null || S.skins.equipped.don) F('taking the skin off asks the server and clears it');
+  vm.runInContext('api = async (p, b) => { __calls.push([p, b]); return { ok: false }; }', ctx); await A['skin-wear'](el('skin-wear', { id: 'amethyst_don', on: '1' })); if (S.skins.equipped.don) F('a refused request leaves the skin off');
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
+  S.profiles = S.profiles.filter(x => x !== me && x !== fr); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v56 ok');
+})().catch(e => { fails++; console.log('FAIL v56 crashed', e && e.stack || e); });
+v56.then(() => {
+  console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
+  console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
+  process.exit(fails ? 1 : 0);
+});

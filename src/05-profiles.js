@@ -17,7 +17,7 @@ function ensureMe() {
     const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
     if (!u) return;
     // another Telegram account used this phone before: its table, game and seats are not ours (the Mini App's storage is shared per device)
-    if (S.tgUser && S.tgUser !== u.id) { S.lobby = null; if (S.game && S.game.tg) S.game = null; S.setup.seatProfiles = []; S.cloud = null; S.owned = { roles: [], scenarios: [] }; }
+    if (S.tgUser && S.tgUser !== u.id) { S.lobby = null; if (S.game && S.game.tg) S.game = null; S.setup.seatProfiles = []; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.owned = { roles: [], scenarios: [] }; }
     S.tgUser = u.id;
     let me = S.profiles.find(p => p.tgId === u.id);
     if (!me) { me = newProfile({ name: [u.first_name, u.last_name].filter(Boolean).join(' '), username: u.username || '', avatar: u.photo_url || null, tgId: u.id }); S.profiles.unshift(me); }
@@ -138,16 +138,16 @@ function profileScreen() {
     <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
     ${rankBlockHTML(profRank(pr))}
-    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole)}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
+    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dFor(bestRole, 'profile', skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
     <div class="eyebrow">${u.stats}</div>
     <div class="status">${tile(st.games, u.games)}${tile(st.wins, u.wins, 'color:#9fe0ab')}${tile(st.winRate + '%', u.winRate, 'color:var(--gold-2)')}${tile(st.rating, u.rating, 'color:var(--gold-2)')}</div>
     <div class="status" style="grid-template-columns:repeat(3,1fr)">${tile(st.killedN1, u.killedN1, 'color:var(--crimson-2)')}${tile(st.votedD1, u.votedD1, 'color:var(--crimson-2)')}${tile(st.survived, u.survived, 'color:#9fe0ab')}</div>
     <div class="row"><div class="eyebrow grow">${u.favorites}</div>${pr.history.length ? `<button class="btn xs ghost" data-a="prof-allroles">${S.ui.allRoles ? u.favorites : u.allRoles}</button>` : ''}</div>
-    ${favs.length ? `<div class="stack-s">${favs.map(f => { const r = ROLE[f.id]; return `<div class="fav">${sealHTML(r)}<div class="grow" style="min-width:0"><div class="n">${r.name}</div><div class="s">${tt(u.rtGW, { g: f.g, w: f.w })}</div><div class="bar"><i style="width:${f.g ? 100 * f.w / f.g : 0}%"></i></div></div><span class="w">${f.g ? Math.round(100 * f.w / f.g) : 0}%</span></div>`; }).join('')}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
+    ${favs.length ? `<div class="stack-s">${favs.map(f => { const r = ROLE[f.id]; return `<div class="fav">${sealFor(r, skinOfProfile(pr, r.id))}<div class="grow" style="min-width:0"><div class="n">${r.name}</div><div class="s">${tt(u.rtGW, { g: f.g, w: f.w })}</div><div class="bar"><i style="width:${f.g ? 100 * f.w / f.g : 0}%"></i></div></div><span class="w">${f.g ? Math.round(100 * f.w / f.g) : 0}%</span></div>`; }).join('')}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
     <div class="eyebrow">${u.bySide}</div>
     <div class="stack-s">${sideRow('city', u.sideCity)}${sideRow('mafia', u.sideMafia)}${sideRow('self', u.sideSolo)}</div>
     <div class="eyebrow">${u.history}</div>
-    ${hist.length ? `<div class="hist">${hist.map(h => { const r = ROLE[h.roleId]; return `<div class="h">${r ? sealHTML(r) : ''}<div><div class="t">${r ? r.name : h.roleId}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmtDate(h.date) })}${h.killedN1 ? ' · ' + u.killedN1.toLowerCase() : h.votedD1 ? ' · ' + u.votedD1.toLowerCase() : ''}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}${h.useful ? `<br><small>${u.ptsUseful} ${h.useful > 0 ? '+' : ''}${h.useful}</small>` : ''}</span></div>`; }).join('')}</div>` : `<p class="hint">${u.historyEmpty}</p>`}
+    ${hist.length ? `<div class="hist">${hist.map(h => { const r = ROLE[h.roleId]; return `<div class="h">${r ? sealFor(r, skinOfProfile(pr, r.id)) : ''}<div><div class="t">${r ? r.name : h.roleId}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmtDate(h.date) })}${h.killedN1 ? ' · ' + u.killedN1.toLowerCase() : h.votedD1 ? ' · ' + u.votedD1.toLowerCase() : ''}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}${h.useful ? `<br><small>${u.ptsUseful} ${h.useful > 0 ? '+' : ''}${h.useful}</small>` : ''}</span></div>`; }).join('')}</div>` : `<p class="hint">${u.historyEmpty}</p>`}
     <button class="btn ghost sm" data-a="prof-del" data-id="${pr.id}" style="align-self:center;color:var(--crimson-2)">${u.deleteProfile}</button>
   </div>`;
 }

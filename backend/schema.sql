@@ -14,11 +14,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS purchases (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   tg_id      INTEGER NOT NULL,
-  kind       TEXT NOT NULL,          -- role | scenario | pack
+  kind       TEXT NOT NULL,          -- role | scenario | pack | skin (v56)
   item       TEXT NOT NULL,          -- role / scenario / pack id as in the app
   stars      INTEGER NOT NULL,
   payload    TEXT NOT NULL UNIQUE,   -- invoice payload (p_<random>)
-  status     TEXT NOT NULL,          -- pending | paid | refunded
+  status     TEXT NOT NULL,          -- pending | paid | refunded | reward (season skins, credits)
   charge_id  TEXT,                   -- telegram_payment_charge_id (needed for refunds)
   created_at INTEGER NOT NULL,
   paid_at    INTEGER
@@ -534,4 +534,13 @@ CREATE TABLE IF NOT EXISTS season_results (
   peak       INTEGER NOT NULL,
   created_at INTEGER NOT NULL,
   PRIMARY KEY (season, tg_id)
+);
+
+-- v56: card skins a player wears — one per role (owning a skin is a purchases row with kind 'skin': 'reward' for season rewards)
+CREATE TABLE IF NOT EXISTS user_skins (
+  tg_id      INTEGER NOT NULL,
+  role       TEXT NOT NULL,
+  skin       TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (tg_id, role)
 );

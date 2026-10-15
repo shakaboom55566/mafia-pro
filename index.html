@@ -1015,6 +1015,33 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .ss-reward .rk-svg { flex: none; }
 .ss-epic { display: inline-block; font-family: var(--font-display); font-weight: 900; font-size: 10.5px; letter-spacing: .14em; color: #f3e8ff; background: linear-gradient(90deg, #7b3fe4, #b56cff); padding: 2px 8px; border-radius: 999px; margin-bottom: 4px; }
 .rk-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13px; color: var(--fg-2); line-height: 1.4; }
+/* v56 skins: the skin covers the card's face (the plain card stays underneath if the picture does not load); the seal shows its portrait */
+.card.skinned .skin-layer { position: absolute; inset: 0; z-index: 6; overflow: hidden; border-radius: inherit; background: #120b1c; }
+.skin-layer .skin-img, .skin-layer .skin-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; -webkit-user-drag: none; user-select: none; pointer-events: none; }
+.skin-layer .skin-gl { object-fit: fill; }
+.skin-foil, .skin-glare { position: absolute; inset: 0; pointer-events: none; }
+.skin-glare { background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255,255,255,.3), rgba(255,255,255,0) 45%); mix-blend-mode: soft-light; }
+.skin-foil { background: repeating-linear-gradient(115deg, rgba(255,120,230,0) 0%, rgba(255,120,230,.5) 6%, rgba(120,200,255,.45) 12%, rgba(255,230,140,.45) 18%, rgba(160,110,255,0) 26%); background-size: 260% 260%; background-position: var(--fx, 50%) var(--fy, 50%); mix-blend-mode: color-dodge; opacity: .32; -webkit-mask-image: radial-gradient(120% 90% at 50% 48%, transparent 58%, #000 78%); mask-image: radial-gradient(120% 90% at 50% 48%, transparent 58%, #000 78%); }
+.card.skinned .seat-tag, .card.skinned .fam-tag { z-index: 7; top: 14px; padding: 2px 8px; border-radius: 999px; background: rgba(10,6,16,.72); color: #f0cd7a; }
+.card.skinned .gem { display: none; }
+.seal.skinned { --seal-ring: #b98cff; box-shadow: 0 0 0 1px rgba(185,140,255,.5), 0 0 14px -2px rgba(157,92,240,.75); }
+.seal .skin-seal { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; z-index: 1; }
+.seal.skinned::after { z-index: 2; border-color: #b98cff; }
+.seal.ss-skin { width: 64px; height: 64px; }
+.ss-reward[role="button"] { cursor: pointer; }
+.ss-see { margin-top: 8px; font-weight: 700; font-size: 13px; color: #d9c2ff; display: flex; align-items: center; gap: 6px; }
+.skin-item { display: grid; grid-template-columns: minmax(0, 210px) minmax(0, 1fr); gap: 16px; align-items: center; padding: 14px; border-radius: 16px; border: 1px solid rgba(157,108,224,.55); background: radial-gradient(120% 90% at 0% 0%, rgba(157,92,240,.22), var(--bg-2) 60%); }
+.skin-item .card3d-wrap { width: 100%; max-width: 210px; margin: 0; }
+.sk-info { display: grid; gap: 6px; min-width: 0; }
+.sk-name { font-family: var(--font-display); font-weight: 900; font-size: 20px; line-height: 1.15; color: #fff; text-shadow: 0 0 18px rgba(157,92,240,.6); }
+.sk-lore { margin: 2px 0; font-style: italic; color: var(--fg-2); font-size: 13.5px; }
+.sk-pill { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--muted); }
+.sk-pill.own { border-color: rgba(159,224,171,.6); color: #9fe0ab; }
+.sk-rank { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-2); margin-top: 4px; }
+.sk-row .seal { width: 44px; height: 44px; }
+@media (max-width: 460px) { .skin-item { grid-template-columns: 1fr; justify-items: center; text-align: center; } .skin-item .card3d-wrap { max-width: 230px; } .sk-info .row, .sk-rank { justify-content: center; } }
+html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .skin-gl { display: none !important; } }
 </style>
 </head><body>
 <div id="app"></div>
@@ -4576,6 +4603,79 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
 })();
 /* ============================================================
+   v56 SKINS: card skins — names and stories of the skins, the «Скины» tab of the Cards screen, the season 1 reward with its skin.
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      skins: { amethyst_don: { name: 'Аметистовый Дон', lore: 'Кастельмар, 1931. В ту ночь, когда семья Корвино забрала порт, Дон надел аметистовый перстень — и больше его не снимал.' } },
+      ui: {
+        skSegCards: 'Карты', skSegSkins: 'Скины', skTitle: 'Скины карт',
+        skHint: 'Скин меняет вид вашей карты, правила роли остаются прежними. Надетый скин видят все за столом: при раздаче, в онлайн-игре, в итогах партии и в вашем профиле.',
+        skWear: 'Надеть', skTakeOff: 'Снять', skWorn: 'Надет', skOwned: 'Ваш', skLocked: 'Не получен', skFor: 'Карта: {role}',
+        skHowSeason: 'Награда сезона {n}: всем, кто закончит сезон с рангом «{rank}». Сезон идёт до {date}.', skHowSeasonDone: 'Награда сезона {n}: получили все, кто закончил сезон с рангом «{rank}».',
+        skYourRank: 'Ваш ранг сейчас', skTgOnly: 'Скины привязаны к аккаунту Telegram: откройте игру в Telegram, чтобы надеть скин.',
+        skWornToast: 'Скин «{name}» надет на карту «{role}»', skOffToast: 'Скин снят: карта «{role}» снова обычная', skErr: 'Не получилось — проверьте связь и попробуйте ещё раз',
+        skForRole: 'Скины этой карты', skAll: 'Все скины', skStandard: 'Обычная карта',
+        ssRewardSkin: 'Награда сезона {n}: Epic-скин «{skin}»', ssRewardSkinText: 'Все, кто достигнет ранга «{rank}» и сохранит его до конца сезона {n} ({date}), получат скин «{skin}» для карты Дона — он сразу наденется.', ssRewardSkinDone: 'Сезон {n} завершён: все, кто закончил его в ранге «{rank}», получили скин «{skin}».', ssRewardSee: 'Посмотреть скин'
+      }
+    },
+    uk: {
+      skins: { amethyst_don: { name: 'Аметистовий Дон', lore: 'Кастельмар, 1931. Тієї ночі, коли родина Корвіно забрала порт, Дон надів аметистовий перстень — і більше його не знімав.' } },
+      ui: {
+        skSegCards: 'Карти', skSegSkins: 'Скіни', skTitle: 'Скіни карт',
+        skHint: 'Скін змінює вигляд вашої карти, правила ролі лишаються тими самими. Вдягнений скін бачать усі за столом: під час роздачі, в онлайн-грі, у підсумках партії та у вашому профілі.',
+        skWear: 'Вдягнути', skTakeOff: 'Зняти', skWorn: 'Вдягнений', skOwned: 'Ваш', skLocked: 'Не отримано', skFor: 'Карта: {role}',
+        skHowSeason: 'Нагорода сезону {n}: усім, хто завершить сезон із рангом «{rank}». Сезон триває до {date}.', skHowSeasonDone: 'Нагорода сезону {n}: отримали всі, хто завершив сезон із рангом «{rank}».',
+        skYourRank: 'Ваш ранг зараз', skTgOnly: 'Скіни прив’язані до акаунта Telegram: відкрийте гру в Telegram, щоб вдягнути скін.',
+        skWornToast: 'Скін «{name}» вдягнено на карту «{role}»', skOffToast: 'Скін знято: карта «{role}» знову звичайна', skErr: 'Не вийшло — перевірте зв’язок і спробуйте ще раз',
+        skForRole: 'Скіни цієї карти', skAll: 'Усі скіни', skStandard: 'Звичайна карта',
+        ssRewardSkin: 'Нагорода сезону {n}: Epic-скін «{skin}»', ssRewardSkinText: 'Усі, хто досягне рангу «{rank}» і збереже його до кінця сезону {n} ({date}), отримають скін «{skin}» для карти Дона — він одразу вдягнеться.', ssRewardSkinDone: 'Сезон {n} завершено: усі, хто закінчив його в ранзі «{rank}», отримали скін «{skin}».', ssRewardSee: 'Подивитися скін'
+      }
+    },
+    en: {
+      skins: { amethyst_don: { name: 'Amethyst Don', lore: 'Castelmar, 1931. The night the Corvino family took the port, the Don put on an amethyst ring — and never took it off again.' } },
+      ui: {
+        skSegCards: 'Cards', skSegSkins: 'Skins', skTitle: 'Card skins',
+        skHint: 'A skin changes how your card looks; the rules of the role stay the same. Everyone at the table sees the skin you wear: at the deal, in online games, in the results and in your profile.',
+        skWear: 'Put on', skTakeOff: 'Take off', skWorn: 'Worn', skOwned: 'Yours', skLocked: 'Not earned', skFor: 'Card: {role}',
+        skHowSeason: 'Season {n} reward: for everyone who ends the season as «{rank}». The season runs until {date}.', skHowSeasonDone: 'Season {n} reward: given to everyone who ended the season as «{rank}».',
+        skYourRank: 'Your rank now', skTgOnly: 'Skins belong to your Telegram account: open the game in Telegram to put a skin on.',
+        skWornToast: 'The “{name}” skin is on your «{role}» card', skOffToast: 'Skin taken off: your «{role}» card is plain again', skErr: 'That did not work — check the connection and try again',
+        skForRole: 'Skins of this card', skAll: 'All skins', skStandard: 'Plain card',
+        ssRewardSkin: 'Season {n} reward: the Epic skin “{skin}”', ssRewardSkinText: 'Everyone who reaches «{rank}» and keeps it until the end of season {n} ({date}) gets the “{skin}” skin for the Don card — it goes on at once.', ssRewardSkinDone: 'Season {n} is over: everyone who finished it as «{rank}» got the “{skin}” skin.', ssRewardSee: 'See the skin'
+      }
+    },
+    pl: {
+      skins: { amethyst_don: { name: 'Ametystowy Don', lore: 'Castelmar, 1931. Tej nocy, gdy rodzina Corvino przejęła port, Don założył ametystowy sygnet — i nigdy go już nie zdjął.' } },
+      ui: {
+        skSegCards: 'Karty', skSegSkins: 'Skórki', skTitle: 'Skórki kart',
+        skHint: 'Skórka zmienia wygląd twojej karty, zasady roli zostają te same. Założoną skórkę widzą wszyscy przy stole: przy rozdaniu, w grze online, w wynikach partii i w twoim profilu.',
+        skWear: 'Załóż', skTakeOff: 'Zdejmij', skWorn: 'Założona', skOwned: 'Twoja', skLocked: 'Niezdobyta', skFor: 'Karta: {role}',
+        skHowSeason: 'Nagroda sezonu {n}: dla wszystkich, którzy skończą sezon z rangą «{rank}». Sezon trwa do {date}.', skHowSeasonDone: 'Nagroda sezonu {n}: dostali ją wszyscy, którzy skończyli sezon z rangą «{rank}».',
+        skYourRank: 'Twoja ranga teraz', skTgOnly: 'Skórki są przypisane do konta Telegram: otwórz grę w Telegramie, aby założyć skórkę.',
+        skWornToast: 'Skórka „{name}” założona na kartę «{role}»', skOffToast: 'Skórka zdjęta: karta «{role}» znów jest zwykła', skErr: 'Nie udało się — sprawdź połączenie i spróbuj ponownie',
+        skForRole: 'Skórki tej karty', skAll: 'Wszystkie skórki', skStandard: 'Zwykła karta',
+        ssRewardSkin: 'Nagroda sezonu {n}: skórka Epic „{skin}”', ssRewardSkinText: 'Wszyscy, którzy zdobędą rangę «{rank}» i utrzymają ją do końca sezonu {n} ({date}), dostaną skórkę „{skin}” do karty Dona — zostanie od razu założona.', ssRewardSkinDone: 'Sezon {n} zakończony: wszyscy, którzy skończyli go z rangą «{rank}», dostali skórkę „{skin}”.', ssRewardSee: 'Zobacz skórkę'
+      }
+    },
+    hy: {
+      skins: { amethyst_don: { name: 'Ամեթիստե Դոն', lore: 'Կաստելմար, 1931։ Այն գիշերը, երբ Կորվինոների ընտանիքը վերցրեց նավահանգիստը, Դոնը դրեց ամեթիստե մատանին և այլևս երբեք չհանեց։' } },
+      ui: {
+        skSegCards: 'Քարտեր', skSegSkins: 'Սքիններ', skTitle: 'Քարտերի սքիններ',
+        skHint: 'Սքինը փոխում է ձեր քարտի տեսքը, դերի կանոնները մնում են նույնը։ Հագցրած սքինը տեսնում են սեղանի բոլոր խաղացողները՝ բաժանման ժամանակ, առցանց խաղում, խաղի արդյունքներում և ձեր պրոֆիլում։',
+        skWear: 'Հագցնել', skTakeOff: 'Հանել', skWorn: 'Հագցված է', skOwned: 'Ձերն է', skLocked: 'Ստացված չէ', skFor: 'Քարտ՝ {role}',
+        skHowSeason: 'Սեզոն {n}-ի պարգև՝ բոլոր նրանց, ովքեր սեզոնը կավարտեն «{rank}» կոչմամբ։ Սեզոնը տևում է մինչև {date}։', skHowSeasonDone: 'Սեզոն {n}-ի պարգև՝ ստացան բոլոր նրանք, ովքեր սեզոնն ավարտեցին «{rank}» կոչմամբ։',
+        skYourRank: 'Ձեր կոչումը հիմա', skTgOnly: 'Սքինները կապված են Telegram հաշվին․ բացեք խաղը Telegram-ում՝ սքին հագցնելու համար։',
+        skWornToast: '«{name}» սքինը հագցված է «{role}» քարտին', skOffToast: 'Սքինը հանված է․ «{role}» քարտը կրկին սովորական է', skErr: 'Չստացվեց․ ստուգեք կապը և նորից փորձեք',
+        skForRole: 'Այս քարտի սքինները', skAll: 'Բոլոր սքինները', skStandard: 'Սովորական քարտ',
+        ssRewardSkin: 'Սեզոն {n}-ի պարգևը՝ Epic սքին «{skin}»', ssRewardSkinText: 'Բոլոր նրանք, ովքեր կհասնեն «{rank}» կոչմանը և կպահեն այն մինչև սեզոն {n}-ի ավարտը ({date}), կստանան «{skin}» սքինը Դոնի քարտի համար՝ այն անմիջապես կհագցվի։', ssRewardSkinDone: 'Սեզոն {n}-ն ավարտվեց․ բոլոր նրանք, ովքեր այն ավարտեցին «{rank}» կոչմամբ, ստացան «{skin}» սքինը։', ssRewardSee: 'Տեսնել սքինը'
+      }
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (!p) return; p.skins = Object.assign(p.skins || {}, R[code].skins); Object.assign(p.ui, R[code].ui); });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -6061,8 +6161,8 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const safeImg = u => typeof u === 'string' && /^(data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(u);
 const U = () => L.ui;
 const SAVE_KEY = 'mafiapro.v1';
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; if (d.tgUser) S.tgUser = d.tgUser; } } catch (e) {} }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ settings: S.settings, setup: S.setup, game: S.game, profiles: S.profiles, meId: S.meId, demoSeeded: S.demoSeeded, owned: S.owned, skins: S.skins || null, lobby: S.lobby || null, tgUser: S.tgUser || null })); } catch (e) {} }
+function load() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { if (d.settings) S.settings = Object.assign({}, DEFAULT_SETTINGS, d.settings); if (d.setup) S.setup = Object.assign({ seatProfiles: [] }, d.setup); if (d.game) S.game = d.game; if (d.profiles) S.profiles = d.profiles; if (d.meId) S.meId = d.meId; if (d.demoSeeded) S.demoSeeded = true; if (d.owned) S.owned = Object.assign({ roles: [], scenarios: [] }, d.owned); if (d.lobby) S.lobby = d.lobby; if (d.tgUser) S.tgUser = d.tgUser; if (d.skins && typeof d.skins === 'object') S.skins = Object.assign({ owned: [], equipped: {} }, d.skins); } } catch (e) {} }
 
 let toastT = null;
 function toast(msg) { const old = $('.toast'); if (old) old.remove(); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2800); }
@@ -6394,7 +6494,7 @@ function dealScreen() {
     <div class="panel raised" style="text-align:center"><div class="eyebrow">${u.passPhone}</div><div style="font-family:var(--font-display);font-weight:900;font-size:22px;margin-top:4px">${esc(p.name)}</div><div class="hint">${tt(u.seatHint, { seat: p.seat })}</div></div>
     <div class="card-wrap"><div class="flip ${(S.ui.flipAnim ? !g.dealOpen : g.dealOpen) ? 'open' : ''}" data-a="flip">
       <div class="face cardback ${r.premium ? 'premium' : ''}">${cardBackHTML(!!r.premium, `${r.premium ? u.premium + ' · ' : ''}${u.tapToOpen}`)}</div>
-      <div class="face front">${cardHTML(r, { seat: p.seat, fam: p.family })}</div>
+      <div class="face front">${skinCardHTML(r, { seat: p.seat, fam: p.family }, skinOfPlayer(g, p))}</div>
     </div></div>
     ${g.dealOpen ? `<button class="btn primary" data-a="hide">${u.hidePass}</button>` : `<button class="btn" data-a="flip">${u.openCard}</button>`}
     <button class="btn ghost sm" data-a="showall" style="align-self:center">${u.hostTable}</button>
@@ -6464,7 +6564,7 @@ function nightBody(g) {
   const role = ROLE[step.roleId];
   let inner = '';
   if (step.type === 'meet') {
-    inner = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title}</div><div class="s">${step.members.length} ${plural(step.members.length, 'players')}</div></div></div>
+    inner = `<div class="wake"><div class="who">${step.members.length === 1 ? sealFor(role, skinOfPlayer(g, step.members[0])) : sealHTML(role)}<div><div class="n">${step.title}</div><div class="s">${step.members.length} ${plural(step.members.length, 'players')}</div></div></div>
       <div class="script">${step.script}</div>${membersHTML(step.members)}</div>
       <div class="btn-row">${g.stepIdx > 0 ? `<button class="btn ghost" data-a="prev">${u.back}</button>` : ''}<button class="btn primary" data-a="next">${u.sleepNext}</button></div>`;
   } else {
@@ -6477,7 +6577,7 @@ function actStep(g, step) {
   const u = U(); const actor = P(g, step.actorId); const role = ROLE[step.roleId];
   const recorded = g.actions.find(a => a.stepId === step.id);
   const stolen = stolenFrom(g, step.actorId);
-  const head = `<div class="wake"><div class="who">${sealHTML(role)}<div><div class="n">${step.title || role.name}</div><div class="s">${esc(label(actor))}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
+  const head = `<div class="wake"><div class="who">${sealFor(role, skinOfPlayer(g, actor))}<div><div class="n">${step.title || role.name}</div><div class="s">${esc(label(actor))}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
     <div class="script">${step.script}</div>${step.members ? membersHTML(step.members) : ''}${step.note ? `<div class="hint" style="margin-top:8px">${esc(step.note)}</div>` : ''}`;
   const nav = (primary) => `<div class="btn-row"><button class="btn ghost" data-a="prev">${u.back}</button>${primary}</div>`;
   if (step.disabled) return `${head}<div class="quiet" style="margin-top:10px">${u.disabledNote}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
@@ -6553,7 +6653,7 @@ function revealDeadIn(g) { if (!g) return typeof S.setup.openRoles === 'boolean'
 function roleShown(g, p) { return revealDeadIn(g) || (!p.alive && AFTER_DEATH_ROLES.includes(p.roleId)); }
 function deathRow(g, d) {
   const p = P(g, d.id); const role = ROLE[p.roleId]; const shown = roleShown(g, p);
-  return `<div class="death">${shown ? sealHTML(role) : `<div class="seal hidden-role" title="?">?</div>`}<div><div class="n">${esc(label(p))}</div><div class="c">${shown ? role.name + ' · ' : ''}${esc(d.cause)}</div></div></div>`;
+  return `<div class="death">${shown ? sealFor(role, skinOfPlayer(g, p)) : `<div class="seal hidden-role" title="?">?</div>`}<div><div class="n">${esc(label(p))}</div><div class="c">${shown ? role.name + ' · ' : ''}${esc(d.cause)}</div></div></div>`;
 }
 
 function dayBody(g) {
@@ -6805,7 +6905,7 @@ function reviewHTML(g) {
   const open = S.ui.rvOpen || {};
   return `<div class="panel"><div class="eyebrow gold">${u.reviewTitle}</div><p class="hint" style="margin:6px 0 10px">${u.reviewHint}</p>
     <div class="rv-list">${rows.map((x, i) => { const role = ROLE[x.p.roleId]; const isOpen = !!open[x.p.id]; return `<div class="rv ${x.res.won ? 'win' : 'loss'}">
-      <button class="rv-head" data-a="rv-toggle" data-id="${x.p.id}">${sealHTML(role)}<div class="grow"><div class="n">${x.p.seat} · ${esc(x.p.name)} ${i === 0 && x.total > 0 ? `<span class="mvp">${u.mvp}</span>` : ''}</div><div class="d">${role.name} · ${x.res.won ? u.won : u.lost} · ${tt(u.rvStats, { good: x.r.good, bad: x.r.bad })}</div></div><div class="pts"><b>${x.total > 0 ? '+' : ''}${x.total}</b><small>${u.ptsResult} ${x.pts > 0 ? '+' : ''}${x.pts} · ${u.ptsUseful} ${x.r.useful > 0 ? '+' : ''}${x.r.useful}</small></div></button>
+      <button class="rv-head" data-a="rv-toggle" data-id="${x.p.id}">${sealFor(role, skinOfPlayer(g, x.p))}<div class="grow"><div class="n">${x.p.seat} · ${esc(x.p.name)} ${i === 0 && x.total > 0 ? `<span class="mvp">${u.mvp}</span>` : ''}</div><div class="d">${role.name} · ${x.res.won ? u.won : u.lost} · ${tt(u.rvStats, { good: x.r.good, bad: x.r.bad })}</div></div><div class="pts"><b>${x.total > 0 ? '+' : ''}${x.total}</b><small>${u.ptsResult} ${x.pts > 0 ? '+' : ''}${x.pts} · ${u.ptsUseful} ${x.r.useful > 0 ? '+' : ''}${x.r.useful}</small></div></button>
       ${isOpen ? `<div class="rv-items">${x.r.items.length ? x.r.items.map(it => `<div class="it ${it.verdict}"><span class="mark">${it.verdict === 'good' ? '✓' : it.verdict === 'bad' ? '✗' : '•'}</span><div><div class="w">${it.when} · ${esc(it.action)} ${esc(it.target)}</div><div class="r">${it.verdict === 'good' ? u.rvGood : it.verdict === 'bad' ? u.rvBad : u.rvNeutral}${it.reason ? ' — ' + esc(it.reason) : ''} <span class="p">${it.pts > 0 ? '+' : ''}${it.pts || 0}</span></div>${it.better ? `<div class="b">${tt(u.rvBetter, { text: esc(it.better) })}</div>` : ''}</div></div>`).join('') : `<div class="hint">${u.rvNoItems}</div>`}</div>` : ''}</div>`; }).join('')}</div></div>`;
 }
 
@@ -6846,7 +6946,7 @@ function roleDoc(r) {
   return `<div class="roledoc">
     ${card3dHTML(r, 'sheet')}<div class="spin-hint">${u.spinHint}</div>${buy}
     <div class="facts"><div class="fact"><div class="k">${u.side}</div><div class="v">${TEAM_LABEL[r.team]}</div></div><div class="fact"><div class="k">${u.forChecks}</div><div class="v">${COLOR_LABEL[r.color]}</div></div><div class="fact"><div class="k">${u.type}</div><div class="v">${r.kind}</div></div><div class="fact"><div class="k">${u.order}</div><div class="v">${wakeTxt}</div></div></div>
-    ${countersHTML(r)}
+    ${typeof roleSkinsHTML === 'function' ? roleSkinsHTML(r) : ''}${countersHTML(r)}
     <div class="section"><div class="eyebrow gold">${u.howWorks}</div><ul>${r.rules.map(x => `<li>${x}</li>`).join('')}</ul></div>
     <div class="section"><div class="eyebrow gold">${u.lore}</div><p class="lore" style="margin-top:6px">${r.lore}</p></div>
     <div class="section"><div class="eyebrow gold">${u.tip}</div><p style="margin-top:6px;font-size:14px">${r.tip}</p></div>
@@ -6984,7 +7084,7 @@ function sheetHTML(enter = true) {
   if (sh.type === 'playerEdit') {
     const g = S.game; const p = P(g, sh.id); const r = ROLE[p.roleId];
     const fouls = isClassic(g) ? `<div class="setting" style="margin-top:12px"><div><div class="t">${u.fouls}</div><div class="d">${p.fouls >= 4 ? u.foulOut : p.fouls >= 3 ? u.foulNoSpeech : u.foulsN.replace('{n}', p.fouls || 0)}</div></div><div class="ctl"><button data-a="foul-remove" data-id="${p.id}" aria-label="${u.foulRemove}">−</button><span class="v">${p.fouls || 0}</span><button data-a="foul-add" data-id="${p.id}" aria-label="${u.foulAdd}">+</button></div></div>` : '';
-    body = `<div class="row">${sealHTML(r)}<div class="grow"><h2>${esc(label(p))}</h2><div class="hint">${r.name} · ${p.alive ? u.inGame : u.outGame}</div></div></div>${fouls}
+    body = `<div class="row">${sealFor(r, skinOfPlayer(g, p))}<div class="grow"><h2>${esc(label(p))}</h2><div class="hint">${r.name} · ${p.alive ? u.inGame : u.outGame}</div></div></div>${fouls}
       <div class="btn-row" style="margin-top:14px"><button class="btn ghost" data-a="sheet" data-id="players">${u.back}</button><button class="btn ${p.alive ? 'danger' : 'primary'}" data-a="toggle-alive" data-id="${p.id}">${p.alive ? u.removePlayer : u.returnPlayer}</button></div>`;
   }
   if (sh.type === 'log') {
@@ -7250,7 +7350,7 @@ function ensureMe() {
     const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
     if (!u) return;
     // another Telegram account used this phone before: its table, game and seats are not ours (the Mini App's storage is shared per device)
-    if (S.tgUser && S.tgUser !== u.id) { S.lobby = null; if (S.game && S.game.tg) S.game = null; S.setup.seatProfiles = []; S.cloud = null; S.owned = { roles: [], scenarios: [] }; }
+    if (S.tgUser && S.tgUser !== u.id) { S.lobby = null; if (S.game && S.game.tg) S.game = null; S.setup.seatProfiles = []; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.owned = { roles: [], scenarios: [] }; }
     S.tgUser = u.id;
     let me = S.profiles.find(p => p.tgId === u.id);
     if (!me) { me = newProfile({ name: [u.first_name, u.last_name].filter(Boolean).join(' '), username: u.username || '', avatar: u.photo_url || null, tgId: u.id }); S.profiles.unshift(me); }
@@ -7371,16 +7471,16 @@ function profileScreen() {
     <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
     ${rankBlockHTML(profRank(pr))}
-    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole)}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
+    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dFor(bestRole, 'profile', skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
     <div class="eyebrow">${u.stats}</div>
     <div class="status">${tile(st.games, u.games)}${tile(st.wins, u.wins, 'color:#9fe0ab')}${tile(st.winRate + '%', u.winRate, 'color:var(--gold-2)')}${tile(st.rating, u.rating, 'color:var(--gold-2)')}</div>
     <div class="status" style="grid-template-columns:repeat(3,1fr)">${tile(st.killedN1, u.killedN1, 'color:var(--crimson-2)')}${tile(st.votedD1, u.votedD1, 'color:var(--crimson-2)')}${tile(st.survived, u.survived, 'color:#9fe0ab')}</div>
     <div class="row"><div class="eyebrow grow">${u.favorites}</div>${pr.history.length ? `<button class="btn xs ghost" data-a="prof-allroles">${S.ui.allRoles ? u.favorites : u.allRoles}</button>` : ''}</div>
-    ${favs.length ? `<div class="stack-s">${favs.map(f => { const r = ROLE[f.id]; return `<div class="fav">${sealHTML(r)}<div class="grow" style="min-width:0"><div class="n">${r.name}</div><div class="s">${tt(u.rtGW, { g: f.g, w: f.w })}</div><div class="bar"><i style="width:${f.g ? 100 * f.w / f.g : 0}%"></i></div></div><span class="w">${f.g ? Math.round(100 * f.w / f.g) : 0}%</span></div>`; }).join('')}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
+    ${favs.length ? `<div class="stack-s">${favs.map(f => { const r = ROLE[f.id]; return `<div class="fav">${sealFor(r, skinOfProfile(pr, r.id))}<div class="grow" style="min-width:0"><div class="n">${r.name}</div><div class="s">${tt(u.rtGW, { g: f.g, w: f.w })}</div><div class="bar"><i style="width:${f.g ? 100 * f.w / f.g : 0}%"></i></div></div><span class="w">${f.g ? Math.round(100 * f.w / f.g) : 0}%</span></div>`; }).join('')}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
     <div class="eyebrow">${u.bySide}</div>
     <div class="stack-s">${sideRow('city', u.sideCity)}${sideRow('mafia', u.sideMafia)}${sideRow('self', u.sideSolo)}</div>
     <div class="eyebrow">${u.history}</div>
-    ${hist.length ? `<div class="hist">${hist.map(h => { const r = ROLE[h.roleId]; return `<div class="h">${r ? sealHTML(r) : ''}<div><div class="t">${r ? r.name : h.roleId}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmtDate(h.date) })}${h.killedN1 ? ' · ' + u.killedN1.toLowerCase() : h.votedD1 ? ' · ' + u.votedD1.toLowerCase() : ''}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}${h.useful ? `<br><small>${u.ptsUseful} ${h.useful > 0 ? '+' : ''}${h.useful}</small>` : ''}</span></div>`; }).join('')}</div>` : `<p class="hint">${u.historyEmpty}</p>`}
+    ${hist.length ? `<div class="hist">${hist.map(h => { const r = ROLE[h.roleId]; return `<div class="h">${r ? sealFor(r, skinOfProfile(pr, r.id)) : ''}<div><div class="t">${r ? r.name : h.roleId}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmtDate(h.date) })}${h.killedN1 ? ' · ' + u.killedN1.toLowerCase() : h.votedD1 ? ' · ' + u.votedD1.toLowerCase() : ''}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}${h.useful ? `<br><small>${u.ptsUseful} ${h.useful > 0 ? '+' : ''}${h.useful}</small>` : ''}</span></div>`; }).join('')}</div>` : `<p class="hint">${u.historyEmpty}</p>`}
     <button class="btn ghost sm" data-a="prof-del" data-id="${pr.id}" style="align-self:center;color:var(--crimson-2)">${u.deleteProfile}</button>
   </div>`;
 }
@@ -7771,6 +7871,7 @@ async function cloudSync() {
       ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
       S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
     } S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
+    if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}) }; // v56
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -8112,8 +8213,8 @@ function friendSheetHTML(id) {
   if (!d) body = c && c.error ? `<div class="hint" style="margin-top:12px">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</div>` : `<div class="hint" style="margin-top:12px">${u.frLoading}</div>`;
   else {
     const r = d.rating; const wr = r.games ? Math.round(100 * r.wins / r.games) : 0;
-    const roles = d.roles.slice(0, 3).map(x => { const role = ROLE[x.roleId]; return role ? `<div class="fav">${sealHTML(role)}<div class="grow" style="min-width:0"><div class="n">${role.name}</div><div class="hint" style="margin:0">${tt(u.bestRoleText, { wins: x.wins, games: x.games })}</div></div><span class="num" style="color:var(--gold-2)">${x.points > 0 ? '+' : ''}${x.points}</span></div>` : ''; }).join('');
-    const recent = d.recent.slice(0, 8).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div class="grow"><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.frPlayers, { n: h.n })} · ${fmt(h.at)}</div></div><span class="num" style="color:${h.won ? '#9fe0ab' : 'var(--crimson-2)'}">${h.won ? u.frWon : u.frLost} ${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
+    const roles = d.roles.slice(0, 3).map(x => { const role = ROLE[x.roleId]; return role ? `<div class="fav">${sealFor(role, skinOfTg(id, role.id))}<div class="grow" style="min-width:0"><div class="n">${role.name}</div><div class="hint" style="margin:0">${tt(u.bestRoleText, { wins: x.wins, games: x.games })}</div></div><span class="num" style="color:var(--gold-2)">${x.points > 0 ? '+' : ''}${x.points}</span></div>` : ''; }).join('');
+    const recent = d.recent.slice(0, 8).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealFor(role, skinOfTg(id, role.id)) : ''}<div class="grow"><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.frPlayers, { n: h.n })} · ${fmt(h.at)}</div></div><span class="num" style="color:${h.won ? '#9fe0ab' : 'var(--crimson-2)'}">${h.won ? u.frWon : u.frLost} ${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
     body = `<div style="margin-top:14px">${rankBlockHTML(cloudRankObj(d, id))}</div><div class="status" style="margin-top:10px">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate)}</div>
       ${usr.since ? `<div class="hint" style="text-align:center;margin-top:6px">${tt(u.frSince, { date: fmt(usr.since) })}</div>` : ''}
       ${roles ? `<div class="eyebrow" style="margin-top:12px">${u.frBestRoles}</div><div class="stack-s">${roles}</div>` : ''}
@@ -8132,11 +8233,12 @@ function cloudStatsHTML(d, opts = {}) { // tiles + roles + by side + recent game
   const u = U(); const r = d.rating; const wr = r.games ? Math.round(100 * r.wins / r.games) : 0;
   const tile = (v, k, col = '') => `<div class="st"><div class="v num" style="${col}">${v}</div><div class="k">${k}</div></div>`;
   const fmt = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
-  const roles = (opts.allRoles ? d.roles : d.roles.slice(0, 3)).map(x => { const role = ROLE[x.roleId]; return role ? `<div class="fav">${sealHTML(role)}<div class="grow" style="min-width:0"><div class="n">${role.name}</div><div class="s">${tt(u.rtGW, { g: x.games, w: x.wins })}</div><div class="bar"><i style="width:${x.games ? 100 * x.wins / x.games : 0}%"></i></div></div><span class="w">${x.games ? Math.round(100 * x.wins / x.games) : 0}%</span></div>` : ''; }).join('');
+  const sid = d.user && d.user.tgId; // v56: the skins this player wears
+  const roles = (opts.allRoles ? d.roles : d.roles.slice(0, 3)).map(x => { const role = ROLE[x.roleId]; return role ? `<div class="fav">${sealFor(role, skinOfTg(sid, role.id))}<div class="grow" style="min-width:0"><div class="n">${role.name}</div><div class="s">${tt(u.rtGW, { g: x.games, w: x.wins })}</div><div class="bar"><i style="width:${x.games ? 100 * x.wins / x.games : 0}%"></i></div></div><span class="w">${x.games ? Math.round(100 * x.wins / x.games) : 0}%</span></div>` : ''; }).join('');
   const side = { city: { g: 0, w: 0 }, mafia: { g: 0, w: 0 }, self: { g: 0, w: 0 } };
   d.roles.forEach(x => { const role = ROLE[x.roleId]; const k = role && role.side === 'mafia' ? 'mafia' : role && role.side === 'city' ? 'city' : 'self'; side[k].g += x.games; side[k].w += x.wins; });
   const sideRow = (k, lbl) => { const b = side[k]; return `<div class="fav">${sealHTML(k === 'city' ? ROLE.sheriff : k === 'mafia' ? ROLE.don : ROLE.maniac)}<div><div class="n">${lbl}</div><div class="s">${tt(u.rtGW, { g: b.g, w: b.w })}</div></div><span class="w">${b.g ? Math.round(100 * b.w / b.g) : 0}%</span></div>`; };
-  const recent = d.recent.slice(0, opts.recent || 12).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmt(h.at) })}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
+  const recent = d.recent.slice(0, opts.recent || 12).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealFor(role, skinOfTg(sid, role.id)) : ''}<div><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmt(h.at) })}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
   const st = d.streaks || {}; const streakKeys = ['city', 'mafia', 'neutral'].filter(k => st[k] >= 2);
   const streaks = streakKeys.length && u.streakLine ? `<div class="panel" style="text-align:center;border-color:rgba(240,205,122,.5)"><div class="eyebrow gold">${u.streakTitle}</div>${streakKeys.map(k => `<div class="pod-streak" style="font-size:14px;margin-top:4px">${tt(u.streakLine, { n: st[k], wins: plural(st[k], 'wins'), side: (u.streakFor || {})[k] || '' })}</div>`).join('')}</div>` : '';
   return `${opts.rank === false ? '' : rankBlockHTML(cloudRankObj(d, d.user && d.user.tgId))}<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>${streaks}
@@ -8154,7 +8256,7 @@ function playerStatsScreen() {
   if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
   else {
     const best = d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = best || ROLE.sheriff;
-    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole, 'pstats')}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
+    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dFor(bestRole, 'pstats', skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
   const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
@@ -8555,12 +8657,12 @@ function tablePub(g) {
     return { v: 2, phase: 'lobby', code, n: st.n, mode: st.scenario === 'classic' ? 'classic' : 'extended', open: revealDeadIn(null), online: !!st.online, host: hostName(), seats };
   }
   const reveal = revealDeadIn(g); const shown = p => roleShown(g, p);
-  const seats = g.players.map(p => { const s = { seat: p.seat, name: p.name, tgId: seatTg(g, p.seat), alive: p.alive, votedOut: !!p.votedOut, fouls: p.fouls || 0 }; if (g.winner || (!p.alive && shown(p))) { s.roleId = p.roleId; s.family = p.family || null; } return s; });
+  const seats = g.players.map(p => { const s = { seat: p.seat, name: p.name, tgId: seatTg(g, p.seat), alive: p.alive, votedOut: !!p.votedOut, fouls: p.fouls || 0 }; if (g.winner || (!p.alive && shown(p))) { s.roleId = p.roleId; s.family = p.family || null; const sk = skinOfPlayer(g, p); if (sk) s.sk = sk; } return s; });
   const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', open: reveal, online: !!g.online, openRoles: reveal, bh: !!(g.mods && g.mods.bombHunt), host: hostName(), day: g.day, night: g.night, seats, chat: false };
   if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; }
     let rv = null; try { rv = reviewGame(g); } catch (e) { rv = null; }
     const itemsOf = seat => { const p = g.players.find(x => x.seat === seat); const r = rv && p ? rv.byId[p.id] : null; return r && r.items ? r.items.slice(0, 20).map(it => ({ when: it.when, action: it.action, target: it.target, verdict: it.verdict, reason: it.reason || '', better: it.better || '', pts: it.pts || 0 })) : []; };
-    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, rg: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].games || 0 : null, rh: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].hosted || 0 : 0, up: r.up || 0, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
+    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, sk: r.sk || undefined, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, rg: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].games || 0 : null, rh: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].hosted || 0 : 0, up: r.up || 0, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
     pub.aborted = !!g.aborted; return pub; }
   if (!g.dealt) return pub;
   const asks = g.online ? buildAsks(g) : {};
@@ -8572,14 +8674,14 @@ function tablePub(g) {
     // chat: everyone in the morning and the free discussion; during speeches only the speaker while their timer runs; closed from the vote on
     pub.chat = (st === 'morning' || st === 'balagan') ? 'all' : (st === 'speeches' || st === 'tie') ? 'speaker' : false;
     pub.dayInfo = { stage: st, round: b.round || 1 };
-    if (st === 'morning') { const r = g.nightResult || { removed: [] }; pub.dayInfo.removed = r.removed.map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined })); if (isClassic(g) && g.bestMove) pub.dayInfo.bestMove = { seat: seatOf(g.bestMove.by), picks: g.bestMove.picks.map(seatOf) }; }
+    if (st === 'morning') { const r = g.nightResult || { removed: [] }; pub.dayInfo.removed = r.removed.map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined, sk: shown(P(g, d.id)) ? skinOfPlayer(g, P(g, d.id)) || undefined : undefined })); if (isClassic(g) && g.bestMove) pub.dayInfo.bestMove = { seat: seatOf(g.bestMove.by), picks: g.bestMove.picks.map(seatOf) }; }
     if (st === 'speeches') { const order = speakOrder(g); const p = order[g.speechIdx]; pub.dayInfo.speaker = p ? p.seat : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = order.length; pub.chatSeat = p ? p.seat : null; if (!p) pub.chat = false; }
     if (['speeches', 'vote', 'tie', 'roulette', 'lift', 'result'].includes(st)) pub.dayInfo.candidates = (b.candidates || []).map(seatOf);
     if (st === 'vote') { const t = tally(g); pub.dayInfo.votes = Object.fromEntries(Object.entries(b.votes || {}).map(([v, c]) => [seatOf(v), seatOf(c)])); pub.dayInfo.tally = t.rows.map(r => ({ seat: seatOf(r.cid), total: r.total })); pub.dayInfo.voters = voteOrder(g).map(v => v.seat); }
     if (st === 'tie') { const tied = b.tiedIds || []; pub.dayInfo.tied = tied.map(seatOf); pub.dayInfo.speaker = tied[g.speechIdx] ? seatOf(tied[g.speechIdx]) : null; pub.dayInfo.i = g.speechIdx; pub.dayInfo.n = tied.length; pub.chatSeat = pub.dayInfo.speaker; if (!pub.chatSeat) pub.chat = false; }
     if (st === 'roulette' && b.roulette) { const cur = rouletteCurrent(g); pub.dayInfo.roulette = { order: b.roulette.order.map(seatOf), turn: cur ? cur.seat : null, guesses: b.roulette.guesses.map(x => ({ seat: seatOf(x.pid), n: x.n })) }; }
     if (st === 'lift' && b.lift) pub.dayInfo.lift = { ids: b.lift.ids.map(seatOf), yes: b.lift.yes.length, need: liftNeed(g) };
-    if (st === 'result' && g.voteResult) { const vr = g.voteResult; pub.dayInfo.result = { eliminated: vr.eliminatedId ? seatOf(vr.eliminatedId) : null, removed: (vr.removed || []).map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined })), vetoed: !!vr.vetoed, tally: ((vr.tally && vr.tally.rows) || []).map(r => ({ seat: seatOf(r.cid), total: r.total })), roulette: vr.roulette && vr.roulette.hitId ? { number: vr.roulette.number, seat: seatOf(vr.roulette.hitId) } : null, lift: vr.lift ? { yes: vr.lift.yes, need: vr.lift.need, passed: vr.lift.passed } : null, immune: vr.immune ? seatOf(vr.immune.id) : null, trig: g.pendingTriggers && g.pendingTriggers[0] ? { type: g.pendingTriggers[0].type, seat: seatOf(g.pendingTriggers[0].actorId) } : null }; }
+    if (st === 'result' && g.voteResult) { const vr = g.voteResult; pub.dayInfo.result = { eliminated: vr.eliminatedId ? seatOf(vr.eliminatedId) : null, removed: (vr.removed || []).map(d => ({ seat: seatOf(d.id), cause: d.cause, roleId: shown(P(g, d.id)) ? P(g, d.id).roleId : undefined, sk: shown(P(g, d.id)) ? skinOfPlayer(g, P(g, d.id)) || undefined : undefined })), vetoed: !!vr.vetoed, tally: ((vr.tally && vr.tally.rows) || []).map(r => ({ seat: seatOf(r.cid), total: r.total })), roulette: vr.roulette && vr.roulette.hitId ? { number: vr.roulette.number, seat: seatOf(vr.roulette.hitId) } : null, lift: vr.lift ? { yes: vr.lift.yes, need: vr.lift.need, passed: vr.lift.passed } : null, immune: vr.immune ? seatOf(vr.immune.id) : null, trig: g.pendingTriggers && g.pendingTriggers[0] ? { type: g.pendingTriggers[0].type, seat: seatOf(g.pendingTriggers[0].actorId) } : null }; }
   }
   pub.timer = T.key && S.screen === 'game' && document.querySelector('#timer') ? { key: T.key, total: T.total, left: T.left, running: T.running, at: Date.now() } : null; // only while the host's screen shows the timer — not a stale speech clock at night
   return pub;
@@ -8588,7 +8690,7 @@ function tablePriv(g) {
   const priv = {}; if (!g) return priv; const asks = g.online && g.dealt && !g.winner ? buildAsks(g) : {}; const onl = onlState(g);
   g.players.forEach(p => {
     const id = seatTg(g, p.seat); if (!id) return;
-    const mates = (isBlack(p) || p.roleId === 'werewolf') ? familyMembers(g, g.twoFamilies ? p.family : null).filter(m => m.id !== p.id).map(m => ({ seat: m.seat, name: m.name, roleId: m.roleId })) : [];
+    const mates = (isBlack(p) || p.roleId === 'werewolf') ? familyMembers(g, g.twoFamilies ? p.family : null).filter(m => m.id !== p.id).map(m => ({ seat: m.seat, name: m.name, roleId: m.roleId, sk: skinOfPlayer(g, m) || undefined })) : [];
     const buyer = p.recruitedBy && p.alive ? P(g, p.recruitedBy) : null; // the Corrupter and his recruit know each other (not the recruit's card)
     const recruits = p.roleId === 'corrupter' ? g.players.filter(x => x.recruitedBy === p.id && x.alive).map(x => ({ seat: x.seat, name: x.name })) : [];
     priv[id] = { seat: p.seat, roleId: p.roleId, family: p.family || null, alive: p.alive, mates, contract: p.contractId && P(g, p.contractId) ? P(g, p.contractId).seat : null, recruitedBy: buyer ? { seat: buyer.seat, name: buyer.name } : null, recruits, ask: asks[id] || null, results: onl.results[id] || [] };
@@ -8710,8 +8812,8 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
 }
 function tbRoleRow(roleId, big) {
   const u = U(); const r = roleFor(TB.data && TB.data.pub && TB.data.pub.bh ? { bombHunt: true } : null, roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia
-  if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dHTML(r, 'tb')}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
-  return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealHTML(r)}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
+  if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dFor(r, 'tb', mySkin(r.id))}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
+  return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealFor(r, mySkin(r.id))}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
 }
 function tbResultHTML(x) {
   const u = U(); const role = x.roleId ? ROLE[x.roleId] : null;
@@ -8742,7 +8844,8 @@ function tbAskHTML(ask, seats) {
   const pk = (ask.targets || []).map(tg => { const i = TB.pick.indexOf(tg.seat); return `<button class="pk ${i >= 0 ? 'sel' : ''} ${i === 1 ? 'n2' : ''} ${tg.ok ? '' : 'dis'}" data-a="tb-pick" data-seat="${tg.seat}" ${tg.ok ? '' : 'disabled'}><span class="seat">${tg.seat}</span><span class="nm">${esc((seats.find(s => s.seat === tg.seat) || {}).name || '')}</span>${i >= 0 && need > 1 ? `<span class="mark ${i === 1 ? 'c' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
   const ready = ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need;
   const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : ask.kind === 'trig' && ask.optional ? `<button class="btn ghost" data-a="tb-skip">${u.trigSkip}</button>` : '';
-  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? (ask.trig === 'morpheus' ? u.tbMorpheusNight : u.tbAzazelNight) : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
+  const myRole = TB.data && TB.data.me && TB.data.me.roleId; // v56: my own skin when the step is my card
+  return `<div class="panel raised tb-ask"><div class="row">${role ? sealFor(role, myRole === role.id ? mySkin(role.id) : null) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? (ask.trig === 'morpheus' ? u.tbMorpheusNight : u.tbAzazelNight) : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
     ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}
     <div class="btn-row" style="margin-top:10px">${skip}<button class="btn primary" data-a="tb-confirm" ${ready ? '' : 'disabled'}>${ask.kind === 'bestmove' ? u.tbBestSave : u.confirm}</button></div></div>`;
 }
@@ -8774,7 +8877,7 @@ function tableScreen() {
   // ----- end of the game: results for everyone (also the eliminated)
   if (pub.phase === 'end' && pub.result) {
     const w = pub.result; const mine = (pub.roles || []).find(r => r.seat === mySeat);
-    const rows = (pub.roles || []).map(r => { const role = ROLE[r.roleId]; return `<div class="fr-row" ${r.tgId ? `role="button" data-a="fr-open" data-id="${r.tgId}"` : ''}><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${r.seat}</span>${role ? sealHTML(role) : ''}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${typeof r.rating === 'number' ? rankIco({ points: r.rating, games: r.rg, hosted: r.rh, tgId: r.tgId }) : ''}${esc(r.name)}${r.seat === mySeat ? ` <small>· ${u.tbYou}</small>` : ''}</div>${r.up ? `<div class="rk-up sm">${rankSVG(r.up, 14)} ${tt(u.rkUp, { rank: rankName(r.up) })}</div>` : ''}<div class="hint" style="margin:0">${role ? role.name : esc(r.roleId)}${r.family ? ' · ' + esc(FAMILY_NAMES[r.family] || r.family) : ''}${typeof r.total === 'number' ? ` · ${r.total > 0 ? '+' : ''}${r.total}` : ''}</div>${r.streak >= 2 ? `<div class="pod-streak" style="margin-top:2px">${tt(u.streakLine, { n: r.streak, wins: plural(r.streak, 'wins'), side: (u.streakFor || {})[r.side] || '' })}</div>` : ''}</div><span class="num" style="color:${r.won ? '#9fe0ab' : 'var(--crimson-2)'};font-weight:700">${r.won ? u.won : u.lost}</span></div>`; }).join('');
+    const rows = (pub.roles || []).map(r => { const role = ROLE[r.roleId]; return `<div class="fr-row" ${r.tgId ? `role="button" data-a="fr-open" data-id="${r.tgId}"` : ''}><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${r.seat}</span>${role ? sealFor(role, r.sk) : ''}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${typeof r.rating === 'number' ? rankIco({ points: r.rating, games: r.rg, hosted: r.rh, tgId: r.tgId }) : ''}${esc(r.name)}${r.seat === mySeat ? ` <small>· ${u.tbYou}</small>` : ''}</div>${r.up ? `<div class="rk-up sm">${rankSVG(r.up, 14)} ${tt(u.rkUp, { rank: rankName(r.up) })}</div>` : ''}<div class="hint" style="margin:0">${role ? role.name : esc(r.roleId)}${r.family ? ' · ' + esc(FAMILY_NAMES[r.family] || r.family) : ''}${typeof r.total === 'number' ? ` · ${r.total > 0 ? '+' : ''}${r.total}` : ''}</div>${r.streak >= 2 ? `<div class="pod-streak" style="margin-top:2px">${tt(u.streakLine, { n: r.streak, wins: plural(r.streak, 'wins'), side: (u.streakFor || {})[r.side] || '' })}</div>` : ''}</div><span class="num" style="color:${r.won ? '#9fe0ab' : 'var(--crimson-2)'};font-weight:700">${r.won ? u.won : u.lost}</span></div>`; }).join('');
     const podRows = (pub.roles || []).filter(r => typeof r.place === 'number').slice().sort((a, b) => a.place - b.place).map(r => { const pr = r.tgId && profiles[r.tgId]; return Object.assign({}, r, { photo: pr ? pr.photo : '', club: pr ? pr.club : '', clubLogo: pr ? pr.clubLogo : '', profileId: null, rk: typeof r.rating === 'number' ? { points: r.rating, games: r.rg, hosted: r.rh, tgId: r.tgId } : null }); });
     const myStreak = mine && mine.streak >= 2 ? `<div class="pod-streak" style="margin-top:6px;font-size:14px">${tt(u.streakLine, { n: mine.streak, wins: plural(mine.streak, 'wins'), side: (u.streakFor || {})[mine.side] || '' })}</div>` : '';
     const myRating = mine && typeof mine.rating === 'number' ? `<div class="hint" style="margin-top:4px">${rankIco({ points: mine.rating, games: mine.rg, hosted: mine.rh, tgId: mine.tgId })}${tt(u.tbRatingNow, { rating: mine.rating, delta: (mine.total > 0 ? '+' : '') + mine.total })}</div>${rankUpHTML(mine.up)}` : '';
@@ -8799,7 +8902,7 @@ function tableScreen() {
   // ----- waiting room / dealing
   if (pub.phase === 'lobby' || pub.phase === 'deal') {
     const card = me && me.roleId ? tbRoleRow(me.roleId, true) : `<div class="panel" style="text-align:center"><div class="hint">${u.tbWaitHost}</div></div>`;
-    const mates = me && me.mates && me.mates.length ? `<div class="panel"><div class="eyebrow">${u.tbMates}</div><div class="stack-s" style="margin-top:6px">${me.mates.map(m => `<div class="row"><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${m.seat}</span>${ROLE[m.roleId] ? sealHTML(ROLE[m.roleId]) : ''}<div class="grow"><b>${esc(m.name)}</b><div class="hint" style="margin:0">${ROLE[m.roleId] ? ROLE[m.roleId].name : ''}</div></div></div>`).join('')}</div></div>` : '';
+    const mates = me && me.mates && me.mates.length ? `<div class="panel"><div class="eyebrow">${u.tbMates}</div><div class="stack-s" style="margin-top:6px">${me.mates.map(m => `<div class="row"><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${m.seat}</span>${ROLE[m.roleId] ? sealFor(ROLE[m.roleId], m.sk) : ''}<div class="grow"><b>${esc(m.name)}</b><div class="hint" style="margin:0">${ROLE[m.roleId] ? ROLE[m.roleId].name : ''}</div></div></div>`).join('')}</div></div>` : '';
     return `${topbar(tt(u.tbTitle, { code: TB.code }), `${d.flag ? d.flag + ' ' : ''}${pub.mode ? modeLine(pub.mode, pub.open) + ' · ' : ''}${pub.online ? `${u.tbLobby} · ${u.tbOnlineTag}` : u.tbLobby}`)}<div class="stack">
       ${hostChipHTML(d)}
       ${roundTableHTML(seats, profiles, hostLine, marks)}
@@ -8819,13 +8922,13 @@ function tableScreen() {
   let body = '';
   if (pub.phase === 'day' && di) {
     const dy = di; const st = dy.stage;
-    if (st === 'morning') body += `<div class="panel"><div class="eyebrow">${u.tbMorning}</div>${dy.removed && dy.removed.length ? `<div class="stack-s" style="margin-top:6px">${dy.removed.map(r => `<div class="death">${r.roleId && ROLE[r.roleId] ? sealHTML(ROLE[r.roleId]) : ''}<div><div class="n">${tbSeatName(seats, r.seat)}</div><div class="c">${r.roleId && ROLE[r.roleId] ? ROLE[r.roleId].name + ' · ' : ''}${esc(r.cause || '')}</div></div></div>`).join('')}</div>` : `<div class="okbox" style="margin-top:6px">${u.tbNoDeaths}</div>`}${dy.bestMove ? `<div class="hint" style="margin-top:6px">${tt(u.bestMoveDone, { player: tbSeatName(seats, dy.bestMove.seat), list: dy.bestMove.picks.join(', ') || '—' })}</div>` : ''}</div>`;
+    if (st === 'morning') body += `<div class="panel"><div class="eyebrow">${u.tbMorning}</div>${dy.removed && dy.removed.length ? `<div class="stack-s" style="margin-top:6px">${dy.removed.map(r => `<div class="death">${r.roleId && ROLE[r.roleId] ? sealFor(ROLE[r.roleId], r.sk) : ''}<div><div class="n">${tbSeatName(seats, r.seat)}</div><div class="c">${r.roleId && ROLE[r.roleId] ? ROLE[r.roleId].name + ' · ' : ''}${esc(r.cause || '')}</div></div></div>`).join('')}</div>` : `<div class="okbox" style="margin-top:6px">${u.tbNoDeaths}</div>`}${dy.bestMove ? `<div class="hint" style="margin-top:6px">${tt(u.bestMoveDone, { player: tbSeatName(seats, dy.bestMove.seat), list: dy.bestMove.picks.join(', ') || '—' })}</div>` : ''}</div>`;
     if (st === 'speeches' || st === 'tie') body += `<div class="panel raised"><div class="speaker"><span class="seat">${dy.speaker || '—'}</span><div><div class="n">${dy.speaker ? esc((seats.find(s => s.seat === dy.speaker) || {}).name || '') : u.speechesDone}</div><div class="s">${dy.n ? tt(u.introOf, { i: (dy.i || 0) + 1, n: dy.n }) : ''}${st === 'tie' ? ' · ' + tt(u.tbTie, { list: (dy.tied || []).join(L.e.and) }) : ''}</div></div></div></div>`;
     if ((st === 'speeches' || st === 'vote' || st === 'tie') && dy.candidates && dy.candidates.length) body += `<div class="hint" style="text-align:center">${tt(u.tbCandidates, { list: dy.candidates.join(', ') })}</div>`;
     if (st === 'vote') body += dy.candidates && dy.candidates.length ? `<div class="panel"><div class="eyebrow">${u.tallyTitle}</div><div class="tally" style="margin-top:8px">${(dy.tally || []).map(r => `<div class="tr"><span class="n">${tbSeatName(seats, r.seat)}</span><span class="b"><i style="width:${Math.max(...(dy.tally || []).map(x => x.total), 1) ? 100 * r.total / Math.max(...(dy.tally || []).map(x => x.total), 1) : 0}%"></i></span><span class="v">${Number.isInteger(r.total) ? r.total : r.total.toFixed(1)}</span></div>`).join('')}</div></div>` : `<div class="panel"><div class="hint">${u.tbNoCands}</div></div>`;
     if (st === 'roulette' && dy.roulette) body += `<div class="panel"><div class="eyebrow">${u.stRoulette}</div><div class="hint" style="margin-top:4px">${tt(u.tbRouletteWait, { seat: dy.roulette.turn })}</div>${dy.roulette.guesses.length ? `<div class="filters wrap" style="margin-top:8px">${dy.roulette.guesses.map(x => `<span class="chip" style="pointer-events:none">${x.seat} → ${x.n}</span>`).join('')}</div>` : ''}</div>`;
     if (st === 'lift' && dy.lift) body += `<div class="panel"><div class="eyebrow">${u.stLift}</div><div class="hint" style="margin-top:4px">${tt(u.tbLiftN, { n: dy.lift.yes, need: dy.lift.need })}</div></div>`;
-    if (st === 'result' && dy.result) { const r = dy.result; body += `<div class="panel"><div class="eyebrow">${u.tbResult}</div><div style="margin-top:4px;font-weight:800">${r.vetoed ? u.judgeVetoed : r.eliminated ? tt(u.tbLeft, { seat: r.eliminated }) : u.tbNobodyLeft}</div>${r.roulette ? `<div class="hint">${tt(u.rouletteHit, { n: r.roulette.number, seat: r.roulette.seat })}</div>` : ''}${r.removed && r.removed.length ? `<div class="stack-s" style="margin-top:6px">${r.removed.map(x => `<div class="death">${x.roleId && ROLE[x.roleId] ? sealHTML(ROLE[x.roleId]) : ''}<div><div class="n">${tbSeatName(seats, x.seat)}</div><div class="c">${x.roleId && ROLE[x.roleId] ? ROLE[x.roleId].name + ' · ' : ''}${esc(x.cause || '')}</div></div></div>`).join('')}</div>` : ''}</div>`; }
+    if (st === 'result' && dy.result) { const r = dy.result; body += `<div class="panel"><div class="eyebrow">${u.tbResult}</div><div style="margin-top:4px;font-weight:800">${r.vetoed ? u.judgeVetoed : r.eliminated ? tt(u.tbLeft, { seat: r.eliminated }) : u.tbNobodyLeft}</div>${r.roulette ? `<div class="hint">${tt(u.rouletteHit, { n: r.roulette.number, seat: r.roulette.seat })}</div>` : ''}${r.removed && r.removed.length ? `<div class="stack-s" style="margin-top:6px">${r.removed.map(x => `<div class="death">${x.roleId && ROLE[x.roleId] ? sealFor(ROLE[x.roleId], x.sk) : ''}<div><div class="n">${tbSeatName(seats, x.seat)}</div><div class="c">${x.roleId && ROLE[x.roleId] ? ROLE[x.roleId].name + ' · ' : ''}${esc(x.cause || '')}</div></div></div>`).join('')}</div>` : ''}</div>`; }
   }
   if (pub.phase === 'day0' && pub.day0) body += `<div class="panel raised"><div class="speaker"><span class="seat">${pub.day0.speaker || '—'}</span><div><div class="n">${pub.day0.speaker ? esc((seats.find(s => s.seat === pub.day0.speaker) || {}).name || '') : u.allIntroduced}</div><div class="s">${tt(u.introOf, { i: (pub.day0.i || 0) + 1, n: pub.day0.n || 0 })}</div></div></div></div>`;
   const results = me && me.results && me.results.length ? `<div class="eyebrow">${u.tbResults}</div><div class="stack-s">${me.results.slice(-6).reverse().map(tbResultHTML).join('')}</div>` : '';
@@ -8955,7 +9058,7 @@ function resultRows(g) {
     const ctg = tgId || (pr && pr.tgId) || null; const cr = ctg && g.cloudRatings ? g.cloudRatings[ctg] : null; let rk = null, up = 0;
     if (cr) { rk = { points: 1000 + (cr.points || 0), games: cr.games || 0, hosted: cr.hosted || 0, tgId: ctg }; up = (g.cloudRankUp && g.cloudRankUp[ctg]) || 0; }
     else if (pr && !ctg) { const st = profStats(pr); const e = pr.history.find(x => x.gameId === g.id); rk = { points: st.rating, games: st.games, tgId: null }; if (e) up = rankUpOf({ points: st.rating - (e.points || 0), games: st.games - 1 }, rk); }
-    return { rk, up, seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), streak: streakFor(g, p, tgId, pr) };
+    return { rk, up, seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), sk: skinOfPlayer(g, p) || null, streak: streakFor(g, p, tgId, pr) };
   }).sort((a, b) => b.total - a.total || b.useful - a.useful || a.seat - b.seat).map((x, i) => Object.assign(x, { place: i + 1 }));
 }
 function streakHTML(row) { const u = U(); const n = row.streak; if (!n || n < 2) return ''; return `<div class="pod-streak">${tt(u.streakLine, { n, wins: plural(n, 'wins'), side: (u.streakFor || {})[row.side] || '' })}</div>`; }
@@ -8964,7 +9067,7 @@ function podiumCardHTML(row, keyPrefix, big) {
   const act = row.tgId ? `data-a="fr-open" data-id="${row.tgId}"` : row.profileId ? `data-a="prof-open" data-id="${esc(row.profileId)}"` : `data-a="role" data-id="${role.id}"`; // no profile → the card itself
   const av = row.photo ? `<img src="${esc(row.photo)}" alt="">` : `<span>${esc((row.name || '?').slice(0, 1).toUpperCase())}</span>`;
   return `<div class="pod-card ${big ? 'big' : ''} ${row.won ? 'win' : 'loss'} p${row.place}">
-    <div class="pod-3d">${card3dHTML(role, keyPrefix + row.seat).replace('<div class="card3d-wrap"', `<div class="card3d-wrap" ${big ? '' : 'data-still="1"'}`)}
+    <div class="pod-3d">${card3dFor(role, keyPrefix + row.seat, row.sk, !!big).replace('<div class="card3d-wrap"', `<div class="card3d-wrap" ${big ? '' : 'data-still="1"'}`)}
       <div class="pod-av" role="button" tabindex="0" ${act}>${av}<i class="pod-seat">${row.seat}</i></div>${row.clubLogo ? `<div class="pod-club" title="${esc(row.club)}"><img src="${esc(row.clubLogo)}" alt=""></div>` : ''}${row.place <= 3 ? `<i class="pod-medal m${row.place}">${row.place}</i>` : ''}</div>
     <div class="pod-plaque" role="button" tabindex="0" ${act}><div class="pod-nm">${row.rk ? rankIco(row.rk, 14) : ''}${esc(row.name)}</div>${row.up ? `<div class="rk-up sm">${rankSVG(row.up, 14)} ${tt(u.rkUp, { rank: rankName(row.up) })}</div>` : ''}<div class="pod-role">${role.name}${row.family ? ' · ' + esc(FAMILY_NAMES[row.family] || row.family) : ''}</div><div class="pod-pts ${row.won ? 'win' : 'loss'}">${row.total > 0 ? '+' : ''}${row.total} <small>${u.pts}</small></div>${row.club && !row.clubLogo ? `<div class="pod-clubname">${esc(row.club)}</div>` : ''}${streakHTML(row)}</div>
   </div>`;
@@ -9596,7 +9699,14 @@ function seasonBannerHTML() {
 /* season 1's promise: an Epic skin for everyone who ends it as a Legend */
 function seasonRewardHTML() {
   const u = U(); const sz = seasonAt(Date.now()); if (sz.n !== 1) return '';
-  const top = RANK_MIN.length - 1; const text = sz.phase === 'break' ? tt(u.ssRewardDone, { n: sz.n, rank: rankName(top) }) : tt(u.ssReward, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay) });
+  const top = RANK_MIN.length - 1;
+  // v56: the reward is a real skin now — its portrait, its name and a way to look at it
+  const sk = typeof SKINS !== 'undefined' ? SKINS.find(x => x.season === sz.n) : null;
+  if (sk) {
+    const text = sz.phase === 'break' ? tt(u.ssRewardSkinDone, { n: sz.n, rank: rankName(top), skin: sk.name }) : tt(u.ssRewardSkinText, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay), skin: sk.name });
+    return `<div class="ss-reward" role="button" tabindex="0" data-a="skins-open">${sealFor(ROLE[sk.role], sk.id, 'ss-skin')}<div class="grow" style="min-width:0"><div class="ss-epic">EPIC</div><b>${tt(u.ssRewardSkin, { n: sz.n, skin: esc(sk.name) })}</b><div class="hint" style="margin:4px 0 0">${text}</div><div class="ss-see">${rankSVG(top, 16)} ${u.ssRewardSee} ›</div></div></div>`;
+  }
+  const text = sz.phase === 'break' ? tt(u.ssRewardDone, { n: sz.n, rank: rankName(top) }) : tt(u.ssReward, { n: sz.n, rank: rankName(top), date: seasonDayText(sz.lastDay) });
   return `<div class="ss-reward">${rankSVG(top, 48)}<div class="grow" style="min-width:0"><div class="ss-epic">EPIC</div><b>${tt(u.ssRewardTitle, { n: sz.n })}</b><div class="hint" style="margin:4px 0 0">${text}</div></div></div>`;
 }
 /* all ranks: thresholds, where the viewer is */
@@ -9680,6 +9790,193 @@ function profRank(pr) {
 Object.assign(ACT, {
   ranks(el) { S.ui.sheet = { type: 'ranks', i: el && el.dataset ? el.dataset.i : '' }; render(); },
   'rt-tab'(el) { S.ui.rtTab = el.dataset.v === 'ranks' ? 'ranks' : 'rating'; S.ui.sheet = null; render(); }
+});
+/* ============================================================
+   v56 SKINS — a skin is a new face of a role's card for the player who owns and wears it (the rules of the role stay).
+   Owning: the account (season rewards; admins own all to try them on) — /api/me → S.skins = { owned, equipped }.
+   Wearing: one skin per role (/api/skin/equip). Everyone sees the skin the player wears wherever that player is that character:
+   the deal card, the night step of his role, the dead and the results lists, the review, the podium, his profile and his online card.
+   Other players' skins: /api/skins for the tgIds at the table (kept in the game: g.skinsOf) and the public profile (FRP[id].skins).
+   The same catalog is on the server (backend/src/skins.js); backend/test/run.js checks they agree. Style of new skins: skins/STYLE.md.
+   3D: the face tilts with the card, the frame stays and the scene behind it moves by the skin's depth map (one shared WebGL canvas
+   draws into every visible skin canvas); the foil and the glare follow the tilt. Old phones (html.lite) and no WebGL — the picture.
+   ============================================================ */
+/* skins:begin — the same ids and roles as SKINS in backend/src/skins.js */
+const SKINS = [
+  { id: 'amethyst_don', role: 'don', rarity: 'epic', season: 1, file: 'amethyst-don' }
+];
+/* skins:end */
+const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
+['name', 'lore'].forEach(k => SKINS.forEach(s => Object.defineProperty(s, k, { get() { const p = (L.skins && L.skins[s.id]) || (I18N.ru.skins || {})[s.id] || {}; return p[k] || s.id; }, enumerable: true })));
+/* the pictures live on the app's site: the same origin in the app (WebGL may read them), the full address anywhere else */
+const SKIN_BASE = (() => { try { return /(^|\.)mafiapro\.app$/.test(location.hostname) ? '/skins/' : 'https://mafiapro.app/skins/'; } catch (e) { return 'https://mafiapro.app/skins/'; } })();
+const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : '.webp');
+S.skins = S.skins && typeof S.skins === 'object' ? S.skins : { owned: [], equipped: {} };
+
+/* ---------- who wears what ---------- */
+const SKINS_OF = {}; // tgId → { role: skin } learned this session (public profiles, tables)
+const myTgId = () => (S.cloud && S.cloud.user && S.cloud.user.id) || null;
+const validSkin = (id, roleId) => !!(id && SKIN[id] && SKIN[id].role === roleId);
+function mySkin(roleId) { const id = S.skins && S.skins.equipped && S.skins.equipped[roleId]; return validSkin(id, roleId) ? id : null; }
+function skinOfTg(tgId, roleId, g) {
+  if (!tgId) return null; tgId = Number(tgId);
+  if (tgId === myTgId()) return mySkin(roleId);
+  const map = (g && g.skinsOf && g.skinsOf[tgId]) || SKINS_OF[tgId] || (typeof FRP !== 'undefined' && FRP[tgId] && FRP[tgId].skins) || null;
+  const id = map && map[roleId]; return validSkin(id, roleId) ? id : null;
+}
+/* the Telegram account of a seat: an online seat, or a profile linked to Telegram; the device owner's own profile is the account */
+function playerTg(g, p) {
+  if (!g || !p) return null;
+  const t = typeof seatTg === 'function' ? seatTg(g, p.seat) : null; if (t) return t;
+  const pr = p.profileId && typeof profById === 'function' ? profById(p.profileId) : null;
+  if (pr && pr.tgId) return Number(pr.tgId);
+  if (pr && pr.id === S.meId && myTgId()) return myTgId();
+  return null;
+}
+function skinOfPlayer(g, p) { return p ? skinOfTg(playerTg(g, p), p.roleId, g) : null; }
+/* a profile kept on this device: its account's skin for the role */
+function skinOfProfile(pr, roleId) {
+  if (!pr) return null;
+  if (pr.tgId) return skinOfTg(pr.tgId, roleId);
+  return pr.id === S.meId && myTgId() ? mySkin(roleId) : null;
+}
+const skinFromMap = (map, roleId) => { const id = map && map[roleId]; return validSkin(id, roleId) ? id : null; };
+/* the skins worn by the players of a game (the host's phone asks once per game) */
+async function skinsLoad(g) {
+  if (!g || g.skinsAt || typeof api !== 'function' || typeof TG === 'undefined' || !TG.app || !apiBase()) return;
+  const me = myTgId(); const ids = [...new Set(g.players.map(p => playerTg(g, p)).filter(id => id && id !== me))];
+  g.skinsAt = 1; if (!ids.length) { g.skinsOf = {}; return; }
+  const d = await api('/api/skins', { ids }); if (!d || !d.ok) { g.skinsAt = 0; return; }
+  g.skinsOf = d.skins || {}; g.skinsAt = Date.now(); Object.assign(SKINS_OF, g.skinsOf);
+  if (S.game === g) { save(); render(); }
+}
+
+/* ---------- drawing ---------- */
+/* the card face: the plain card stays underneath (a picture that does not load just disappears), the skin covers it */
+function skinLayerHTML(id, gl) {
+  const s = SKIN[id]; if (!s) return '';
+  return `<div class="skin-layer ${s.rarity}" data-skin="${s.id}"><img class="skin-img" src="${skinUrl(s)}" alt="${esc(s.name)}" draggable="false" onerror="this.parentNode.remove()">${gl ? `<canvas class="skin-gl" data-skin="${s.id}" hidden></canvas>` : ''}<div class="skin-foil"></div><div class="skin-glare"></div></div>`;
+}
+const injectLast = (html, add) => { const k = html.lastIndexOf('</div>'); return k < 0 ? html : html.slice(0, k) + add + html.slice(k); };
+function skinCardHTML(role, opts, skinId, gl) {
+  const html = cardHTML(role, opts || {}); if (!validSkin(skinId, role.id)) return html;
+  return injectLast(html.replace('class="card ', 'class="card skinned '), skinLayerHTML(skinId, gl !== false));
+}
+function sealFor(role, skinId, cls = '') {
+  const html = sealHTML(role, cls); if (!validSkin(skinId, role.id)) return html;
+  return injectLast(html.replace('class="seal ', 'class="seal skinned '), `<img class="skin-seal" src="${skinUrl(SKIN[skinId], 'seal')}" alt="" draggable="false" onerror="this.remove()">`);
+}
+function card3dFor(role, key, skinId, gl) {
+  if (!validSkin(skinId, role.id)) return card3dHTML(role, key);
+  return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${skinCardHTML(role, {}, skinId, gl)}</div><div class="face back cardback premium">${cardBackHTML(true, SKIN[skinId].name)}</div></div></div>`;
+}
+
+/* ---------- 3D: one WebGL canvas renders every visible skin canvas (the frame stays, the scene behind it moves) ---------- */
+const SKGL = { gl: null, cv: null, off: null, tex: {}, raf: 0, failed: false, last: new WeakMap() };
+const SKGL_VS = 'attribute vec2 p;varying vec2 v;void main(){v=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
+const SKGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off;varying vec2 v;void main(){vec2 uv=v;for(int i=0;i<6;i++){float d=texture2D(dep,uv).r;uv=v+off*(d-.9);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
+function skglInit() {
+  if (SKGL.gl || SKGL.failed) return !!SKGL.gl;
+  try {
+    const cv = document.createElement('canvas'); const gl = cv.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+    if (!gl) throw new Error('no webgl');
+    const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, SKGL_VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, SKGL_FS)); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
+    gl.useProgram(prog); const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1);
+    SKGL.gl = gl; SKGL.cv = cv; SKGL.off = gl.getUniformLocation(prog, 'off'); return true;
+  } catch (e) { SKGL.failed = true; return false; }
+}
+function skglTexture(url) { // { ready, t } — the picture is uploaded once per session
+  const c = SKGL.tex[url]; if (c) return c; const gl = SKGL.gl; const rec = SKGL.tex[url] = { ready: false, t: null };
+  const im = new Image(); if (!/^\//.test(url)) im.crossOrigin = 'anonymous';
+  im.onload = () => { try { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v)); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); rec.t = t; rec.ready = true; } catch (e) { rec.bad = true; } };
+  im.onerror = () => { rec.bad = true; }; im.src = url; return rec;
+}
+/* the tilt of a skin: from its 3D card (turn and lean), else from the finger / the phone's tilt (PX) */
+function skinTilt(el) {
+  const w = el.closest('.card3d-wrap');
+  if (w && typeof c3state === 'function') { const st = c3state(w.dataset.key); return [Math.sin(st.ry * Math.PI / 180), Math.max(-1, Math.min(1, -st.rx / 30))]; }
+  return typeof PX !== 'undefined' ? [PX.x, PX.y] : [0, 0];
+}
+const skinsStill = () => { try { return document.documentElement.classList.contains('lite') || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
+function skglFrame() {
+  SKGL.raf = 0; const layers = document.querySelectorAll('.skin-layer'); if (!layers.length) return;
+  const still = skinsStill(); let drew = 0;
+  layers.forEach(layer => {
+    const [tx, ty] = still ? [0, 0] : skinTilt(layer);
+    layer.style.setProperty('--gx', (50 + tx * 40).toFixed(1) + '%'); layer.style.setProperty('--gy', (35 + ty * 35).toFixed(1) + '%');
+    layer.style.setProperty('--fx', (50 + tx * 50).toFixed(1) + '%'); layer.style.setProperty('--fy', (50 + ty * 50).toFixed(1) + '%');
+    const cv = layer.querySelector('canvas.skin-gl'); if (!cv || still || drew >= 4 || !skglInit()) return;
+    const s = SKIN[cv.dataset.skin]; const a = skglTexture(skinUrl(s)), b = skglTexture(skinUrl(s, 'depth')); if (a.bad || b.bad) { cv.remove(); return; } if (!a.ready || !b.ready) return;
+    const r = layer.getBoundingClientRect(); if (r.width < 40 || r.bottom < 0 || r.top > innerHeight) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1); const W = Math.round(layer.offsetWidth * dpr), H = Math.round(layer.offsetHeight * dpr); // the layout size: the box of a turned 3D card is not the card's shape
+    const key = `${W}x${H}:${tx.toFixed(3)},${ty.toFixed(3)}`; if (SKGL.last.get(cv) === key) return; SKGL.last.set(cv, key);
+    const gl = SKGL.gl; if (SKGL.cv.width !== W || SKGL.cv.height !== H) { SKGL.cv.width = W; SKGL.cv.height = H; } gl.viewport(0, 0, W, H);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, a.t); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.t);
+    gl.uniform2f(SKGL.off, -tx * 0.045, -ty * 0.035); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    try { const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, W, H); ctx.drawImage(SKGL.cv, 0, 0); cv.hidden = false; drew++; } catch (e) { cv.remove(); }
+  });
+  SKGL.raf = requestAnimationFrame(skglFrame);
+}
+function skinsAfterRender() { if (!SKGL.raf && document.querySelector('.skin-layer')) SKGL.raf = requestAnimationFrame(skglFrame); }
+setInterval(() => { try { skinsAfterRender(); } catch (e) {} }, 700); // screens drawn by a timer (online tables) start the loop too
+
+/* ---------- the Skins tab of the Cards screen ---------- */
+function skinStatus(s) { const own = (S.skins.owned || []).includes(s.id); return { own, worn: own && mySkin(s.role) === s.id }; }
+function skinHowText(s) {
+  const u = U(); if (!s.season) return '';
+  const sz = seasonAt(Date.now()); const top = RANK_MIN.length - 1;
+  return sz.n < s.season || (sz.n === s.season && sz.phase === 'live') ? tt(u.skHowSeason, { n: s.season, rank: rankName(top), date: seasonDayText(sz.n === s.season ? sz.lastDay : seasonAt(sz.next).lastDay) }) : tt(u.skHowSeasonDone, { n: s.season, rank: rankName(top) });
+}
+function skinItemHTML(s) {
+  const u = U(); const st = skinStatus(s); const role = ROLE[s.role];
+  const me = typeof myRankObj === 'function' ? myRankObj() : null;
+  const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'} sm" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>` : '';
+  const pill = `<span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span>`;
+  const rank = !st.own && me ? `<div class="sk-rank">${rankSVG(rankIdx(me.points, me.games), 18)} ${u.skYourRank}: <b>${rankName(rankIdx(me.points, me.games))}</b> · <span class="num">${esc(String(me.points))}</span></div>` : '';
+  return `<div class="skin-item ${s.rarity}">
+    ${card3dFor(role, 'skin-' + s.id, s.id)}
+    <div class="sk-info"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="ss-epic">${s.rarity.toUpperCase()}</span>${pill}</div>
+      <div class="sk-name">${esc(s.name)}</div><div class="hint" style="margin:0">${tt(u.skFor, { role: role.name })}</div>
+      <p class="sk-lore">${esc(s.lore)}</p><div class="hint" style="margin:0">${skinHowText(s)}</div>${rank}
+      ${btn ? `<div class="btn-row" style="margin-top:10px">${btn}</div>` : ''}</div></div>`;
+}
+function skinsTabHTML() {
+  const u = U();
+  return `<p class="hint">${u.skHint}</p><div class="stack">${SKINS.map(skinItemHTML).join('')}</div>`;
+}
+/* the role's own skins under its card (the role sheet) */
+function roleSkinsHTML(r) {
+  const u = U(); const list = SKINS.filter(s => s.role === r.id); if (!list.length) return '';
+  return `<div class="section"><div class="eyebrow gold">${u.skForRole}</div><div class="stack-s" style="margin-top:8px">${list.map(s => { const st = skinStatus(s); return `<div class="fav sk-row" role="button" tabindex="0" data-a="skins-open">${sealFor(r, s.id)}<div class="grow" style="min-width:0"><div class="n">${esc(s.name)} <span class="ss-epic" style="margin:0 0 0 4px">${s.rarity.toUpperCase()}</span></div><div class="s">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</div></div><span class="rk-chev">›</span></div>`; }).join('')}</div></div>`;
+}
+/* the Cards screen gets a «Cards | Skins» switch at the top */
+(function () {
+  const orig = cardsScreen;
+  cardsScreen = function () {
+    const u = U(); const tab = S.ui.cardsTab === 'skins' ? 'skins' : 'cards';
+    const seg = `<div class="segment">${[['cards', u.skSegCards], ['skins', u.skSegSkins]].map(([id, l]) => `<button class="${tab === id ? 'active' : ''}" data-a="cards-tab" data-v="${id}">${l}</button>`).join('')}</div>`;
+    if (tab === 'skins') return `${topbar(u.skTitle, u.skSegSkins + ' · ' + SKINS.length, false)}<div class="stack">${seg}${skinsTabHTML()}</div>`;
+    const html = orig(); const k = html.indexOf('<div class="stack">'); return k < 0 ? html : html.slice(0, k + 19) + seg + html.slice(k + 19);
+  };
+  const origRender = render;
+  render = function () { origRender.apply(this, arguments); try { if (S.game && !S.game.skinsAt) skinsLoad(S.game); skinsAfterRender(); } catch (e) {} };
+})();
+Object.assign(ACT, {
+  'cards-tab'(el) { S.ui.cardsTab = el.dataset.v === 'skins' ? 'skins' : 'cards'; render(); },
+  'skins-open'() { S.ui.sheet = null; S.ui.cardsTab = 'skins'; if (typeof go === 'function') go('cards'); else { S.screen = 'cards'; render(); } },
+  async 'skin-wear'(el) {
+    const u = U(); const s = SKIN[el.dataset.id]; if (!s) return; const on = el.dataset.on === '1';
+    if (typeof TG === 'undefined' || !TG.app || !apiBase()) { toast(u.skTgOnly); return; }
+    const prev = Object.assign({}, S.skins.equipped || {}); S.skins.equipped = Object.assign({}, prev); if (on) S.skins.equipped[s.role] = s.id; else delete S.skins.equipped[s.role]; render();
+    const d = await api('/api/skin/equip', { role: s.role, skin: on ? s.id : null });
+    if (!d || !d.ok) { S.skins.equipped = prev; render(); toast(u.skErr); return; }
+    S.skins.equipped = d.equipped || {}; save(); render(); toast(tt(on ? u.skWornToast : u.skOffToast, { name: s.name, role: ROLE[s.role].name }));
+  }
 });
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,

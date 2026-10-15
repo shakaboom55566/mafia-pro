@@ -947,4 +947,31 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .ss-reward .rk-svg { flex: none; }
 .ss-epic { display: inline-block; font-family: var(--font-display); font-weight: 900; font-size: 10.5px; letter-spacing: .14em; color: #f3e8ff; background: linear-gradient(90deg, #7b3fe4, #b56cff); padding: 2px 8px; border-radius: 999px; margin-bottom: 4px; }
 .rk-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13px; color: var(--fg-2); line-height: 1.4; }
+/* v56 skins: the skin covers the card's face (the plain card stays underneath if the picture does not load); the seal shows its portrait */
+.card.skinned .skin-layer { position: absolute; inset: 0; z-index: 6; overflow: hidden; border-radius: inherit; background: #120b1c; }
+.skin-layer .skin-img, .skin-layer .skin-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; -webkit-user-drag: none; user-select: none; pointer-events: none; }
+.skin-layer .skin-gl { object-fit: fill; }
+.skin-foil, .skin-glare { position: absolute; inset: 0; pointer-events: none; }
+.skin-glare { background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255,255,255,.3), rgba(255,255,255,0) 45%); mix-blend-mode: soft-light; }
+.skin-foil { background: repeating-linear-gradient(115deg, rgba(255,120,230,0) 0%, rgba(255,120,230,.5) 6%, rgba(120,200,255,.45) 12%, rgba(255,230,140,.45) 18%, rgba(160,110,255,0) 26%); background-size: 260% 260%; background-position: var(--fx, 50%) var(--fy, 50%); mix-blend-mode: color-dodge; opacity: .32; -webkit-mask-image: radial-gradient(120% 90% at 50% 48%, transparent 58%, #000 78%); mask-image: radial-gradient(120% 90% at 50% 48%, transparent 58%, #000 78%); }
+.card.skinned .seat-tag, .card.skinned .fam-tag { z-index: 7; top: 14px; padding: 2px 8px; border-radius: 999px; background: rgba(10,6,16,.72); color: #f0cd7a; }
+.card.skinned .gem { display: none; }
+.seal.skinned { --seal-ring: #b98cff; box-shadow: 0 0 0 1px rgba(185,140,255,.5), 0 0 14px -2px rgba(157,92,240,.75); }
+.seal .skin-seal { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; z-index: 1; }
+.seal.skinned::after { z-index: 2; border-color: #b98cff; }
+.seal.ss-skin { width: 64px; height: 64px; }
+.ss-reward[role="button"] { cursor: pointer; }
+.ss-see { margin-top: 8px; font-weight: 700; font-size: 13px; color: #d9c2ff; display: flex; align-items: center; gap: 6px; }
+.skin-item { display: grid; grid-template-columns: minmax(0, 210px) minmax(0, 1fr); gap: 16px; align-items: center; padding: 14px; border-radius: 16px; border: 1px solid rgba(157,108,224,.55); background: radial-gradient(120% 90% at 0% 0%, rgba(157,92,240,.22), var(--bg-2) 60%); }
+.skin-item .card3d-wrap { width: 100%; max-width: 210px; margin: 0; }
+.sk-info { display: grid; gap: 6px; min-width: 0; }
+.sk-name { font-family: var(--font-display); font-weight: 900; font-size: 20px; line-height: 1.15; color: #fff; text-shadow: 0 0 18px rgba(157,92,240,.6); }
+.sk-lore { margin: 2px 0; font-style: italic; color: var(--fg-2); font-size: 13.5px; }
+.sk-pill { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--muted); }
+.sk-pill.own { border-color: rgba(159,224,171,.6); color: #9fe0ab; }
+.sk-rank { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-2); margin-top: 4px; }
+.sk-row .seal { width: 44px; height: 44px; }
+@media (max-width: 460px) { .skin-item { grid-template-columns: 1fr; justify-items: center; text-align: center; } .skin-item .card3d-wrap { max-width: 230px; } .sk-info .row, .sk-rank { justify-content: center; } }
+html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .skin-gl { display: none !important; } }
 </style>

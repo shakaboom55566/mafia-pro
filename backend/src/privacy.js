@@ -94,6 +94,7 @@ export async function exportUser(env, id) {
     invited: await all('SELECT tg_id, created_at, qualified_at FROM referrals WHERE ref_by = ?1', id),
     rewards: { credits: await all('SELECT kind, count FROM credits WHERE tg_id = ?1', id), milestones: await all('SELECT level, created_at FROM milestones WHERE tg_id = ?1', id), access: await one('SELECT until, created_at FROM grants WHERE tg_id = ?1', id) },
     purchases: await all('SELECT kind, item, stars, status, charge_id, created_at, paid_at FROM purchases WHERE tg_id = ?1', id),
+    skinsWorn: await all('SELECT role, skin, updated_at FROM user_skins WHERE tg_id = ?1', id), // v56: the card skins put on
     partner: await one('SELECT status, name, channel, audience, share, created_at, approved_at FROM partners WHERE tg_id = ?1', id),
     payouts: await all('SELECT stars, note, created_at FROM payouts WHERE tg_id = ?1', id),
     clubsOwned: await all('SELECT id, name, city, about, link, status, created_at FROM clubs WHERE owner_id = ?1', id),
@@ -140,7 +141,7 @@ export async function deleteUser(env, id) {
     st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'), st('DELETE FROM ad_clicks WHERE tg_id = ?1'),
     st('DELETE FROM broadcast_queue WHERE tg_id = ?1'), st('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_members SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE discord_invites SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_events SET inviter_tg = NULL WHERE inviter_tg = ?1'),
-    st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM users WHERE tg_id = ?1')
+    st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM user_skins WHERE tg_id = ?1'), st('DELETE FROM users WHERE tg_id = ?1')
   ];
   if (env.DB.batch) { for (let i = 0; i < list.length; i += 50) await env.DB.batch(list.slice(i, i + 50)); } else for (const s of list) await s.run();
   return { games: games.length, clubs: clubs.length };
