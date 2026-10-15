@@ -12632,8 +12632,7 @@ function emLedgerHTML() {
 function emeraldsTabHTML() {
   const u = U();
   const bal = `<div class="em-balance"><div class="em-big">💎 <b class="num">${fmtEm(emBalance())}</b></div><div class="hint" style="margin:0">${u.emBalance}</div></div>`;
-  const what = `<p class="hint" style="margin:8px 0 0">${tt(u.emWhat, { epic: fmtEm(emEpic()), fund: fmtEm(trnFund()) })}</p>
-    <div class="btn-row" style="margin-top:10px"><button class="btn sm" data-a="skins-open">${u.skSegSkins}</button><button class="btn sm" data-a="go" data-to="tournament">🏆 ${u.trnTitle}</button></div>`;
+  const what = `<div class="btn-row" style="margin-top:12px"><button class="btn sm" data-a="skins-open">${u.skSegSkins}</button><button class="btn sm" data-a="go" data-to="tournament">🏆 ${u.trnTitle}</button></div>`;
   const tg = emInTg() ? '' : `<p class="hint">${u.emTgOnly}</p>`;
   return `<div class="panel em-top">${bal}${what}</div>${tg}
     <h2 style="margin-top:14px">${u.emPacks}</h2><p class="hint" style="margin:0 0 8px">${u.emFirstHint}</p>
@@ -12773,16 +12772,16 @@ function trnAdminHTML(d) {
 }
 function tournamentScreen() {
   const u = U();
-  if (!emInTg()) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><p class="hint">${u.trnNeedTg}</p>${listHTML(u.trnRules.map(r => tt(r, { fund: fmtEm(PRIZE_FUND) })))}</div>`;
+  if (!emInTg()) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><p class="hint">${u.trnNeedTg}</p></div>`; // the owner (16.10): no «How the tournament works» list
   trnFetch(); const d = TRN.d;
   if (!d) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><p class="hint">${u.tgTopLoading}</p></div>`;
   const t = d.t;
-  if (!t) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><div class="panel"><div style="font-weight:700">🏆 ${u.trnTitle}</div><p class="hint" style="margin:6px 0 0">${tt(u.trnNone, { date: d.next ? emDate(d.next.opensAt) : '' })}</p></div>${S.cloud && S.cloud.admin ? trnAdminHTML(d) : ''}<div class="eyebrow" style="margin-top:14px">${u.trnRulesTitle}</div>${listHTML(u.trnRules.map(r => tt(r, { fund: fmtEm(PRIZE_FUND) })))}</div>`;
+  if (!t) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><div class="panel"><div style="font-weight:700">🏆 ${u.trnTitle}</div><p class="hint" style="margin:6px 0 0">${tt(u.trnNone, { date: d.next ? emDate(d.next.opensAt) : '' })}</p></div>${S.cloud && S.cloud.admin ? trnAdminHTML(d) : ''}</div>`;
   const sat = emDate(t.gamesAt), sun = emDate(t.gamesAt + 86400000);
   const head = `<div class="panel trn-head"><div class="row"><div class="grow"><div style="font-weight:800;font-size:17px">🏆 ${tt(u.trnWeek, { sat, sun })}</div><div class="hint" style="margin:2px 0 0">${trnPhaseText(t)}${t.round ? ' · ' + tt(u.trnRound, { n: t.round }) : ''}</div></div><div class="trn-fund"><div class="hint" style="margin:0">${u.trnFund}</div><b class="num">💎 ${fmtEm(t.fund)}</b></div></div>
     <div class="hint" style="margin:8px 0 0">${u.trnFormat}: ${t.mode === 'online' ? u.trnModeOnline : u.trnModeOffline} · ${esc(trnScenName(t.scenario))} · ${tt(u.trnTableN, { n: t.n })}</div>
     <div class="hint" style="margin:2px 0 0">${tt(u.trnPlayers, { n: t.players })} · ${tt(u.trnHosts, { n: t.hosts })}${S.skins.borrowed ? ` · ${tt(u.emBorrowed, { date: emDate(S.skins.borrowed) })}` : ''}</div></div>`;
-  return `${topbar(u.trnTitle, u.trnSub)}<div class="stack">${head}${trnMeHTML(d)}${S.cloud && S.cloud.admin ? trnAdminHTML(d) : ''}${trnPrizesHTML(d)}${trnStandingsHTML(d)}<div class="eyebrow" style="margin-top:14px">${u.trnRulesTitle}</div>${listHTML(u.trnRules.map(r => tt(r, { fund: fmtEm(t.fund) })))}</div>`;
+  return `${topbar(u.trnTitle, u.trnSub)}<div class="stack">${head}${trnMeHTML(d)}${S.cloud && S.cloud.admin ? trnAdminHTML(d) : ''}${trnPrizesHTML(d)}${trnStandingsHTML(d)}</div>`;
 }
 /* the host's app takes the tournament table: the scenario and the size from the tournament, the players already seated on the server */
 function trnApplySetup(t, n) {

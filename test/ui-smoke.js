@@ -935,8 +935,8 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   if ((h.match(/class="em-pack /g) || []).length !== 8 || (h.match(/em-badge/g) || []).length !== 8 || !h.includes('7 500') || !h.includes('<b>10 500</b>') || !h.includes('20 000') || !h.includes(X.tt(u.emFirst, { pct: 100 })) || !h.includes(X.tt(u.emFirst, { pct: 20 }))) F('v62: eight packs, every first-purchase bonus shown (7 500 → 10 500)');
   if (!h.includes(X.tt(u.emPrice, { usd: E('emUsd')(39.99), stars: 2000 })) || !h.includes(u.emTgOnly) || !h.includes(u.emEmpty)) F('v62: the price in $ and Stars; outside Telegram — the hint');
   if (E('prizeTable')(10, 10000).join(',') !== '2250,2150,2100,500,500,500,500,500,500,500' || E('prizeTable')(20, 10000).length !== 15) F('v63: the prize arithmetic');
-  A['shop-tab'](el('shop-tab', { v: 'cards' })); check('v63 shop back'); if (!app.innerHTML.includes('shop-grid')) F('v62: the cards tab returns');
-  A.go(el('go', { to: 'tournament' })); check('v63 tournament (web)'); h = app.innerHTML; if (!h.includes(u.trnTitle) || !h.includes(u.trnNeedTg) || !u.trnRules.every(r => h.includes(X.tt(r, { fund: '10 000' })))) F('v63: the tournament screen outside Telegram: the rules with the fund');
+  if (h.includes(X.tt(u.emWhat, { epic: '7 500', fund: '10 000' }).slice(0, 25))) F('the emeralds tab has no description under the balance (owner, 16.10)'); A['shop-tab'](el('shop-tab', { v: 'cards' })); check('v63 shop back'); if (!app.innerHTML.includes('shop-grid')) F('v62: the cards tab returns');
+  A.go(el('go', { to: 'tournament' })); check('v63 tournament (web)'); h = app.innerHTML; if (!h.includes(u.trnTitle) || !h.includes(u.trnNeedTg) || h.includes(u.trnRulesTitle) || u.trnRules.some(r => h.includes(X.tt(r, { fund: '10 000' })))) F('v63: the tournament screen outside Telegram: the hint, no rules list (owner, 16.10)');
   A.back(el('back')); if (S.screen !== 'home') F('v63: Back from the tournament goes home');
   S.ui.shopTab = 'cards'; X.render(); console.log('v63 ok');
 }).catch(e => { fails++; console.log('FAIL v59 crashed', e && e.stack || e); }).then(() => {
