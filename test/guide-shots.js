@@ -16,13 +16,26 @@ const NAMES = {
   pl: ['Anna', 'Bartek', 'Nina', 'Gienek', 'Darek', 'Ewa', 'Zosia', 'Jola'],
   hy: ['Աննա', 'Արամ', 'Նինա', 'Գևորգ', 'Դավիթ', 'Եվա', 'Ժաննա', 'Զոյա']
 };
+/* the classic table of 10: seat 1 the Don (the player in the app), seat 2 Mafia (a second player in the app), 3 Mafia and 4 the Sheriff through the bot, 5–8 citizens through the bot, 9 and 10 by phone */
+const CNAMES = {
+  ru: ['Нина', 'Борис', 'Анна', 'Гена', 'Дима', 'Ева', 'Женя', 'Зоя', 'Игорь', 'Катя'],
+  uk: ['Ніна', 'Богдан', 'Анна', 'Гена', 'Дмитро', 'Єва', 'Женя', 'Зоя', 'Ігор', 'Катя'],
+  en: ['Nina', 'Boris', 'Anna', 'Gene', 'Dima', 'Eva', 'Jane', 'Zoe', 'Ivan', 'Kate'],
+  pl: ['Nina', 'Bartek', 'Anna', 'Gienek', 'Darek', 'Ewa', 'Zosia', 'Jola', 'Igor', 'Kasia'],
+  hy: ['Նինա', 'Արամ', 'Աննա', 'Գևորգ', 'Դավիթ', 'Եվա', 'Ժաննա', 'Զոյա', 'Իգոր', 'Կատյա']
+};
 const HOST = { ru: 'Ведущий', uk: 'Ведучий', en: 'Host', pl: 'Prowadzący', hy: 'Վարող' };
 const CHAT = { ru: 'Всем доброе утро! Я мирная — проверяйте.', uk: 'Усім доброго ранку! Я мирна — перевіряйте.', en: 'Good morning everyone! I am a citizen — check me.', pl: 'Dzień dobry wszystkim! Jestem cywilem — sprawdźcie.', hy: 'Բարի լույս բոլորին։ Ես խաղաղ եմ՝ ստուգեք։' };
 /* every picture the guide refers to (src/02x-i18n-guide.js) — the smoke test checks the texts against this list */
 const SHOTS = ['home', 'cards', 'role-sheet', 'setup-top', 'setup-comp', 'setup-names', 'setup-table', 'host-lobby', 'deal-online', 'deal-closed', 'deal-open', 'deal-table',
   'night0', 'night0-role', 'day0', 'night-shoot', 'night-recorded', 'night-check', 'night-result', 'night-end', 'morning', 'balagan', 'speeches', 'vote', 'vote-count', 'vote-result',
   'sheet-players', 'sheet-log', 'settings', 'end', 'end-review',
-  'p-invite', 'p-tables', 'p-lobby', 'p-card', 'p-night', 'p-ask', 'p-result', 'p-day', 'p-chat', 'p-vote', 'p-end'];
+  'p-invite', 'p-tables', 'p-lobby', 'p-card', 'p-night', 'p-ask', 'p-result', 'p-day', 'p-chat', 'p-vote', 'p-end',
+  // the classic game (v61): the fixed line-up, the family's deal in night 0 with the Don's signs, day 1 straight to the minutes with nominations,
+  // the vote by hands, a tie → defence speeches → a re-vote → lift all, the shot by hands on the count, the best move, the vote windows online, the fouls
+  'c-setup', 'c-night0', 'c-night0-sheriff', 'c-day1', 'c-nominate', 'c-speech-nominated', 'c-vote', 'c-vote-close', 'c-tie', 'c-revote', 'c-lift', 'c-lift-result',
+  'c-hands-host', 'c-night-don', 'c-morning', 'c-poll-ready', 'c-poll-host', 'c-vote-result', 'c-fouls',
+  'c-p-deal', 'c-p-dealwatch', 'c-p-nominate', 'c-p-hands', 'c-p-hands-hit', 'c-p-poll'];
 const APP_PORT = 8795, TG_PORT = 8794;
 
 async function main() {
@@ -48,6 +61,110 @@ async function main() {
     window.MAFIA_API = api; window.__tg = { invoices: [], links: [] }; const noop = () => {};
     window.Telegram = { WebApp: { platform: 'ios', version: '8.0', initData, initDataUnsafe: { user, auth_date: 1, hash: 'x' }, ready: noop, expand: noop, close: noop, setHeaderColor: noop, setBackgroundColor: noop, setBottomBarColor: noop, disableVerticalSwipes: noop, lockOrientation: noop, enableClosingConfirmation: noop, disableClosingConfirmation: noop, BackButton: { show: noop, hide: noop, onClick: noop }, HapticFeedback: { impactOccurred: noop, notificationOccurred: noop, selectionChanged: noop }, openInvoice: noop, openTelegramLink: l => window.__tg.links.push(l), openLink: l => window.__tg.links.push(l) } };
   };
+  /* a classic game of 10, online: the host, the Don (seat 1) and one mafioso (seat 2) in the app, the rest through the bot and by phone */
+  async function classicFlow(lang) {
+    const dir = path.join(out, lang); const names = CNAMES[lang];
+    env = { DB: makeD1(path.join(ROOT, 'backend', 'schema.sql')), BOT_TOKEN: 'test-token', WEBHOOK_SECRET: 'hook', APP_URL: 'https://mafiapro.app/', ALLOWED_ORIGIN: '*', TELEGRAM_API: tg.base, ADMIN_IDS: '1', SEC_RESULT_GAP: '0' };
+    const hostUser = { id: 100, first_name: HOST[lang], username: 'mafia_host', language_code: lang };
+    const donUser = { id: 601, first_name: names[0], username: 'nina', language_code: lang };
+    const mafUser = { id: 602, first_name: names[1], username: 'boris', language_code: lang };
+    const bots = [[703, names[2]], [704, names[3]], [705, names[4]], [706, names[5]], [707, names[6]], [708, names[7]]]; // seats 3–8 through the bot
+    const mk = async () => { const c = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, locale: lang }); return [c, await c.newPage()]; };
+    const [ctxH, p] = await mk(), [ctxD, q] = await mk(), [ctxM, m] = await mk();
+    const errs = []; [p, q, m].forEach(pg => pg.on('pageerror', e => errs.push(e.message)));
+    await p.addInitScript(tgInit, { initData: await sign(hostUser), user: hostUser, api: `http://127.0.0.1:${APP_PORT}` });
+    await q.addInitScript(tgInit, { initData: await sign(donUser), user: donUser, api: `http://127.0.0.1:${APP_PORT}` });
+    await m.addInitScript(tgInit, { initData: await sign(mafUser), user: mafUser, api: `http://127.0.0.1:${APP_PORT}` });
+    await p.goto(appFile); await q.goto(appFile); await m.goto(appFile); await p.waitForTimeout(900);
+    for (const pg of [p, q, m]) { await pg.addStyleTag({ content: STILL }); try { await pg.evaluate(() => document.fonts && document.fonts.ready); } catch (e) {} }
+    const S = fn => p.evaluate(fn), Q = fn => q.evaluate(fn), M = fn => m.evaluate(fn);
+    const waitS = (fn, ms = 15000) => p.waitForFunction(fn, null, { timeout: ms }).then(() => true).catch(() => false);
+    const waitQ = (fn, ms = 15000) => q.waitForFunction(fn, null, { timeout: ms }).then(() => true).catch(() => false);
+    const waitM = (fn, ms = 15000) => m.waitForFunction(fn, null, { timeout: ms }).then(() => true).catch(() => false);
+    const shot = async (pg, id, sel, off = 66) => {
+      await pg.evaluate(([sel, off]) => { document.querySelectorAll('.toast').forEach(t => t.remove()); if (!sel) { window.scrollTo(0, 0); return; } const el = document.querySelector(sel); if (el) window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - off)); }, [sel || '', off]);
+      await pg.waitForTimeout(120);
+      await pg.screenshot({ path: path.join(dir, id + '.jpg'), type: 'jpeg', quality: 82 }); total++;
+    };
+    const seatId = (seat) => `S.game.players.find(x => x.seat === ${seat}).id`;
+    for (const [pg, l] of [[p, lang], [q, lang], [m, lang]]) await pg.evaluate(l => { S.settings.lang = l; setLang(l); S.settings.revealDead = true; S.setup.openRoles = true; go('home'); }, l);
+    await p.waitForTimeout(300);
+    // ----- the classic table online: the fixed line-up, names by seat, the table
+    await S(() => { ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(200);
+    await p.evaluate(names => { S.setup.names = names.slice(); S.setup.online = false; S.setup.hostRole = 'host'; render(); }, names);
+    await p.click('[data-a="on-mode"][data-id="online"]'); await waitS(() => S.lobby && S.lobby.code);
+    const code = await S(() => S.lobby.code);
+    for (const [id, name] of bots) await hook({ update_id: id, message: { message_id: 1, from: { id, first_name: name, language_code: lang }, chat: { id, type: 'private' }, text: `/start join_${code}` } });
+    for (const [pg, u] of [[q, donUser], [m, mafUser]]) {
+      await hook({ update_id: u.id, message: { message_id: 1, from: { id: u.id, first_name: u.first_name, username: u.username, language_code: lang }, chat: { id: u.id, type: 'private' }, text: `/start join_${code}` } });
+      await pg.evaluate(async () => { const d = await api('/api/ping', {}); S.cloud.table = d.table || null; }); await pg.evaluate(code => tableOpen(code), code);
+    }
+    await S(() => refreshTable()); await p.waitForTimeout(700);
+    await waitS(() => S.lobby && S.lobby.seats && S.lobby.seats[601] === 0 && S.lobby.seats[602] === 1 && Object.keys(S.lobby.seats).length === 8);
+    await shot(p, 'c-setup', '.meter', 70);
+    // ----- the deal (the shuffle's 9 draws keep the seat order), two cards by phone, the introductory night
+    await S(() => { const mr = Math.random; let k = 0; Math.random = () => (k++ < 9 ? 0.999999 : mr()); ACT.deal({ dataset: {} }); Math.random = mr; });
+    await waitS(() => S.screen === 'deal' && S.game && S.game.tg && S.game.tg.sent && S.game.tg.sent.length >= 8); await p.waitForTimeout(300);
+    await S(() => { ACT.flip({ dataset: {} }); ACT.hide({ dataset: {} }); ACT.flip({ dataset: {} }); ACT.hide({ dataset: {} }); if (S.game.dealIdx < S.game.players.length) ACT['tg-deal-done']({ dataset: {} }); ACT.start({ dataset: {} }); });
+    await waitQ(() => TB.data && TB.data.me && TB.data.me.roleId === 'don' && TB.data.me.ask && TB.data.me.ask.kind === 'deal');
+    for (const id of ['night1', 'n5', 'then', 'night2', 'n9']) { await q.click(`[data-a="dl-add"][data-id="${id}"]`); await q.waitForTimeout(120); }
+    await q.waitForTimeout(600); await shot(q, 'c-p-deal', '.tb-ask, .panel.raised', 70);
+    await waitM(() => { const d = TB.data; const rows = d && Array.isArray(d.peers) ? d.peers.filter(r => Array.isArray(r.payload && r.payload.seq) && r.payload.seq.length >= 5) : []; return rows.length > 0; });
+    await m.waitForTimeout(500); await shot(m, 'c-p-dealwatch', '.panel.raised', 70);
+    await waitS(() => S.game.onl && Array.isArray(S.game.onl.deal) && S.game.onl.deal.length >= 5); await p.waitForTimeout(300); await shot(p, 'c-night0');
+    await S(() => ACT.next({ dataset: {} })); await p.waitForTimeout(300); await shot(p, 'c-night0-sheriff');
+    await S(() => { const g = S.game; while (g.phase === 'night0' && g.stepIdx < g.steps.length) ACT.next({ dataset: {} }); ACT.day0({ dataset: {} }); }); await p.waitForTimeout(500);
+    // ----- day 1 straight to the minutes: the Don (seat 1) nominates from the app, the host nominates for seat 2
+    await shot(p, 'c-day1');
+    await waitQ(() => TB.data && TB.data.me && TB.data.me.ask && TB.data.me.ask.kind === 'nominate' && !TB.data.me.ask.done); await q.waitForTimeout(300);
+    await q.click('.tb-ask [data-a="tb-pick"][data-seat="5"]'); await q.waitForTimeout(200); await shot(q, 'c-p-nominate', '.tb-ask', 120);
+    await q.click('[data-a="tb-confirm"]'); await waitS(() => S.game.ballot && S.game.ballot.candidates.length === 1);
+    await S(() => { ACT.speech({ dataset: { d: '1' } }); const g = S.game; ACT['nom-open']({ dataset: { id: g.players.find(x => x.seat === 2).id } }); }); await p.waitForTimeout(300); await shot(p, 'c-nominate', '.picker', 150);
+    await S(() => { const g = S.game; ACT.nominate({ dataset: { id: g.players.find(x => x.seat === 2).id, t: g.players.find(x => x.seat === 6).id } }); }); await p.waitForTimeout(300); await shot(p, 'c-speech-nominated');
+    // ----- the vote by hands (the host marks): 5 : 5 → defence speeches → a re-vote 4 : 4 → lift all
+    await S(() => { ACT.stage({ dataset: { id: 'vote' } }); ACT['poll-stop'](); }); await p.waitForTimeout(300);
+    await p.evaluate(() => { const g = S.game; const id = s => g.players.find(x => x.seat === s).id; [1, 2, 3, 4, 5].forEach(s => ACT.vote({ dataset: { v: id(s), c: id(6) } })); [6, 7, 8, 9, 10].forEach(s => ACT.vote({ dataset: { v: id(s), c: id(5) } })); });
+    await p.waitForTimeout(300); await shot(p, 'c-vote', '.cand-strip', 70);
+    await shot(p, 'c-vote-close', '[data-a="vote-close"]', 560);
+    await S(() => ACT['vote-close']()); await p.waitForTimeout(300); await shot(p, 'c-tie');
+    await S(() => { ACT['tie-speech']({ dataset: { d: '1' } }); ACT['tie-speech']({ dataset: { d: '1' } }); }); await p.waitForTimeout(300);
+    await p.evaluate(() => { const g = S.game; const id = s => g.players.find(x => x.seat === s).id; [1, 2, 3, 4].forEach(s => ACT.vote({ dataset: { v: id(s), c: id(6) } })); [7, 8, 9, 10].forEach(s => ACT.vote({ dataset: { v: id(s), c: id(5) } })); });
+    await p.waitForTimeout(300); await shot(p, 'c-revote');
+    await S(() => ACT['vote-close']()); await p.waitForTimeout(300);
+    await p.evaluate(() => { const g = S.game; const id = s => g.players.find(x => x.seat === s).id; [1, 2, 3, 4, 7, 8].forEach(s => ACT['lift-toggle']({ dataset: { id: id(s) } })); }); await p.waitForTimeout(300); await shot(p, 'c-lift');
+    await S(() => ACT['lift-finish']()); await p.waitForTimeout(400); await shot(p, 'c-lift-result');
+    // ----- night 1: the family shoots by hands on the count — the Don and seat 2 from their phones at «5», seat 3 through the API
+    await S(() => { HS.SHOW = 60000; ACT.night({ dataset: {} }); }); await p.waitForTimeout(300);
+    const shotKey = await S(() => { const onl = S.game.onl; return onl && onl.shot ? onl.shot.key : null; });
+    if (!shotKey) throw new Error('no hands shot key');
+    await waitQ(() => !!document.querySelector('#hs-num')); await waitM(() => !!document.querySelector('#hs-num'));
+    const atDigit = pg => pg.waitForFunction(() => { const el = document.querySelector('#hs-num'); return !!el && /^[0-9]+$/.test(el.textContent.trim()); }, null, { timeout: 15000 }).then(() => true).catch(() => false);
+    await atDigit(p); await shot(p, 'c-hands-host', '.hs', 80);
+    await waitQ(() => { const el = document.querySelector('#hs-num'); return !!el && el.textContent.trim() === '3'; }); await shot(q, 'c-p-hands', '.hs', 80);
+    const fireAt7 = pg => pg.waitForFunction(() => { const el = document.querySelector('#hs-num'); return !!el && el.textContent.trim() === '7'; }, null, { timeout: 15000 }).then(() => pg.click('[data-a="hs-fire"]')).catch(() => false);
+    const seat3 = await sign({ id: 703, first_name: names[2], language_code: lang });
+    await Promise.all([fireAt7(q), fireAt7(m), fetch(`http://127.0.0.1:${APP_PORT}/api/table/act`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: seat3, code, key: shotKey, payload: { n: 7 } }) })]);
+    if (!(await waitQ(() => TB.data && TB.data.me && TB.data.me.shotResult && TB.data.me.shotResult.hit))) problems.push(`${lang}: classic — the hands did not meet on 7`);
+    await q.waitForTimeout(400); await shot(q, 'c-p-hands-hit', '.hs', 80);
+    await S(() => { const g = S.game; if (!g.actions.find(a => a.stepId === g.steps[g.stepIdx].id)) { const t = g.players.find(x => x.seat === 7); ACT.pick({ dataset: { id: t.id } }); ACT.confirm({ dataset: {} }); } ACT.next({ dataset: {} }); const t4 = g.players.find(x => x.seat === 4); ACT.pick({ dataset: { id: t4.id } }); ACT.confirm({ dataset: {} }); });
+    await p.waitForTimeout(300); await shot(p, 'c-night-don', '.result', 160);
+    await S(() => { ACT.next({ dataset: {} }); const g = S.game; const t1 = g.players.find(x => x.seat === 1); ACT.pick({ dataset: { id: t1.id } }); ACT.confirm({ dataset: {} }); ACT.next({ dataset: {} }); let guard = 6; while (g.phase === 'night' && g.stepIdx < g.steps.length && guard--) ACT.next({ dataset: {} }); ACT.resolve({ dataset: {} }); });
+    await p.waitForTimeout(500); await shot(p, 'c-morning');
+    // ----- day 2: the vote windows online — the host starts, the players answer «I vote» inside the window
+    await S(() => { const g = S.game; const id = s => g.players.find(x => x.seat === s).id; ACT['bm-save']({ dataset: { skip: '1' } }); ACT.stage({ dataset: { id: 'speeches' } }); const order = speakOrder(g); ACT.nominate({ dataset: { id: order[0].id, t: id(3) } }); ACT.speech({ dataset: { d: '1' } }); ACT.nominate({ dataset: { id: order[1].id, t: id(9) } }); ACT.stage({ dataset: { id: 'vote' } }); });
+    await p.waitForTimeout(300); await shot(p, 'c-poll-ready');
+    await S(() => { PLC.DUR = 6000; ACT['poll-start'](); }); await p.waitForTimeout(200);
+    const atGo = pg => pg.waitForFunction(() => { const el = document.querySelector('#pl-cd'); return !!el && el.classList.contains('go'); }, null, { timeout: 15000 }).then(() => true).catch(() => false);
+    await atGo(p); await shot(p, 'c-poll-host');
+    await atGo(q); await shot(q, 'c-p-poll', '.pl-cands', 90);
+    await q.click('[data-a="pl-ans"][data-yes="1"]').catch(() => {});
+    await waitS(() => S.game.dayStage === 'result', 30000); await p.waitForTimeout(400); await shot(p, 'c-vote-result');
+    // ----- the fouls of a player
+    await S(() => { const g = S.game; const id = g.players.find(x => x.seat === 8).id; S.ui.sheet = { type: 'playerEdit', id }; ACT['foul-add']({ dataset: { id } }); ACT['foul-add']({ dataset: { id } }); ACT['foul-add']({ dataset: { id } }); S.ui.sheet = { type: 'playerEdit', id }; render(); });
+    await p.waitForTimeout(300); await shot(p, 'c-fouls');
+    if (errs.length) problems.push(`${lang}: classic page errors — ${errs.join(' | ')}`);
+    await ctxH.close(); await ctxD.close(); await ctxM.close();
+  }
   for (const lang of langs) {
     const dir = path.join(out, lang); fs.mkdirSync(dir, { recursive: true });
     env = { DB: makeD1(path.join(ROOT, 'backend', 'schema.sql')), BOT_TOKEN: 'test-token', WEBHOOK_SECRET: 'hook', APP_URL: 'https://mafiapro.app/', ALLOWED_ORIGIN: '*', TELEGRAM_API: tg.base, ADMIN_IDS: '1', SEC_RESULT_GAP: '0' };
@@ -160,6 +277,7 @@ async function main() {
     await waitQ(() => TB.data && TB.data.pub && TB.data.pub.phase === 'end'); await q.waitForTimeout(500); await shot(q, 'p-end');
     if (errs.length) problems.push(`${lang}: page errors — ${errs.join(' | ')}`);
     await ctxH.close(); await ctxP.close();
+    try { await classicFlow(lang); } catch (e) { problems.push(`${lang}: classic — ${e && e.message}`); }
     const made = fs.readdirSync(dir).filter(f => f.endsWith('.jpg')).map(f => f.replace(/\.jpg$/, ''));
     const missing = SHOTS.filter(id => !made.includes(id)); if (missing.length) problems.push(`${lang}: missing ${missing.join(', ')}`);
     console.log(`${lang}: ${made.length} pictures`);

@@ -203,7 +203,8 @@ function tbHandsHTML(ask, me, pub) {
   const mineSent = TB.sent[ask.key]; const myN = mineSent ? mineSent.n : (ask.picked ? ask.picked[0] : undefined); const myAt = mineSent ? mineSent.at : 0;
   const mateSeats = (me.mates || []).map(m => m.seat); const peers = tbPeerRows(ask.key).filter(r => mateSeats.includes(r.seat)); const seats = pub.seats || [];
   const row = s => { const seat = seats.find(x => x.seat === s.seat) || s; const isMe = s.seat === me.seat; let n, firedAt = 0;
-    if (isMe) { n = myN; firedAt = myAt; } else { const pr = peers.find(r => r.seat === s.seat); const hn = (me.hands || []).find(h => h.seat === s.seat); n = pr ? Number(pr.payload.n) : hn ? hn.n : undefined; if (n !== undefined) { const k = ask.key + ':' + s.seat; if (!TB.seen[k]) TB.seen[k] = Date.now(); firedAt = TB.seen[k]; } }
+    /* my own hand after the outcome: the prompt is gone, the hand is in me.hands */
+    if (isMe) { n = myN; firedAt = myAt; if (n === undefined) { const hn = (me.hands || []).find(h => h.seat === me.seat); if (hn) n = hn.n; } } else { const pr = peers.find(r => r.seat === s.seat); const hn = (me.hands || []).find(h => h.seat === s.seat); n = pr ? Number(pr.payload.n) : hn ? hn.n : undefined; if (n !== undefined) { const k = ask.key + ':' + s.seat; if (!TB.seen[k]) TB.seen[k] = Date.now(); firedAt = TB.seen[k]; } }
     const fired = n !== undefined; const anim = fired && Date.now() - firedAt < HS.ANIM;
     return `<div class="hs-hand ${isMe ? 'me' : ''} ${fired ? 'fired' : ''}"><div class="lb"><b>${s.seat}</b> · ${esc(isMe ? u.tbYou : seat.name || '')}</div>${handSVG(lead && !fired ? HAND_FIST : HAND_GUN, 0, { size: 64, fire: anim })}<div class="at">${fired ? tt(u.hsShotAt, { n }) : u.hsOnTable}</div></div>`; };
   const members = [{ seat: me.seat, name: '' }].concat(me.mates || []).sort((a, b) => a.seat - b.seat);

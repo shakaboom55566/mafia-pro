@@ -344,7 +344,7 @@ function tableScreen() {
       ${card}${mates}
       ${me && me.contract ? `<div class="quiet">${tt(u.tbContract, { seat: me.contract })}</div>` : ''}${recruitNoteHTML(me)}
       <div class="btn-row" style="justify-content:center">${d.isHost ? '' : `<button class="btn ghost sm" data-a="tb-leave" data-code="${esc(TB.code)}">${u.tbLeaveTable}</button>`}<button class="btn ghost sm" data-a="go" data-to="home">${u.tbLeaveBtn}</button></div>
-      ${pub.mode !== 'classic' && typeof guideButtonHTML === 'function' ? `<div class="btn-row" style="justify-content:center">${guideButtonHTML('player')}</div>` : ''}</div>`;
+      ${typeof guideButtonHTML === 'function' ? `<div class="btn-row" style="justify-content:center">${guideButtonHTML('player', pub.mode === 'classic' ? 'classic' : 'role')}</div>` : ''}</div>`;
   }
   // ----- the game, as seen by a living player
   const ask = me && me.ask; const isMine = !!ask && !ask.done && !ask.blocked;

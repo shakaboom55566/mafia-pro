@@ -867,8 +867,8 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   // v60: the rarity filter — nine rarities plus «all»; works together with the team filter
   A['skin-filter'](el('skin-filter', { id: 'all' })); h = app.innerHTML;
   if ((h.match(/data-a="skin-rar"/g) || []).length !== 10 || !h.includes(u.skRarAll) || !['common', 'rare', 'uncommon', 'epic', 'legendary', 'sr', 'ssr', 'ur', 'mythic'].every(r => h.includes(u.skRar[r])) || !h.includes('>Mythical</b>') || !h.includes('>SSR</b>')) F('v60: the rarity chips — all nine with their marks');
-  A['skin-rar'](el('skin-rar', { id: 'epic' })); check('v60 rarity epic'); h = app.innerHTML; if ((h.match(/class="sk-tile /g) || []).length !== nSeries || !h.includes('skin-item')) F('v60: Epic keeps the whole series and the season skin');
-  A['skin-rar'](el('skin-rar', { id: 'mythic' })); check('v60 rarity mythic'); h = app.innerHTML; if (h.includes('class="sk-tile ') || h.includes('skin-item') || !h.includes(X.tt(u.skRarNone, { r: u.skRar.mythic }))) F('v60: Mythical — nothing yet, said so');
+  A['skin-rar'](el('skin-rar', { id: 'epic' })); check('v61 rarity epic'); h = app.innerHTML; if ((h.match(/class="sk-tile /g) || []).length !== nSeries || !h.includes('skin-item')) F('v60: Epic keeps the whole series and the season skin');
+  A['skin-rar'](el('skin-rar', { id: 'mythic' })); check('v61 rarity mythic'); h = app.innerHTML; if (h.includes('class="sk-tile ') || h.includes('skin-item') || !h.includes(X.tt(u.skRarNone, { r: u.skRar.mythic }))) F('v60: Mythical — nothing yet, said so');
   A['skin-filter'](el('skin-filter', { id: 'black' })); A['skin-rar'](el('skin-rar', { id: 'epic' })); h = app.innerHTML; if (h.includes('data-id="lilac_doctor"') || !h.includes('data-id="orchid_surgeon"')) F('v60: rarity and team filters work together');
   A['skin-rar'](el('skin-rar', { id: 'nonsense' })); if (S.ui.skinRar !== 'all') F('v60: an unknown rarity means all');
   A['skin-filter'](el('skin-filter', { id: 'all' })); A['skin-sheet'](el('skin-sheet', { id: 'lilac_doctor' })); check('v57 skin sheet'); h = app.innerHTML;
@@ -886,7 +886,11 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   const G = E('window.GUIDE_TEXTS'); const g = G && G[E('L.code')]; if (!g) { F('texts for ' + E('L.code')); return; }
   const { SHOTS } = require('./guide-shots.js');
   const ids = new Set(); const bad = [];
-  ['player', 'host'].forEach(part => { if (!Array.isArray(g[part]) || g[part].length < 8) F(part + ': at least 8 chapters'); (g[part] || []).forEach((c, i) => {
+  // v61: the classic part — its own chapters plus references to the role game's chapters ({ use: 'player.N' })
+  const cl = g.classic || {}; if (!Array.isArray(cl.player) || cl.player.length < 8 || !Array.isArray(cl.host) || cl.host.length < 8 || !cl.leadPlayer || !cl.leadHost) F('classic: two parts of at least 8 chapters and leads');
+  ['player', 'host'].forEach(part => (cl[part] || []).forEach((c, i) => { if (c.use) { const r = E('guideResolve')(c, g); if (!r) F(`classic ${part} ${i}: reference ${c.use} resolves`); } }));
+  const parts = [['player', g.player], ['host', g.host], ['classic.player', (cl.player || []).map(c => E('guideResolve')(c, g)).filter(Boolean)], ['classic.host', (cl.host || []).map(c => E('guideResolve')(c, g)).filter(Boolean)]];
+  parts.forEach(([part, list]) => { if (!Array.isArray(list) || list.length < 8) F(part + ': at least 8 chapters'); (list || []).forEach((c, i) => {
     if (!c.t || !((c.p || []).length || (c.r || []).length)) F(`${part} ${i}: title and some text`);
     (c.i || []).forEach(([id, cap]) => { ids.add(id); if (!SHOTS.includes(id)) bad.push(id); if (!cap) F(`${part} ${i}: caption of ${id}`); });
     [].concat(c.p || [], c.s || [], c.r || []).forEach(x => { const out = E('guideTxt')(x); const m = out.match(/\{\w+\}/); if (m) F(`${part} ${i}: unresolved ${m[0]} in: ${x.slice(0, 60)}`); if (/undefined/.test(out)) F(`${part} ${i}: undefined in text`); });
@@ -896,7 +900,8 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   if (!g.btn || !g.btnPlayer || !g.tabPlayer || !g.tabHost || !g.leadHost || !g.chapterOf) F('meta texts');
   // the entry: on the role game's setup (not on the classic / small table), the small button at the bottom of the host's game screen
   S.game = null; S.ui.sheet = null; A.new(el('new')); check('v59 setup'); if (!app.innerHTML.includes('data-a="guide" data-id="host"') || !app.innerHTML.includes(g.btn)) F('the setup of the role game has the guide entry');
-  A['scen-use'](el('scen-use', { id: 'classic' })); check('v59 classic setup'); if (app.innerHTML.includes('data-a="guide"')) F('the classic setup has no guide entry'); A.new(el('new'));
+  A['scen-use'](el('scen-use', { id: 'classic' })); check('v59 classic setup'); if (!app.innerHTML.includes('data-a="guide" data-id="host" data-game="classic"')) F('the classic setup has the classic guide entry'); A.new(el('new'));
+  A['mini-use'](el('mini-use', { id: 'corruption', n: '6' })); check('v61 mini setup'); if (app.innerHTML.includes('data-a="guide"')) F('the small table has no guide entry'); A.new(el('new'));
   A.guide(el('guide', { id: 'host' })); check('v59 guide host'); let h = app.innerHTML;
   if (S.screen !== 'guide' || S.ui.guideTab !== 'host' || !h.includes(g.title) || !h.includes(g.leadHost) || !h.includes(g.host[0].t) || !h.includes('gd-ch open')) F('the guide opens on the host part with the first chapter open');
   if ((h.match(/class="gd-ch( open)?"/g) || []).length !== g.host.length) F('every host chapter listed');
@@ -909,7 +914,19 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   if (!h.includes('«' + u.dealCards + '»') || !h.includes('«' + u.confirm + '»')) F('button labels of the app appear in the text as «…»');
   A['guide-img'](el('guide-img', { id: 'home' })); check('v59 zoom'); if (!S.ui.sheet || S.ui.sheet.type !== 'guideImg' || !app.innerHTML.includes('gd-zoom')) F('a picture opens in a sheet'); A['sheet-close']();
   A.back(el('back')); check('v59 back'); if (S.screen !== 'setup') F('Back returns to the setup (' + S.screen + ')');
-  S.screen = 'home'; X.render(); console.log('v59 ok');
+  // v61: the classic — the entry on the classic setup, the game switch, both parts with referenced chapters
+  A['scen-use'](el('scen-use', { id: 'classic' })); check('v61 classic setup'); if (!app.innerHTML.includes('data-a="guide" data-id="host" data-game="classic"')) F('the classic setup has the guide entry');
+  A.guide(el('guide', { id: 'host', game: 'classic' })); check('v61 guide classic host'); h = app.innerHTML;
+  if (S.ui.guideGame !== 'classic' || !h.includes(cl.leadHost) || !h.includes(cl.host[0].t) || !h.includes('data-a="guide-game" data-id="role"') || !h.includes(u.classicTitle)) F('the classic guide opens on the host part with the game switch');
+  A['guide-all'](el('guide-all', { v: 'open' })); check('v61 classic host all'); h = app.innerHTML;
+  parts[3][1].forEach((c, i) => { if (!h.includes(c.t)) F('classic host chapter ' + i + ' rendered: ' + c.t); });
+  if (!h.includes('«' + u.closeVote + '»') || !h.includes('/guide/' + E('L.code') + '/c-night0.jpg') || !h.includes('/guide/' + E('L.code') + '/deal-closed.jpg')) F('classic host: the close-vote label, a classic picture and a referenced chapter\'s picture');
+  A['guide-tab'](el('guide-tab', { id: 'player' })); A['guide-all'](el('guide-all', { v: 'open' })); check('v61 classic player all'); h = app.innerHTML;
+  parts[2][1].forEach((c, i) => { if (!h.includes(c.t)) F('classic player chapter ' + i + ' rendered: ' + c.t); });
+  if (!h.includes('«' + u.plYes + '»') || !h.includes('/guide/' + E('L.code') + '/c-p-hands.jpg')) F('classic player: the vote label and the hands picture');
+  A['guide-game'](el('guide-game', { id: 'role' })); check('v61 back to role'); if (S.ui.guideGame !== 'role' || !app.innerHTML.includes(g.leadPlayer)) F('the switch returns to the role game');
+  A.back(el('back')); if (S.screen !== 'setup') F('Back returns to the classic setup (' + S.screen + ')');
+  S.game = null; S.setup.scenario = null; S.screen = 'home'; X.render(); console.log('v59 ok');
 }).catch(e => { fails++; console.log('FAIL v59 crashed', e && e.stack || e); }).then(() => {
   console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);

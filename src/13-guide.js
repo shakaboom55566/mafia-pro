@@ -14,7 +14,12 @@ function guideTxt(s) {
   return String(s || '').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\{(\w+)\}/g, (m, k) => { const v = guideLabel(k); return v === null ? m : `<b>«${esc(v)}»</b>`; });
 }
 function guideTab() { return S.ui.guideTab === 'host' ? 'host' : 'player'; }
-function guideChapters() { const g = guideT(); return g ? (g[guideTab()] || []) : []; }
+/* v61: the guide covers two games — the role game (the base texts) and the classic (texts under `classic`, a chapter may reuse one of the
+   role game's chapters: { use: 'player.3' } — the same chapter in this language, optionally with its own title) */
+function guideGame() { return S.ui.guideGame === 'classic' ? 'classic' : 'role'; }
+function guideResolve(c, g) { if (!c || !c.use) return c; const [part, i] = String(c.use).split('.'); const src = (g[part] || [])[Number(i)]; if (!src) return null; return c.t ? Object.assign({}, src, { t: c.t }) : src; }
+function guideChapters() { const g = guideT(); if (!g) return []; const part = guideTab(); const list = guideGame() === 'classic' ? ((g.classic || {})[part] || []) : (g[part] || []); return list.map(c => guideResolve(c, g)).filter(Boolean); }
+function guideLead() { const g = guideT(); if (!g) return ''; const part = guideTab(); const c = guideGame() === 'classic' ? (g.classic || {}) : g; return part === 'player' ? (c.leadPlayer || g.leadPlayer) : (c.leadHost || g.leadHost); }
 function guideOpenSet() { const o = S.ui.guideOpen; return Array.isArray(o) ? o : [0]; }
 function guideChapterHTML(c, i, open, total) {
   const g = guideT(); const u = U();
@@ -29,36 +34,41 @@ function guideChapterHTML(c, i, open, total) {
 }
 function guideScreen() {
   const g = guideT(); const u = U(); if (!g) return `${topbar('…', '')}`;
-  const tab = guideTab(); const list = guideChapters(); const open = guideOpenSet();
+  const tab = guideTab(); const game = guideGame(); const list = guideChapters(); const open = guideOpenSet();
+  const games = `<div class="segment n2 gd-game">${[['role', u.roleGame], ['classic', u.classicTitle]].map(([id, l]) => `<button class="${game === id ? 'active' : ''}" data-a="guide-game" data-id="${id}">${esc(l)}</button>`).join('')}</div>`;
   const seg = `<div class="segment n2 gd-tabs">${[['player', g.tabPlayer], ['host', g.tabHost]].map(([id, l]) => `<button class="${tab === id ? 'active' : ''}" data-a="guide-tab" data-id="${id}">${esc(l)}</button>`).join('')}</div>`;
   const allOpen = open.length >= list.length;
-  return `${topbar(g.title, g.sub)}
+  return `${topbar(g.title, game === 'classic' ? u.classicTitle : u.roleGame)}
   <div class="stack gd">
+    ${games}
     ${seg}
-    <p class="hint gd-lead">${esc(tab === 'player' ? g.leadPlayer : g.leadHost)}</p>
+    <p class="hint gd-lead">${esc(guideLead())}</p>
     <div class="row"><div class="grow"></div><button class="btn xs ghost" data-a="guide-all" data-v="${allOpen ? 'close' : 'open'}">${esc(allOpen ? g.closeAll : g.openAll)}</button></div>
     <div class="gd-list">${list.map((c, i) => guideChapterHTML(c, i, open.includes(i), list.length)).join('')}</div>
   </div>`;
 }
 /* the button on the setup screen of the role game and the small one at the bottom of the host's game screen */
-function guideButtonHTML(kind) {
-  const g = guideT(); if (!g) return '';
-  if (kind === 'small') return `<button class="btn ghost sm gd-small" data-a="guide" data-id="host" aria-label="${esc(g.title)}" title="${esc(g.title)}">📖</button>`;
-  if (kind === 'player') return `<button class="btn ghost sm" data-a="guide" data-id="player">📖 ${esc(g.btnPlayer)}</button>`;
-  return `<button class="menu-item gd-entry" data-a="guide" data-id="host"><div class="ico">📖</div><div><div class="t">${esc(g.btn)}</div><div class="d">${esc(g.btnD)}</div></div><span class="chev">${I.chev}</span></button>`;
+function guideButtonHTML(kind, game) {
+  const g = guideT(); if (!g) return ''; const gm = game === 'classic' ? 'classic' : 'role';
+  if (kind === 'small') return `<button class="btn ghost sm gd-small" data-a="guide" data-id="host" data-game="${gm}" aria-label="${esc(g.title)}" title="${esc(g.title)}">📖</button>`;
+  if (kind === 'player') return `<button class="btn ghost sm" data-a="guide" data-id="player" data-game="${gm}">📖 ${esc(g.btnPlayer)}</button>`;
+  return `<button class="menu-item gd-entry" data-a="guide" data-id="host" data-game="${gm}"><div class="ico">📖</div><div><div class="t">${esc(g.btn)}</div><div class="d">${esc(g.btnD)}</div></div><span class="chev">${I.chev}</span></button>`;
 }
 (function () {
   const origSetup = setupScreen;
   setupScreen = function () {
-    const html = origSetup(); if (S.setup.scenario) return html; // the classic and the small table have their own rules
-    const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + guideButtonHTML('entry') + html.slice(i + 19);
+    const html = origSetup(); const sc = S.setup.scenario; if (sc && sc !== 'classic') return html; // the small table and the premium scenarios have their own rules
+    const i = html.indexOf('<div class="stack">'); return i < 0 ? html : html.slice(0, i + 19) + guideButtonHTML('entry', sc === 'classic' ? 'classic' : 'role') + html.slice(i + 19);
   };
   const origGame = gameScreen;
   gameScreen = function () {
-    const html = origGame(); const g = S.game; if (!g || isClassic(g) || (g.mods && (g.mods.bombHunt || g.mods.corruption))) return html;
+    const html = origGame(); const g = S.game; if (!g || (g.mods && (g.mods.bombHunt || g.mods.corruption))) return html;
     const row = '<div class="btn-row"><button class="btn ghost sm" data-a="sheet" data-id="players">'; const i = html.lastIndexOf(row); if (i < 0) return html;
-    const k = html.indexOf('</div>', i); return k < 0 ? html : html.slice(0, i) + row.replace('btn-row', 'btn-row gd-row') + html.slice(i + row.length, k) + guideButtonHTML('small') + html.slice(k);
+    const k = html.indexOf('</div>', i); return k < 0 ? html : html.slice(0, i) + row.replace('btn-row', 'btn-row gd-row') + html.slice(i + row.length, k) + guideButtonHTML('small', isClassic(g) ? 'classic' : 'role') + html.slice(k);
   };
+  // the classic card on the scenarios screen: the short rules stay, the full guide is one tap away
+  const origClassicCard = classicCardHTML;
+  classicCardHTML = function () { const html = origClassicCard(); const m = '<button class="btn primary sm grow" data-a="scen-use" data-id="classic">'; const i = html.indexOf(m); return i < 0 ? html : html.slice(0, i) + guideButtonHTML('small', 'classic') + html.slice(i); };
   const origSheet = sheetHTML;
   sheetHTML = function (enter) {
     const sh = S.ui.sheet;
@@ -78,8 +88,9 @@ function guideButtonHTML(kind) {
   try { document.addEventListener('error', e => { const el = e.target; if (el && el.tagName === 'IMG' && el.closest && el.closest('.gd-img')) el.closest('.gd-img').classList.add('nf'); }, true); } catch (e) {}
 })();
 Object.assign(ACT, {
-  guide(el) { const tab = el && el.dataset && el.dataset.id === 'host' ? 'host' : 'player'; if (S.screen !== 'guide') S.ui.guideFrom = S.screen; S.ui.guideTab = tab; S.ui.guideOpen = [0]; S.ui.sheet = null; go('guide'); },
+  guide(el) { const d = (el && el.dataset) || {}; const tab = d.id === 'host' ? 'host' : 'player'; if (S.screen !== 'guide') S.ui.guideFrom = S.screen; S.ui.guideTab = tab; S.ui.guideGame = d.game === 'classic' ? 'classic' : 'role'; S.ui.guideOpen = [0]; S.ui.sheet = null; go('guide'); },
   'guide-tab'(el) { S.ui.guideTab = el.dataset.id === 'host' ? 'host' : 'player'; S.ui.guideOpen = [0]; window.scrollTo(0, 0); render(); },
+  'guide-game'(el) { S.ui.guideGame = el.dataset.id === 'classic' ? 'classic' : 'role'; S.ui.guideOpen = [0]; window.scrollTo(0, 0); render(); },
   'guide-toggle'(el) { const i = +el.dataset.i; const o = guideOpenSet().slice(); const k = o.indexOf(i); if (k >= 0) o.splice(k, 1); else o.push(i); S.ui.guideOpen = o; render(); },
   'guide-go'(el) { const i = +el.dataset.i; S.ui.guideOpen = [i]; render(); try { const h = document.querySelectorAll('.gd-ch')[i]; if (h) window.scrollTo(0, Math.max(0, h.getBoundingClientRect().top + window.scrollY - 70)); } catch (e) {} },
   'guide-all'(el) { S.ui.guideOpen = el.dataset.v === 'open' ? guideChapters().map((c, i) => i) : [0]; render(); },
