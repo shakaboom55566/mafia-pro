@@ -5,14 +5,33 @@
    - season rewards: SEASON_SKIN[n] goes to everyone who ends season n as a Legend (runSeasonCron), and is put on at once */
 export const SKINS = {
   amethyst_don: { role: 'don', rarity: 'epic', season: 1 },
-  // v57: the Epic series — a skin for every free card, the first 7 (how to get them is decided later; admins own them all)
+  // v57–v58: the Epic series — a skin for every free card, added as their files are ready (how to get them is decided later; admins own them all)
   lilac_doctor: { role: 'doctor', rarity: 'epic' },
   orchid_surgeon: { role: 'mafia_doctor', rarity: 'epic' },
   violet_armorer: { role: 'gunsmith', rarity: 'epic' },
   violet_flare: { role: 'kamikaze', rarity: 'epic' },
   lilac_whisper: { role: 'balamut', rarity: 'epic' },
   velvet_gloves: { role: 'executioner', rarity: 'epic' },
-  iris_shadow: { role: 'spy', rarity: 'epic' }
+  iris_shadow: { role: 'spy', rarity: 'epic' },
+  lavender_wolf: { role: 'werewolf', rarity: 'epic' },
+  violet_soldier: { role: 'mafia', rarity: 'epic' },
+  lights_out: { role: 'maniac', rarity: 'epic' },
+  mauve_jester: { role: 'jester', rarity: 'epic' },
+  velvet_cat: { role: 'thief', rarity: 'epic' },
+  lavender_vow: { role: 'monk', rarity: 'epic' },
+  violet_badge: { role: 'sheriff', rarity: 'epic' },
+  violet_ink: { role: 'journalist', rarity: 'epic' },
+  orchid_mayor: { role: 'mayor', rarity: 'epic' },
+  plum_brandy: { role: 'drunk', rarity: 'epic' },
+  lavender_heart: { role: 'altruist', rarity: 'epic' },
+  iron_violet: { role: 'miller', rarity: 'epic' },
+  night_pact: { role: 'azazel', rarity: 'epic' },
+  dream_merchant: { role: 'morpheus', rarity: 'epic' },
+  the_shelter: { role: 'rabbi', rarity: 'epic' },
+  tick_tock: { role: 'bomb', rarity: 'epic' },
+  violet_shield: { role: 'bodyguard', rarity: 'epic' },
+  violet_verdict: { role: 'judge', rarity: 'epic' },
+  lavender_baker: { role: 'citizen', rarity: 'epic' }
 };
 export const SEASON_SKIN = { 1: 'amethyst_don' };
 export const SKIN_NAMES = {

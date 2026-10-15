@@ -870,6 +870,7 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   if (!h.includes(u.skMine + ' · ' + SK.length) || !h.includes('sk-tile epic own worn')) F('v57: an admin owns all — the Mine filter, the worn tile marked');
   A['skin-sheet'](el('skin-sheet', { id: 'lilac_doctor' })); h = app.innerHTML; if (!h.includes('data-a="skin-wear" data-id="lilac_doctor" data-on="0"') || h.includes(u.skHowSoon)) F('v57: the sheet of my worn skin offers to take it off');
   S.ui.sheet = null; A.role(el('role', { id: 'spy' })); h = app.innerHTML; if (!h.includes('data-a="skin-sheet" data-id="iris_shadow"')) F('v57: the Spy card lists Iris Shadow'); S.ui.sheet = null;
+  A.role(el('role', { id: 'bomb' })); h = app.innerHTML; if (!h.includes('data-a="skin-sheet" data-id="tick_tock"')) F('v58: the Bomb card lists Tick-Tock'); S.ui.sheet = null;
   S.ui.skinFilter = 'all';
   S.profiles = S.profiles.filter(x => x !== me && x !== fr); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v56 ok');
 })().catch(e => { fails++; console.log('FAIL v56 crashed', e && e.stack || e); });

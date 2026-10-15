@@ -10058,14 +10058,33 @@ Object.assign(ACT, {
 /* skins:begin — the same ids and roles as SKINS in backend/src/skins.js */
 const SKINS = [
   { id: 'amethyst_don', role: 'don', rarity: 'epic', season: 1, file: 'amethyst-don' },
-  // v57: the Epic series — a skin for every free card; the first 7 are here, the rest follow (names and stories of all: src/02w-i18n-skins-epic.js)
+  // v57–v58: the Epic series — a skin for every free card; added as their files are ready (names and stories of all: src/02w-i18n-skins-epic.js)
   { id: 'lilac_doctor', role: 'doctor', rarity: 'epic', file: 'lilac-doctor' },
   { id: 'orchid_surgeon', role: 'mafia_doctor', rarity: 'epic', file: 'orchid-surgeon' },
   { id: 'violet_armorer', role: 'gunsmith', rarity: 'epic', file: 'violet-armorer' },
   { id: 'violet_flare', role: 'kamikaze', rarity: 'epic', file: 'violet-flare' },
   { id: 'lilac_whisper', role: 'balamut', rarity: 'epic', file: 'lilac-whisper' },
   { id: 'velvet_gloves', role: 'executioner', rarity: 'epic', file: 'velvet-gloves' },
-  { id: 'iris_shadow', role: 'spy', rarity: 'epic', file: 'iris-shadow' }
+  { id: 'iris_shadow', role: 'spy', rarity: 'epic', file: 'iris-shadow' },
+  { id: 'lavender_wolf', role: 'werewolf', rarity: 'epic', file: 'lavender-wolf' },
+  { id: 'violet_soldier', role: 'mafia', rarity: 'epic', file: 'violet-soldier' },
+  { id: 'lights_out', role: 'maniac', rarity: 'epic', file: 'lights-out' },
+  { id: 'mauve_jester', role: 'jester', rarity: 'epic', file: 'mauve-jester' },
+  { id: 'velvet_cat', role: 'thief', rarity: 'epic', file: 'velvet-cat' },
+  { id: 'lavender_vow', role: 'monk', rarity: 'epic', file: 'lavender-vow' },
+  { id: 'violet_badge', role: 'sheriff', rarity: 'epic', file: 'violet-badge' },
+  { id: 'violet_ink', role: 'journalist', rarity: 'epic', file: 'violet-ink' },
+  { id: 'orchid_mayor', role: 'mayor', rarity: 'epic', file: 'orchid-mayor' },
+  { id: 'plum_brandy', role: 'drunk', rarity: 'epic', file: 'plum-brandy' },
+  { id: 'lavender_heart', role: 'altruist', rarity: 'epic', file: 'lavender-heart' },
+  { id: 'iron_violet', role: 'miller', rarity: 'epic', file: 'iron-violet' },
+  { id: 'night_pact', role: 'azazel', rarity: 'epic', file: 'night-pact' },
+  { id: 'dream_merchant', role: 'morpheus', rarity: 'epic', file: 'dream-merchant' },
+  { id: 'the_shelter', role: 'rabbi', rarity: 'epic', file: 'the-shelter' },
+  { id: 'tick_tock', role: 'bomb', rarity: 'epic', file: 'tick-tock' },
+  { id: 'violet_shield', role: 'bodyguard', rarity: 'epic', file: 'violet-shield' },
+  { id: 'violet_verdict', role: 'judge', rarity: 'epic', file: 'violet-verdict' },
+  { id: 'lavender_baker', role: 'citizen', rarity: 'epic', file: 'lavender-baker' }
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
