@@ -604,6 +604,14 @@ console.log('live table: publish → players read public + private → act → h
   await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: false, stage: 'vote' }), priv });
   eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'late' })).status, 403, 'chat closed once the vote starts');
   const hc = await (await post('/api/table/chat/send', { initData: hi, code, text: 'Голосуем' })).json(); ok(hc.ok, 'the host can always write');
+  // v62: last words — the seat leaving the table (already out of the game) writes while its 30 seconds run; nobody else
+  { const privLw = JSON.parse(JSON.stringify(priv)); privLw[1101].alive = false;
+    await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: 'last', lastSeat: 1, lastWord: { seat: 1, i: 0, n: 1 }, stage: 'result', timer: { key: 'lw', total: 30, left: 30, running: true, at: Date.now() } }), priv: privLw });
+    ok((await (await post('/api/table/chat/send', { initData: await id(pl[0]), code, text: 'Прощайте, я был мирным' })).json()).ok, 'last words: the player leaving the table writes');
+    eq((await post('/api/table/chat/send', { initData: await id(pl[2]), code, text: 'not mine' })).status, 403, 'last words: the others wait');
+    await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: 'last', lastSeat: 1, stage: 'result', timer: { key: 'lw', total: 30, left: 2, running: true, at: Date.now() - 5000 } }), priv: privLw });
+    eq((await post('/api/table/chat/send', { initData: await id(pl[0]), code, text: 'late' })).status, 403, 'last words: closed when the 30 seconds are over');
+    await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: false, stage: 'vote' }), priv }); }
   // seat 2 is voted out: he only sees who is still at the table, no chat, no stage; results come at the end
   const priv2 = Object.assign({}, priv, { 1102: Object.assign({}, priv[1102], { alive: false, ask: null }) });
   await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { stage: 'result', chat: true, seats: dayPub.seats.map(x => x.tgId === 1102 ? Object.assign({}, x, { alive: false }) : x), secret: 'host-only' }), priv: priv2 });

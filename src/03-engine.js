@@ -427,7 +427,7 @@ function effectiveVotes(g) {
   const b = g.ballot; const eff = {};
   Object.keys(b.votes).forEach(v => {
     let to = b.votes[v];
-    if (!voteAllowed(g, v, to)) return;
+    if (!voteAllowed(g, v, to) || foulMuted(P(g, v))) return; // v62: a vote cast before the third foul does not count either
     if (!fxOn(g, 'certified', v)) {
       const h = g.effects.hypno[v]; if (h && h.day === g.day && alive(g).some(p => p.id === h.to)) to = h.to;
       const f = FX(g, 'follow')[v]; if (f && f.day === g.day) { const master = P(g, f.by); if (master && master.alive && b.votes[f.by]) to = b.votes[f.by]; }
@@ -542,7 +542,7 @@ function checkWin(g) {
 function startNight0(g) { g.phase = 'night0'; g.steps = buildNight0Steps(g); g.stepIdx = 0; addLog(g, L.e.logNight0); }
 function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; addLog(g, L.e.logDay0); }
 function startNight(g) {
-  g.phase = 'night'; g.night += 1; g.actions = []; g.nightResult = null;
+  g.phase = 'night'; g.night += 1; g.actions = []; g.nightResult = null; lastWordsClear(g);
   g.steps = buildNightSteps(g); g.stepIdx = 0; g.pendingResult = null;
   addLog(g, tt(L.e.logNight, { n: g.night }));
 }
@@ -553,6 +553,7 @@ function startDay(g) {
   // sport rules: the first day has no night before it (straight to speeches)
   if (isClassic(g) && g.night === 0) g.dayStage = 'speeches';
   addLog(g, tt(L.e.logDay, { n: g.day }));
+  lastWordsClear(g); queueLastWords(g, (g.nightResult && g.nightResult.removed) || []); // v62: the night's dead speak in the morning
   // Azazel and (v53) Morpheus killed last night act at the day's results (they may also let it go)
   ((g.nightResult && g.nightResult.removed) || []).forEach(d => { const p = P(g, d.id); if (p && !p.alive && (p.roleId === 'azazel' || p.roleId === 'morpheus')) g.pendingTriggers.push({ type: p.roleId, actorId: p.id, night: true }); });
   // diplomacy: the Provocateur's victim is already on the ballot (unless under the Pastor's sanctuary)
@@ -602,15 +603,15 @@ function startLiftAll(g) {
   b.round2 = t; b.lift = { ids, yes: [] };
   g.dayStage = 'lift';
 }
-function liftNeed(g) { return Math.floor(alive(g).length / 2) + 1; }
-function liftToggle(g, voterId) { const l = g.ballot.lift; if (!l) return; const i = l.yes.indexOf(voterId); if (i >= 0) l.yes.splice(i, 1); else l.yes.push(voterId); }
+function liftNeed(g) { return Math.floor(alive(g).filter(p => !foulMuted(p)).length / 2) + 1; } // v62: more than half of those who may vote
+function liftToggle(g, voterId) { const l = g.ballot.lift; if (!l || foulMuted(P(g, voterId))) return; const i = l.yes.indexOf(voterId); if (i >= 0) l.yes.splice(i, 1); else l.yes.push(voterId); }
 function finishLiftAll(g) {
   const b = g.ballot; const l = b.lift; if (!l) return;
   const t = tally(g); const need = liftNeed(g); const passed = l.yes.length >= need; const removed = [];
   const list = seatList(g, l.ids);
   if (passed) {
     l.ids.forEach(id => { const p = P(g, id); if (!p.alive) return; p.votedOut = true; if (p.roleId === 'jester') g.jesterWon = p.id; eliminate(g, id, tt(L.e.causeLift, { n: l.yes.length, votes: plural(l.yes.length, 'votes') }), removed); });
-    addLog(g, tt(L.e.logLiftPass, { n: l.yes.length, need, list }));
+    addLog(g, tt(L.e.logLiftPass, { n: l.yes.length, need, list })); queueLastWords(g, removed);
   } else addLog(g, tt(L.e.logLiftFail, { n: l.yes.length, need, list }));
   g.voteResult = { tally: t, eliminatedId: null, removed, round: 2, round1: b.round1 || null, lift: { ids: l.ids, yes: l.yes.length, need, passed } };
   g.dayStage = 'result';
@@ -621,14 +622,120 @@ function recordBestMove(g, byId, picks) {
   (g.dayLog = g.dayLog || []).push({ day: g.day, actorId: byId, roleId: P(g, byId).roleId, ability: 'bestMove', targets: picks.slice() });
   addLog(g, tt(L.e.logBestMove, { player: label(P(g, byId)), list: picks.length ? picks.map(id => P(g, id).seat).join(', ') : '—' }));
 }
-/* classic: fouls — 3 → no speech, 4 → removed from the game */
-function addFoul(g, pid) {
-  const p = P(g, pid); p.fouls = (p.fouls || 0) + 1;
-  addLog(g, tt(L.e.logFoul, { player: label(p), n: p.fouls }));
-  if (p.fouls >= 4 && p.alive) eliminate(g, pid, L.e.causeFouls);
-  return p.fouls;
+/* ---------- fouls (v62): any mode, any moment of the game — the host gives 1–4 at once, takes them back or cancels the last change.
+   3 fouls → no speech (introduction, minute, defence) and the vote does not count; 4 → removed from the table at once:
+   no last words, no Azazel / Morpheus trigger, no Bomb blast. Every change is kept in g.foulLog, so it can be undone. ---------- */
+const FOUL_MUTE = 3, FOUL_OUT = 4;
+const foulMuted = p => !!(p && p.alive && (p.fouls || 0) >= FOUL_MUTE);
+const foulMoment = g => ({ phase: g.phase, day: g.day, night: g.night, stage: g.phase === 'day' ? g.dayStage : '', round: g.ballot ? g.ballot.round || 1 : 0 });
+const sameMoment = (a, b) => !!(a && b && a.phase === b.phase && a.day === b.day && a.night === b.night && a.stage === b.stage && a.round === b.round);
+/* the list the speech index walks right now: introductions (day 0), the minutes, the defence speeches */
+function speechList(g) {
+  if (g.phase === 'day0') return alive(g);
+  if (g.phase === 'day' && g.dayStage === 'speeches') return speakOrder(g);
+  return null;
 }
-function removeFoul(g, pid) { const p = P(g, pid); p.fouls = Math.max(0, (p.fouls || 0) - 1); return p.fouls; }
+/* the running vote forgets a muted voter (3 fouls): his vote and his «yes» to lift all */
+function foulMute(g, p) {
+  const b = g.ballot; const out = {}; if (!b || g.phase !== 'day') return out;
+  if (b.votes && b.votes[p.id]) { out.vote = b.votes[p.id]; delete b.votes[p.id]; dropAutoCand(g, out.vote); out.dropped = !b.candidates.includes(out.vote); }
+  if (b.lift && b.lift.yes.includes(p.id)) { b.lift.yes = b.lift.yes.filter(x => x !== p.id); out.liftYes = true; }
+  return out;
+}
+/* 4 fouls: off the table — the ballot, the speech order and the night's steps go on without him */
+function disqualify(g, p) {
+  const d = { at: foulMoment(g) }; const list = speechList(g); const oi = list ? list.findIndex(x => x.id === p.id) : -1;
+  p.alive = false; p.foulOut = true; p.deadOn = { phase: g.phase, day: g.day, night: g.night, fouls: true };
+  addLog(g, tt(L.e.eliminated, { player: label(p), role: ROLE[p.roleId].name, cause: L.e.causeFouls }));
+  if (oi >= 0 && oi < g.speechIdx) { g.speechIdx -= 1; d.speech = true; }
+  const b = g.ballot;
+  if (b && g.phase === 'day') {
+    d.cand = b.candidates.indexOf(p.id); if (d.cand >= 0) b.candidates.splice(d.cand, 1);
+    d.auto = (b.auto || []).includes(p.id); if (b.auto) b.auto = b.auto.filter(x => x !== p.id);
+    d.forced = (b.forced || []).includes(p.id); if (b.forced) b.forced = b.forced.filter(x => x !== p.id);
+    if (b.votes[p.id]) { d.vote = b.votes[p.id]; delete b.votes[p.id]; dropAutoCand(g, d.vote); d.dropped = !b.candidates.includes(d.vote); }
+    d.votesFor = Object.keys(b.votes).filter(v => b.votes[v] === p.id); d.votesFor.forEach(v => delete b.votes[v]);
+    if (b.nominatedBy) { d.nomBy = Object.keys(b.nominatedBy).filter(k => b.nominatedBy[k] === p.id); d.nomBy.forEach(k => delete b.nominatedBy[k]); }
+    if (b.tiedIds) { d.tied = b.tiedIds.indexOf(p.id); if (d.tied >= 0) { b.tiedIds.splice(d.tied, 1); if (g.dayStage === 'tie' && d.tied < g.speechIdx) { g.speechIdx -= 1; d.speech = true; } } }
+    if (b.excludedVoters) b.excludedVoters = b.excludedVoters.filter(x => x !== p.id);
+    if (b.lift) { d.lift = b.lift.ids.indexOf(p.id); if (d.lift >= 0) b.lift.ids.splice(d.lift, 1); b.lift.yes = b.lift.yes.filter(x => x !== p.id); }
+    if (b.roulette && !b.roulette.hitId) { const r = b.roulette; const cur = rouletteCurrent(g); d.rou = r.order.indexOf(p.id); if (d.rou >= 0) { r.order.splice(d.rou, 1); if (cur && cur.id !== p.id && r.order.length) r.turn = r.order.indexOf(cur.id); } }
+  }
+  // tonight: his own step is skipped; the family shot passes to the next by seniority
+  if ((g.phase === 'night' || g.phase === 'night0') && g.steps) {
+    d.steps = [];
+    g.steps.forEach((st, i) => {
+      if (i < g.stepIdx || st.type !== 'act' || st.actorId !== p.id || g.actions.find(a => a.stepId === st.id)) return;
+      if (st.ability === 'shoot' && st.members) { const nx = shooterOf(g, st.fam === undefined ? null : st.fam); if (nx) { d.steps.push({ id: st.id, actorId: st.actorId }); st.actorId = nx.id; } }
+    });
+  }
+  if (g.lastWords) g.lastWords.q = g.lastWords.q.filter((id, i) => id !== p.id || i < g.lastWords.i);
+  return d;
+}
+/* the fouls taken back below 4: the player returns; at the same moment of the game his place in the ballot and the speeches comes back */
+function foulReturn(g, p, d) {
+  p.alive = true; p.foulOut = false; p.deadOn = null;
+  addLog(g, tt(L.e.logFoulBack, { player: label(p) }));
+  if (!d || !sameMoment(d.at, foulMoment(g))) return;
+  if (d.speech) g.speechIdx += 1;
+  const b = g.ballot;
+  if (b && g.phase === 'day') {
+    if (d.cand >= 0 && !b.candidates.includes(p.id)) b.candidates.splice(Math.min(d.cand, b.candidates.length), 0, p.id);
+    if (d.auto) b.auto = (b.auto || []).concat([p.id]); if (d.forced) b.forced = (b.forced || []).concat([p.id]);
+    if (d.vote) foulVoteBack(g, p.id, d.vote, d.dropped);
+    (d.votesFor || []).forEach(v => { const q = P(g, v); if (q && q.alive && !b.votes[v] && !foulMuted(q)) b.votes[v] = p.id; });
+    (d.nomBy || []).forEach(k => { b.nominatedBy = b.nominatedBy || {}; if (!b.nominatedBy[k]) b.nominatedBy[k] = p.id; });
+    if (b.tiedIds && d.tied >= 0 && !b.tiedIds.includes(p.id)) b.tiedIds.splice(Math.min(d.tied, b.tiedIds.length), 0, p.id);
+    if (b.lift && d.lift >= 0 && !b.lift.ids.includes(p.id)) b.lift.ids.splice(Math.min(d.lift, b.lift.ids.length), 0, p.id);
+    if (b.roulette && d.rou >= 0 && !b.roulette.order.includes(p.id)) { const cur = rouletteCurrent(g); b.roulette.order.splice(Math.min(d.rou, b.roulette.order.length), 0, p.id); if (cur) b.roulette.turn = b.roulette.order.indexOf(cur.id); }
+  }
+  (d.steps || []).forEach(x => { const st = g.steps.find(y => y.id === x.id); if (st && !g.actions.find(a => a.stepId === st.id)) st.actorId = x.actorId; });
+}
+/* a vote taken away by a foul comes back (and its candidate, when the vote alone had made him one) */
+function foulVoteBack(g, voterId, candId, dropped) {
+  const b = g.ballot; const c = P(g, candId); if (!b || !c || !c.alive || b.votes[voterId]) return;
+  if (!b.candidates.includes(candId)) { if (!dropped) return; b.candidates.push(candId); b.auto = (b.auto || []).concat([candId]); }
+  b.votes[voterId] = candId;
+}
+/* set a player's fouls (0–4); returns the change, or null when nothing changed */
+function setFouls(g, pid, n) {
+  const p = P(g, pid); if (!p || g.winner) return null;
+  if (!p.alive && !p.foulOut) return null; // the dead are out of it; a player removed by fouls can get them back
+  n = Math.max(0, Math.min(FOUL_OUT, Math.round(Number(n) || 0))); const from = p.fouls || 0; if (n === from) return null;
+  const e = { pid, from, to: n, at: foulMoment(g) };
+  p.fouls = n;
+  addLog(g, n > from ? tt(L.e.logFoulAdd, { player: label(p), k: n - from, n }) : tt(L.e.logFoulDown, { player: label(p), n }));
+  if (p.alive && n >= FOUL_MUTE && from < FOUL_MUTE) e.mute = foulMute(g, p);
+  if (p.alive && n >= FOUL_OUT) e.out = disqualify(g, p);
+  else if (p.foulOut && n < FOUL_OUT) { const last = (g.foulLog || []).slice().reverse().find(x => x.pid === pid && x.out); e.back = true; foulReturn(g, p, last && last.out); }
+  (g.foulLog = g.foulLog || []).push(e);
+  return e;
+}
+const addFouls = (g, pid, k) => { const p = P(g, pid); return p ? setFouls(g, pid, (p.fouls || 0) + Math.max(1, Math.min(FOUL_OUT, Number(k) || 1))) : null; };
+function addFoul(g, pid) { addFouls(g, pid, 1); const p = P(g, pid); return p ? p.fouls : 0; }
+function removeFoul(g, pid) { const p = P(g, pid); if (p) setFouls(g, pid, (p.fouls || 0) - 1); return p ? p.fouls : 0; }
+/* cancel the last foul change: the count goes back, a removed player returns, a muted voter's vote comes back */
+function undoFoul(g) {
+  const e = (g.foulLog || []).pop(); if (!e) return null; const p = P(g, e.pid); if (!p) return null;
+  p.fouls = e.from;
+  if (e.out && p.foulOut) foulReturn(g, p, e.out);
+  else if (e.back && p.alive && e.from >= FOUL_OUT) { const d = disqualify(g, p); const last = (g.foulLog || []).slice().reverse().find(x => x.pid === e.pid && x.out); if (last) last.out = d; }
+  if (e.mute && sameMoment(e.at, foulMoment(g)) && p.alive && !foulMuted(p)) { const b = g.ballot; if (e.mute.vote) foulVoteBack(g, p.id, e.mute.vote, e.mute.dropped); if (e.mute.liftYes && b.lift && !b.lift.yes.includes(p.id)) b.lift.yes.push(p.id); }
+  addLog(g, tt(L.e.logFoulUndo, { player: label(p), n: p.fouls }));
+  return e;
+}
+/* ---------- last words (v62): 30 seconds for whoever leaves the table — killed at night (said in the morning), voted out, lifted,
+   taken by the Kamikaze or Azazel, blown up by the Bomb; never for a player removed by fouls. One by one: g.lastWords = { q, i } ---------- */
+const LAST_WORDS_SEC = 30;
+function queueLastWords(g, removed) {
+  const ids = (removed || []).map(d => d.id).filter(id => { const p = P(g, id); return p && !p.alive && !p.foulOut; });
+  if (!ids.length) return;
+  const lw = g.lastWords && g.lastWords.i < g.lastWords.q.length ? g.lastWords : (g.lastWords = { q: [], i: 0 });
+  ids.forEach(id => { if (!lw.q.slice(lw.i).includes(id)) lw.q.push(id); });
+}
+function lastWordsNow(g) { const lw = g && g.lastWords; if (!lw || lw.i >= lw.q.length) return null; const p = P(g, lw.q[lw.i]); return p ? { p, i: lw.i, n: lw.q.length } : null; }
+function lastWordsNext(g) { if (g.lastWords && g.lastWords.i < g.lastWords.q.length) g.lastWords.i += 1; }
+function lastWordsClear(g) { g.lastWords = null; }
 /* Journal + persistent record of who voted for whom (intended votes; weights from tally) */
 function logBallot(g) {
   const b = g.ballot; if (!b || b.logged) return; b.logged = true;
@@ -663,7 +770,7 @@ function finishVote(g, eliminatedId, opts = {}) {
     p.votedOut = true;
     const row = t.rows.find(r => r.cid === eliminatedId); const v = row ? row.total : 0;
     const cause = opts.roulette ? tt(L.e.causeRoulette, { n: b.roulette.number }) : tt(b.round === 2 ? L.e.causeRevote : L.e.causeVote, { n: v, votes: plural(Math.round(v), 'votes') });
-    eliminate(g, eliminatedId, cause, removed);
+    eliminate(g, eliminatedId, cause, removed); queueLastWords(g, removed);
     alive(g).filter(c => c.roleId === 'contractor' && c.contractId === eliminatedId && !g.extraWinners.includes(c.id)).forEach(c => { g.extraWinners.push(c.id); addLog(g, tt(L.e.contractWon, { player: label(c), target: label(p) })); });
   } else addLog(g, isClassic(g) && b.candidates.length === 1 && g.day === 1 ? L.e.logNoVoteDay1 : L.e.logNoVote);
   g.dayStage = 'result';
@@ -697,7 +804,7 @@ function startRevote(g) {
   g.dayStage = 'vote'; g.speechIdx = 0;
   addLog(g, tt(L.e.logRevote, { list: seatList(g, tied) }));
 }
-function canVoteNow(g, voterId) { return !(g.ballot.excludedVoters || []).includes(voterId); }
+function canVoteNow(g, voterId) { return !(g.ballot.excludedVoters || []).includes(voterId) && !foulMuted(P(g, voterId)); } // v62: 3 fouls — no vote
 function startRoulette(g) {
   const t = tally(g); const b = g.ballot;
   const ids = (t.max > 0 ? t.leaders : b.candidates).slice().sort(bySeat(g));
@@ -739,7 +846,7 @@ function voteRestToLast(g) {
 }
 function applyTrigger(g, trig, targetId) {
   const actor = P(g, trig.actorId); const t = P(g, targetId);
-  if (trig.type === 'azazel') { eliminate(g, targetId, tt(L.e.causeAzazel, { player: label(actor) }), g.voteResult.removed); }
+  if (trig.type === 'azazel') { const k = g.voteResult.removed.length; eliminate(g, targetId, tt(L.e.causeAzazel, { player: label(actor) }), g.voteResult.removed); queueLastWords(g, g.voteResult.removed.slice(k)); }
   if (trig.type === 'morpheus') {
     const took = morpheusTakes(g, t); const pr = { actor: label(actor), target: label(t), role: ROLE[t.roleId].name };
     if (took) t.disabled = true;
@@ -788,6 +895,6 @@ function useKamikaze(g, kamId, targetId) {
   (g.dayLog = g.dayLog || []).push({ day: g.day, actorId: kamId, roleId: 'kamikaze', ability: 'kamikaze', targetId });
   const removed = [];
   addLog(g, tt(L.e.logKamikaze, { player: label(k) }));
-  eliminate(g, targetId, tt(L.e.causeKamikaze, { player: label(k) }), removed);
+  eliminate(g, targetId, tt(L.e.causeKamikaze, { player: label(k) }), removed); queueLastWords(g, removed);
   return removed;
 }

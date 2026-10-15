@@ -1305,8 +1305,9 @@ async function apiTableActions(env, bot, body) {
   return json({ ok: true, now: Date.now(), actions: rows.map(r => ({ id: r.id, tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })), watching: seen });
 }
 function timerLeft(tm) { if (!tm) return 0; const gone = tm.running ? Math.round((Date.now() - (tm.at || 0)) / 1000) : 0; return (tm.left || 0) - gone; }
-/* who may write: everyone (free discussion, morning), only the speaking seat while their speech timer runs, nobody from the vote on; the eliminated never */
+/* who may write: everyone (free discussion, morning), only the speaking seat while their speech timer runs, nobody from the vote on; the eliminated never — except their own last words (v62) */
 function chatAllowed(pub, me) {
+  if (pub && me && pub.chat === 'last') return !!(pub.lastSeat && me.seat === pub.lastSeat && timerLeft(pub.timer) > 0); // v62: last words — only the one leaving, even out of the game
   if (!pub || !me || me.alive === false) return false;
   if (pub.chat === true || pub.chat === 'all') return true;
   if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && timerLeft(pub.timer) > 0);

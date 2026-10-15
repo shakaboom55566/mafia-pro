@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -928,7 +928,79 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   A.back(el('back')); if (S.screen !== 'setup') F('Back returns to the classic setup (' + S.screen + ')');
   S.game = null; S.setup.scenario = null; S.screen = 'home'; X.render(); console.log('v59 ok');
 }).catch(e => { fails++; console.log('FAIL v59 crashed', e && e.stack || e); }).then(() => {
-  console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
+  // v62: fouls in every mode and stage, 3 → no speech and no vote, 4 → removed (no last words, no Azazel / Morpheus, no blast), undo; last words 30 s
+{ const u = X.U(); const F = m => { fails++; console.log('FAIL v62 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  const by = (g, r) => g.players.find(p => p.roleId === r);
+  const g = E('newGame')(10, ['don', 'mafia', 'azazel', 'sheriff', 'doctor', 'kamikaze', 'citizen', 'citizen', 'citizen', 'citizen'], [], {}, [], {}); g.dealt = true; S.game = g; S.screen = 'game';
+  E('startNight0')(g); X.render(); check('v62 night0 strip');
+  if (!app.innerHTML.includes('class="panel fl-strip"') || (app.innerHTML.match(/data-a="foul-open"/g) || []).length !== 10) F('the fouls strip shows every seat at night 0');
+  const cits = g.players.filter(p => p.roleId === 'citizen'); const cit = cits[0], cit2 = cits[1];
+  A['foul-open'](el('foul-open', { id: cit.id })); check('v62 foul sheet'); if ((app.innerHTML.match(/data-a="foul-give"/g) || []).length !== 4) F('the sheet offers +1…+4');
+  A['foul-give'](el('foul-give', { id: cit.id, k: '2' })); if (cit.fouls !== 2 || S.ui.sheet) F('+2 at once');
+  A['foul-open'](el('foul-open', { id: cit.id })); if ((app.innerHTML.match(/data-a="foul-give"/g) || []).length !== 2) F('with 2 fouls only +1 and +2 are left'); A['sheet-close']();
+  E('setFouls')(g, cit.id, 0);
+  E('startDay0')(g); X.render(); check('v62 day0');
+  A['foul-give'](el('foul-give', { id: g.players[0].id, k: '3' })); X.render(); check('v62 day0 muted');
+  if (!app.innerHTML.includes(u.flMutedSpeech) || app.innerHTML.includes('id="timer"')) F('a muted introduction has no timer');
+  E('setFouls')(g, g.players[0].id, 0);
+  // a night: the doctor removed by fouls before his turn — the step says so; the Don's shot passes to the mafioso
+  E('startNight')(g); const doc = by(g, 'doctor'), don = by(g, 'don'), maf = by(g, 'mafia');
+  const shootStep = g.steps.find(st => st.ability === 'shoot'); const docStep = g.steps.find(st => st.actorId === doc.id);
+  A['foul-give'](el('foul-give', { id: don.id, k: '4' })); if (don.alive || !don.foulOut || shootStep.actorId !== maf.id) F('4 fouls: the Don is out, the shot passes to the mafioso');
+  E('setFouls')(g, doc.id, 4); g.stepIdx = g.steps.indexOf(docStep); X.render(); check('v62 night removed actor'); if (!app.innerHTML.includes(X.tt(u.flStepGone, { player: X.label(doc) }).slice(0, 20))) F('the removed actor\'s step is skipped');
+  A['foul-undo'](); if (!doc.alive || doc.fouls !== 0 || doc.foulOut) F('undo returns the Doctor'); A['foul-undo'](); if (!don.alive || shootStep.actorId !== don.id) F('undo returns the Don and his shot');
+  // the morning: the night's dead give last words, one by one, 30 s
+  g.stepIdx = g.steps.length; g.actions = []; const v1 = cit2, v2 = cits[2];
+  const rn = { removed: [{ id: v1.id, cause: 'x' }, { id: v2.id, cause: 'x' }], notes: [], quiet: [], shotLog: [] }; E('eliminate')(g, v1.id, 'x'); E('eliminate')(g, v2.id, 'x');
+  g.nightResult = rn; E('startDay')(g); g.nightResult = rn; X.render(); check('v62 morning last words');
+  if (!app.innerHTML.includes(u.lwTitle) || !app.innerHTML.includes('id="timer"') || !app.innerHTML.includes(X.tt(u.lwOf, { i: 1, n: 2 }))) F('the morning: last words with a timer, 1 of 2');
+  A['lw-next'](); check('v62 morning last words 2'); if (!app.innerHTML.includes(X.tt(u.lwOf, { i: 2, n: 2 }))) F('the second last words');
+  A['lw-next'](); X.render(); if (app.innerHTML.includes(u.lwDone)) F('last words end');
+  // speeches: 3 fouls — no minute
+  A.stage(el('stage', { id: 'balagan' })); A.stage(el('stage', { id: 'speeches' })); if (g.winner || g.dayStage !== 'speeches') F('the speeches start');
+  const sp = E('speakOrder')(g)[0]; E('setFouls')(g, sp.id, 3); X.render(); check('v62 muted speech');
+  if (!app.innerHTML.includes(u.flMutedSpeech) || app.innerHTML.includes('id="timer"')) F('a speaker with 3 fouls: no timer');
+  E('setFouls')(g, sp.id, 0);
+  // a removal in the middle of the speeches keeps the current speaker
+  g.speechIdx = 2; const cur = E('speakOrder')(g)[2]; const before = E('speakOrder')(g)[1]; E('setFouls')(g, before.id, 4); if (E('speakOrder')(g)[g.speechIdx].id !== cur.id) F('removing an earlier speaker keeps the current one');
+  E('undoFoul')(g); if (E('speakOrder')(g)[g.speechIdx].id !== cur.id || !before.alive) F('undo keeps the current speaker too');
+  // the Kamikaze's victim: the speeches wait for the last words
+  const kam = by(g, 'kamikaze'); const kv = X.alive(g).find(p => p.id !== kam.id && p.roleId === 'citizen');
+  S.ui.kamikaze = { stage: 'victim', who: kam.id }; S.ui.pick = [kv.id]; A['kam-confirm'](); X.render(); check('v62 kamikaze last words');
+  if (g.winner) F('the test game should go on');
+  if (!app.innerHTML.includes(u.lwTitle) || !app.innerHTML.includes(u.lwThen)) F('the Kamikaze\'s victim speaks before the speeches go on');
+  A['lw-next'](); X.render(); if (app.innerHTML.includes(u.lwThen)) F('then the speeches go on');
+  // the vote: a muted voter has no vote, his earlier vote is dropped
+  g.dayStage = 'vote'; g.ballot = { candidates: [], votes: {}, round: 1, nominatedBy: {} };
+  const al = X.alive(g); const voter = al.find(p => p.id !== al[0].id); E('castVote')(g, voter.id, al[0].id);
+  E('setFouls')(g, voter.id, 3); if (g.ballot.votes[voter.id] || E('voteOrder')(g).some(v => v.id === voter.id) || E('castVote')(g, voter.id, al[0].id)) F('3 fouls: the vote is dropped and cannot be cast');
+  X.render(); check('v62 vote muted'); if (!app.innerHTML.includes(X.tt(u.flNoVote, { list: voter.seat }))) F('the vote screen names who has no vote');
+  E('undoFoul')(g); if (g.ballot.votes[voter.id] !== al[0].id) F('undo brings the vote back');
+  // Azazel removed by fouls: no trigger, no last words; voted out: the trigger and his last words
+  const az = by(g, 'azazel'); E('setFouls')(g, az.id, 4); if ((g.pendingTriggers || []).length || E('lastWordsNow')(g)) F('Azazel removed by fouls takes nobody, no last words'); E('undoFoul')(g);
+  if (!az.alive) F('undo returns Azazel');
+  g.ballot = { candidates: [az.id], votes: {}, round: 1, nominatedBy: {} }; E('finishVote')(g, az.id); X.render(); check('v62 result last words');
+  if (!g.pendingTriggers.some(t => t.type === 'azazel') || !E('lastWordsNow')(g) || E('lastWordsNow')(g).p.id !== az.id) F('voted out Azazel: last words and his trigger');
+  const victim = X.alive(g).find(p => p.roleId === 'citizen' || p.roleId === 'sheriff'); E('applyTrigger')(g, g.pendingTriggers[0], victim.id); A['lw-next']();
+  if (!E('lastWordsNow')(g) || E('lastWordsNow')(g).p.id !== victim.id) F('Azazel\'s victim speaks next');
+  // a removal that decides the game offers to finish it
+  g.dayStage = 'speeches'; g.speechIdx = 0; g.lastWords = null; const city = X.alive(g).filter(p => !['don', 'mafia', 'azazel'].includes(p.roleId));
+  city.slice(0, Math.max(0, city.length - X.alive(g).filter(p => ['don', 'mafia'].includes(p.roleId)).length)).forEach(p => E('setFouls')(g, p.id, 4));
+  X.render(); check('v62 foul win'); if (E('checkWin')(g) && !app.innerHTML.includes(X.tt(u.flWin, { title: '' }).slice(0, 12))) F('the finish banner after a deciding removal');
+  // the Bomb removed by fouls does not blow up
+  const gb = E('newGame')(5, ['bomb', 'sapper', 'citizen', 'citizen', 'citizen'], [], {}, [], { bombHunt: true }); gb.dealt = true; E('startNight0')(gb); E('startDay0')(gb);
+  const bomb = by(gb, 'bomb'); E('setFouls')(gb, bomb.id, 4); if (gb.players.filter(p => !p.alive).length !== 1 || gb.bombBlew) F('a Bomb removed by fouls does not blow up');
+  // lift all: more than half of those who may vote
+  const gl = E('newGame')(10, ['don', 'mafia', 'mafia', 'sheriff', 'citizen', 'citizen', 'citizen', 'citizen', 'citizen', 'citizen'], [], {}, [], { classic: true }); gl.dealt = true; E('startDay')(gl);
+  const need0 = E('liftNeed')(gl); E('setFouls')(gl, gl.players[9].id, 3); E('setFouls')(gl, gl.players[8].id, 3); if (E('liftNeed')(gl) !== need0 - 1) F('lift all: the muted are not counted');
+  // online: the seat leaving the table writes during its last words (even out of the game), nobody else; the fouls show at the seats
+  const tm = { left: 30, running: true, at: Date.now() };
+  if (!E('tbCanChat')({ chat: 'last', lastSeat: 3, timer: tm }, { seat: 3, alive: false }) || E('tbCanChat')({ chat: 'last', lastSeat: 3, timer: tm }, { seat: 4, alive: true })) F('online: only the last words\' seat may write');
+  if (E('tbCanChat')({ chat: 'last', lastSeat: 3, timer: { left: 0, running: false, at: Date.now() } }, { seat: 3, alive: false })) F('online: the last words close with the timer');
+  const rt = E('roundTableHTML')([{ seat: 1, name: 'A', fouls: 2, alive: true }, { seat: 2, name: 'B', fouls: 0, alive: true }], {}, ''); if (!rt.includes('rt-foul f2') || (rt.match(/rt-foul/g) || []).length !== 1) F('online: fouls at the seats');
+  S.game = null; S.screen = 'home'; S.ui.sheet = null; S.ui.kamikaze = null; S.ui.pick = []; X.render(); console.log('v62 ok');
+}
+console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);
 });

@@ -29,7 +29,7 @@ const CHAT = { ru: 'Всем доброе утро! Я мирная — пров
 /* every picture the guide refers to (src/02x-i18n-guide.js) — the smoke test checks the texts against this list */
 const SHOTS = ['home', 'cards', 'role-sheet', 'setup-top', 'setup-comp', 'setup-names', 'setup-table', 'host-lobby', 'deal-online', 'deal-closed', 'deal-open', 'deal-table',
   'night0', 'night0-role', 'day0', 'night-shoot', 'night-recorded', 'night-check', 'night-result', 'night-end', 'morning', 'balagan', 'speeches', 'vote', 'vote-count', 'vote-result',
-  'sheet-players', 'sheet-log', 'settings', 'end', 'end-review',
+  'sheet-players', 'sheet-log', 'settings', 'end', 'end-review', 'fouls-strip', 'fouls',
   'p-invite', 'p-tables', 'p-lobby', 'p-card', 'p-night', 'p-ask', 'p-result', 'p-day', 'p-chat', 'p-vote', 'p-end',
   // the classic game (v61): the fixed line-up, the family's deal in night 0 with the Don's signs, day 1 straight to the minutes with nominations,
   // the vote by hands, a tie → defence speeches → a re-vote → lift all, the shot by hands on the count, the best move, the vote windows online, the fouls
@@ -160,7 +160,7 @@ async function main() {
     await q.click('[data-a="pl-ans"][data-yes="1"]').catch(() => {});
     await waitS(() => S.game.dayStage === 'result', 30000); await p.waitForTimeout(400); await shot(p, 'c-vote-result');
     // ----- the fouls of a player
-    await S(() => { const g = S.game; const id = g.players.find(x => x.seat === 8).id; S.ui.sheet = { type: 'playerEdit', id }; ACT['foul-add']({ dataset: { id } }); ACT['foul-add']({ dataset: { id } }); ACT['foul-add']({ dataset: { id } }); S.ui.sheet = { type: 'playerEdit', id }; render(); });
+    await S(() => { const g = S.game; const id = g.players.find(x => x.seat === 8).id; ACT['foul-give']({ dataset: { id, k: '3' } }); ACT['foul-give']({ dataset: { id: g.players.find(x => x.seat === 6).id, k: '1' } }); ACT['foul-open']({ dataset: { id } }); });
     await p.waitForTimeout(300); await shot(p, 'c-fouls');
     if (errs.length) problems.push(`${lang}: classic page errors — ${errs.join(' | ')}`);
     await ctxH.close(); await ctxD.close(); await ctxM.close();
@@ -253,10 +253,16 @@ async function main() {
     await S(() => ACT.resolve({ dataset: {} })); await p.waitForTimeout(500); await shot(p, 'morning');
     await waitQ(() => TB.data && TB.data.pub && TB.data.pub.phase === 'day'); await q.waitForTimeout(300);
     await shot(q, 'p-result', '.result', 160);
+    await S(() => { let k = 4; while (lastWordsNow(S.game) && k--) ACT['lw-next']({ dataset: {} }); }); // v62: the last words end, the morning chat opens
+    await waitQ(() => TB.data && TB.data.pub && TB.data.pub.chat === 'all'); await q.waitForTimeout(200);
     await q.evaluate(text => { TB.msg = text; }, CHAT[lang]); await Q(() => ACT['tb-send']()); await waitQ(() => TB.chat.length > 0); await q.waitForTimeout(400); await shot(q, 'p-day');
     await shot(q, 'p-chat', '#tb-chat', 150);
     await S(() => ACT.stage({ dataset: { id: 'balagan' } })); await p.waitForTimeout(400); await shot(p, 'balagan');
     await S(() => ACT.stage({ dataset: { id: 'speeches' } })); await p.waitForTimeout(400); await shot(p, 'speeches');
+    await S(() => { const g = S.game; const id = s => g.players.find(x => x.seat === s).id; ACT['foul-give']({ dataset: { id: id(5), k: '1' } }); ACT['foul-give']({ dataset: { id: id(7), k: '3' } }); ACT['foul-give']({ dataset: { id: id(8), k: '2' } }); });
+    await p.waitForTimeout(300); await shot(p, 'fouls-strip', '.fl-strip', 60);
+    await S(() => { const g = S.game; ACT['foul-open']({ dataset: { id: g.players.find(x => x.seat === 8).id } }); }); await p.waitForTimeout(400); await shot(p, 'fouls');
+    await S(() => { S.ui.sheet = null; ACT['foul-undo'](); ACT['foul-undo'](); ACT['foul-undo'](); });
     // ----- the vote: two candidates, the player votes from her phone, the host marks the rest
     await S(() => { ACT.stage({ dataset: { id: 'vote' } }); const g = S.game; ACT.cand({ dataset: { id: g.players.find(x => x.seat === 2).id } }); ACT.cand({ dataset: { id: g.players.find(x => x.seat === 4).id } }); });
     await waitQ(() => TB.data && TB.data.me && TB.data.me.ask && TB.data.me.ask.kind === 'vote' && !TB.data.me.ask.done); await q.waitForTimeout(300);

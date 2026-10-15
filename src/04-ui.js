@@ -362,7 +362,7 @@ function playerRow(g, p, withRole, extra = '') {
   if (p.family) tags.push(`<span class="pill gold">${FAMILY_NAMES[p.family]}</span>`);
   if (p.disabled) tags.push(`<span class="pill">${u.tagNoSkill}</span>`);
   if (p.kamikazeUsed) tags.push(`<span class="pill">${u.tagRevealed}</span>`);
-  if (p.fouls) tags.push(`<span class="pill ${p.fouls >= 3 ? 'gold' : ''}">${tt(u.foulsN, { n: p.fouls })}</span>`);
+  if (p.fouls) tags.push(`<span class="pill ${p.fouls >= 3 ? 'gold' : ''}">${p.foulOut ? u.flOutTag + ' · ' : ''}${tt(u.foulsN, { n: p.fouls })}</span>`);
   if (g.phase === 'day' && fxOn(g, 'intimidated', p.id)) tags.push(`<span class="pill">${u.tagIntimidated}</span>`);
   if (p.defused || (g.phase === 'day' && fxOn(g, 'defused', p.id))) tags.push(`<span class="pill">${u.tagDefused}</span>`);
   if (withRole && p.recruitedBy) tags.push(`<span class="pill">${u.tagRecruited} · ${P(g, p.recruitedBy) ? P(g, p.recruitedBy).seat : ''}</span>`);
@@ -398,7 +398,8 @@ function gameScreen() {
   else body = dayBody(g);
   return `${topbar('Mafia Pro', `${phaseName(g)} · ${tt(u.aliveShort, { n: alive(g).length })}`, false)}
   <div class="stack">
-    ${body}
+    ${foulWinHTML(g)}${body}
+    ${foulStripHTML(g)}
     <div class="btn-row"><button class="btn ghost sm" data-a="sheet" data-id="players">${I.users} ${u.btnPlayers}</button><button class="btn ghost sm" data-a="sheet" data-id="log">${I.list} ${u.btnLog}</button><button class="btn ghost sm" data-a="sheet" data-id="reset">${u.btnEnd}</button></div>
   </div>`;
 }
@@ -434,6 +435,7 @@ function actStep(g, step) {
   const head = `<div class="wake"><div class="who">${sealFor(role, skinOfPlayer(g, actor))}<div><div class="n">${step.title || role.name}</div><div class="s">${esc(label(actor))}${step.fam ? ` · ${FAMILY_NAMES[step.fam]}` : ''}</div></div></div>
     <div class="script">${step.script}</div>${step.members ? membersHTML(step.members) : ''}${step.note ? `<div class="hint" style="margin-top:8px">${esc(step.note)}</div>` : ''}`;
   const nav = (primary) => `<div class="btn-row"><button class="btn ghost" data-a="prev">${u.back}</button>${primary}</div>`;
+  if (!actor.alive && !recorded) return `${head}<div class="quiet" style="margin-top:10px">${tt(u.flStepGone, { player: esc(label(actor)) })}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`; // v62: removed by fouls
   if (step.disabled) return `${head}<div class="quiet" style="margin-top:10px">${u.disabledNote}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
   if (stolen) return `${head}<div class="quiet" style="margin-top:10px">${tt(u.stolenNote, { player: esc(label(P(g, stolen.actorId))) })}</div></div>${nav(`<button class="btn primary" data-a="next">${u.next}</button>`)}`;
   const blk = g.actions.find(a => (a.ability === 'block' || a.ability === 'jail') && a.targets[0] === step.actorId);
@@ -475,7 +477,7 @@ function day0Body(g) {
   if (!p) return `${phaseHead(g, u.allIntroduced, u.citySleeps)}<button class="btn primary" data-a="night">${u.sleepNight1}</button>`;
   return `${phaseHead(g, u.phDay0, tt(u.introOf, { i: g.speechIdx + 1, n: al.length }))}
     <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.secIntro, { s: S.settings.intro })}</div></div></div></div>
-    ${timerHTML(S.settings.intro, `d0-${g.speechIdx}`)}
+    ${foulMuted(p) ? foulMutedSpeechHTML(p, g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro) : timerHTML(S.settings.intro, `d0-${g.speechIdx}`)}
     <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro}</button></div>${undoBtnHTML(g)}`;
 }
 
@@ -512,6 +514,7 @@ function deathRow(g, d) {
 
 function dayBody(g) {
   const u = U(); const st = g.dayStage; const al = alive(g);
+  if (st !== 'morning' && st !== 'result' && lastWordsNow(g)) return lastWordsBlockHTML(g); // v62: the Kamikaze's victim speaks before the day goes on
   if (st === 'morning') {
     const r = g.nightResult || { removed: [], notes: [], quiet: [] };
     const deaths = r.removed.length ? r.removed.map(d => deathRow(g, d)).join('') : `<div class="okbox">${u.noDeaths}</div>`;
@@ -519,7 +522,7 @@ function dayBody(g) {
       .concat((g.pendingTriggers || []).filter(x => x.night).map(x => tt(x.type === 'morpheus' ? u.morpheusNightHint : u.azazelNightHint, { seat: P(g, x.actorId).seat })));
     const secret = r.quiet.concat(r.shotLog || []).concat(extra).map(q => `<div class="quiet">${esc(q)}</div>`).join('');
     const w = checkWin(g); const classic = isClassic(g);
-    const lastWords = classic && r.removed.length ? r.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lw-${g.day}-${i}`)}</div>`).join('') : '';
+    const lastWords = lastWordsHTML(g); // v62: 30 seconds each, every mode
     const bm = classic ? bestMoveHTML(g, r) : '';
     return `${phaseHead(g, u.morning, r.removed.length ? tt(u.outN, { n: r.removed.length }) : u.noLoss)}${statusHTML(g)}
       <div class="stack-s">${deaths}</div>${lastWords}${bm}
@@ -534,10 +537,10 @@ function dayBody(g) {
     const order = speakOrder(g); const p = order[g.speechIdx]; const classic = isClassic(g);
     const nomList = classic && g.ballot.candidates.length ? `<div class="hint">${tt(u.nominatedList, { list: g.ballot.candidates.map(id => P(g, id).seat).join(', ') })}</div>` : '';
     if (!p) return `${phaseHead(g, u.speechesDone, u.goVote)}${nomList}${kamikazeHTML(g)}<button class="btn primary" data-a="stage" data-id="vote">${u.toVote}</button>`;
-    const fouls = classic && p.fouls >= 3 ? `<div class="warnbox">${u.foulNoSpeech}</div>` : '';
+    const muted = foulMuted(p); const fouls = muted ? foulMutedSpeechHTML(p, g.speechIdx + 1 < order.length ? u.nextOne : u.toVote) : ''; // v62: 3 fouls — no minute, no nomination
     return `${phaseHead(g, u.speeches, tt(u.introOf, { i: g.speechIdx + 1, n: order.length }) + ' · ' + tt(u.firstSpeaker, { seat: order[0].seat }))}
       <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.seconds, { s: S.settings.speech })}</div></div></div></div>${fouls}
-      ${timerHTML(S.settings.speech, `sp-${g.day}-${g.speechIdx}`)}${classic ? nominateHTML(g, p) : ''}${nomList}${kamikazeHTML(g)}
+      ${muted ? '' : timerHTML(S.settings.speech, `sp-${g.day}-${g.speechIdx}`)}${classic && !muted ? nominateHTML(g, p) : ''}${nomList}${kamikazeHTML(g)}
       <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < order.length ? u.nextOne : u.toVote}</button></div>
       <button class="btn ghost sm" data-a="stage" data-id="vote" style="align-self:center">${u.skipSpeeches}</button>${undoBtnHTML(g)}`;
   }
@@ -591,7 +594,8 @@ function voteBody(g) {
     .concat(al.filter(p => { const f = FX(g, 'follow')[p.id]; return f && f.day === g.day; }).map(p => tt(u.capFollow, { seat: p.seat, by: P(g, FX(g, 'follow')[p.id].by).seat })))
     .concat(al.filter(p => { const a = FX(g, 'anonVotes')[p.id]; return a && a.day === g.day; }).map(p => tt(u.capAnon, { seat: p.seat })))
     .concat((b.forced || []).map(id => tt(u.capForced, { seat: P(g, id).seat })))
-    .concat(b.prosecuted ? [tt(u.capProsecuted, { seat: P(g, b.prosecuted).seat })] : []);
+    .concat(b.prosecuted ? [tt(u.capProsecuted, { seat: P(g, b.prosecuted).seat })] : [])
+    .concat(al.some(foulMuted) ? [tt(u.flNoVote, { list: al.filter(foulMuted).map(p => p.seat).join(', ') })] : []); // v62
   const judges = b.final ? [] : al.filter(p => p.roleId === 'judge' && !p.judgeUsed && !dayAbilityBlocked(g, p.id));
   const bailiffs = cands.length && !b.final ? al.filter(p => p.roleId === 'bailiff' && !p.finalUsed && !dayAbilityBlocked(g, p.id)) : [];
   const bailiffHTML = bailiffs.map(bf => `<button class="btn ghost sm" data-a="bailiff" data-id="${bf.id}">${tt(u.bailiffBtn, { seat: bf.seat })}</button>`).join('');
@@ -648,8 +652,9 @@ function liftBody(g) {
   const u = U(); const l = g.ballot.lift; const al = alive(g); const need = liftNeed(g);
   return `${phaseHead(g, u.liftTitle, tt(u.tie, { list: l.ids.map(id => P(g, id).seat).join(L.e.and) }))}
     <div class="panel"><div class="hint">${tt(u.liftHint, { list: l.ids.map(id => P(g, id).seat).join(L.e.and) })}</div></div>
-    <div class="panel raised"><div class="eyebrow gold">${tt(u.liftCount, { n: l.yes.length, alive: al.length, need })}</div>
-      <div class="picker" style="margin-top:10px">${al.map(p => `<button class="pk ${l.yes.includes(p.id) ? 'sel' : ''}" data-a="lift-toggle" data-id="${p.id}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>`).join('')}</div>
+    <div class="panel raised"><div class="eyebrow gold">${tt(u.liftCount, { n: l.yes.length, alive: al.filter(p => !foulMuted(p)).length, need })}</div>
+      <div class="picker" style="margin-top:10px">${al.map(p => foulMuted(p) ? `<button class="pk dis" disabled title="${esc(u.flMutedSpeech)}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>` : `<button class="pk ${l.yes.includes(p.id) ? 'sel' : ''}" data-a="lift-toggle" data-id="${p.id}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>`).join('')}</div>
+      ${al.some(foulMuted) ? `<div class="hint" style="margin-top:8px">${tt(u.flNoVote, { list: al.filter(foulMuted).map(p => p.seat).join(', ') })}</div>` : ''}
       <div class="btn-row" style="margin-top:10px"><button class="btn ${l.yes.length >= need ? 'danger' : 'primary'} grow" data-a="lift-finish">${l.yes.length >= need ? u.liftYes : u.liftNo}</button></div></div>`;
 }
 /* index of the voter the host is asking now (per day & round); defaults to the first who has not voted yet */
@@ -671,7 +676,7 @@ function tieBody(g) {
   if (!p) return `${phaseHead(g, u.tieSpeeches, tt(u.tie, { list: tied.map(id => P(g, id).seat).join(L.e.and) }))}<button class="btn primary" data-a="revote">${u.toRevote}</button>`;
   return `${phaseHead(g, u.tieSpeeches, tt(u.tie, { list: tied.map(id => P(g, id).seat).join(L.e.and) }))}
     <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.tieSpeechOf, { i: g.speechIdx + 1, n: tied.length, s: S.settings.tieSpeech })}</div></div></div></div>
-    ${timerHTML(S.settings.tieSpeech, `tie-${g.day}-${g.speechIdx}`)}
+    ${foulMuted(p) ? foulMutedSpeechHTML(p, g.speechIdx + 1 < tied.length ? u.nextOne : u.toRevote) : timerHTML(S.settings.tieSpeech, `tie-${g.day}-${g.speechIdx}`)}
     <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="tie-speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="tie-speech" data-d="1">${g.speechIdx + 1 < tied.length ? u.nextOne : u.toRevote}</button></div>`;
 }
 
@@ -709,7 +714,7 @@ function resultBody(g) {
   const imm = vr.immune ? `<div class="result same"><div class="eyebrow">${vr.immune.kind === 'ambassador' ? u.immunityTitle : u.shieldTitle}</div><div class="big">${P(g, vr.immune.id).seat}</div><div class="gesture">${tt(vr.immune.kind === 'ambassador' ? u.immunityText : u.shieldText, { player: esc(label(P(g, vr.immune.id))) })}</div></div>` : '';
   const chair = vr.chairman ? `<div class="hint" style="text-align:center">${u.chairmanNote}</div>` : '';
   const title = vr.vetoed ? u.judgeVetoed : rl ? u.rouletteDecided : vr.lift ? (vr.lift.passed ? u.liftDecided : u.liftFailed) : vr.immune ? (vr.immune.kind === 'ambassador' ? u.immunityTitle : u.shieldTitle) : vr.eliminatedId ? u.cityDecided : u.nobodyLeft;
-  const lastWords = isClassic(g) && vr.removed.length ? vr.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lwv-${g.day}-${i}`)}</div>`).join('') : '';
+  const lastWords = lastWordsHTML(g); // v62: 30 seconds each, every mode
   return `${phaseHead(g, title, vr.eliminatedId ? tt(u.leaves, { seat: P(g, vr.eliminatedId).seat }) : '')}${vr.round === 2 ? `<div class="eyebrow gold">${u.revoteTitle}</div>` : ''}${rows}${rl}${lift}${imm}${chair}${jester}${lastWords}
     ${removed ? `<div class="stack-s">${removed}</div>` : ''}
     ${morph ? `<div class="panel"><div class="eyebrow">${u.hostSecret}</div><div class="stack-s" style="margin-top:8px">${morph}</div></div>` : ''}
@@ -937,7 +942,7 @@ function sheetHTML(enter = true) {
   }
   if (sh.type === 'playerEdit') {
     const g = S.game; const p = P(g, sh.id); const r = ROLE[p.roleId];
-    const fouls = isClassic(g) ? `<div class="setting" style="margin-top:12px"><div><div class="t">${u.fouls}</div><div class="d">${p.fouls >= 4 ? u.foulOut : p.fouls >= 3 ? u.foulNoSpeech : u.foulsN.replace('{n}', p.fouls || 0)}</div></div><div class="ctl"><button data-a="foul-remove" data-id="${p.id}" aria-label="${u.foulRemove}">−</button><span class="v">${p.fouls || 0}</span><button data-a="foul-add" data-id="${p.id}" aria-label="${u.foulAdd}">+</button></div></div>` : '';
+    const fouls = p.alive || p.foulOut ? `<div class="setting" style="margin-top:12px"><div><div class="t">${u.fouls}</div><div class="d">${foulStateText(p.fouls || 0)}</div></div><div class="ctl"><button data-a="foul-remove" data-id="${p.id}" aria-label="${u.foulRemove}">−</button><span class="v">${p.fouls || 0}</span><button data-a="foul-add" data-id="${p.id}" aria-label="${u.foulAdd}">+</button></div></div>` : ''; // v62: every mode
     body = `<div class="row">${sealFor(r, skinOfPlayer(g, p))}<div class="grow"><h2>${esc(label(p))}</h2><div class="hint">${r.name} · ${p.alive ? u.inGame : u.outGame}</div></div></div>${fouls}
       <div class="btn-row" style="margin-top:14px"><button class="btn ghost" data-a="sheet" data-id="players">${u.back}</button><button class="btn ${p.alive ? 'danger' : 'primary'}" data-a="toggle-alive" data-id="${p.id}">${p.alive ? u.removePlayer : u.returnPlayer}</button></div>`;
   }
@@ -1039,7 +1044,7 @@ const ACT = {
   stage(el) {
     const g = S.game; const w = checkWin(g);
     if (g.dayStage === 'morning' && w) { finishGame(g, w); render(); return; }
-    g.dayStage = el.dataset.id; g.speechIdx = 0; S.ui.kamikaze = null; S.ui.pick = []; window.scrollTo(0, 0); render();
+    g.dayStage = el.dataset.id; g.speechIdx = 0; S.ui.kamikaze = null; S.ui.pick = []; lastWordsClear(g); window.scrollTo(0, 0); render();
   },
   kam() { S.ui.kamikaze = { stage: 'who', who: null }; S.ui.pick = []; render(); },
   'kam-who'() { const g = S.game; const p = P(g, S.ui.pick[0]); if (!p || p.roleId !== 'kamikaze' || p.kamikazeUsed || dayAbilityBlocked(g, p.id)) return; S.ui.kamikaze = { stage: 'victim', who: p.id }; S.ui.pick = []; render(); },
@@ -1085,8 +1090,8 @@ const ACT = {
   'lift-finish'() { undoTake('vote', () => finishLiftAll(S.game)); window.scrollTo(0, 0); render(); },
   'bm-pick'(el) { const id = el.dataset.id; const i = S.ui.pick.indexOf(id); if (i >= 0) S.ui.pick.splice(i, 1); else if (S.ui.pick.length < 3) S.ui.pick.push(id); render(); },
   'bm-save'(el) { const g = S.game; const r = g.nightResult; if (!r || !r.removed.length) return; recordBestMove(g, r.removed[0].id, el.dataset.skip ? [] : S.ui.pick.slice()); S.ui.pick = []; render(); },
-  'foul-add'(el) { const g = S.game; addFoul(g, el.dataset.id); render(); },
-  'foul-remove'(el) { removeFoul(S.game, el.dataset.id); render(); },
+  'foul-add'(el) { const g = S.game; addFoul(g, el.dataset.id); const p = P(g, el.dataset.id); if (p && p.foulOut && S.ui.sheet && S.ui.sheet.type === 'playerEdit') S.ui.sheet = { type: 'players' }; if (typeof foulToast === 'function') foulToast(g, p); render(); },
+  'foul-remove'(el) { const g = S.game; removeFoul(g, el.dataset.id); render(); },
   'rv-toggle'(el) { S.ui.rvOpen = S.ui.rvOpen || {}; S.ui.rvOpen[el.dataset.id] = !S.ui.rvOpen[el.dataset.id]; render(); },
   filter(el) { S.ui.cardFilter = el.dataset.id; render(); },
   role(el) { S.ui.sheet = { type: 'role', id: el.dataset.id }; render(); },
@@ -1095,7 +1100,7 @@ const ACT = {
   player(el) { if (S.screen === 'game' && S.ui.sheet && S.ui.sheet.type === 'players') { S.ui.sheet = { type: 'playerEdit', id: el.dataset.id }; render(); } },
   'toggle-alive'(el) {
     const g = S.game; const p = P(g, el.dataset.id);
-    if (p.alive) { eliminate(g, p.id, L.e.causeHost); } else { p.alive = true; p.deadOn = null; addLog(g, tt(L.e.logReturn, { player: label(p) })); }
+    if (p.alive) { eliminate(g, p.id, L.e.causeHost); } else { p.alive = true; p.deadOn = null; if (p.foulOut) { p.foulOut = false; p.fouls = Math.min(p.fouls || 0, 3); } addLog(g, tt(L.e.logReturn, { player: label(p) })); }
     S.ui.sheet = { type: 'players' }; render();
   },
   'reset-confirm'() { S.game = null; S.gameUndo = []; undoStore(); S.ui.sheet = null; clearInterval(T.iv); T.key = null; S.screen = 'home'; render(); },

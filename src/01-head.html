@@ -1041,4 +1041,32 @@ html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
 .gd-sheet { max-height: 92vh; overflow: auto; }
 .gd-zoom img { display: block; width: 100%; max-width: 390px; margin: 0 auto; border-radius: 18px; border: 1px solid var(--line-2); }
 html.lite .gd-img { box-shadow: none; }
+/* v62 fouls: the strip under every stage, the player's sheet; last words */
+.fl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.fl-chip { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px 7px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); min-width: 0; color: var(--fg); }
+.fl-chip .s { font-family: var(--font-mono); font-weight: 800; font-size: 14px; line-height: 1; }
+.fl-chip .nm { font-size: 10.5px; color: var(--fg-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-chip .tag { font-size: 9.5px; font-weight: 800; color: var(--crimson-2); text-transform: uppercase; letter-spacing: .04em; }
+.fl-chip.f1, .fl-chip.f2 { border-color: rgba(224,163,60,.45); }
+.fl-chip.f3 { border-color: var(--gold-2); background: rgba(240,205,122,.08); }
+.fl-chip.out { border-color: var(--crimson-2); background: rgba(199,66,58,.1); }
+.fl-chip.dead { opacity: .32; }
+.fl-chip:not(.dead):active { transform: scale(.97); }
+.fl-dots { display: inline-flex; gap: 3px; }
+.fl-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--bg-3); border: 1px solid var(--line-2); }
+.fl-dots i.on { background: var(--warn); border-color: var(--warn); }
+.fl-dots i.on.k3 { background: var(--gold-2); border-color: var(--gold-2); }
+.fl-dots i.on.k4 { background: var(--crimson-2); border-color: var(--crimson-2); }
+.fl-dots.lg { gap: 8px; } .fl-dots.lg i { width: 18px; height: 18px; }
+.fl-big { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0 6px; }
+.fl-big .num { font-family: var(--font-mono); font-weight: 800; color: var(--fg-2); }
+.fl-seat { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 800; font-size: 17px; background: var(--bg-3); border: 1px solid var(--gold-dim); color: var(--gold-2); flex: none; }
+.fl-gives { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.fl-give { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; }
+.fl-give b { font-size: 18px; font-family: var(--font-mono); } .fl-give small { font-size: 10.5px; font-weight: 600; opacity: .85; }
+.fl-give.gold { border-color: var(--gold-2); color: var(--gold-2); }
+.lw-panel { border-color: var(--crimson-2); }
+.rt-foul { position: absolute; left: -5px; top: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--warn); color: #1a1208; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg); }
+.rt-foul.f3 { background: var(--gold-2); } .rt-foul.f4 { background: var(--crimson-2); color: #fff; }
+.rt-seat.spk.muted .rt-av { box-shadow: 0 0 0 2px var(--gold-2); }
 </style>

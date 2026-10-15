@@ -13,7 +13,7 @@ const N = +process.env.N || 20000;
     // own everything so scenarios can be used
     ROLES.filter(r => r.premium).forEach(r => { if (!S.owned.roles.includes(r.id)) S.owned.roles.push(r.id); });
     SCENARIOS.forEach(sc => { if (!S.owned.scenarios.includes(sc.id)) S.owned.scenarios.push(sc.id); }); S.owned.packs = ['diplomacy'];
-    const gameActs = new Set(['pick', 'confirm', 'next', 'skip', 'prev', 'undo', 'resolve', 'stage', 'speech', 'day0', 'night', 'cand', 'vote', 'vote-open', 'vote-remove', 'vote-finish', 'vote-none', 'kam', 'kam-who', 'kam-cancel', 'kam-confirm', 'judge', 'lawyer', 'trig-confirm', 'finish', 'mode', 'player', 'toggle-alive', 'sheet', 'sheet-close', 'timer-toggle', 'timer-add', 'timer-reset', 'flip', 'hide', 'start', 'showall', 'vote-rest', 'tie-start', 'tie-speech', 'revote', 'roulette-start', 'roulette-guess', 'voter-step', 'voter-go', 'cand-pick', 'rv-toggle', 'nom-open', 'nominate', 'unnominate', 'vote-close', 'lift-toggle', 'lift-finish', 'bm-pick', 'bm-save', 'foul-add', 'foul-remove', 'prosecute-open', 'prosecute', 'bailiff']);
+    const gameActs = new Set(['foul-open', 'foul-give', 'foul-minus', 'foul-clear', 'foul-undo', 'lw-next', 'pick', 'confirm', 'next', 'skip', 'prev', 'undo', 'resolve', 'stage', 'speech', 'day0', 'night', 'cand', 'vote', 'vote-open', 'vote-remove', 'vote-finish', 'vote-none', 'kam', 'kam-who', 'kam-cancel', 'kam-confirm', 'judge', 'lawyer', 'trig-confirm', 'finish', 'mode', 'player', 'toggle-alive', 'sheet', 'sheet-close', 'timer-toggle', 'timer-add', 'timer-reset', 'flip', 'hide', 'start', 'showall', 'vote-rest', 'tie-start', 'tie-speech', 'revote', 'roulette-start', 'roulette-guess', 'voter-step', 'voter-go', 'cand-pick', 'rv-toggle', 'nom-open', 'nominate', 'unnominate', 'vote-close', 'lift-toggle', 'lift-finish', 'bm-pick', 'bm-save', 'foul-add', 'foul-remove', 'prosecute-open', 'prosecute', 'bailiff']);
     const newGame = () => {
       S.ui.sheet = null; S.ui.kamikaze = null;
       if (rnd() < 0.3) { const sc = SCENARIOS[Math.floor(rnd() * SCENARIOS.length)]; ACT['scen-use']({ dataset: { id: sc.id } }); }
@@ -29,7 +29,7 @@ const N = +process.env.N || 20000;
       if (S.screen !== 'game' && S.screen !== 'deal') { ACT.continue({ dataset: {} }); }
       let els = [...document.querySelectorAll('[data-a]')].filter(el => !el.disabled && gameActs.has(el.dataset.a));
       // weight: picks and confirm/next are frequent; sheet rarely
-      const weighted = els.filter(el => el.dataset.a !== 'sheet' || rnd() < 0.05).filter(el => el.dataset.a !== 'finish' || rnd() < 0.3).filter(el => el.dataset.a !== 'prev' && el.dataset.a !== 'undo' || rnd() < 0.3);
+      const weighted = els.filter(el => el.dataset.a !== 'sheet' || rnd() < 0.05).filter(el => !/^foul-/.test(el.dataset.a) || rnd() < 0.08).filter(el => el.dataset.a !== 'finish' || rnd() < 0.3).filter(el => el.dataset.a !== 'prev' && el.dataset.a !== 'undo' || rnd() < 0.3);
       const el = (weighted.length ? weighted : els)[Math.floor(rnd() * (weighted.length ? weighted : els).length)];
       if (!el) { bad.push('no controls on ' + S.screen + ' ' + (S.game && S.game.phase) + ' ' + (S.game && S.game.dayStage)); newGame(); continue; }
       const a = el.dataset.a; visited[a] = (visited[a] || 0) + 1;
