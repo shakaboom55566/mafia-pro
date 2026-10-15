@@ -17,6 +17,8 @@ let n = 0, fails = 0; const ok = (c, m) => { n++; if (!c) { fails++; console.log
 const clip = path.join(tmp, 'veo.mp4');
 execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=s=720x1280:r=24:d=8', '-f', 'lavfi', '-i', 'sine=f=330:d=8:r=48000', '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', clip]);
 const CLIP = fs.readFileSync(clip); const PNG = fs.readFileSync(path.join(here, '..', 'bot', 'media', 'avatar-512.png'));
+const wavFile = path.join(tmp, 'voice.wav'); execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=f=600:d=5:r=24000', '-ac', '1', '-c:a', 'pcm_s16le', wavFile]); const WAV = fs.readFileSync(wavFile);
+const cardFile = path.join(tmp, 'card.png'); execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=0x223355:s=510x765', '-frames:v', '1', cardFile]); const CARDPNG = fs.readFileSync(cardFile);
 
 const S = { calls: [], creds: null, block: false, igParamError: false, igUploadFail: false, polls: {}, reports: [], ttPrivacy: ['PUBLIC_TO_EVERYONE', 'SELF_ONLY'] };
 const server = http.createServer((req, res) => {
@@ -36,6 +38,9 @@ const server = http.createServer((req, res) => {
       return send(200, { name: m[1], done: true, response: { generateVideoResponse: { generatedSamples: [{ video: { uri: `${base}/v1beta/files/vid:download?alt=media` } }] } } }); }
     if (p === '/v1beta/files/vid:download') { res.writeHead(200, { 'Content-Type': 'video/mp4' }); return res.end(CLIP); }
     if (p === '/cards/uk/sheriff.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG); }
+    if (/^\/cards\/uk\/(don|doctor|maniac)\.png$/.test(p)) { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(CARDPNG); }
+    if (p === '/v1beta/interactions') { if (req.headers['x-goog-api-key'] !== 'gem-key') return send(403, { error: { message: 'API key not valid' } }); S.tts = body; if (S.ttsFail) return send(500, { error: { message: 'tts down' } });
+      return send(200, { id: 'i1', steps: [{ type: 'model_output', content: [{ type: 'audio', data: WAV.toString('base64') }] }] }); }
     // backend
     if (p.startsWith('/social/')) { if (req.headers['x-social-key'] !== KEY) return send(403, { ok: false, error: 'forbidden' });
       if (p === '/social/creds') return send(200, S.creds);
@@ -68,7 +73,7 @@ const KEY = (await import('node:crypto')).createHash('sha256').update('tg-token:
 
 const posts = path.join(tmp, 'posts'), pub = path.join(tmp, 'published'); fs.mkdirSync(posts); const LOG = path.join(tmp, 'log.txt');
 const write = (name, body) => { const f = path.join(posts, name); fs.writeFileSync(f, body); return f; };
-const GOOD = (date, extra = '') => `---\ndate: ${date}\nrubric: Роль дня\nhook: питання\n${extra}---\n## prompt\nVertical cinematic shot: a sheriff's star badge lies on a dark wooden card table lit by a single candle, slow push-in, smoke drifting, quiet jazz piano and a ticking clock.\n\n## uk\nШериф не спить. Кого б ти перевірив цієї ночі? Грай у Telegram — посилання в профілі.\n\n## en\nThe sheriff never sleeps. Who would you check tonight? Play in Telegram — link in bio.\n\n## tags\n#мафія #mafia #boardgames #telegram #настільніігри\n`;
+const GOOD = (date, extra = '') => `---\ndate: ${date}\nrubric: Роль дня\nhook: питання\ntitle: Шериф не спить\nvoice: Шериф не спить. Одна перевірка за ніч — і хтось за столом уже нервує.\n${extra}---\n## prompt\nVertical cinematic shot: a sheriff's star badge lies on a dark wooden card table lit by a single candle, slow push-in, smoke drifting, quiet jazz piano and a ticking clock.\n\n## uk\nШериф не спить. Кого б ти перевірив цієї ночі? Грай у Telegram — посилання в профілі.\n\n## en\nThe sheriff never sleeps. Who would you check tonight? Play in Telegram — link in bio.\n\n## tags\n#мафія #mafia #boardgames #telegram #настільніігри\n`;
 const run = (args, extra = {}) => new Promise(resolve => { fs.writeFileSync(LOG, ''); let out = '';
   const ch = spawn(process.execPath, [path.join(here, 'run.mjs'), ...args], { env: Object.assign({}, process.env, { API: base, BOT_TOKEN: 'tg-token', GEMINI_API_KEY: 'gem-key', GEMINI_BASE: base + '/v1beta', META_GRAPH_BASE: base, TIKTOK_API: base, TELEGRAM_API: base, APP_URL: base + '/', NOW: '2026-10-15T16:00:00Z', SOCIAL_PUB_DIR: pub, SOCIAL_POSTS_DIR: posts, LOG, POLL_MS: '20', FFMPEG_PRESET: 'ultrafast', GITHUB_ACTIONS: '' }, extra) });
   ch.stdout.on('data', d => { out += d; }); ch.stderr.on('data', d => { out += d; });
@@ -82,9 +87,14 @@ console.log('post files');
 { const f = write('2026-10-15.md', GOOD('2026-10-15')); const p = parsePost(f);
   ok(!p.errors.length && p.tags.length === 5 && p.id === '2026-10-15', 'valid post'); ok(p.caption.startsWith('🇺🇦 Шериф') && p.caption.includes('\n\n🇬🇧 The sheriff') && p.caption.endsWith('AI-generated video'), 'caption: uk, en, tags, AI line');
   ok(p.model === 'veo-3.1-fast-generate-preview', 'Veo 3.1 Fast by default');
-  const bad = write('bad.md', GOOD('2026-10-15').replace('#telegram', '#telegram #one #two').replace(/## en[\s\S]*?## tags/, '## en\n\n## tags').replace('Шериф не спить.', '<b>Шериф</b> не спить.'));
+  const bad = write('bad.md', GOOD('2026-10-15').replace('#telegram', '#telegram #one #two').replace(/## en[\s\S]*?## tags/, '## en\n\n## tags').replace('Кого б ти перевірив', '<b>Кого</b> б ти перевірив'));
   const b = parsePost(bad); ok(b.errors.some(e => /Instagram allows 5/.test(e)) && b.errors.some(e => /en caption/.test(e)) && b.errors.some(e => /plain text/.test(e)), 'too many tags, missing en, HTML → errors');
-  ok(parsePost(write('cyr.md', GOOD('2026-10-15').replace('Vertical cinematic shot', 'Вертикальний кадр'))).warnings.some(w => /Cyrillic/.test(w)), 'Cyrillic prompt → warning');
+  ok(parsePost(write('cyr.md', GOOD('2026-10-15').replace('Vertical cinematic shot', 'Вертикальний кадр'))).errors.some(w => /must be English/.test(w)), 'Cyrillic prompt → error');
+  ok(p.subtitles.length === 2 && p.subtitles[0] === 'Шериф не спить.' && p.title === 'Шериф не спить', 'voice split into subtitles, title read');
+  { const q = parsePost(write('q.md', GOOD('2026-10-15', 'refs: sheriff, don, doctor, maniac\n').replace('voice: Шериф не спить. Одна перевірка за ніч — і хтось за столом уже нервує.', 'voice: The sheriff never sleeps').replace('title: Шериф не спить', 'title: Sheriff')));
+    ok(q.errors.some(e => /3 at most/.test(e)) && q.errors.some(e => /voice: must be Ukrainian/.test(e)) && q.errors.some(e => /title: must be Ukrainian/.test(e)), 'too many refs, English voice and title → errors'); fs.unlinkSync(path.join(posts, 'q.md')); }
+  { const q = parsePost(write('q2.md', GOOD('2026-10-15').replace(/voice: .*\n/, ''))); ok(q.errors.some(e => /voice: is missing/.test(e)), 'voice is required'); fs.unlinkSync(path.join(posts, 'q2.md')); }
+  { const q = parsePost(write('q3-test.md', GOOD('2026-10-15', 'refs: sheriff\nimage: og/uk.png\n').replace(/voice: .*\n/, 'voice: none\n'))); ok(!q.errors.length && q.voice === '' && q.refs[0] === 'sheriff' && q.warnings.some(w => /image is ignored/.test(w)), 'voice: none, refs with image → warning'); fs.unlinkSync(path.join(posts, 'q3-test.md')); }
   ok((await run(['check', bad])).code === 1 && (await run(['check', f])).code === 0, 'check: exit codes');
   fs.unlinkSync(bad); fs.unlinkSync(path.join(posts, 'cyr.md'));
   ok(chunking(8e6).count === 1 && chunking(8e6).chunk === 8e6 && chunking(200 * 1024 * 1024).count === 20, 'TikTok chunks'); }
@@ -97,6 +107,9 @@ console.log('full run: Veo → end card → Instagram, Facebook, TikTok drafts �
 { reset(); S.creds = CREDS(); const r = await run(['publish', path.join(posts, '2026-10-15.md')]);
   ok(r.code === 0, 'exit 0'); if (r.code) console.log(r.out.slice(-2500));
   const v = calls(/predictLongRunning/)[0]; ok(v && /veo-3\.1-fast-generate-preview/.test(v.p) && v.body.parameters.aspectRatio === '9:16' && v.body.parameters.resolution === '1080p' && /sheriff's star/.test(v.body.instances[0].prompt), 'Veo: fast, 9:16, 1080p, the prompt');
+  ok(/No spoken words/.test(v.body.instances[0].prompt), 'voice-over planned → Veo asked for no speech');
+  ok(S.tts && S.tts.model === 'gemini-3.8-flash-tts' && S.tts.input[0].content[0].text === 'Шериф не спить. Одна перевірка за ніч — і хтось за столом уже нервує.' && S.tts.generation_config.speech_config[0].voice === 'Orus' && S.tts.response_format.mime_type === 'audio/wav', 'TTS: Ukrainian text, narrator voice, wav');
+  ok(/voice 5 s/.test(r.log) && /title "Шериф не спить"/.test(r.log), 'voice mixed, title drawn');
   const c = calls(/\/1784\/media$/)[0]; ok(c && c.body.media_type === 'REELS' && c.body.upload_type === 'resumable' && c.body.is_ai_generated === 'true' && c.body.caption.includes('🇬🇧') && c.body.access_token === 'page-token-1001', 'Instagram container: Reel, resumable, AI label, caption');
   ok(calls(/ig-api-upload/).length === 1 && calls(/media_publish/).length === 1, 'Instagram: upload + publish');
   const fs1 = calls(/1001\/video_reels/); ok(fs1.length === 2 && fs1[1].body.video_state === 'PUBLISHED' && fs1[1].body.description.includes('🇺🇦'), 'Facebook Reel: start, finish published');
@@ -106,7 +119,7 @@ console.log('full run: Veo → end card → Instagram, Facebook, TikTok drafts �
   ok(Number(tv.body.duration) === 10 && tv.body.width === '1080' && tv.body.height === '1920', 'final video 1080×1920, 8 s + end card');
   ok(calls(/sendMessage/).some(x => /<pre>🇺🇦 Шериф/.test(x.body.text)), 'TikTok caption sent to copy');
   const rep = S.reports.pop(); ok(rep && rep.id === '2026-10-15' && rep.results.instagram.id === 'm1' && rep.results.facebook.id === 'v77' && rep.results.tiktok.status === 'SEND_TO_USER_INBOX', 'report to the backend');
-  const j = JSON.parse(fs.readFileSync(path.join(pub, '2026-10-15.json'), 'utf8')); ok(j.results.instagram.url === 'https://www.instagram.com/reel/ABC/' && j.costUsd === 0.96 && j.seconds > 10, 'published/<id>.json: links, cost, length');
+  const j = JSON.parse(fs.readFileSync(path.join(pub, '2026-10-15.json'), 'utf8')); ok(j.results.instagram.url === 'https://www.instagram.com/reel/ABC/' && j.costUsd === 0.98 && j.seconds > 10 && j.voice.seconds === 5 && j.title === 'Шериф не спить', 'published/<id>.json: links, cost, length, voice, title');
   ok(!/page-token|tt-access|gem-key|tg-token/.test(r.log + r.out), 'no secrets in the log'); }
 
 console.log('the same post twice, another post the same day, a date that is not today');
@@ -136,10 +149,16 @@ console.log('pause, lockdown, Veo safety block, Instagram refuses a field, uploa
   S.igUploadFail = true; fs.rmSync(path.join(pub, '2026-10-15.json')); reset(); S.creds = CREDS({ meta: Object.assign(CREDS().meta, { pageId: 'nope' }), tiktok: null, ttMode: 'telegram' });
   r = await run(['publish', path.join(posts, '2026-10-15.md')]); ok(r.code === 1, 'every platform failed → exit 1'); S.igUploadFail = false; }
 
-console.log('first frame from a picture on the site');
+console.log('first frame from a picture on the site; our characters as reference images; voice-over failure');
 { fs.rmSync(path.join(pub, '2026-10-15.json'), { force: true }); write('2026-10-15.md', GOOD('2026-10-15', 'image: cards/uk/sheriff.png\n')); reset(); S.creds = CREDS();
-  const r = await run(['publish', path.join(posts, '2026-10-15.md')]); const v = calls(/predictLongRunning/)[0];
-  ok(v && v.body.instances[0].image && v.body.instances[0].image.inlineData.mimeType === 'image/png' && v.body.parameters.personGeneration === 'allow_adult' && r.code === 0, 'image-to-video: first frame + allow_adult'); }
+  let r = await run(['publish', path.join(posts, '2026-10-15.md')]); let v = calls(/predictLongRunning/)[0];
+  ok(v && v.body.instances[0].image && v.body.instances[0].image.inlineData.mimeType === 'image/png' && v.body.parameters.personGeneration === 'allow_adult' && r.code === 0, 'image-to-video: first frame + allow_adult');
+  fs.rmSync(path.join(pub, '2026-10-15.json'), { force: true }); write('2026-10-15.md', GOOD('2026-10-15', 'refs: don, doctor\n')); reset(); S.ttsFail = true;
+  r = await run(['publish', path.join(posts, '2026-10-15.md')]); v = calls(/predictLongRunning/)[0];
+  const refs = v && v.body.instances[0].referenceImages;
+  ok(refs && refs.length === 2 && refs.every(x => x.referenceType === 'asset' && x.image.inlineData.mimeType === 'image/png' && x.image.inlineData.data.length > 1000) && !v.body.instances[0].image && v.body.parameters.durationSeconds === '8' && v.body.parameters.personGeneration === 'allow_adult', 'our characters: card art as reference images, 8 s, allow_adult');
+  ok(calls(/\/cards\/uk\/(don|doctor)\.png/).length === 2 && /references: don, doctor/.test(r.log), 'card pictures fetched from the site');
+  ok(r.code === 0 && /voice-over: TTS/.test(r.log) && /no voice/.test(r.log) && calls(/sendVideo/).length === 1, 'TTS down → video still made and published, without the voice'); S.ttsFail = false; }
 
 console.log('status and stats (no tokens printed)');
 { reset(); S.creds = CREDS(); let r = await run(['status']); ok(r.code === 0 && /facebook: page "Mafia Pro"/.test(r.log) && /instagram: @mafiapro\.app/.test(r.log) && /tiktok: connected/.test(r.log) && /ready: yes/.test(r.log) && !/page-token|tt-access/.test(r.log + r.out), 'status');

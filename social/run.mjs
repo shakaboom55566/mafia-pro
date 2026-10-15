@@ -14,7 +14,8 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { parsePost, PRICE } from './lib/post.mjs';
 import { veoGenerate, VeoBlocked } from './lib/veo.mjs';
-import { finishVideo, firstFrame, hasFfmpeg, fontFile } from './lib/video.mjs';
+import { finishVideo, firstFrame, cardArt, hasFfmpeg, fontFile } from './lib/video.mjs';
+import { ttsWav } from './lib/tts.mjs';
 import { graphClient, instagramReel, facebookReel, instagramInsights } from './lib/meta.mjs';
 import { tiktokPost } from './lib/tiktok.mjs';
 import { log, secret, http, binary, short } from './lib/util.mjs';
@@ -23,6 +24,8 @@ const here = path.dirname(fileURLToPath(import.meta.url)); const root = path.res
 const PUB = process.env.SOCIAL_PUB_DIR || path.join(here, 'published'); const POSTS = process.env.SOCIAL_POSTS_DIR || path.join(here, 'posts');
 const LOGO = path.join(root, 'bot', 'media', 'avatar-512.png');
 const SAFE = ' Keep it family-friendly: no weapons pointed at anyone, no violence, no blood, no real people or brands, no text on screen.';
+const NO_SPEECH = ' No spoken words or dialogue in the clip: ambient sound and music only.'; // the Ukrainian voice-over is added afterwards
+const CARDS_LANG = 'uk';
 const env = process.env;
 const API = (env.API || (fs.existsSync(path.join(root, '.mafia-api-url')) ? fs.readFileSync(path.join(root, '.mafia-api-url'), 'utf8') : '')).trim().replace(/\/$/, '');
 const TG = (env.TELEGRAM_API || 'https://api.telegram.org').replace(/\/$/, '');
@@ -88,21 +91,32 @@ async function publish(file, { force = false, preview = false } = {}) {
   if (!preview && !c.meta && !c.tiktok) { log('no account is connected yet (/social in the bot) — no video generated, nothing spent'); return 0; }
   if (!env.GEMINI_API_KEY) { log('::error::GEMINI_API_KEY is not set (GitHub → Settings → Secrets and variables → Actions)'); return 1; }
   if (!hasFfmpeg()) { log('::error::ffmpeg is missing'); return 1; }
-  let image = null;
-  if (p.image) {
-    const base = (env.APP_URL || 'https://mafiapro.app/').replace(/\/?$/, '/');
+  const base = (env.APP_URL || 'https://mafiapro.app/').replace(/\/?$/, '/');
+  let image = null; const refs = [];
+  for (const id of p.refs) { // our characters: the illustrations of their cards
+    try { refs.push(cardArt(await binary(`${base}cards/${CARDS_LANG}/${id}.png`))); } catch (e) { log(`::warning::reference ${id}: ${e.message} — skipped`); }
+  }
+  if (refs.length) log(`  references: ${p.refs.join(', ')}`);
+  if (p.image && !refs.length) {
     try { image = firstFrame(await binary(base + p.image)); log(`  first frame: ${p.image}`); } catch (e) { log(`::warning::first frame ${p.image}: ${e.message} — text only`); }
   }
-  let raw = null, tries = 0; const cost1 = (PRICE[p.modelKey] || PRICE.fast)[RES] * 8;
-  for (const prompt of [p.prompt, p.prompt + SAFE]) {
+  let voice = null;
+  if (p.voice) { // Ukrainian voice-over (Gemini TTS); without it the video still goes out, with the subtitles only
+    try { voice = await ttsWav({ apiKey: env.GEMINI_API_KEY, base: env.GEMINI_BASE, text: p.voice, voice: p.voiceName || env.TTS_VOICE || undefined }); }
+    catch (e) { log(`::warning::voice-over: ${e.message} — the video goes without the voice`); }
+  }
+  let raw = null, tries = 0; const cost1 = (PRICE[p.modelKey] || PRICE.fast)[RES] * 8 + (p.voice ? 0.02 : 0);
+  const speech = p.voice ? NO_SPEECH : '';
+  for (const prompt of [p.prompt + speech, p.prompt + speech + SAFE]) {
     tries++;
-    try { raw = await veoGenerate({ apiKey: env.GEMINI_API_KEY, base: env.GEMINI_BASE, model: p.model, prompt, image, resolution: RES, pollMs: Number(env.POLL_MS) || 10000 }); break; }
+    try { raw = await veoGenerate({ apiKey: env.GEMINI_API_KEY, base: env.GEMINI_BASE, model: p.model, prompt, image, refs, resolution: RES, pollMs: Number(env.POLL_MS) || 10000 }); break; }
     catch (e) { if (e instanceof VeoBlocked && tries === 1) { log(`  ${e.message} — retrying with a softer prompt (a blocked video is not charged)`); continue; } log(`::error::${e.message}`);
       for (const a of c.admins || []) await tgCall('sendMessage', { chat_id: a, parse_mode: 'HTML', text: `⚠️ <b>Ролик ${esc(p.id)} не создан</b>\n${esc(short(e.message, 400))}\n\nПоправьте social/posts/${esc(p.id)}.md или ничего не делайте — завтра будет новый.` });
       return 1; }
   }
-  const fin = finishVideo(raw, { logo: LOGO });
-  log(`  video: ${fin.info.width}×${fin.info.height}, ${fin.info.duration.toFixed(1)} s, ${(fin.bytes.length / 1e6).toFixed(1)} MB, sound ${fin.info.audio ? 'yes' : 'no'}${fin.font ? '' : ', end card without text (no font)'}`);
+  const fin = finishVideo(raw, { logo: LOGO, voice, title: p.title, subtitles: voice ? p.subtitles : [] });
+  log(`  video: ${fin.info.width}×${fin.info.height}, ${fin.info.duration.toFixed(1)} s, ${(fin.bytes.length / 1e6).toFixed(1)} MB, sound ${fin.info.audio ? 'yes' : 'no'}${fin.voice ? `, voice ${fin.voice.seconds} s${fin.voice.tempo > 1 ? ` (sped up ×${fin.voice.tempo})` : ''}` : ', no voice'}${p.title ? `, title "${p.title}"` : ''}${fin.font ? '' : ', no font: text not drawn'}`);
+  if (fin.voice && fin.voice.tempo >= 1.3) log('::warning::the voice text is too long for 8 seconds — shorten voice: next time');
   const res = {}; const poll = Number(env.POLL_MS) || undefined;
   if (!preview) {
     const g = c.meta ? graphClient({ base: env.META_GRAPH_BASE, version: c.graph, token: c.meta.pageToken }) : null;
@@ -115,7 +129,7 @@ async function publish(file, { force = false, preview = false } = {}) {
   const cost = cost1 * tries; // a blocked try is not charged, so this is an upper bound
   if (!preview) {
     fs.mkdirSync(PUB, { recursive: true });
-    fs.writeFileSync(out, JSON.stringify({ id: p.id, date: p.date, rubric: p.rubric, hook: p.hook, model: p.model, resolution: RES, image: p.image || null, costUsd: Number(cost1.toFixed(2)),
+    fs.writeFileSync(out, JSON.stringify({ id: p.id, date: p.date, rubric: p.rubric, hook: p.hook, model: p.model, resolution: RES, image: p.image || null, refs: p.refs, title: p.title || null, voice: fin.voice, costUsd: Number(cost1.toFixed(2)),
       seconds: Number(fin.info.duration.toFixed(1)), bytes: fin.bytes.length, at: new Date(nowMs()).toISOString(), results: res }, null, 2) + '\n');
     const rep = await backend('/social/report', { id: p.id, rubric: p.rubric, bytes: fin.bytes.length, results: res }); if (!rep.ok) log(`::warning::report: ${rep.error || 'no answer'}`);
   }
