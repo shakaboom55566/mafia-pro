@@ -5191,7 +5191,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
       { t: 'Утро и обсуждение',
         p: ['{resolveNight} — наступает утро. Экран показывает, кто выбыл и от чего; в открытой игре — с ролью. Отдельная панель {hostSecret} — события, о которых город не знает: кого вылечил Доктор, кого охранял Телохранитель, попадание или промах. Объявите только то, что выше этой панели.',
           'Если убит Азазель, приложение напомнит: на итогах дня он может забрать с собой игрока. Если есть живой Камикадзе — кнопка {kamReveals} на случай, если он решит раскрыться.',
-          '{toBalagan} — таймер свободного обсуждения. {toSpeeches} — минутки: на экране говорящий и таймер; {nextOne} переключает. Порядок речей каждый день начинается со следующего места — приложение показывает «Речи с №…». {skipSpeeches} пропускает минутки, если стол их не хочет.',
+          '{toBalagan} — таймер свободного обсуждения. {toSpeeches} — минутки: на экране говорящий и таймер; {nextOne} переключает. Первый говорящий каждый день сдвигается на одно место: в первый день минутки начинает следующий после того, кто открывал знакомство, дальше — следующий после вчерашнего первого; приложение показывает «Речи с №…». {skipSpeeches} пропускает минутки, если стол их не хочет.',
           'Таймер можно остановить, добавить 30 секунд или сбросить; звук сигнала включается в настройках.',
           'Не тот результат ночи? Кнопка {undoToNight} на утреннем экране возвращает к последнему шагу ночи.'],
         s: ['Объявите выбывших (и роли, если игра открытая).', '{toBalagan} → дайте столу выговориться.', '{toSpeeches} → по кругу, по таймеру, {nextOne}.', 'После последнего — {toVote}.'],
@@ -5523,7 +5523,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
       { t: 'Ранок та обговорення',
         p: ['{resolveNight} — настає ранок. Екран показує, хто вибув і від чого; у відкритій грі — з роллю. Окрема панель {hostSecret} — події, про які місто не знає: кого вилікував Лікар, кого охороняв Охоронець, влучання чи промах. Оголосіть лише те, що вище цієї панелі.',
           'Якщо вбито Азазеля, застосунок нагадає: на підсумках дня він може забрати з собою гравця. Якщо є живий Камікадзе — кнопка {kamReveals} на випадок, якщо він вирішить розкритися.',
-          '{toBalagan} — таймер вільного обговорення. {toSpeeches} — хвилинки: на екрані промовець і таймер; {nextOne} перемикає. Порядок промов щодня починається з наступного місця — застосунок показує «Промови з №…». {skipSpeeches} пропускає хвилинки, якщо стіл їх не хоче.',
+          '{toBalagan} — таймер вільного обговорення. {toSpeeches} — хвилинки: на екрані промовець і таймер; {nextOne} перемикає. Перший промовець щодня зсувається на одне місце: у перший день хвилинки починає наступний після того, хто відкривав знайомство, далі — наступний після вчорашнього першого; застосунок показує «Промови з №…». {skipSpeeches} пропускає хвилинки, якщо стіл їх не хоче.',
           'Таймер можна зупинити, додати 30 секунд або скинути; звук сигналу вмикається в налаштуваннях.',
           'Не той результат ночі? Кнопка {undoToNight} на ранковому екрані повертає до останнього кроку ночі.'],
         s: ['Оголосіть тих, хто вибув (і ролі, якщо гра відкрита).', '{toBalagan} → дайте столу виговоритися.', '{toSpeeches} → по колу, за таймером, {nextOne}.', 'Після останнього — {toVote}.'],
@@ -5854,7 +5854,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
       { t: 'Morning and discussion',
         p: ['{resolveNight} — morning comes. The screen shows who is out and why; in an open game with the role. The separate {hostSecret} panel holds what the town does not know: whom the Doctor healed, whom the Bodyguard guarded, a hit or a miss. Announce only what is above that panel.',
           'If Azazel was killed, the app reminds you: at the day’s results he may take a player along. If a Kamikaze is alive, the {kamReveals} button is there in case they decide to reveal themselves.',
-          '{toBalagan} — the free-talk timer. {toSpeeches} — the minutes: the speaker and the timer on the screen; {nextOne} moves on. Each day the speeches start from the next seat — the app shows “Speeches from №…”. {skipSpeeches} skips the minutes if the table does not want them.',
+          '{toBalagan} — the free-talk timer. {toSpeeches} — the minutes: the speaker and the timer on the screen; {nextOne} moves on. The first speaker moves one seat every day: on day 1 the minutes start from the seat after the one who opened the introductions, then from the seat after the previous day’s first speaker; the app shows “Speeches from №…”. {skipSpeeches} skips the minutes if the table does not want them.',
           'The timer can be paused, given 30 more seconds or reset; the signal sound is in the settings.',
           'Wrong night result? {undoToNight} on the morning screen returns to the last step of the night.'],
         s: ['Announce who is out (and the roles in an open game).', '{toBalagan} → let the table talk.', '{toSpeeches} → in turn, on the timer, {nextOne}.', 'After the last one — {toVote}.'],
@@ -6185,7 +6185,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
       { t: 'Ranek i dyskusja',
         p: ['{resolveNight} — nastaje ranek. Ekran pokazuje, kto odpadł i od czego; w grze otwartej — z rolą. Osobny panel {hostSecret} to zdarzenia, o których miasto nie wie: kogo wyleczył Lekarz, kogo ochraniał Ochroniarz, trafienie czy pudło. Ogłoś tylko to, co jest powyżej tego panelu.',
           'Jeśli zabito Azazela, aplikacja przypomni: przy wynikach dnia może zabrać ze sobą gracza. Jeśli żyje Kamikadze — przycisk {kamReveals} na wypadek, gdyby postanowił się ujawnić.',
-          '{toBalagan} — timer swobodnej dyskusji. {toSpeeches} — minutki: na ekranie mówiący i czas; {nextOne} przełącza. Kolejność mów każdego dnia zaczyna się od następnego miejsca — aplikacja pokazuje „Mowy od nr…”. {skipSpeeches} pomija minutki, jeśli stół ich nie chce.',
+          '{toBalagan} — timer swobodnej dyskusji. {toSpeeches} — minutki: na ekranie mówiący i czas; {nextOne} przełącza. Pierwszy mówiący co dzień przesuwa się o jedno miejsce: pierwszego dnia minutki zaczyna następny po tym, kto otwierał przedstawienie, dalej — następny po wczorajszym pierwszym; aplikacja pokazuje „Mowy od nr…”. {skipSpeeches} pomija minutki, jeśli stół ich nie chce.',
           'Timer można zatrzymać, dodać 30 sekund albo zresetować; dźwięk sygnału włącza się w ustawieniach.',
           'Zły wynik nocy? Przycisk {undoToNight} na ekranie poranka wraca do ostatniego kroku nocy.'],
         s: ['Ogłoś, kto odpadł (i role, jeśli gra jest otwarta).', '{toBalagan} → daj stołowi się wygadać.', '{toSpeeches} → po kolei, na czas, {nextOne}.', 'Po ostatnim — {toVote}.'],
@@ -6516,7 +6516,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
       { t: 'Առավոտ և քննարկում',
         p: ['{resolveNight}՝ գալիս է առավոտը։ Էկրանը ցույց է տալիս, թե ով է դուրս մնացել և ինչից. բաց խաղում՝ դերով։ Առանձին {hostSecret} վահանակը այն իրադարձություններն են, որոնց մասին քաղաքը չգիտի. ում է բուժել Բժիշկը, ում է պահպանել Թիկնապահը, դիպուկ կրակոց, թե վրիպում։ Հայտարարեք միայն այն, ինչ այդ վահանակից վերև է։',
           'Եթե սպանվել է Ազազելը, հավելվածը կհիշեցնի. օրվա արդյունքներում նա կարող է իր հետ տանել խաղացողի։ Եթե կա ողջ Կամիկաձե՝ {kamReveals} կոճակը, եթե նա որոշի բացվել։',
-          '{toBalagan}՝ ազատ քննարկման ժամաչափը։ {toSpeeches}՝ րոպեներ. էկրանին խոսողը և ժամաչափը, {nextOne}-ը փոխում է։ Խոսքերի հերթականությունն ամեն օր սկսվում է հաջորդ տեղից. հավելվածը ցույց է տալիս «Խոսքերը №…-ից»։ {skipSpeeches}-ը բաց է թողնում րոպեները, եթե սեղանը դրանք չի ուզում։',
+          '{toBalagan}՝ ազատ քննարկման ժամաչափը։ {toSpeeches}՝ րոպեներ. էկրանին խոսողը և ժամաչափը, {nextOne}-ը փոխում է։ Առաջին խոսողն ամեն օր մեկ տեղով առաջ է շարժվում. առաջին օրը րոպեները սկսում է նա, ով նստած է ծանոթությունը բացողից հետո, հետո՝ նախորդ օրվա առաջինից հետո նստածը. հավելվածը ցույց է տալիս «Խոսքերը №…-ից»։ {skipSpeeches}-ը բաց է թողնում րոպեները, եթե սեղանը դրանք չի ուզում։',
           'Ժամաչափը կարելի է կանգնեցնել, ավելացնել 30 վայրկյան կամ զրոյացնել. ազդանշանի ձայնը միանում է կարգավորումներում։',
           'Գիշերվա արդյունքը սխալ է? Առավոտյան էկրանի {undoToNight} կոճակը վերադարձնում է գիշերվա վերջին քայլին։'],
         s: ['Հայտարարեք դուրս մնացածներին (և դերերը, եթե խաղը բաց է)։', '{toBalagan} → թույլ տվեք սեղանին խոսել։', '{toSpeeches} → շրջանով, ժամաչափով, {nextOne}։', 'Վերջինից հետո՝ {toVote}։'],
@@ -8104,7 +8104,7 @@ function checkWin(g) {
 
 /* ---------- Phase transitions ---------- */
 function startNight0(g) { g.phase = 'night0'; g.steps = buildNight0Steps(g); g.stepIdx = 0; addLog(g, L.e.logNight0); }
-function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; addLog(g, L.e.logDay0); }
+function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; g.day0FirstSeat = (alive(g)[0] || {}).seat || 1; addLog(g, L.e.logDay0); } // v64: who opens the introductions
 function startNight(g) {
   g.phase = 'night'; g.night += 1; g.actions = []; g.nightResult = null; lastWordsClear(g);
   g.steps = buildNightSteps(g); g.stepIdx = 0; g.pendingResult = null;
@@ -8112,7 +8112,8 @@ function startNight(g) {
 }
 function startDay(g) {
   g.phase = 'day'; g.day += 1; g.dayStage = 'morning'; g.speechIdx = 0; g.ballot = { candidates: [], votes: {}, round: 1, nominatedBy: {} }; g.voteResult = null; g.pendingTriggers = [];
-  // every day the minutes (and the vote stepper) start from the next living seat after the previous day's first speaker
+  // every day the minutes (and the vote stepper) start from the next living seat after the previous day's first speaker;
+  // day 1 of a role game — after the one who opened the introductions of day 0 (v64); classic has no introductions: seat 1
   g.dayFirstSeat = classicFirstSeat(g);
   // sport rules: the first day has no night before it (straight to speeches)
   if (isClassic(g) && g.night === 0) g.dayStage = 'speeches';
@@ -8128,8 +8129,8 @@ const FX = (g, key) => { g.effects = g.effects || {}; return g.effects[key] = g.
 const fxOn = (g, key, id) => FX(g, key)[id] === g.day;
 function classicFirstSeat(g) {
   const al = alive(g); if (!al.length) return 1;
-  if (g.day <= 1 || !g.dayFirstSeat) return al[0].seat;
-  const nxt = al.find(p => p.seat > g.dayFirstSeat) || al[0]; return nxt.seat;
+  const prev = g.day <= 1 ? g.day0FirstSeat : g.dayFirstSeat; if (!prev) return al[0].seat;
+  const nxt = al.find(p => p.seat > prev) || al[0]; return nxt.seat;
 }
 /* order of day speeches: seat order, rotated to start from the day's first speaker */
 function speakOrder(g) {

@@ -512,6 +512,7 @@ clearInterval(X.T.iv);
   A['undo-phase'](); g = S.game; check('v46 back to the night');
   if (g.phase !== 'night' || g.steps[g.stepIdx] || !g.players.find(p => p.roleId === 'azazel').alive) F('Back from the morning should return to the end of the night, Azazel alive');
   A.resolve(); g = S.game; const first1 = E('speakOrder')(g)[0];
+  { const al1 = X.alive(g); const want1 = (al1.find(p => p.seat > g.day0FirstSeat) || al1[0]).seat; if (g.day0FirstSeat !== 1 || first1.seat !== want1) F(`v64: day 1 minutes start after the introductions' opener (seat ${g.day0FirstSeat}) — want ${want1}, got ${first1.seat}`); }
   A.stage(el('stage', { id: 'balagan' })); A.stage(el('stage', { id: 'speeches' })); check('v46 day 1 speeches');
   if (!app.innerHTML.includes(X.tt(X.U().firstSpeaker, { seat: first1.seat }))) F('first speaker hint should show in role mode');
   if (E('voteOrder')(g)[0].id !== first1.id) F('the vote should start from the day\'s first speaker');

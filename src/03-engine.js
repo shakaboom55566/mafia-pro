@@ -540,7 +540,7 @@ function checkWin(g) {
 
 /* ---------- Phase transitions ---------- */
 function startNight0(g) { g.phase = 'night0'; g.steps = buildNight0Steps(g); g.stepIdx = 0; addLog(g, L.e.logNight0); }
-function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; addLog(g, L.e.logDay0); }
+function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; g.day0FirstSeat = (alive(g)[0] || {}).seat || 1; addLog(g, L.e.logDay0); } // v64: who opens the introductions
 function startNight(g) {
   g.phase = 'night'; g.night += 1; g.actions = []; g.nightResult = null; lastWordsClear(g);
   g.steps = buildNightSteps(g); g.stepIdx = 0; g.pendingResult = null;
@@ -548,7 +548,8 @@ function startNight(g) {
 }
 function startDay(g) {
   g.phase = 'day'; g.day += 1; g.dayStage = 'morning'; g.speechIdx = 0; g.ballot = { candidates: [], votes: {}, round: 1, nominatedBy: {} }; g.voteResult = null; g.pendingTriggers = [];
-  // every day the minutes (and the vote stepper) start from the next living seat after the previous day's first speaker
+  // every day the minutes (and the vote stepper) start from the next living seat after the previous day's first speaker;
+  // day 1 of a role game — after the one who opened the introductions of day 0 (v64); classic has no introductions: seat 1
   g.dayFirstSeat = classicFirstSeat(g);
   // sport rules: the first day has no night before it (straight to speeches)
   if (isClassic(g) && g.night === 0) g.dayStage = 'speeches';
@@ -564,8 +565,8 @@ const FX = (g, key) => { g.effects = g.effects || {}; return g.effects[key] = g.
 const fxOn = (g, key, id) => FX(g, key)[id] === g.day;
 function classicFirstSeat(g) {
   const al = alive(g); if (!al.length) return 1;
-  if (g.day <= 1 || !g.dayFirstSeat) return al[0].seat;
-  const nxt = al.find(p => p.seat > g.dayFirstSeat) || al[0]; return nxt.seat;
+  const prev = g.day <= 1 ? g.day0FirstSeat : g.dayFirstSeat; if (!prev) return al[0].seat;
+  const nxt = al.find(p => p.seat > prev) || al[0]; return nxt.seat;
 }
 /* order of day speeches: seat order, rotated to start from the day's first speaker */
 function speakOrder(g) {
