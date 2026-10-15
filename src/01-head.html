@@ -983,6 +983,21 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .sk-tn { margin-top: 5px; font-weight: 800; font-size: 12.5px; line-height: 1.2; overflow-wrap: anywhere; }
 .sk-tr { font-size: 11px; color: var(--fg-2); line-height: 1.2; }
 .sk-sheet .card3d-wrap { width: min(250px, 70vw); }
+/* v60: nine rarities — colour of the pill, the filter dot and the active filter chip */
+.ss-epic.rar-common { background: linear-gradient(90deg, #6b7280, #a3acb8); color: #fff; }
+.ss-epic.rar-rare { background: linear-gradient(90deg, #2f6fe4, #5fa0ff); color: #fff; }
+.ss-epic.rar-uncommon { background: linear-gradient(90deg, #1f9d63, #45d18f); color: #fff; }
+.ss-epic.rar-legendary { background: linear-gradient(90deg, #c98a12, #f6cf62); color: #2a1a00; }
+.ss-epic.rar-sr { background: linear-gradient(90deg, #e2631c, #ffa04d); color: #fff; }
+.ss-epic.rar-ssr { background: linear-gradient(90deg, #e0338f, #ff8ad0); color: #fff; }
+.ss-epic.rar-ur { background: linear-gradient(90deg, #12a5c9, #7ae6ff, #c69bff); color: #0b1a24; }
+.ss-epic.rar-mythic { background: linear-gradient(90deg, #a3122a, #ff4d5e); color: #fff; }
+.rar-dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; transform: rotate(45deg); margin-right: 6px; vertical-align: 1px; background: #9d5cf0; }
+.rar-dot.rar-common { background: #a3acb8; } .rar-dot.rar-rare { background: #4f8cff; } .rar-dot.rar-uncommon { background: #3fbf7f; } .rar-dot.rar-epic { background: #9d5cf0; }
+.rar-dot.rar-legendary { background: #f0b84a; } .rar-dot.rar-sr { background: #ff8a3d; } .rar-dot.rar-ssr { background: #ff5fb0; }
+.rar-dot.rar-ur { background: linear-gradient(135deg, #39c8ef, #c69bff); } .rar-dot.rar-mythic { background: #e0334d; }
+.rar-chip .rar-ab { margin-left: 4px; font-size: 10.5px; font-weight: 900; letter-spacing: .04em; opacity: .7; }
+.sk-rars { margin-top: -2px; }
 html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .skin-gl { display: none !important; } }
 /* ---------- v59 the guide: rules for players, the host's instruction ---------- */

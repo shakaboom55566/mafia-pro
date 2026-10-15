@@ -864,6 +864,13 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   if ((h.match(/class="sk-tile /g) || []).length !== nSeries || !h.includes('lilac-doctor-thumb.webp') || !h.includes(X.tt(u.skSeriesTitle, { n: nSeries })) || !h.includes('skin-item')) F('v57: the season skin on top and a tile with a thumbnail for every skin of the series');
   A['skin-filter'](el('skin-filter', { id: 'black' })); check('v57 filter mafia'); h = app.innerHTML;
   if (h.includes('data-id="lilac_doctor"') || !h.includes('data-id="orchid_surgeon"') || h.includes('skin-item')) F('v57: the Mafia filter keeps only mafia skins');
+  // v60: the rarity filter — nine rarities plus «all»; works together with the team filter
+  A['skin-filter'](el('skin-filter', { id: 'all' })); h = app.innerHTML;
+  if ((h.match(/data-a="skin-rar"/g) || []).length !== 10 || !h.includes(u.skRarAll) || !['common', 'rare', 'uncommon', 'epic', 'legendary', 'sr', 'ssr', 'ur', 'mythic'].every(r => h.includes(u.skRar[r])) || !h.includes('>Mythical</b>') || !h.includes('>SSR</b>')) F('v60: the rarity chips — all nine with their marks');
+  A['skin-rar'](el('skin-rar', { id: 'epic' })); check('v60 rarity epic'); h = app.innerHTML; if ((h.match(/class="sk-tile /g) || []).length !== nSeries || !h.includes('skin-item')) F('v60: Epic keeps the whole series and the season skin');
+  A['skin-rar'](el('skin-rar', { id: 'mythic' })); check('v60 rarity mythic'); h = app.innerHTML; if (h.includes('class="sk-tile ') || h.includes('skin-item') || !h.includes(X.tt(u.skRarNone, { r: u.skRar.mythic }))) F('v60: Mythical — nothing yet, said so');
+  A['skin-filter'](el('skin-filter', { id: 'black' })); A['skin-rar'](el('skin-rar', { id: 'epic' })); h = app.innerHTML; if (h.includes('data-id="lilac_doctor"') || !h.includes('data-id="orchid_surgeon"')) F('v60: rarity and team filters work together');
+  A['skin-rar'](el('skin-rar', { id: 'nonsense' })); if (S.ui.skinRar !== 'all') F('v60: an unknown rarity means all');
   A['skin-filter'](el('skin-filter', { id: 'all' })); A['skin-sheet'](el('skin-sheet', { id: 'lilac_doctor' })); check('v57 skin sheet'); h = app.innerHTML;
   if (!h.includes('sk-sheet') || !h.includes('lilac-doctor.webp') || !h.includes(u.skHowSoon) || h.includes('data-a="skin-wear"') || !h.includes(E('SKIN.lilac_doctor.name'))) F('v57: the sheet of a skin not owned: card, story, coming soon, no button');
   S.ui.sheet = null; S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: SK.map(x => x.id), equipped: { doctor: 'lilac_doctor' } }; X.render(); check('v57 owned'); h = app.innerHTML;

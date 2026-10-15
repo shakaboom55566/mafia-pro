@@ -230,11 +230,11 @@
     }
   };
   const UI = {
-    ru: { skHowSoon: 'Как получить этот скин, расскажем скоро.', skSeasonTitle: 'Награда сезона', skSeriesTitle: 'Epic-серия · {n}', skMine: 'Мои', skNone: 'Здесь пока пусто.' },
-    uk: { skHowSoon: 'Як отримати цей скін, розповімо незабаром.', skSeasonTitle: 'Нагорода сезону', skSeriesTitle: 'Epic-серія · {n}', skMine: 'Мої', skNone: 'Тут поки порожньо.' },
-    en: { skHowSoon: 'How to get this skin — coming soon.', skSeasonTitle: 'Season reward', skSeriesTitle: 'Epic series · {n}', skMine: 'Mine', skNone: 'Nothing here yet.' },
-    pl: { skHowSoon: 'Jak zdobyć tę skórkę — powiemy wkrótce.', skSeasonTitle: 'Nagroda sezonu', skSeriesTitle: 'Seria Epic · {n}', skMine: 'Moje', skNone: 'Na razie pusto.' },
-    hy: { skHowSoon: 'Ինչպես ստանալ այս սքինը՝ շուտով կպատմենք։', skSeasonTitle: 'Սեզոնի պարգև', skSeriesTitle: 'Epic շարք · {n}', skMine: 'Իմը', skNone: 'Այստեղ դեռ դատարկ է։' }
+    ru: { skHowSoon: 'Как получить этот скин, расскажем скоро.', skSeasonTitle: 'Награда сезона', skSeriesTitle: 'Epic-серия · {n}', skMine: 'Мои', skNone: 'Здесь пока пусто.' , skRarAll: 'Все редкости', skRarNone: 'Скинов редкости «{r}» пока нет.', skRar: { common: 'Обыкновенные', rare: 'Редкие', uncommon: 'Уникальные', epic: 'Эпические', legendary: 'Легендарные', sr: 'Супер редкие', ssr: 'Супер Супер редкие', ur: 'Уникально редкие', mythic: 'Мифические' } },
+    uk: { skHowSoon: 'Як отримати цей скін, розповімо незабаром.', skSeasonTitle: 'Нагорода сезону', skSeriesTitle: 'Epic-серія · {n}', skMine: 'Мої', skNone: 'Тут поки порожньо.' , skRarAll: 'Усі рідкості', skRarNone: 'Скінів рідкості «{r}» поки немає.', skRar: { common: 'Звичайні', rare: 'Рідкісні', uncommon: 'Унікальні', epic: 'Епічні', legendary: 'Легендарні', sr: 'Супер рідкісні', ssr: 'Супер супер рідкісні', ur: 'Унікально рідкісні', mythic: 'Міфічні' } },
+    en: { skHowSoon: 'How to get this skin — coming soon.', skSeasonTitle: 'Season reward', skSeriesTitle: 'Epic series · {n}', skMine: 'Mine', skNone: 'Nothing here yet.' , skRarAll: 'All rarities', skRarNone: 'No {r} skins yet.', skRar: { common: 'Common', rare: 'Rare', uncommon: 'Unique', epic: 'Epic', legendary: 'Legendary', sr: 'Super Rare', ssr: 'Super Super Rare', ur: 'Unique Rare', mythic: 'Mythical' } },
+    pl: { skHowSoon: 'Jak zdobyć tę skórkę — powiemy wkrótce.', skSeasonTitle: 'Nagroda sezonu', skSeriesTitle: 'Seria Epic · {n}', skMine: 'Moje', skNone: 'Na razie pusto.' , skRarAll: 'Wszystkie rzadkości', skRarNone: 'Na razie brak skórek: {r}.', skRar: { common: 'Zwykłe', rare: 'Rzadkie', uncommon: 'Unikalne', epic: 'Epickie', legendary: 'Legendarne', sr: 'Super rzadkie', ssr: 'Super super rzadkie', ur: 'Unikalnie rzadkie', mythic: 'Mityczne' } },
+    hy: { skHowSoon: 'Ինչպես ստանալ այս սքինը՝ շուտով կպատմենք։', skSeasonTitle: 'Սեզոնի պարգև', skSeriesTitle: 'Epic շարք · {n}', skMine: 'Իմը', skNone: 'Այստեղ դեռ դատարկ է։' , skRarAll: 'Բոլոր հազվադեպությունները', skRarNone: '«{r}» սքիններ դեռ չկան։', skRar: { common: 'Սովորական', rare: 'Հազվագյուտ', uncommon: 'Եզակի', epic: 'Էպիկական', legendary: 'Լեգենդար', sr: 'Սուպեր հազվագյուտ', ssr: 'Սուպեր սուպեր հազվագյուտ', ur: 'Եզակի հազվագյուտ', mythic: 'Առասպելական' } }
   };
   ['ru', 'uk', 'en', 'pl', 'hy'].forEach(code => {
     const p = I18N[code]; if (!p) return; p.skins = p.skins || {}; Object.assign(p.ui, UI[code]);

@@ -41,6 +41,14 @@ const SKINS = [
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
+/* v60: nine rarities (the owner's list, 15.10.2026) in the filter's order; abbr — the short mark, plate — the word on the pill (as on the card's plaque) */
+const RARITIES = [
+  { id: 'common', abbr: 'C', plate: 'COMMON' }, { id: 'rare', abbr: 'R', plate: 'RARE' }, { id: 'uncommon', abbr: 'Uc', plate: 'UNIQUE' },
+  { id: 'epic', abbr: 'Ep', plate: 'EPIC' }, { id: 'legendary', abbr: 'L', plate: 'LEGENDARY' }, { id: 'sr', abbr: 'SR', plate: 'SR' },
+  { id: 'ssr', abbr: 'SSR', plate: 'SSR' }, { id: 'ur', abbr: 'UR', plate: 'UR' }, { id: 'mythic', abbr: 'Mythical', plate: 'MYTHICAL' }
+];
+const RARITY = Object.fromEntries(RARITIES.map(r => [r.id, r]));
+const rarPill = (s, style = '') => `<span class="ss-epic rar-${s.rarity}"${style ? ` style="${style}"` : ''}>${(RARITY[s.rarity] || { plate: String(s.rarity).toUpperCase() }).plate}</span>`;
 ['name', 'lore'].forEach(k => SKINS.forEach(s => Object.defineProperty(s, k, { get() { const p = (L.skins && L.skins[s.id]) || (I18N.ru.skins || {})[s.id] || {}; return p[k] || s.id; }, enumerable: true })));
 /* the pictures live on the app's site: the same origin in the app (WebGL may read them), the full address anywhere else */
 const SKIN_BASE = (() => { try { return /(^|\.)mafiapro\.app$/.test(location.hostname) ? '/skins/' : 'https://mafiapro.app/skins/'; } catch (e) { return 'https://mafiapro.app/skins/'; } })();
@@ -175,7 +183,7 @@ function skinItemHTML(s) {
   const rank = !st.own && me ? `<div class="sk-rank">${rankSVG(rankIdx(me.points, me.games), 18)} ${u.skYourRank}: <b>${rankName(rankIdx(me.points, me.games))}</b> · <span class="num">${esc(String(me.points))}</span></div>` : '';
   return `<div class="skin-item ${s.rarity}">
     ${card3dFor(role, 'skin-' + s.id, s.id)}
-    <div class="sk-info"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="ss-epic">${s.rarity.toUpperCase()}</span>${pill}</div>
+    <div class="sk-info"><div class="row" style="gap:8px;flex-wrap:wrap">${rarPill(s)}${pill}</div>
       <div class="sk-name">${esc(s.name)}</div><div class="hint" style="margin:0">${tt(u.skFor, { role: role.name })}</div>
       <p class="sk-lore">${esc(s.lore)}</p><div class="hint" style="margin:0">${skinHowText(s)}</div>${rank}
       ${btn ? `<div class="btn-row" style="margin-top:10px">${btn}</div>` : ''}</div></div>`;
@@ -189,24 +197,33 @@ function skinTileHTML(s) {
 }
 function skinsTabHTML() {
   const u = U(); const f = ['all', 'mine', 'black', 'city', 'neutral'].includes(S.ui.skinFilter) ? S.ui.skinFilter : 'all';
+  const rf = RARITY[S.ui.skinRar] ? S.ui.skinRar : 'all'; // v60: the rarity filter (both rows work together)
   const own = id => (S.skins.owned || []).includes(id);
   const team = s => { const t = ROLE[s.role].team; return t === 'red' || t === 'ww' ? 'city' : t; };
-  const season = SKINS.filter(s => s.season), series = SKINS.filter(s => !s.season);
-  const list = series.filter(s => f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f));
+  const rarOk = s => rf === 'all' || s.rarity === rf;
+  const season = SKINS.filter(s => s.season && rarOk(s)), series = SKINS.filter(s => !s.season);
+  const list = series.filter(s => rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f)));
   const chip = (id, t) => `<button class="chip ${f === id ? 'active' : ''}" data-a="skin-filter" data-id="${id}">${t}</button>`;
+  const rchip = r => `<button class="chip rar-chip ${rf === r.id ? 'active' : ''}" data-a="skin-rar" data-id="${r.id}"><i class="rar-dot rar-${r.id}"></i>${esc((u.skRar || {})[r.id] || r.id)} <b class="rar-ab">${r.abbr}</b></button>`;
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
+    <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
-    <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}</div>
+    <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
     <div class="filters">${chip('all', u.fAll)}${mine ? chip('mine', u.skMine + ' · ' + mine) : ''}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div>
-    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : `<p class="hint">${u.skNone}</p>`}`;
+    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}`;
+}
+/* the rarity row scrolls sideways: after each render the chosen rarity is brought into view */
+function skinRarScroll() {
+  const row = document.querySelector && document.querySelector('.sk-rars'); const a = row && row.querySelector('.chip.active');
+  if (row && a && a.offsetLeft !== undefined) row.scrollLeft = Math.max(0, a.offsetLeft - row.offsetLeft - (row.clientWidth - a.offsetWidth) / 2);
 }
 /* the sheet of one skin: the 3D card, its story, how to get it, put on / take off */
 function skinSheetHTML(id) {
   const u = U(); const s = SKIN[id]; if (!s) return ''; const st = skinStatus(s); const role = ROLE[s.role];
   const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'}" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>` : '';
   return `<div class="sk-sheet">${card3dFor(role, 'sksheet-' + s.id, s.id)}
-    <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px"><span class="ss-epic">${s.rarity.toUpperCase()}</span><span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px">${rarPill(s)}<span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span></div>
     <h2 class="sk-name" style="text-align:center">${esc(s.name)}</h2><div class="hint" style="margin:0;text-align:center">${tt(u.skFor, { role: role.name })}</div>
     <p class="sk-lore" style="text-align:center">${esc(s.lore)}</p>${skinHowText(s) ? `<div class="hint" style="margin:0;text-align:center">${skinHowText(s)}</div>` : ''}
     ${btn ? `<div class="btn-row" style="margin-top:12px">${btn}</div>` : ''}</div>`;
@@ -214,7 +231,7 @@ function skinSheetHTML(id) {
 /* the role's own skins under its card (the role sheet) */
 function roleSkinsHTML(r) {
   const u = U(); const list = SKINS.filter(s => s.role === r.id); if (!list.length) return '';
-  return `<div class="section"><div class="eyebrow gold">${u.skForRole}</div><div class="stack-s" style="margin-top:8px">${list.map(s => { const st = skinStatus(s); return `<div class="fav sk-row" role="button" tabindex="0" data-a="skin-sheet" data-id="${s.id}">${sealFor(r, s.id)}<div class="grow" style="min-width:0"><div class="n">${esc(s.name)} <span class="ss-epic" style="margin:0 0 0 4px">${s.rarity.toUpperCase()}</span></div><div class="s">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</div></div><span class="rk-chev">›</span></div>`; }).join('')}</div></div>`;
+  return `<div class="section"><div class="eyebrow gold">${u.skForRole}</div><div class="stack-s" style="margin-top:8px">${list.map(s => { const st = skinStatus(s); return `<div class="fav sk-row" role="button" tabindex="0" data-a="skin-sheet" data-id="${s.id}">${sealFor(r, s.id)}<div class="grow" style="min-width:0"><div class="n">${esc(s.name)} ${rarPill(s, 'margin:0 0 0 4px')}</div><div class="s">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</div></div><span class="rk-chev">›</span></div>`; }).join('')}</div></div>`;
 }
 /* the Cards screen gets a «Cards | Skins» switch at the top */
 (function () {
@@ -231,11 +248,12 @@ function roleSkinsHTML(r) {
     return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${skinSheetHTML(sh.id)}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
   };
   const origRender = render;
-  render = function () { origRender.apply(this, arguments); try { if (S.game && !S.game.skinsAt) skinsLoad(S.game); skinsAfterRender(); } catch (e) {} };
+  render = function () { origRender.apply(this, arguments); try { if (S.game && !S.game.skinsAt) skinsLoad(S.game); skinsAfterRender(); skinRarScroll(); } catch (e) {} };
 })();
 Object.assign(ACT, {
   'cards-tab'(el) { S.ui.cardsTab = el.dataset.v === 'skins' ? 'skins' : 'cards'; render(); },
   'skin-filter'(el) { S.ui.skinFilter = el.dataset.id; render(); },
+  'skin-rar'(el) { S.ui.skinRar = RARITY[el.dataset.id] ? el.dataset.id : 'all'; render(); },
   'skin-sheet'(el) { if (SKIN[el.dataset.id]) { S.ui.sheet = { type: 'skin', id: el.dataset.id }; render(); } },
   'skins-open'() { S.ui.sheet = null; S.ui.cardsTab = 'skins'; if (typeof go === 'function') go('cards'); else { S.screen = 'cards'; render(); } },
   async 'skin-wear'(el) {
