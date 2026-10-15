@@ -799,6 +799,13 @@ function countersHTML(r) {
   return `<div class="section"><div class="eyebrow gold">${u.counters}</div><div class="hint" style="margin:2px 0 6px">${u.countersD}</div>${vs.length ? `<div class="counter-list">${counterChips(vs)}</div>` : `<div class="hint">${u.noCounters}</div>`}
     ${by.length ? `<div class="eyebrow" style="margin-top:10px">${u.counteredBy}</div><div class="counter-list" style="margin-top:6px">${counterChips(by)}</div>` : ''}</div>`;
 }
+/* which card texts a role sheet gets: the classic ones inside a classic game, at its setup or at a classic online table */
+function roleSheetMods() {
+  if (S.screen === 'table' && typeof tbMods === 'function') return tbMods();
+  if (S.game && !S.game.winner && (S.screen === 'game' || S.screen === 'deal')) return S.game.mods || null;
+  if ((S.screen === 'setup' || S.screen === 'deal') && typeof setupMods === 'function') return setupMods();
+  return null;
+}
 function roleDoc(r) {
   const u = U();
   const wakeTxt = r.wake ? tt(u.wakeN, { n: r.wake }) : (r.id === 'gunsmith' || r.id === 'mafia' ? u.wakeFamily : u.wakeNever);
@@ -936,7 +943,7 @@ function settingsScreen() {
 function sheetHTML(enter = true) {
   const u = U(); const sh = S.ui.sheet; if (!sh) return '';
   let body = '';
-  if (sh.type === 'role') body = roleDoc(ROLE[sh.id]);
+  if (sh.type === 'role') body = roleDoc(roleFor(sh.mods, sh.id) || ROLE[sh.id]); // v65: from a classic table — the classic card
   if (sh.type === 'players') {
     const g = S.game;
     body = `<h2>${u.playersSheet}</h2><p class="hint" style="margin:4px 0 10px">${u.playersHint}</p><div class="plist">${g.players.map(p => playerRow(g, p, true)).join('')}</div>`;
@@ -1095,7 +1102,7 @@ const ACT = {
   'foul-remove'(el) { const g = S.game; removeFoul(g, el.dataset.id); render(); },
   'rv-toggle'(el) { S.ui.rvOpen = S.ui.rvOpen || {}; S.ui.rvOpen[el.dataset.id] = !S.ui.rvOpen[el.dataset.id]; render(); },
   filter(el) { S.ui.cardFilter = el.dataset.id; render(); },
-  role(el) { S.ui.sheet = { type: 'role', id: el.dataset.id }; render(); },
+  role(el) { S.ui.sheet = { type: 'role', id: el.dataset.id, mods: roleSheetMods() }; render(); },
   sheet(el) { S.ui.sheet = { type: el.dataset.id }; render(); },
   'sheet-close'() { S.ui.sheet = null; render(); },
   player(el) { if (S.screen === 'game' && S.ui.sheet && S.ui.sheet.type === 'players') { S.ui.sheet = { type: 'playerEdit', id: el.dataset.id }; render(); } },

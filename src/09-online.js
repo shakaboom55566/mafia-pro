@@ -244,8 +244,10 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
   });
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
 }
+/* the mods of the table I sit at: the bomb hunt and the classic game change what the cards say */
+const tbMods = () => { const pub = TB.data && TB.data.pub; return { bombHunt: !!(pub && pub.bh), classic: !!(pub && pub.mode === 'classic') }; };
 function tbRoleRow(roleId, big) {
-  const u = U(); const r = roleFor(TB.data && TB.data.pub && TB.data.pub.bh ? { bombHunt: true } : null, roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia
+  const u = U(); const r = roleFor(tbMods(), roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia; v65: classic cards
   if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dFor(r, 'tb', mySkin(r.id))}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
   return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealFor(r, mySkin(r.id))}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
 }
@@ -497,12 +499,12 @@ function resultRows(g) {
     const ctg = tgId || (pr && pr.tgId) || null; const cr = ctg && g.cloudRatings ? g.cloudRatings[ctg] : null; let rk = null, up = 0;
     if (cr) { rk = { points: 1000 + (cr.points || 0), games: cr.games || 0, hosted: cr.hosted || 0, tgId: ctg }; up = (g.cloudRankUp && g.cloudRankUp[ctg]) || 0; }
     else if (pr && !ctg) { const st = profStats(pr); const e = pr.history.find(x => x.gameId === g.id); rk = { points: st.rating, games: st.games, tgId: null }; if (e) up = rankUpOf({ points: st.rating - (e.points || 0), games: st.games - 1 }, rk); }
-    return { rk, up, seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), sk: skinOfPlayer(g, p) || null, streak: streakFor(g, p, tgId, pr) };
+    return { rk, up, seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), classic: isClassic(g), sk: skinOfPlayer(g, p) || null, streak: streakFor(g, p, tgId, pr) };
   }).sort((a, b) => b.total - a.total || b.useful - a.useful || a.seat - b.seat).map((x, i) => Object.assign(x, { place: i + 1 }));
 }
 function streakHTML(row) { const u = U(); const n = row.streak; if (!n || n < 2) return ''; return `<div class="pod-streak">${tt(u.streakLine, { n, wins: plural(n, 'wins'), side: (u.streakFor || {})[row.side] || '' })}</div>`; }
 function podiumCardHTML(row, keyPrefix, big) {
-  const u = U(); const role = roleFor(row.bh ? { bombHunt: true } : null, row.roleId); if (!role) return '';
+  const u = U(); const role = roleFor({ bombHunt: !!row.bh, classic: row.classic != null ? !!row.classic : tbMods().classic }, row.roleId); if (!role) return ''; // the host's rows carry the mode; a player's come from the table
   const act = row.tgId ? `data-a="fr-open" data-id="${row.tgId}"` : row.profileId ? `data-a="prof-open" data-id="${esc(row.profileId)}"` : `data-a="role" data-id="${role.id}"`; // no profile → the card itself
   const av = row.photo ? `<img src="${esc(row.photo)}" alt="">` : `<span>${esc((row.name || '?').slice(0, 1).toUpperCase())}</span>`;
   return `<div class="pod-card ${big ? 'big' : ''} ${row.won ? 'win' : 'loss'} p${row.place}">

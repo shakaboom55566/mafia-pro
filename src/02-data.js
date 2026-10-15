@@ -222,6 +222,14 @@ function miniSim(sc, n, comp) { const s = sc.sim[n]; if (!s) return null; return
 const MODE_ROLE = {};
 function roleFor(mods, roleId) {
   const r = ROLE[roleId];
+  if (r && mods && mods.classic && ['sheriff', 'don', 'mafia'].includes(roleId)) { // v65: the classic card texts — the Sheriff only checks, the family shoots together
+    const key = 'classic:' + roleId;
+    if (!MODE_ROLE[key]) {
+      const card = () => ((L.classicCards || I18N.ru.classicCards || {})[roleId]) || {};
+      MODE_ROLE[key] = Object.create(r, Object.fromEntries(['kind', 'short', 'rules', 'lore', 'tip'].map(k => [k, { get() { return card()[k] || r[k]; }, enumerable: true }])));
+    }
+    return MODE_ROLE[key];
+  }
   if (!r || roleId !== 'bomb' || !mods || !mods.bombHunt) return r;
   if (!MODE_ROLE.bomb) {
     const card = () => ((L.mini && L.mini.bomb_hunt) || I18N.ru.mini.bomb_hunt).bombCard || {};

@@ -98,3 +98,71 @@ Object.assign(I18N.hy.ui, {
   missShot: 'Վրիպում (տարբեր համարներ)', missHint: 'Մաֆիան միաժամանակ ցույց է տալիս համար. տարբեր համարներ — վրիպում, ոչ ոք չի մահանում։'
 });
 Object.assign(I18N.hy.e, { causeLift: 'բոլորի հանում · {n} {votes}', causeFouls: '4 ֆոլ', logLiftPass: 'Բոլորի հանում. կողմ {n}, անհրաժեշտ {need} — դուրս են գալիս {list}։', logLiftFail: 'Բոլորի հանում. կողմ {n}, անհրաժեշտ {need} — ոչ ոք դուրս չի գալիս։', logBestMove: '{player}-ի լավագույն քայլը՝ {list}։', logNoVoteDay1: 'Առաջին օր, մեկ թեկնածու — քվեարկություն չի անցկացվում։', logFoul: '{player}՝ ֆոլ {n}։', logNominate: '{player}-ն առաջադրում է {target}-ին։' });
+
+/* v65: in the classic game the Sheriff only checks (no shot), the Don shoots with the family and then looks for the Sheriff, the Mafia shoots
+   together — the cards and the night script of a classic game say so (roleFor(mods) in 02-data.js picks these texts when mods.classic) */
+I18N.ru.classicCards = {
+  sheriff: { kind: 'Активная · ночь', short: 'Каждую ночь проверяет одного игрока: мирный или мафия. Не стреляет.',
+    rules: ['Ночью просыпается и показывает ведущему одного игрока.', 'Ведущий показывает ответ: мирный (красный) или мафия (чёрный).', 'Выстрела у Шерифа в классике нет — только проверка, одна за ночь.', 'Днём результаты проверок — его главное оружие в речи.'],
+    lore: 'Последний честный значок в городе. Он не носит револьвера — только блокнот, в котором каждую ночь появляется ещё одно имя.',
+    tip: 'Проверяйте тех, на кого меньше всего думают, и не торопитесь раскрываться: Дон ищет вас каждую ночь.' },
+  don: { kind: 'Активная · ночь', short: 'Стреляет вместе с семьёй, затем отдельно ищет Шерифа.',
+    rules: ['Ночью вся семья показывает одного игрока; разные номера — промах, никто не выбывает.', 'Затем Дон просыпается один и показывает игрока — ведущий отвечает, Шериф ли это.', 'Для проверки Шерифа — мафия (чёрный).'],
+    tip: 'Нулевой ночью договоритесь о порядке выстрелов; найденного Шерифа семья убирает первым.' },
+  mafia: { kind: 'Активная · ночь', short: 'Стреляет вместе с семьёй: все показывают одну цель.',
+    rules: ['Ночью просыпается с Доном и показывает цель выстрела; разные номера — промах.', 'Если Дон выбыл, семья стреляет сама.', 'Для проверки Шерифа — мафия (чёрный).'],
+    tip: 'Днём играйте мирного: выставляйте, голосуйте и не выгораживайте своих слишком явно.' }
+};
+I18N.ru.e.script2.sheriffClassic = 'Просыпается <b>Шериф</b> и показывает, кого проверяет.';
+I18N.uk.classicCards = {
+  sheriff: { kind: 'Активна · ніч', short: 'Щоночі перевіряє одного гравця: мирний чи мафія. Не стріляє.',
+    rules: ['Уночі прокидається і показує ведучому одного гравця.', 'Ведучий показує відповідь: мирний (червоний) чи мафія (чорний).', 'Пострілу в Шерифа у класиці немає — лише перевірка, одна за ніч.', 'Удень результати перевірок — його головна зброя в промові.'],
+    lore: 'Останній чесний значок у місті. Він не носить револьвера — лише блокнот, у якому щоночі з’являється ще одне ім’я.',
+    tip: 'Перевіряйте тих, на кого найменше думають, і не поспішайте розкриватися: Дон шукає вас щоночі.' },
+  don: { kind: 'Активна · ніч', short: 'Стріляє разом із сім’єю, потім окремо шукає Шерифа.',
+    rules: ['Уночі вся сім’я показує одного гравця; різні номери — промах, ніхто не вибуває.', 'Потім Дон прокидається сам і показує гравця — ведучий відповідає, чи це Шериф.', 'Для перевірки Шерифа — мафія (чорний).'],
+    tip: 'Нульової ночі домовтеся про порядок пострілів; знайденого Шерифа сім’я прибирає першим.' },
+  mafia: { kind: 'Активна · ніч', short: 'Стріляє разом із сім’єю: усі показують одну ціль.',
+    rules: ['Уночі прокидається з Доном і показує ціль пострілу; різні номери — промах.', 'Якщо Дон вибув, сім’я стріляє сама.', 'Для перевірки Шерифа — мафія (чорний).'],
+    tip: 'Удень грайте мирного: виставляйте, голосуйте і не вигороджуйте своїх надто явно.' }
+};
+I18N.uk.e.script2.sheriffClassic = 'Прокидається <b>Шериф</b> і показує, кого перевіряє.';
+I18N.en.classicCards = {
+  sheriff: { kind: 'Active · night', short: 'Checks one player every night: citizen or mafia. Does not shoot.',
+    rules: ['Wakes up at night and points the host to one player.', 'The host shows the answer: citizen (red) or mafia (black).', 'The classic Sheriff has no shot — one check per night, nothing else.', 'By day the checks are his main weapon in a speech.'],
+    lore: 'The last honest badge in town. He carries no revolver — only a notebook where one more name appears every night.',
+    tip: 'Check the ones nobody suspects and do not rush to come out: the Don looks for you every night.' },
+  don: { kind: 'Active · night', short: 'Shoots with the family, then looks for the Sheriff on his own.',
+    rules: ['At night the whole family points to one player; different numbers — a miss, nobody leaves.', 'Then the Don wakes up alone and points to a player — the host answers whether it is the Sheriff.', 'To the Sheriff\'s check — mafia (black).'],
+    tip: 'On night zero agree on the order of shots; a Sheriff you find goes first.' },
+  mafia: { kind: 'Active · night', short: 'Shoots with the family: everyone points to one target.',
+    rules: ['Wakes up with the Don at night and points to the target; different numbers — a miss.', 'If the Don is out, the family shoots on its own.', 'To the Sheriff\'s check — mafia (black).'],
+    tip: 'Play a citizen by day: nominate, vote, and do not shield your own too obviously.' }
+};
+I18N.en.e.script2.sheriffClassic = 'The <b>Sheriff</b> wakes up and points to the player he checks.';
+I18N.pl.classicCards = {
+  sheriff: { kind: 'Aktywna · noc', short: 'Co noc sprawdza jednego gracza: mieszkaniec czy mafia. Nie strzela.',
+    rules: ['W nocy budzi się i wskazuje prowadzącemu jednego gracza.', 'Prowadzący pokazuje odpowiedź: mieszkaniec (czerwony) czy mafia (czarny).', 'Szeryf w klasyce nie ma strzału — tylko jedno sprawdzenie na noc.', 'W dzień wyniki sprawdzeń to jego główna broń w mowie.'],
+    lore: 'Ostatnia uczciwa odznaka w mieście. Nie nosi rewolweru — tylko notes, w którym co noc pojawia się jeszcze jedno nazwisko.',
+    tip: 'Sprawdzaj tych, których nikt nie podejrzewa, i nie spiesz się z ujawnieniem: Don szuka cię co noc.' },
+  don: { kind: 'Aktywna · noc', short: 'Strzela razem z rodziną, potem osobno szuka Szeryfa.',
+    rules: ['W nocy cała rodzina wskazuje jednego gracza; różne numery — pudło, nikt nie odpada.', 'Potem Don budzi się sam i wskazuje gracza — prowadzący odpowiada, czy to Szeryf.', 'Dla sprawdzenia Szeryfa — mafia (czarny).'],
+    tip: 'W noc zerową ustalcie kolejność strzałów; znalezionego Szeryfa rodzina usuwa pierwszego.' },
+  mafia: { kind: 'Aktywna · noc', short: 'Strzela razem z rodziną: wszyscy wskazują jeden cel.',
+    rules: ['W nocy budzi się z Donem i wskazuje cel strzału; różne numery — pudło.', 'Jeśli Don odpadł, rodzina strzela sama.', 'Dla sprawdzenia Szeryfa — mafia (czarny).'],
+    tip: 'W dzień graj mieszkańca: zgłaszaj, głosuj i nie osłaniaj swoich zbyt wyraźnie.' }
+};
+I18N.pl.e.script2.sheriffClassic = 'Budzi się <b>Szeryf</b> i wskazuje, kogo sprawdza.';
+I18N.hy.classicCards = {
+  sheriff: { kind: 'Ակտիվ · գիշեր', short: 'Ամեն գիշեր ստուգում է մեկ խաղացողի՝ խաղաղ թե մաֆիա։ Չի կրակում։',
+    rules: ['Գիշերը արթնանում է և վարողին ցույց է տալիս մեկ խաղացողի։', 'Վարողը ցույց է տալիս պատասխանը՝ խաղաղ (կարմիր) կամ մաֆիա (սև)։', 'Դասականում Շերիֆը կրակոց չունի՝ միայն ստուգում, մեկը գիշերում։', 'Ցերեկը ստուգումների արդյունքները նրա գլխավոր զենքն են խոսքում։'],
+    lore: 'Քաղաքի վերջին ազնիվ կրծքանշանը։ Նա ատրճանակ չի կրում՝ միայն նոթատետր, որտեղ ամեն գիշեր հայտնվում է ևս մեկ անուն։',
+    tip: 'Ստուգեք նրանց, ում վրա ամենաքիչն են կասկածում, և մի շտապեք բացվել․ Դոնը ձեզ փնտրում է ամեն գիշեր։' },
+  don: { kind: 'Ակտիվ · գիշեր', short: 'Կրակում է ընտանիքի հետ, ապա առանձին փնտրում է Շերիֆին։',
+    rules: ['Գիշերը ամբողջ ընտանիքը ցույց է տալիս մեկ խաղացողի․ տարբեր համարներ՝ վրիպում, ոչ ոք դուրս չի գալիս։', 'Ապա Դոնը արթնանում է մենակ և ցույց է տալիս խաղացողի․ վարողը պատասխանում է՝ Շերի՞ֆ է։', 'Շերիֆի ստուգման համար՝ մաֆիա (սև)։'],
+    tip: 'Զրոյական գիշերը պայմանավորվեք կրակոցների հերթականությունը․ գտնված Շերիֆին ընտանիքը հեռացնում է առաջինը։' },
+  mafia: { kind: 'Ակտիվ · գիշեր', short: 'Կրակում է ընտանիքի հետ․ բոլորը ցույց են տալիս մեկ թիրախ։',
+    rules: ['Գիշերը արթնանում է Դոնի հետ և ցույց է տալիս կրակոցի թիրախը․ տարբեր համարներ՝ վրիպում։', 'Եթե Դոնը դուրս է եկել, ընտանիքը կրակում է ինքը։', 'Շերիֆի ստուգման համար՝ մաֆիա (սև)։'],
+    tip: 'Ցերեկը խաղացեք խաղաղի պես․ առաջադրեք, քվեարկեք և ձերոնց չափազանց ակնհայտ մի պաշտպանեք։' }
+};
+I18N.hy.e.script2.sheriffClassic = 'Արթնանում է <b>Շերիֆը</b> և ցույց է տալիս, ում է ստուգում։';

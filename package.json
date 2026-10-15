@@ -1,6 +1,6 @@
 {
   "name": "mafia-pro",
-  "version": "1.41.0",
+  "version": "1.42.0",
   "private": true,
   "description": "Mafia Pro — Telegram Mini App для ведущего живой мафии (ru/uk/en/pl/hy)",
   "scripts": {

@@ -145,7 +145,7 @@ function buildNightSteps(g) {
   one('jailer', { script: L.e.script2.jailer });
   one('thief', { targets: 2, script: L.e.script.thief });
   one('monk', { script: L.e.script.monk });
-  one('sheriff', { modes: isClassic(g) ? ['check'] : ['check', 'shoot'], script: L.e.script.sheriff });
+  one('sheriff', { modes: isClassic(g) ? ['check'] : ['check', 'shoot'], script: isClassic(g) ? L.e.script2.sheriffClassic : L.e.script.sheriff }); // v65: the classic Sheriff only checks
   one('doctor', { script: L.e.script.doctor });
   one('journalist', { targets: 2, script: L.e.script.journalist });
   one('drunk', { script: L.e.script.drunk });
