@@ -1,7 +1,7 @@
 // Monte-Carlo balance simulator for Mafia Pro.
 // Loads the prototype's own data + engine, adds heuristic bots for every role and plays thousands of games.
 const fs = require('fs'); const vm = require('vm');
-const I18N_FILES = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02f-icons.js'];
+const I18N_FILES = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02t-i18n-v53.js', '02f-icons.js'];
 const src = I18N_FILES.map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n') + '\n' + fs.readFileSync(__dirname + '/../src/02-data.js', 'utf8') + '\n' + fs.readFileSync(__dirname + '/../src/03-engine.js', 'utf8');
 const ctx = { console, Math, Date, Object, Array, Set, Number, String, JSON };
 vm.createContext(ctx);
@@ -30,7 +30,7 @@ const INFO_ROLES = ['sheriff', 'doctor', 'journalist', 'rabbi', 'bodyguard', 'ju
 function playGame(n, comp, cfg = DEFAULT_CFG, opts = {}) {
   const g = E.newGame(n, comp, [], {}, [], opts.mods || {});
   const pl = g.players;
-  const K = { S: {}, ch: {}, priv: {}, known: {}, claimed: { sheriff: null, journalist: null, thief: null }, found: {}, mafiaRoles: {}, hist: [], bh: { checked: {}, found: null, claims: [], fakeSaid: {} } };
+  const K = { S: {}, ch: {}, priv: {}, known: {}, claimed: { sheriff: null, journalist: null, thief: null }, found: {}, mafiaRoles: {}, hist: [], bh: { checked: {}, found: [], claims: [], fakeSaid: {} } };
   pl.forEach(p => { K.S[p.id] = 0; K.ch[p.id] = rnd(); K.priv[p.id] = {}; });
   pl.filter(p => p.roleId === 'werewolf').forEach(w => pl.filter(E.isBlack).forEach(b => { K.priv[w.id][b.id] = 4; }));
   E.startNight0(g);
@@ -165,7 +165,7 @@ function runNight(g, K, cfg) {
     if (!targets) continue;
     const res = E.recordAction(g, step, targets, mode);
     // knowledge updates
-    if (r === 'sapper' && g.mods && g.mods.bombHunt) { const t = E.P(g, targets[0]); K.bh.checked[actor.id][t.id] = t.roleId === 'bomb'; if (t.roleId === 'bomb') K.bh.found = t.id; }
+    if (r === 'sapper' && g.mods && g.mods.bombHunt) { const t = E.P(g, targets[0]); K.bh.checked[actor.id][t.id] = t.roleId === 'bomb'; if (t.roleId === 'bomb' && !K.bh.found.includes(t.id)) K.bh.found.push(t.id); }
     if (actor.recruitedBy && r === 'sheriff') continue; // a bought Sheriff keeps quiet
     if (res && res.kind === 'color') {
       const who = res.who.id, c = res.color;
@@ -270,36 +270,42 @@ function runDay(g, K, cfg) {
   }
   g.voteResult.removed.forEach(d => { const q = E.P(g, d.id); markRevealed(g, K, d.id, E.isBlack(q) ? 'black' : 'red'); });
 }
-/* ---------- Bomb hunt day: claims, a possible fake Sapper, safe votes on cleared players ---------- */
+/* ---------- Bomb hunt day (v53: 1–3 Bombs for the mafia, unknown to each other): claims, one fake Sapper at a time, safe votes ---------- */
 function runDayBombHunt(g, K, cfg) {
   const S = K.S; const al = aliveOf(g); const bh = K.bh;
-  const sapper = al.find(p => p.roleId === 'sapper'); const bomb = al.find(p => p.roleId === 'bomb');
+  const sapper = al.find(p => p.roleId === 'sapper'); const bombs = al.filter(p => p.roleId === 'bomb');
   const claim = id => bh.claims.find(c => c.id === id);
-  // 1. the real Sapper claims (always, once he has found the Bomb)
-  if (sapper && !claim(sapper.id) && (bh.found || rnd() < cfg.bhClaim)) bh.claims.push({ id: sapper.id, real: true });
-  // 2. the Bomb answers with a fake claim: accuses the real Sapper, or clears a random player
-  if (bomb && !claim(bomb.id) && ((claim(sapper && sapper.id) && rnd() < cfg.bhCounter) || (!bh.claims.length && rnd() < cfg.bhFakeFirst))) {
+  const found = () => bh.found.filter(id => E.P(g, id).alive);
+  // 1. the real Sapper claims (always, once he has found a Bomb)
+  if (sapper && !claim(sapper.id) && (found().length || rnd() < cfg.bhClaim)) bh.claims.push({ id: sapper.id, real: true });
+  // 2. one Bomb may answer with a fake claim: accuses the real Sapper, or clears a random player
+  const free = bombs.filter(b => !claim(b.id));
+  if (!bh.claims.some(c => !c.real && E.P(g, c.id).alive) && free.length && ((claim(sapper && sapper.id) && rnd() < cfg.bhCounter) || (!bh.claims.length && rnd() < cfg.bhFakeFirst))) {
+    const bomb = free[Math.floor(rnd() * free.length)];
     const victims = al.filter(p => p.id !== bomb.id); const real = sapper && claim(sapper.id);
     bh.claims.push({ id: bomb.id, real: false, accuse: real && rnd() < 0.7 ? sapper.id : (rnd() < 0.4 ? victims[Math.floor(rnd() * victims.length)].id : null) });
   }
   // what each claimer says today
   const says = c => {
-    if (c.real) { const mine = bh.checked[c.id] || {}; return { bomb: bh.found && E.P(g, bh.found).alive ? bh.found : null, clear: Object.keys(mine).filter(id => mine[id] === false && E.P(g, id).alive) }; }
+    if (c.real) { const mine = bh.checked[c.id] || {}; return { bomb: found()[0] || null, clear: Object.keys(mine).filter(id => mine[id] === false && E.P(g, id).alive) }; }
     const fs = bh.fakeSaid[c.id] = bh.fakeSaid[c.id] || { clear: [] };
     if (!c.accuse && rnd() < 0.6) { const o = al.filter(p => p.id !== c.id && !fs.clear.includes(p.id) && !(sapper && p.id === sapper.id)); if (o.length) fs.clear.push(o[Math.floor(rnd() * o.length)].id); }
     return { bomb: c.accuse && E.P(g, c.accuse).alive ? c.accuse : null, clear: fs.clear.filter(id => E.P(g, id).alive) };
   };
   const live = bh.claims.filter(c => E.P(g, c.id).alive);
-  // 3. votes
+  // voting out a cleared player is safe only if the Bombs do not get the upper hand (the number of Bombs left is public)
+  const safeOut = id => { const after = al.length - 1, rest = after - bombs.length; return bombs.length <= rest && !(after <= 2 && (!sapper || sapper.id === id)); };
+  const fromSaid = (said, v) => said.bomb || (() => { const c = said.clear.filter(id => id !== v.id && safeOut(id)); return c.length ? c[Math.floor(rnd() * c.length)] : null; })();
+  // 3. votes (a voter with nothing safe to say abstains)
   const b = g.ballot; b.candidates = []; b.votes = {};
   const pickFrom = (v, list) => { const o = list.filter(x => x.id !== v.id); return o.length ? argmax(o, x => S[x.id] + gauss() * cfg.voteNoise).id : null; };
   for (const v of al) {
     let t = null;
-    if (v.roleId === 'bomb') { // gets the Sapper out if it knows him; otherwise anyone
-      const real = live.find(c => c.real); t = real ? real.id : pickFrom(v, al);
+    if (v.roleId === 'bomb') { // pushes out a claimed Sapper (it cannot tell the real one from another Bomb's fake); otherwise anyone
+      const others = live.filter(c => c.id !== v.id); t = others.length ? others[Math.floor(rnd() * others.length)].id : pickFrom(v, al);
     } else if (v.roleId === 'sapper') {
-      const said = says({ id: v.id, real: true });
-      t = said.bomb || (said.clear.length ? said.clear[Math.floor(rnd() * said.clear.length)] : pickFrom(v, al.filter(x => !live.some(c => c.id === x.id))));
+      t = fromSaid(says({ id: v.id, real: true }), v);
+      if (!t && bombs.length === 1) t = pickFrom(v, al.filter(x => !live.some(c => c.id === x.id)));
     } else {
       let trust = null;
       if (live.length === 1) trust = rnd() < cfg.bhTrust ? live[0] : null;
@@ -307,8 +313,8 @@ function runDayBombHunt(g, K, cfg) {
         if (rnd() < cfg.bhSafe) trust = 'safe';
         else { const real = live.find(c => c.real), fake = live.find(c => !c.real); trust = rnd() < 0.5 + cfg.bhRead ? real : fake; }
       }
-      if (trust && trust !== 'safe') { const said = says(trust); t = said.bomb || (said.clear.length ? said.clear[Math.floor(rnd() * said.clear.length)] : pickFrom(v, al.filter(x => x.id !== trust.id && !live.some(c => c.id === x.id)))); }
-      else t = pickFrom(v, al.filter(x => !live.some(c => c.id === x.id))) || pickFrom(v, al);
+      if (trust && trust !== 'safe') t = fromSaid(says(trust), v) || (bombs.length === 1 ? pickFrom(v, al.filter(x => x.id !== trust.id && !live.some(c => c.id === x.id))) : null);
+      else if (bombs.length === 1) t = pickFrom(v, al.filter(x => !live.some(c => c.id === x.id))) || pickFrom(v, al);
     }
     if (!t || t === v.id || !isAlive(g, t)) continue;
     b.votes[v.id] = t; if (!b.candidates.includes(t)) b.candidates.push(t);
@@ -317,16 +323,7 @@ function runDayBombHunt(g, K, cfg) {
   let elim = null;
   if (tl.leaders.length === 1) elim = tl.leaders[0];
   else if (tl.leaders.length > 1) elim = tl.leaders[Math.floor(rnd() * tl.leaders.length)];
-  const judge = al.find(p => p.roleId === 'judge' && !p.judgeUsed);
-  if (judge && elim && live.some(c => c.id === elim) && rnd() < 0.8) { E.useJudge(g, judge.id); return; } // the Judge saves a claimed Sapper from the vote
   E.finishVote(g, elim);
-  while (g.pendingTriggers.length) {
-    const tr = g.pendingTriggers[0]; const cands = aliveOf(g).filter(x => x.id !== tr.actorId);
-    if (!cands.length) { g.pendingTriggers.shift(); continue; }
-    const real = live.find(c => c.real && E.P(g, c.id).alive); const said = real ? says(real) : { bomb: null, clear: [] };
-    const target = said.bomb ? E.P(g, said.bomb) : said.clear.length ? E.P(g, said.clear[0]) : cands[Math.floor(rnd() * cands.length)];
-    E.applyTrigger(g, tr, target.id);
-  }
 }
 function markRevealed(g, K, pid, color) {
   K.known[pid] = color;

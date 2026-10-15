@@ -91,11 +91,11 @@ function tablePub(g) {
   }
   const reveal = revealDeadIn(g); const shown = p => roleShown(g, p);
   const seats = g.players.map(p => { const s = { seat: p.seat, name: p.name, tgId: seatTg(g, p.seat), alive: p.alive, votedOut: !!p.votedOut, fouls: p.fouls || 0 }; if (g.winner || (!p.alive && shown(p))) { s.roleId = p.roleId; s.family = p.family || null; } return s; });
-  const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', open: reveal, online: !!g.online, openRoles: reveal, host: hostName(), day: g.day, night: g.night, seats, chat: false };
+  const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', open: reveal, online: !!g.online, openRoles: reveal, bh: !!(g.mods && g.mods.bombHunt), host: hostName(), day: g.day, night: g.night, seats, chat: false };
   if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; }
     let rv = null; try { rv = reviewGame(g); } catch (e) { rv = null; }
     const itemsOf = seat => { const p = g.players.find(x => x.seat === seat); const r = rv && p ? rv.byId[p.id] : null; return r && r.items ? r.items.slice(0, 20).map(it => ({ when: it.when, action: it.action, target: it.target, verdict: it.verdict, reason: it.reason || '', better: it.better || '', pts: it.pts || 0 })) : []; };
-    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
+    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
     pub.aborted = !!g.aborted; return pub; }
   if (!g.dealt) return pub;
   const asks = g.online ? buildAsks(g) : {};
@@ -244,7 +244,7 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
 }
 function tbRoleRow(roleId, big) {
-  const u = U(); const r = ROLE[roleId]; if (!r) return '';
+  const u = U(); const r = roleFor(TB.data && TB.data.pub && TB.data.pub.bh ? { bombHunt: true } : null, roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia
   if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dHTML(r, 'tb')}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
   return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealHTML(r)}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
 }
@@ -277,7 +277,7 @@ function tbAskHTML(ask, seats) {
   const pk = (ask.targets || []).map(tg => { const i = TB.pick.indexOf(tg.seat); return `<button class="pk ${i >= 0 ? 'sel' : ''} ${i === 1 ? 'n2' : ''} ${tg.ok ? '' : 'dis'}" data-a="tb-pick" data-seat="${tg.seat}" ${tg.ok ? '' : 'disabled'}><span class="seat">${tg.seat}</span><span class="nm">${esc((seats.find(s => s.seat === tg.seat) || {}).name || '')}</span>${i >= 0 && need > 1 ? `<span class="mark ${i === 1 ? 'c' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
   const ready = ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need;
   const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : ask.kind === 'trig' && ask.optional ? `<button class="btn ghost" data-a="tb-skip">${u.trigSkip}</button>` : '';
-  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? u.tbAzazelNight : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
+  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? (ask.trig === 'morpheus' ? u.tbMorpheusNight : u.tbAzazelNight) : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
     ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}
     <div class="btn-row" style="margin-top:10px">${skip}<button class="btn primary" data-a="tb-confirm" ${ready ? '' : 'disabled'}>${ask.kind === 'bestmove' ? u.tbBestSave : u.confirm}</button></div></div>`;
 }
@@ -476,8 +476,9 @@ Object.assign(ACT, {
 });
 /* ============================================================ RESULTS PODIUM: every player's 3D card, avatar / club, win streak in gold */
 const sideOf = roleId => { const r = ROLE[roleId]; return r ? (r.side === 'mafia' ? 'mafia' : r.side === 'city' ? 'city' : 'neutral') : 'city'; };
+const gameSideOf = (g, p) => { const s = ROLE[p.roleId] ? playSideOf(g, p) : 'city'; return s === 'mafia' ? 'mafia' : s === 'city' ? 'city' : 'neutral'; }; // v53: recruits and the bomb hunt's Bombs play for the mafia
 function localStreak(pr, side) { let n = 0; for (let i = pr.history.length - 1; i >= 0; i--) { const h = pr.history[i]; if (sideOf(h.roleId) !== side) continue; if (h.won) n++; else break; } return n; }
-function streakFor(g, p, tgId, pr) { const side = sideOf(p.roleId); const srv = g.streaks && tgId && g.streaks[tgId]; if (srv && srv.side === side) return srv.n; if (pr) return localStreak(pr, side); return null; }
+function streakFor(g, p, tgId, pr) { const side = gameSideOf(g, p); const srv = g.streaks && tgId && g.streaks[tgId]; if (srv && srv.side === side) return srv.n; if (pr) return localStreak(pr, side); return null; }
 /* rows of the finished game, best first: points, useful, avatar, club, streak */
 function resultRows(g) {
   const w = g.winner; if (!w) return []; const rv = reviewGame(g);
@@ -485,12 +486,12 @@ function resultRows(g) {
   return g.players.map(p => {
     const r = rv.byId[p.id] || { useful: 0, good: 0, bad: 0 }; const res = resultFor(g, p, w); const pts = pointsFor(p.roleId, res.won, p.alive, res.solo);
     const tgId = seatTg(g, p.seat); const pl = tgId ? tgl.find(x => x.tgId === tgId) : null; const pr = p.profileId ? profById(p.profileId) : null;
-    return { seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: sideOf(p.roleId), streak: streakFor(g, p, tgId, pr) };
+    return { seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), streak: streakFor(g, p, tgId, pr) };
   }).sort((a, b) => b.total - a.total || b.useful - a.useful || a.seat - b.seat).map((x, i) => Object.assign(x, { place: i + 1 }));
 }
 function streakHTML(row) { const u = U(); const n = row.streak; if (!n || n < 2) return ''; return `<div class="pod-streak">${tt(u.streakLine, { n, wins: plural(n, 'wins'), side: (u.streakFor || {})[row.side] || '' })}</div>`; }
 function podiumCardHTML(row, keyPrefix, big) {
-  const u = U(); const role = ROLE[row.roleId]; if (!role) return '';
+  const u = U(); const role = roleFor(row.bh ? { bombHunt: true } : null, row.roleId); if (!role) return '';
   const act = row.tgId ? `data-a="fr-open" data-id="${row.tgId}"` : row.profileId ? `data-a="prof-open" data-id="${esc(row.profileId)}"` : `data-a="role" data-id="${role.id}"`; // no profile → the card itself
   const av = row.photo ? `<img src="${esc(row.photo)}" alt="">` : `<span>${esc((row.name || '?').slice(0, 1).toUpperCase())}</span>`;
   return `<div class="pod-card ${big ? 'big' : ''} ${row.won ? 'win' : 'loss'} p${row.place}">

@@ -88,13 +88,14 @@ function buySheetHTML(kind, id) {
     <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="scen" data-id="${id}">${label(u.priceScen)}</button></div>`;
 }
 /* Scenario → setup */
-function applyScenario(id, n) {
+function applyScenario(id, n, opts) {
   const sc = SCENARIO[id]; if (!sc) return;
   S.setup.scenario = id;
   S.setup.n = Math.max(sc.min, Math.min(sc.max, n || S.setup.n));
-  S.setup.comp = scenarioComp(sc, S.setup.n);
+  if (sc.bombs) S.setup.bombs = clampBombs(S.setup.n, opts && opts.bombs);
+  S.setup.comp = scenarioComp(sc, S.setup.n, { bombs: S.setup.bombs });
 }
-function setupComp(n) { return S.setup.scenario && SCENARIO[S.setup.scenario] ? scenarioComp(SCENARIO[S.setup.scenario], n) : presetFor(n); }
+function setupComp(n) { return S.setup.scenario && SCENARIO[S.setup.scenario] ? scenarioComp(SCENARIO[S.setup.scenario], n, { bombs: S.setup.bombs }) : presetFor(n); }
 function setupMods() { return S.setup.scenario && SCENARIO[S.setup.scenario] ? SCENARIO[S.setup.scenario].mods : {}; }
 function unownedInComp(comp) { return [...new Set(comp.filter(id => !ownsRole(id)))]; }
 

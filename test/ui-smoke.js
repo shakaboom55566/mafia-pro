@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -608,7 +608,7 @@ clearInterval(X.T.iv);
   const by = (g, id) => g.players.find(p => p.roleId === id);
   const startGame = (id, n) => {
     A['mini-use'](el('mini-use', { id, n: String(n) })); S = X.S(); check(`v50 setup ${id} ${n}`);
-    if (S.setup.n !== n || S.setup.scenario !== id || S.setup.comp.join() !== E('SCENARIO')[id].comps[n].join()) F(`setup of ${id} ${n}: ${S.setup.n} ${S.setup.comp.join()}`);
+    if (S.setup.n !== n || S.setup.scenario !== id || S.setup.comp.join() !== E('scenarioComp')(E('SCENARIO')[id], n, { bombs: S.setup.bombs }).join()) F(`setup of ${id} ${n}: ${S.setup.n} ${S.setup.comp.join()}`);
     if (app.innerHTML.includes('data-a="comp"')) F('the small-table line-up must be fixed');
     if (!app.innerHTML.includes('class="okbox"') || /data-a="deal"[^>]*disabled/.test(app.innerHTML)) F(`${id} ${n}: line-up should be ready to deal`);
     A.deal(); for (let i = 0; i < n; i++) { A.flip(); A.hide(); } A.start(); return S.game;
@@ -627,20 +627,20 @@ clearInterval(X.T.iv);
   voteOut(g, bomb.id);
   let w = E('checkWin')(g); if (!w || w.side !== 'city') F('voting out the defused Bomb should win for the town: ' + JSON.stringify(w && w.side));
   A.finish(); check('v50 end city');
-  // 2. the town votes out a live Bomb → explosion, the town lost
+  // 2. the town votes out a live Bomb → explosion, the mafia wins (v53: the Bombs are the mafia)
   A.go(el('go', { to: 'mini' })); g = startGame('bomb_hunt', 6); toDay1(g); bomb = by(g, 'bomb'); sap = by(g, 'sapper');
   const notBomb = g.players.find(p => p.roleId !== 'bomb' && p.roleId !== 'sapper');
   night(g, { sapper: notBomb.id }); if (bomb.defused) F('a wrong pick must not defuse');
   voteOut(g, bomb.id);
-  w = E('checkWin')(g); if (!w || w.side !== 'bomb') F('a live Bomb voted out should win: ' + JSON.stringify(w && w.side));
+  w = E('checkWin')(g); if (!w || w.side !== 'mafia') F('a live Bomb voted out should win for the mafia: ' + JSON.stringify(w && w.side));
   if (X.alive(g).length !== 3) F('the explosion should take two neighbours, alive: ' + X.alive(g).length);
-  A.finish(); check('v50 end bomb'); if (!app.innerHTML.includes('winner bomb')) F('bomb win banner');
+  A.finish(); check('v50 end bomb'); if (!app.innerHTML.includes('winner mafia')) F('mafia win banner after the explosion');
   if (!E('resultFor')(g, bomb, g.winner).won || E('resultFor')(g, sap, g.winner).won) F('only the Bomb wins its explosion');
   // engine edge rules: 1:1 duels and the Sapper gone
   { const h = E('newGame')(4, ['bomb', 'sapper', 'citizen', 'citizen'], [], {}, [], { bombHunt: true }); const hb = by(h, 'bomb'), hs = by(h, 'sapper'), hc = h.players.filter(p => p.roleId === 'citizen');
     hc.forEach(p => { p.alive = false; }); if ((E('checkWin')(h) || {}).side !== 'city') F('Sapper and Bomb 1:1 → the Sapper wins');
-    hc[0].alive = true; hs.alive = false; if ((E('checkWin')(h) || {}).side !== 'bomb') F('Bomb and a townsperson 1:1 → the town lost');
-    hc[1].alive = true; if ((E('checkWin')(h) || {}).side !== 'bomb') F('Sapper gone, Bomb live → the town lost');
+    hc[0].alive = true; hs.alive = false; if ((E('checkWin')(h) || {}).side !== 'mafia') F('Bomb and a townsperson 1:1 → the mafia wins');
+    hc[1].alive = true; if ((E('checkWin')(h) || {}).side !== 'mafia') F('Sapper gone, Bomb live → the mafia wins');
     hb.defused = true; if (E('checkWin')(h)) F('Sapper gone but the Bomb already defused → the game goes on'); }
   // 3. Corruption: recruitment on night 0, the recruit's limits, a new recruit after the old one leaves
   A.go(el('go', { to: 'mini' })); g = startGame('corruption', 6); S = X.S();
@@ -670,6 +670,7 @@ clearInterval(X.T.iv);
     by(h, 'ninja').alive = false; if ((E('checkWin')(h) || {}).side !== 'mafia') F('2 vs 1: the mafia wins');
     if (!E('resultFor')(h, d, E('checkWin')(h)).won) F('the recruit wins with the mafia');
     c.alive = false; d.alive = false; by(h, 'ninja').alive = true; by(h, 'sheriff').alive = true; if ((E('checkWin')(h) || {}).side !== 'city') F('no Corrupter and no recruit: the town wins');
+    d.alive = true; { const w2 = E('checkWin')(h); if (!w2 || w2.side !== 'city') F('v53: the Corrupter out with his recruit alive → the town wins at once'); else if (E('resultFor')(h, d, w2).won) F('v53: the recruit loses when the Corrupter is out'); }
     const h2 = E('newGame')(6, ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac', 'ninja'], [], {}, [], { corruption: true }); const c2 = by(h2, 'corrupter'); by(h2, 'mayor').recruitedBy = c2.id; by(h2, 'mayor').alive = false;
     h2.night = 1; const steps = E('buildNightSteps')(h2); if (!steps.some(s => s.roleId === 'corrupter' && s.ability === 'recruit')) F('a new recruitment after the recruit left'); }
   S.game = null;
@@ -695,6 +696,67 @@ clearInterval(X.T.iv);
   const menu = (app.innerHTML.split('class="menu"')[1] || '').split('</nav>')[0].split('class="tabbar"')[0];
   ['cards', 'clubs', 'ratings'].forEach(t => { if (menu.includes(`data-to="${t}"`)) { fails++; console.log('FAIL v52 home menu still has ' + t); } });
   ['cards', 'clubs', 'ratings'].forEach(t => { if (!app.innerHTML.includes(`data-a="tab" data-id="${t}"`)) { fails++; console.log('FAIL v52 tab bar lost ' + t); } }); }
+// v53: Sapper and Bomb with 1–3 Bombs for the mafia; Morpheus like Azazel and only on active skills; the Corrupter buys any card
+{ const E = name => vm.runInContext(name, ctx); const u = X.U(); const F = m => { fails++; console.log('FAIL v53 ' + m); };
+  const by = (g, id) => g.players.find(p => p.roleId === id); const all = (g, id) => g.players.filter(p => p.roleId === id); const nOf = (c, id) => c.filter(x => x === id).length;
+  let S = X.S(); S.game = null;
+  // 1. the Bomb count: 5 players up to 2, 6 players up to 3; only the Sapper, Citizens and Bombs
+  A.go(el('go', { to: 'mini' })); A['mini-n'](el('mini-n', { n: '5' })); check('v53 mini 5');
+  if (!app.innerHTML.includes('data-a="mini-bombs" data-n="2"') || app.innerHTML.includes('data-a="mini-bombs" data-n="3"')) F('5 players: 1–2 Bombs');
+  A['mini-n'](el('mini-n', { n: '6' })); A['mini-bombs'](el('mini-bombs', { n: '3' })); check('v53 mini 6 x3');
+  if (!app.innerHTML.includes(u.bhBombsL[2]) || !app.innerHTML.includes('×3')) F('6 players: 3 Bombs offered and shown');
+  A['mini-use'](el('mini-use', { id: 'bomb_hunt', n: '6', bombs: '3' })); S = X.S(); check('v53 setup 3 bombs');
+  if (S.setup.comp.slice().sort().join() !== 'bomb,bomb,bomb,citizen,citizen,sapper') F('6 players with 3 Bombs: ' + S.setup.comp.join());
+  if (/data-a="deal"[^>]*disabled/.test(app.innerHTML)) F('the 3-Bomb line-up should be ready to deal');
+  if (E('compositionStats')(S.setup.comp, { bombHunt: true }).black !== 3) F('the Bombs count as the mafia');
+  A.bombs(el('bombs', { d: '-1' })); check('v53 setup 2 bombs'); if (nOf(S.setup.comp, 'bomb') !== 2 || nOf(S.setup.comp, 'citizen') !== 3) F('− Bomb gives a Citizen back');
+  A.bombs(el('bombs', { d: '1' })); A.bombs(el('bombs', { d: '1' })); if (nOf(S.setup.comp, 'bomb') !== 3) F('Bombs capped at 3');
+  A.n(el('n', { d: '-1' })); check('v53 setup 5'); if (S.setup.n !== 5 || nOf(S.setup.comp, 'bomb') !== 2) F('5 players: the Bombs clamp to 2, got ' + S.setup.comp.join());
+  A.n(el('n', { d: '1' })); if (nOf(S.setup.comp, 'bomb') !== 3) F('back to 6 players: 3 Bombs again');
+  // the deal: the Bomb's card is the mafia's
+  A.deal(); let g = S.game; let gd = 0, seen = 0;
+  while (g.dealIdx < g.players.length && gd++ < 10) { A.flip(); if (g.players[g.dealIdx].roleId === 'bomb') { seen++; check('v53 bomb card'); if (!/class="card black/.test(app.innerHTML)) F('the bomb hunt Bomb card must be the mafia (black)'); } A.hide(); }
+  if (seen !== 3) F('three Bomb cards dealt');
+  A.start(); check('v53 night 0');
+  const meets = g.steps.filter(s => s.roleId === 'bomb'); if (meets.length !== 3 || meets.some(s => s.members.length !== 1)) F('each Bomb wakes alone on night 0');
+  const bs = all(g, 'bomb'), sap = by(g, 'sapper'), cs = all(g, 'citizen');
+  if (E('checkWin')(g)) F('3 vs 3: no winner yet');
+  cs[0].alive = false; { const w = E('checkWin')(g); if (!w || w.side !== 'mafia') F('3 Bombs vs 2: the mafia wins by majority'); else if (!E('resultFor')(g, bs[0], w).won || E('resultFor')(g, sap, w).won) F('the Bombs win with the mafia'); }
+  cs[0].alive = true; bs[0].alive = false; bs[0].defused = true; if (E('checkWin')(g)) F('one defused Bomb out of three: the game goes on');
+  bs[1].alive = false; bs[1].defused = true; bs[2].alive = false; bs[2].defused = true; { const w = E('checkWin')(g); if (!w || w.side !== 'city') F('every Bomb out defused: the town wins'); }
+  bs[2].defused = false; { const w = E('checkWin')(g); if (!w || w.side !== 'mafia') F('an undefused Bomb out: the mafia wins'); }
+  S.game = null;
+  // 2. Morpheus: killed at night → acts at the day's results (may decline); takes only an active skill; the family shooter loses the shot
+  { const h = E('newGame')(9, ['don', 'mafia', 'mafia_doctor', 'morpheus', 'sheriff', 'doctor', 'citizen', 'mayor', 'judge'], [], {}, [], {});
+    const mor = by(h, 'morpheus'), don = by(h, 'don'), maf = by(h, 'mafia'), cit = by(h, 'citizen'), sh = by(h, 'sheriff'), judge = by(h, 'judge'), mayor = by(h, 'mayor');
+    h.phase = 'night'; h.night = 1; h.nightResult = { removed: [{ id: mor.id, cause: 'x' }], notes: [], quiet: [] }; mor.alive = false;
+    E('startDay')(h); if (!h.pendingTriggers.some(t => t.type === 'morpheus' && t.night)) F('Morpheus killed at night gets a trigger at the day results');
+    // the host's result screen: the night text and the decline button
+    S.game = h; h.dealt = true; h.dealIdx = h.players.length; h.dayStage = 'result'; h.voteResult = { tally: { rows: [], max: 0, leaders: [] }, removed: [], eliminatedId: null }; S.screen = 'game'; X.render(); check('v53 morpheus night trigger');
+    if (!app.innerHTML.includes(u.trigMorpheusNight) || !app.innerHTML.includes('data-a="trig-skip"')) F('the night Morpheus trigger offers its text and a decline');
+    A['trig-skip'](); if (h.pendingTriggers.length) F('a night Morpheus may decline');
+    const take = id => { h.pendingTriggers = [{ type: 'morpheus', actorId: mor.id }]; S.ui.pick = [id]; A['trig-confirm'](); };
+    take(cit.id); check('v53 morpheus none'); if (cit.disabled) F('a Citizen has nothing to take'); if (!app.innerHTML.includes(X.tt(u.morphNone, { player: X.label(cit) }).slice(0, 25))) F('the host sees that Morpheus took nothing');
+    take(mayor.id); if (mayor.disabled) F('the Mayor is passive: nothing to take');
+    take(maf.id); if (maf.disabled) F('a mafioso who does not shoot has nothing to take');
+    take(judge.id); if (!judge.disabled || !X.dayAbilityBlocked(h, judge.id)) F('Morpheus takes the Judge\'s veto');
+    take(sh.id); if (!sh.disabled) F('Morpheus takes the Sheriff\'s check');
+    take(don.id); check('v53 morpheus shot'); if (!don.disabled) F('Morpheus takes the shot of the Don');
+    h.night = 2; let st = E('buildNightSteps')(h).find(s => s.ability === 'shoot'); if (!st || !st.disabled) F('the family cannot shoot while the Don sits');
+    don.alive = false; st = E('buildNightSteps')(h).find(s => s.ability === 'shoot'); if (!st || st.disabled) F('the next by seniority shoots once the Don leaves');
+    // voted out — the same trigger right away, without a decline
+    const h2 = E('newGame')(7, ['don', 'mafia', 'morpheus', 'sheriff', 'doctor', 'citizen', 'citizen'], [], {}, [], {}); E('startDay')(h2); const m2 = by(h2, 'morpheus');
+    h2.ballot = { candidates: [m2.id], votes: {}, round: 1 }; E('finishVote')(h2, m2.id); const t2 = h2.pendingTriggers[0]; if (!t2 || t2.type !== 'morpheus' || t2.night || E('skipTrigger')(h2, t2)) F('voted out: Morpheus picks at once, no decline');
+    S.game = null; S.screen = 'home'; S.ui.pick = []; }
+  // 3. the Corrupter buys any card (even the mafia's); with two families the bought player joins the Corrupter's family
+  { const h = E('newGame')(6, ['corrupter', 'don', 'sheriff', 'doctor', 'citizen', 'citizen'], [], {}, [], {}); E('startNight0')(h);
+    const st = h.steps.find(s => s.ability === 'recruit'); const ok = E('stepTargets')(h, st).filter(x => x.ok).map(x => x.p.roleId);
+    if (!ok.includes('don') || !ok.includes('sheriff') || ok.includes('corrupter')) F('the Corrupter buys any card but himself: ' + ok.join());
+    const h2 = E('newGame')(6, ['corrupter', 'don', 'don', 'mafia', 'sheriff', 'citizen'], [], {}, [], { twoFamiliesFrom: 4 }); E('startNight0')(h2);
+    const c = by(h2, 'corrupter'); const rival = h2.players.find(p => ['don', 'mafia'].includes(p.roleId) && p.family !== c.family);
+    const st2 = h2.steps.find(s => s.ability === 'recruit'); E('recordAction')(h2, st2, [rival.id]); if (rival.recruitedBy !== c.id || rival.family !== c.family) F('a bought mafioso of the rival family joins the Corrupter\'s family'); }
+  console.log('v53 ok');
+}
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
 process.exit(fails ? 1 : 0);

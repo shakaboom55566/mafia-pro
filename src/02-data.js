@@ -140,11 +140,11 @@ function presetFor(n) {
   return (PRESETS[n] || PRESETS[MAX_PLAYERS]).slice();
 }
 
-function compositionStats(ids) {
+function compositionStats(ids, mods) {
   const s = { total: ids.length, black: 0, red: 0, neutral: 0, ww: 0, active: 0, shots: 0 };
   ids.forEach(id => {
     const r = ROLE[id]; if (!r) return;
-    s[r.team]++;
+    s[mods && mods.bombHunt && id === 'bomb' ? 'black' : r.team]++; // v53: the Bombs of the bomb hunt are the mafia
     if (r.wake || r.id === 'kamikaze' || r.id === 'judge') s.active++;
   });
   s.shots = ids.filter(id => id === 'don').length + (ids.includes('maniac') ? 1 : 0);
@@ -195,22 +195,45 @@ const COUNTERS = {
 };
 const COUNTERED_BY = {}; Object.keys(COUNTERS).forEach(id => COUNTERS[id].forEach(c => { (COUNTERED_BY[c] = COUNTERED_BY[c] || []).push(id); }));
 /* ---------- Small table (v50): free scenarios for 5–6 players, a fixed line-up per table size (home menu → «Малый стол»).
-   Line-ups picked and checked by test/montecarlo.js (4000 games each): sim = [city %, the other side %, maniac %, average nights]. ---------- */
+   Line-ups picked and checked by test/montecarlo.js (v53: 12000 games each): sim = [city %, the other side %, maniac %, average nights]. ---------- */
 const MINI_MIN = 5, MINI_MAX = 6;
 const MINI = [
-  { id: 'bomb_hunt', free: true, mini: true, min: 5, max: 6, mods: { bombHunt: true }, other: 'bomb',
-    comps: { 5: ['bomb', 'sapper', 'judge', 'azazel', 'morpheus'], 6: ['bomb', 'sapper', 'mayor', 'judge', 'azazel', 'morpheus'] },
-    sim: { 5: [50.5, 49.5, 0, 2], 6: [51.6, 48.5, 0, 2.4] } },
+  // v53: only the Sapper, Citizens and 1–3 Bombs (the Bombs play for the mafia); sim by table size and number of Bombs
+  { id: 'bomb_hunt', free: true, mini: true, min: 5, max: 6, mods: { bombHunt: true }, other: 'mafia', bombs: true,
+    compFor: (n, bombs) => bombHuntComp(n, bombs),
+    sim: { 5: { 1: [56.6, 43.4, 0, 2], 2: [24.4, 75.6, 0, 1.9] }, 6: { 1: [56.5, 43.5, 0, 2.5], 2: [27.6, 72.4, 0, 2.4], 3: [4.7, 95.3, 0, 1.4] } } },
   { id: 'corruption', free: true, mini: true, min: 5, max: 6, mods: { corruption: true, mafiaMajority: true }, other: 'mafia',
     comps: { 5: ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac'], 6: ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac', 'ninja'] },
-    sim: { 5: [19.6, 68.4, 12, 1.6], 6: [37.8, 49.8, 12.5, 2.4] } }
+    sim: { 5: [34.8, 61.5, 3.7, 1.3], 6: [56.2, 40.9, 2.9, 1.8] } } // v53: the city wins as soon as the Corrupter is out
 ];
 MINI.forEach(sc => {
   ['name', 'lore', 'rules'].forEach(k => Object.defineProperty(sc, k, { get() { const p = (L.mini && L.mini[sc.id]) || I18N.ru.mini[sc.id]; return p[k]; }, enumerable: true }));
   SCENARIO[sc.id] = sc;
 });
+/* Bomb hunt (v53): the host puts 1–3 Bombs in place of Citizens; 5 players — up to 2 Bombs, 6 — up to 3 (the Bombs win only with a majority) */
+const BOMBS_MAX = { 5: 2, 6: 3 };
+const bombsMax = n => BOMBS_MAX[n] || 1;
+const clampBombs = (n, b) => Math.max(1, Math.min(bombsMax(n), +b || 1));
+function bombHuntComp(n, bombs) { const b = clampBombs(n, bombs); return ['sapper'].concat(Array(b).fill('bomb'), Array(Math.max(0, n - 1 - b)).fill('citizen')); }
+const bombsIn = comp => comp.filter(x => x === 'bomb').length;
+/* simulated balance of a small-table line-up: [city %, the other side %, maniac %, average nights] */
+function miniSim(sc, n, comp) { const s = sc.sim[n]; if (!s) return null; return Array.isArray(s) ? s : s[bombsIn(comp || scenarioComp(sc, n))] || null; }
+/* v53: in the bomb hunt the Bomb plays for the mafia — its card shows the mafia side and the mode's own rules */
+const MODE_ROLE = {};
+function roleFor(mods, roleId) {
+  const r = ROLE[roleId];
+  if (!r || roleId !== 'bomb' || !mods || !mods.bombHunt) return r;
+  if (!MODE_ROLE.bomb) {
+    const card = () => ((L.mini && L.mini.bomb_hunt) || I18N.ru.mini.bomb_hunt).bombCard || {};
+    MODE_ROLE.bomb = Object.create(r, { team: { value: 'black', enumerable: true }, side: { value: 'mafia', enumerable: true },
+      kind: { get() { return card().kind || r.kind; }, enumerable: true }, short: { get() { return card().short || r.short; }, enumerable: true },
+      rules: { get() { return card().rules || r.rules; }, enumerable: true }, tip: { get() { return card().tip || r.tip; }, enumerable: true } });
+  }
+  return MODE_ROLE.bomb;
+}
 /* Build a scenario composition for n players from the balanced preset, swapping scenario roles in by team */
-function scenarioComp(sc, n) {
+function scenarioComp(sc, n, opts) {
+  if (sc.compFor) return sc.compFor(Math.max(sc.min, Math.min(sc.max, n)), opts && opts.bombs);
   if (sc.comps) return (sc.comps[n] || sc.comps[sc.min]).slice();
   if (sc.comp) return sc.comp.slice();
   n = Math.max(sc.min, Math.min(sc.max, n));

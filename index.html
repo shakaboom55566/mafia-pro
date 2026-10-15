@@ -4200,6 +4200,200 @@ Object.assign(I18N.en.ui, { privacy: 'Privacy', privacyD: 'What data we keep and
 Object.assign(I18N.pl.ui, { privacy: 'Prywatność', privacyD: 'Jakie dane przechowujemy i jak je usunąć' });
 Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ինչ տվյալներ ենք պահում և ինչպես ջնջել դրանք' });
 /* ============================================================
+   v53 card fixes:
+   — Morpheus acts like Azazel (voted out, or killed at night → at the day's results) and takes only an active skill
+     (from the mafia — the shot of whoever shoots by seniority);
+   — the Corrupter buys any card; in the Corruption scenario the city wins as soon as the Corrupter is out;
+   — Sapper and Bomb: only the Sapper, Citizens and 1–3 Bombs; the Bombs play for the mafia and do not know each other.
+   ============================================================ */
+(function () {
+  const R = {};
+  R.ru = {
+    morpheus: {
+      short: 'Уходит не с пустыми руками: если его выгнали голосованием или убили ночью, забирает у игрока активный навык до конца игры.',
+      rules: ['Если Морфея выгоняют голосованием, он сразу выбирает игрока — тот теряет активный навык до конца игры.', 'Если Морфея убили ночью, на итогах следующего дня он может выбрать игрока или отказаться.', 'Работает только на активные навыки — ночные и дневные. У пассивной карты забрать нечего: выбор пропадает.', 'Из мафии навык есть у того, кто сейчас стреляет по старшинству: у него Морфей забирает выстрел, и семья не стреляет, пока он за столом.', 'Ночью не просыпается.'],
+      tip: 'Выгнали или убили — заберите навык у самого опасного подозреваемого. Из мафии цельтесь в того, кто сейчас стреляет.'
+    },
+    corrBuy: 'Купить можно любого игрока с любой картой. В игре на две семьи купленный переходит в семью Коррупционера.',
+    corrScen: 'В сценарии «Коррупция» город побеждает, как только Коррупционера выгнали или убили.',
+    corruption: { buy: 'Купить можно любого игрока, с любой картой.', city: 'Город побеждает, только когда выгнал или убил Коррупционера, — сразу, даже если завербованный ещё за столом.', mafia: 'Мафия побеждает, когда её больше, чем остальных.' },
+    bombHunt: ['Сапёр, мирные жители и от 1 до 3 Бомб (на 5 игроков — до 2). Бомбы играют за мафию, но друг друга не знают.', 'Ночью просыпается только Сапёр и показывает игрока. Ведущий молча отвечает: 👍 — это Бомба, она обезврежена; 👎 — нет.', 'Игроки выбывают только дневным голосованием.', 'Выгнали обезвреженную Бомбу — она просто выбывает. Выгнали необезвреженную — она взрывается и забирает двух ближайших соседей: мафия победила.', 'Город побеждает, когда все Бомбы выбыли обезвреженными.', 'Мафия побеждает, когда Бомб за столом больше, чем остальных, или когда Сапёр выбыл, а за столом есть необезвреженная Бомба.', 'Остались двое: Сапёр с Бомбой — победа города; Бомба с другим игроком — победа мафии.'],
+    bombCard: {
+      short: 'Играет за мафию: если её выгонят необезвреженной, она взорвётся — и мафия победит.',
+      rules: ['В этой игре Бомба играет за мафию. Если Бомб несколько, друг друга они не знают.', 'Ночью не просыпается. Сапёр ищет Бомбы: на кого он показал, та обезврежена, но сама об этом не узнаёт.', 'Выгнали необезвреженную Бомбу — она взрывается и забирает двух ближайших соседей: мафия побеждает сразу.', 'Мафия побеждает и тогда, когда Бомб за столом больше, чем остальных, или когда Сапёр выбыл, а необезвреженная Бомба ещё за столом.', 'Город побеждает, когда все Бомбы выбыли обезвреженными.'],
+      tip: 'Попробуйте назваться Сапёром: если город поверит вам, а не ему, настоящий Сапёр уйдёт первым.'
+    },
+    e: {
+      logMorpheusShot: 'Морфей {actor} забрал выстрел у {target} ({role}): семья не стреляет, пока он за столом.',
+      logMorpheusNone: 'Морфей {actor} выбрал {target} ({role}), но активного навыка у него нет — ничего не изменилось.',
+      logMorpheusSkip: '{player} (Морфей) ничего не забрал',
+      bhAllDefused: 'Все Бомбы выбыли обезвреженными — город победил.',
+      bhMajority: 'Бомб за столом больше, чем остальных, — мафия победила.',
+      bhExploded: '{player} — Бомба, и её не успели обезвредить: взрыв забрал двух соседей. Мафия победила.',
+      bhDuelCitizen: 'Остались двое: Бомба и не Сапёр — мафия победила.',
+      bhNoSapper: 'Сапёр выбыл, а за столом необезвреженная Бомба — обезвредить её больше некому. Мафия победила.',
+      corrOut: 'Коррупционер {player} выбыл — город победил.',
+      corrOutRecruit: 'Коррупционер {player} выбыл, пока его завербованный {recruit} был за столом, — автоматическая победа города.'
+    },
+    ui: {
+      trigMorpheusNight: 'убит этой ночью — на итогах дня может забрать у игрока активный навык или отказаться',
+      morpheusNightHint: 'Морфей №{seat} убит ночью — на итогах дня он может забрать у игрока активный навык',
+      tbMorpheusNight: 'Вас убили ночью. Как Морфей вы можете забрать у игрока активный навык — или отказаться.',
+      morphTook: 'Морфей забрал навык у {player}.', morphShot: 'Морфей забрал выстрел у {player}: семья не стреляет, пока он за столом.', morphNone: 'У {player} нет активного навыка — Морфей ничего не забрал.',
+      bhBombs: 'Сколько Бомб', bhBombsL: ['1 Бомба', '2 Бомбы', '3 Бомбы'], bhBombsHint: 'Состав фиксированный; Бомб можно поставить от 1 до {max} — вместо мирных жителей.'
+    }
+  };
+  R.uk = {
+    morpheus: {
+      short: 'Іде не з порожніми руками: якщо його вигнали голосуванням або вбили вночі, забирає в гравця активну навичку до кінця гри.',
+      rules: ['Якщо Морфея виганяють голосуванням, він одразу обирає гравця — той втрачає активну навичку до кінця гри.', 'Якщо Морфея вбили вночі, на підсумках наступного дня він може обрати гравця або відмовитися.', 'Діє лише на активні навички — нічні й денні. У пасивної карти забрати нічого: вибір пропадає.', 'У мафії навичка є в того, хто зараз стріляє за старшинством: у нього Морфей забирає постріл, і сім\'я не стріляє, поки він за столом.', 'Уночі не прокидається.'],
+      tip: 'Вигнали чи вбили — заберіть навичку в найнебезпечнішого підозрюваного. З мафії цільтеся в того, хто зараз стріляє.'
+    },
+    corrBuy: 'Купити можна будь-якого гравця з будь-якою картою. У грі на дві сім\'ї куплений переходить у сім\'ю Корупціонера.',
+    corrScen: 'У сценарії «Корупція» місто перемагає, щойно Корупціонера вигнали або вбили.',
+    corruption: { buy: 'Купити можна будь-якого гравця, з будь-якою картою.', city: 'Місто перемагає, лише коли вигнало або вбило Корупціонера, — одразу, навіть якщо завербований ще за столом.', mafia: 'Мафія перемагає, коли її більше, ніж решти.' },
+    bombHunt: ['Сапер, мирні жителі та від 1 до 3 Бомб (на 5 гравців — до 2). Бомби грають за мафію, але одна одну не знають.', 'Уночі прокидається тільки Сапер і показує гравця. Ведучий мовчки відповідає: 👍 — це Бомба, її знешкоджено; 👎 — ні.', 'Гравці вибувають тільки денним голосуванням.', 'Вигнали знешкоджену Бомбу — вона просто вибуває. Вигнали незнешкоджену — вона вибухає й забирає двох найближчих сусідів: мафія перемогла.', 'Місто перемагає, коли всі Бомби вибули знешкодженими.', 'Мафія перемагає, коли Бомб за столом більше, ніж решти, або коли Сапер вибув, а за столом є незнешкоджена Бомба.', 'Лишилися двоє: Сапер із Бомбою — перемога міста; Бомба з іншим гравцем — перемога мафії.'],
+    bombCard: {
+      short: 'Грає за мафію: якщо її виженуть незнешкодженою, вона вибухне — і мафія переможе.',
+      rules: ['У цій грі Бомба грає за мафію. Якщо Бомб кілька, одна одну вони не знають.', 'Уночі не прокидається. Сапер шукає Бомби: на кого він показав, ту знешкоджено, але сама вона про це не дізнається.', 'Вигнали незнешкоджену Бомбу — вона вибухає й забирає двох найближчих сусідів: мафія перемагає одразу.', 'Мафія перемагає й тоді, коли Бомб за столом більше, ніж решти, або коли Сапер вибув, а незнешкоджена Бомба ще за столом.', 'Місто перемагає, коли всі Бомби вибули знешкодженими.'],
+      tip: 'Спробуйте назватися Сапером: якщо місто повірить вам, а не йому, справжній Сапер піде першим.'
+    },
+    e: {
+      logMorpheusShot: 'Морфей {actor} забрав постріл у {target} ({role}): сім\'я не стріляє, поки він за столом.',
+      logMorpheusNone: 'Морфей {actor} обрав {target} ({role}), але активної навички в нього немає — нічого не змінилося.',
+      logMorpheusSkip: '{player} (Морфей) нічого не забрав',
+      bhAllDefused: 'Усі Бомби вибули знешкодженими — місто перемогло.',
+      bhMajority: 'Бомб за столом більше, ніж решти, — мафія перемогла.',
+      bhExploded: '{player} — Бомба, і її не встигли знешкодити: вибух забрав двох сусідів. Мафія перемогла.',
+      bhDuelCitizen: 'Лишилися двоє: Бомба й не Сапер — мафія перемогла.',
+      bhNoSapper: 'Сапер вибув, а за столом незнешкоджена Бомба — знешкодити її більше нікому. Мафія перемогла.',
+      corrOut: 'Корупціонер {player} вибув — місто перемогло.',
+      corrOutRecruit: 'Корупціонер {player} вибув, поки його завербований {recruit} був за столом, — автоматична перемога міста.'
+    },
+    ui: {
+      trigMorpheusNight: 'убитий цієї ночі — на підсумках дня може забрати в гравця активну навичку або відмовитися',
+      morpheusNightHint: 'Морфея №{seat} убили вночі — на підсумках дня він може забрати в гравця активну навичку',
+      tbMorpheusNight: 'Вас убили вночі. Як Морфей ви можете забрати в гравця активну навичку — або відмовитися.',
+      morphTook: 'Морфей забрав навичку в {player}.', morphShot: 'Морфей забрав постріл у {player}: сім\'я не стріляє, поки він за столом.', morphNone: 'У {player} немає активної навички — Морфей нічого не забрав.',
+      bhBombs: 'Скільки Бомб', bhBombsL: ['1 Бомба', '2 Бомби', '3 Бомби'], bhBombsHint: 'Склад фіксований; Бомб можна поставити від 1 до {max} — замість мирних жителів.'
+    }
+  };
+  R.en = {
+    morpheus: {
+      short: 'Does not leave empty-handed: voted out or killed at night, he takes a player\'s active ability for the rest of the game.',
+      rules: ['If Morpheus is voted out, he picks a player at once, who loses his active ability for the rest of the game.', 'If Morpheus is killed at night, at the next day\'s results he may pick a player or let it go.', 'Works only on active abilities, by night or by day. A passive card has nothing to take: the pick is wasted.', 'In the mafia only whoever shoots by seniority right now has an ability: Morpheus takes his shot, and the family cannot shoot while he sits at the table.', 'Does not wake at night.'],
+      tip: 'Voted out or killed, take the ability of the most dangerous suspect. Among the mafia, aim at whoever shoots right now.'
+    },
+    corrBuy: 'He may buy any player with any card. In a two-family game the bought player joins the Corrupter\'s family.',
+    corrScen: 'In the Corruption scenario the town wins as soon as the Corrupter is voted out or killed.',
+    corruption: { buy: 'Any player with any card can be bought.', city: 'The town wins only by voting out or killing the Corrupter — at once, even if the recruit is still at the table.', mafia: 'The mafia wins when it outnumbers everyone else.' },
+    bombHunt: ['The Sapper, Citizens and 1 to 3 Bombs (up to 2 at 5 players). The Bombs play for the mafia but do not know each other.', 'At night only the Sapper wakes and points at a player. The host answers silently: 👍 — it is a Bomb, now defused; 👎 — it is not.', 'Players leave only by the day vote.', 'A defused Bomb voted out simply leaves. An undefused one explodes and takes its two nearest neighbours: the mafia wins.', 'The town wins when every Bomb has left defused.', 'The mafia wins when the Bombs outnumber everyone else, or when the Sapper is gone while an undefused Bomb is at the table.', 'Two left: the Sapper with a Bomb — the town wins; a Bomb with anyone else — the mafia wins.'],
+    bombCard: {
+      short: 'Plays for the mafia: voted out undefused, it explodes — and the mafia wins.',
+      rules: ['In this game the Bomb plays for the mafia. With several Bombs, they do not know each other.', 'Does not wake at night. The Sapper hunts for Bombs: the one he points at is defused, but it is never told.', 'An undefused Bomb voted out explodes and takes its two nearest neighbours: the mafia wins at once.', 'The mafia also wins when the Bombs outnumber everyone else, or when the Sapper is gone while an undefused Bomb is still at the table.', 'The town wins when every Bomb has left defused.'],
+      tip: 'Try claiming to be the Sapper: if the town believes you rather than him, the real Sapper leaves first.'
+    },
+    e: {
+      logMorpheusShot: 'Morpheus {actor} took the shot of {target} ({role}): the family cannot shoot while he sits at the table.',
+      logMorpheusNone: 'Morpheus {actor} picked {target} ({role}), who has no active ability — nothing changed.',
+      logMorpheusSkip: '{player} (Morpheus) took nothing',
+      bhAllDefused: 'Every Bomb has left defused — the town wins.',
+      bhMajority: 'The Bombs outnumber everyone else at the table — the mafia wins.',
+      bhExploded: '{player} is a Bomb nobody defused in time: the blast took two neighbours. The mafia wins.',
+      bhDuelCitizen: 'Two are left: a Bomb and someone who is not the Sapper — the mafia wins.',
+      bhNoSapper: 'The Sapper is gone and an undefused Bomb is still at the table — nobody can defuse it. The mafia wins.',
+      corrOut: 'The Corrupter {player} is out — the town wins.',
+      corrOutRecruit: 'The Corrupter {player} is out while his recruit {recruit} is still at the table — an automatic win for the town.'
+    },
+    ui: {
+      trigMorpheusNight: 'was killed last night — at the day\'s results may take a player\'s active ability, or let it go',
+      morpheusNightHint: 'Morpheus (seat {seat}) was killed at night — at the day\'s results he may take a player\'s active ability',
+      tbMorpheusNight: 'You were killed at night. As Morpheus you may take a player\'s active ability — or let it go.',
+      morphTook: 'Morpheus took the ability of {player}.', morphShot: 'Morpheus took the shot of {player}: the family cannot shoot while he sits at the table.', morphNone: '{player} has no active ability — Morpheus took nothing.',
+      bhBombs: 'How many Bombs', bhBombsL: ['1 Bomb', '2 Bombs', '3 Bombs'], bhBombsHint: 'The line-up is fixed; you can put 1 to {max} Bombs in place of Citizens.'
+    }
+  };
+  R.pl = {
+    morpheus: {
+      short: 'Nie odchodzi z pustymi rękami: wyrzucony w głosowaniu albo zabity w nocy zabiera graczowi aktywną zdolność do końca gry.',
+      rules: ['Jeśli Morfeusz zostaje wyrzucony w głosowaniu, od razu wybiera gracza — ten traci aktywną zdolność do końca gry.', 'Jeśli Morfeusz zginął w nocy, przy podsumowaniu następnego dnia może wybrać gracza albo zrezygnować.', 'Działa tylko na aktywne zdolności — nocne i dzienne. Karta pasywna nie ma czego stracić: wybór przepada.', 'W mafii zdolność ma tylko ten, kto teraz strzela według starszeństwa: Morfeusz zabiera mu strzał, a rodzina nie strzela, póki on siedzi przy stole.', 'W nocy się nie budzi.'],
+      tip: 'Wyrzucony albo zabity — zabierz zdolność najgroźniejszemu podejrzanemu. W mafii celuj w tego, kto teraz strzela.'
+    },
+    corrBuy: 'Kupić można dowolnego gracza z dowolną kartą. W grze na dwie rodziny kupiony przechodzi do rodziny Korupcjonisty.',
+    corrScen: 'W scenariuszu „Korupcja” miasto wygrywa, gdy tylko Korupcjonista zostanie wyrzucony albo zabity.',
+    corruption: { buy: 'Kupić można dowolnego gracza, z dowolną kartą.', city: 'Miasto wygrywa tylko wtedy, gdy wyrzuci albo zabije Korupcjonistę — od razu, nawet jeśli zwerbowany wciąż siedzi przy stole.', mafia: 'Mafia wygrywa, gdy jest jej więcej niż pozostałych.' },
+    bombHunt: ['Saper, mieszkańcy i od 1 do 3 Bomb (przy 5 graczach — do 2). Bomby grają dla mafii, ale się nie znają.', 'W nocy budzi się tylko Saper i wskazuje gracza. Prowadzący odpowiada bez słów: 👍 — to Bomba, rozbrojona; 👎 — nie.', 'Gracze odpadają tylko w dziennym głosowaniu.', 'Wyrzucona rozbrojona Bomba po prostu odpada. Nierozbrojona wybucha i zabiera dwóch najbliższych sąsiadów: mafia wygrywa.', 'Miasto wygrywa, gdy wszystkie Bomby odpadły rozbrojone.', 'Mafia wygrywa, gdy Bomb przy stole jest więcej niż pozostałych albo gdy Saper odpadł, a przy stole jest nierozbrojona Bomba.', 'Zostało dwoje: Saper z Bombą — wygrywa miasto; Bomba z innym graczem — wygrywa mafia.'],
+    bombCard: {
+      short: 'Gra dla mafii: wyrzucona nierozbrojona wybucha — i mafia wygrywa.',
+      rules: ['W tej grze Bomba gra dla mafii. Jeśli Bomb jest kilka, nie znają się nawzajem.', 'W nocy się nie budzi. Saper szuka Bomb: ta, którą wskaże, jest rozbrojona, ale sama się o tym nie dowiaduje.', 'Wyrzucona nierozbrojona Bomba wybucha i zabiera dwóch najbliższych sąsiadów: mafia wygrywa od razu.', 'Mafia wygrywa też wtedy, gdy Bomb przy stole jest więcej niż pozostałych albo gdy Saper odpadł, a nierozbrojona Bomba wciąż siedzi przy stole.', 'Miasto wygrywa, gdy wszystkie Bomby odpadły rozbrojone.'],
+      tip: 'Spróbuj podać się za Sapera: jeśli miasto uwierzy tobie, a nie jemu, prawdziwy Saper odpadnie pierwszy.'
+    },
+    e: {
+      logMorpheusShot: 'Morfeusz {actor} zabrał strzał graczowi {target} ({role}): rodzina nie strzela, póki on siedzi przy stole.',
+      logMorpheusNone: 'Morfeusz {actor} wybrał {target} ({role}), ale ten nie ma aktywnej zdolności — nic się nie zmieniło.',
+      logMorpheusSkip: '{player} (Morfeusz) nic nie zabrał',
+      bhAllDefused: 'Wszystkie Bomby odpadły rozbrojone — miasto wygrało.',
+      bhMajority: 'Bomb przy stole jest więcej niż pozostałych — mafia wygrała.',
+      bhExploded: '{player} to Bomba, której nie zdążono rozbroić: wybuch zabrał dwóch sąsiadów. Mafia wygrała.',
+      bhDuelCitizen: 'Zostało dwoje: Bomba i ktoś, kto nie jest Saperem — mafia wygrała.',
+      bhNoSapper: 'Saper odpadł, a przy stole jest nierozbrojona Bomba — nie ma jej kto rozbroić. Mafia wygrała.',
+      corrOut: 'Korupcjonista {player} odpadł — miasto wygrało.',
+      corrOutRecruit: 'Korupcjonista {player} odpadł, gdy jego zwerbowany {recruit} był jeszcze przy stole — automatyczne zwycięstwo miasta.'
+    },
+    ui: {
+      trigMorpheusNight: 'zginął tej nocy — przy podsumowaniu dnia może zabrać graczowi aktywną zdolność albo zrezygnować',
+      morpheusNightHint: 'Morfeusz (nr {seat}) zginął w nocy — przy podsumowaniu dnia może zabrać graczowi aktywną zdolność',
+      tbMorpheusNight: 'Zginąłeś w nocy. Jako Morfeusz możesz zabrać graczowi aktywną zdolność — albo zrezygnować.',
+      morphTook: 'Morfeusz zabrał zdolność graczowi {player}.', morphShot: 'Morfeusz zabrał strzał graczowi {player}: rodzina nie strzela, póki on siedzi przy stole.', morphNone: '{player} nie ma aktywnej zdolności — Morfeusz nic nie zabrał.',
+      bhBombs: 'Ile Bomb', bhBombsL: ['1 Bomba', '2 Bomby', '3 Bomby'], bhBombsHint: 'Skład jest stały; Bomb można dać od 1 do {max} — zamiast mieszkańców.'
+    }
+  };
+  R.hy = {
+    morpheus: {
+      short: 'Դատարկ ձեռքերով չի հեռանում. եթե նրան վռնդել են քվեարկությամբ կամ սպանել գիշերը, խաղացողից վերցնում է ակտիվ ունակությունը մինչև խաղի վերջ։',
+      rules: ['Եթե Մորփեոսին վռնդում են քվեարկությամբ, նա անմիջապես ընտրում է խաղացողի. նա կորցնում է ակտիվ ունակությունը մինչև խաղի վերջ։', 'Եթե Մորփեոսին սպանել են գիշերը, հաջորդ օրվա արդյունքներում նա կարող է ընտրել խաղացողի կամ հրաժարվել։', 'Գործում է միայն ակտիվ ունակությունների վրա՝ գիշերային և ցերեկային։ Պասիվ քարտից վերցնելու բան չկա. ընտրությունը կորչում է։', 'Մաֆիայում ունակություն ունի միայն նա, ով հիմա կրակում է ավագությամբ. Մորփեոսը վերցնում է նրա կրակոցը, և ընտանիքը չի կրակում, քանի դեռ նա սեղանի շուրջ է։', 'Գիշերը չի արթնանում։'],
+      tip: 'Վռնդեցին թե սպանեցին՝ վերցրե՛ք ունակությունն ամենավտանգավոր կասկածյալից։ Մաֆիայում թիրախավորե՛ք նրան, ով հիմա կրակում է։'
+    },
+    corrBuy: 'Կարելի է գնել ցանկացած խաղացողի՝ ցանկացած քարտով։ Երկու ընտանիքով խաղում գնվածն անցնում է Կաշառողի ընտանիք։',
+    corrScen: '«Կոռուպցիա» սցենարում քաղաքը հաղթում է, հենց որ Կաշառողին վռնդում կամ սպանում են։',
+    corruption: { buy: 'Կարելի է գնել ցանկացած խաղացողի՝ ցանկացած քարտով։', city: 'Քաղաքը հաղթում է միայն այն ժամանակ, երբ վռնդում կամ սպանում է Կաշառողին՝ անմիջապես, նույնիսկ եթե հավաքագրվածը դեռ սեղանի շուրջ է։', mafia: 'Մաֆիան հաղթում է, երբ նրանք ավելի շատ են, քան մնացածը։' },
+    bombHunt: ['Ականազերծող, խաղաղ բնակիչներ և 1-ից 3 Ռումբ (5 խաղացողի դեպքում՝ մինչև 2)։ Ռումբերը խաղում են մաֆիայի համար, բայց միմյանց չեն ճանաչում։', 'Գիշերը արթնանում է միայն Ականազերծողը և ցույց է տալիս խաղացողի։ Վարողը լուռ պատասխանում է. 👍՝ սա Ռումբ է, այն վնասազերծված է, 👎՝ ոչ։', 'Խաղացողները դուրս են գալիս միայն ցերեկային քվեարկությամբ։', 'Վնասազերծված Ռումբը վտարելիս այն պարզապես դուրս է գալիս։ Չվնասազերծվածը պայթում է և տանում երկու մոտակա հարևաններին. մաֆիան հաղթեց։', 'Քաղաքը հաղթում է, երբ բոլոր Ռումբերը դուրս են եկել վնասազերծված։', 'Մաֆիան հաղթում է, երբ Ռումբերը սեղանի շուրջ ավելի շատ են, քան մնացածը, կամ երբ Ականազերծողը դուրս է եկել, իսկ սեղանի շուրջ կա չվնասազերծված Ռումբ։', 'Մնացել են երկուսը. Ականազերծողը Ռումբի հետ՝ քաղաքի հաղթանակ, Ռումբն այլ խաղացողի հետ՝ մաֆիայի հաղթանակ։'],
+    bombCard: {
+      short: 'Խաղում է մաֆիայի համար. եթե այն վտարեն չվնասազերծված, կպայթի, և մաֆիան կհաղթի։',
+      rules: ['Այս խաղում Ռումբը խաղում է մաֆիայի համար։ Եթե Ռումբերը մի քանիսն են, նրանք միմյանց չեն ճանաչում։', 'Գիշերը չի արթնանում։ Ականազերծողը փնտրում է Ռումբերը. ում նա ցույց տա, այն վնասազերծված է, բայց ինքը դա չի իմանում։', 'Չվնասազերծված Ռումբը վտարելիս այն պայթում է և տանում երկու մոտակա հարևաններին. մաֆիան անմիջապես հաղթում է։', 'Մաֆիան հաղթում է նաև, երբ Ռումբերը սեղանի շուրջ ավելի շատ են, քան մնացածը, կամ երբ Ականազերծողը դուրս է եկել, իսկ չվնասազերծված Ռումբը դեռ սեղանի շուրջ է։', 'Քաղաքը հաղթում է, երբ բոլոր Ռումբերը դուրս են եկել վնասազերծված։'],
+      tip: 'Փորձե՛ք ձեզ Ականազերծող հռչակել. եթե քաղաքը հավատա ձեզ, ոչ թե նրան, իսկական Ականազերծողը դուրս կգա առաջինը։'
+    },
+    e: {
+      logMorpheusShot: 'Մորփեոս {actor}-ը վերցրեց {target}-ի ({role}) կրակոցը. ընտանիքը չի կրակում, քանի դեռ նա սեղանի շուրջ է։',
+      logMorpheusNone: 'Մորփեոս {actor}-ը ընտրեց {target}-ին ({role}), բայց նա ակտիվ ունակություն չունի. ոչինչ չփոխվեց։',
+      logMorpheusSkip: '{player}-ը (Մորփեոս) ոչինչ չվերցրեց',
+      bhAllDefused: 'Բոլոր Ռումբերը դուրս են եկել վնասազերծված. քաղաքը հաղթեց։',
+      bhMajority: 'Ռումբերը սեղանի շուրջ ավելի շատ են, քան մնացածը. մաֆիան հաղթեց։',
+      bhExploded: '{player}-ը Ռումբ է, որին չհասցրին վնասազերծել. պայթյունը տարավ երկու հարևանի։ Մաֆիան հաղթեց։',
+      bhDuelCitizen: 'Մնացել են երկուսը՝ Ռումբն ու մեկը, ով Ականազերծող չէ. մաֆիան հաղթեց։',
+      bhNoSapper: 'Ականազերծողը դուրս է եկել, իսկ սեղանի շուրջ չվնասազերծված Ռումբ կա. այն վնասազերծող չկա։ Մաֆիան հաղթեց։',
+      corrOut: 'Կաշառող {player}-ը դուրս եկավ. քաղաքը հաղթեց։',
+      corrOutRecruit: 'Կաշառող {player}-ը դուրս եկավ, երբ նրա հավաքագրված {recruit}-ը դեռ սեղանի շուրջ էր. քաղաքի ավտոմատ հաղթանակ։'
+    },
+    ui: {
+      trigMorpheusNight: 'սպանվել է այս գիշեր — օրվա արդյունքներում կարող է խաղացողից վերցնել ակտիվ ունակությունը կամ հրաժարվել',
+      morpheusNightHint: 'Մորփեոսը (տեղ {seat}) սպանվել է գիշերը — օրվա արդյունքներում նա կարող է խաղացողից վերցնել ակտիվ ունակությունը',
+      tbMorpheusNight: 'Ձեզ սպանել են գիշերը։ Որպես Մորփեոս՝ կարող եք խաղացողից վերցնել ակտիվ ունակությունը կամ հրաժարվել։',
+      morphTook: 'Մորփեոսը վերցրեց {player}-ի ունակությունը։', morphShot: 'Մորփեոսը վերցրեց {player}-ի կրակոցը. ընտանիքը չի կրակում, քանի դեռ նա սեղանի շուրջ է։', morphNone: '{player}-ը ակտիվ ունակություն չունի. Մորփեոսը ոչինչ չվերցրեց։',
+      bhBombs: 'Քանի՞ Ռումբ', bhBombsL: ['1 Ռումբ', '2 Ռումբ', '3 Ռումբ'], bhBombsHint: 'Կազմը ֆիքսված է. Ռումբերը կարելի է դնել 1-ից {max}՝ խաղաղ բնակիչների փոխարեն։'
+    }
+  };
+  Object.keys(R).forEach(code => {
+    const p = I18N[code], d = R[code]; if (!p) return;
+    Object.assign(p.roles.morpheus, d.morpheus);
+    // the Corrupter's card: "any card" after the recruiting rule, the Corruption win before the checks rule
+    const cr = p.roles.corrupter; if (cr && Array.isArray(cr.rules) && !cr.rules.includes(d.corrBuy)) { const r = cr.rules.slice(); r.splice(2, 0, d.corrBuy); r.splice(r.length - 1, 0, d.corrScen); cr.rules = r; }
+    const cs = p.mini && p.mini.corruption; if (cs && !cs.rules.includes(d.corruption.city)) cs.rules = [cs.rules[0], d.corruption.buy].concat(cs.rules.slice(1, -1), [d.corruption.city, d.corruption.mafia]);
+    if (p.mini && p.mini.bomb_hunt) { p.mini.bomb_hunt.rules = d.bombHunt; p.mini.bomb_hunt.bombCard = d.bombCard; }
+    Object.assign(p.e, d.e); Object.assign(p.ui, d.ui);
+  });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -4624,11 +4818,11 @@ function presetFor(n) {
   return (PRESETS[n] || PRESETS[MAX_PLAYERS]).slice();
 }
 
-function compositionStats(ids) {
+function compositionStats(ids, mods) {
   const s = { total: ids.length, black: 0, red: 0, neutral: 0, ww: 0, active: 0, shots: 0 };
   ids.forEach(id => {
     const r = ROLE[id]; if (!r) return;
-    s[r.team]++;
+    s[mods && mods.bombHunt && id === 'bomb' ? 'black' : r.team]++; // v53: the Bombs of the bomb hunt are the mafia
     if (r.wake || r.id === 'kamikaze' || r.id === 'judge') s.active++;
   });
   s.shots = ids.filter(id => id === 'don').length + (ids.includes('maniac') ? 1 : 0);
@@ -4679,22 +4873,45 @@ const COUNTERS = {
 };
 const COUNTERED_BY = {}; Object.keys(COUNTERS).forEach(id => COUNTERS[id].forEach(c => { (COUNTERED_BY[c] = COUNTERED_BY[c] || []).push(id); }));
 /* ---------- Small table (v50): free scenarios for 5–6 players, a fixed line-up per table size (home menu → «Малый стол»).
-   Line-ups picked and checked by test/montecarlo.js (4000 games each): sim = [city %, the other side %, maniac %, average nights]. ---------- */
+   Line-ups picked and checked by test/montecarlo.js (v53: 12000 games each): sim = [city %, the other side %, maniac %, average nights]. ---------- */
 const MINI_MIN = 5, MINI_MAX = 6;
 const MINI = [
-  { id: 'bomb_hunt', free: true, mini: true, min: 5, max: 6, mods: { bombHunt: true }, other: 'bomb',
-    comps: { 5: ['bomb', 'sapper', 'judge', 'azazel', 'morpheus'], 6: ['bomb', 'sapper', 'mayor', 'judge', 'azazel', 'morpheus'] },
-    sim: { 5: [50.5, 49.5, 0, 2], 6: [51.6, 48.5, 0, 2.4] } },
+  // v53: only the Sapper, Citizens and 1–3 Bombs (the Bombs play for the mafia); sim by table size and number of Bombs
+  { id: 'bomb_hunt', free: true, mini: true, min: 5, max: 6, mods: { bombHunt: true }, other: 'mafia', bombs: true,
+    compFor: (n, bombs) => bombHuntComp(n, bombs),
+    sim: { 5: { 1: [56.6, 43.4, 0, 2], 2: [24.4, 75.6, 0, 1.9] }, 6: { 1: [56.5, 43.5, 0, 2.5], 2: [27.6, 72.4, 0, 2.4], 3: [4.7, 95.3, 0, 1.4] } } },
   { id: 'corruption', free: true, mini: true, min: 5, max: 6, mods: { corruption: true, mafiaMajority: true }, other: 'mafia',
     comps: { 5: ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac'], 6: ['corrupter', 'sheriff', 'doctor', 'mayor', 'maniac', 'ninja'] },
-    sim: { 5: [19.6, 68.4, 12, 1.6], 6: [37.8, 49.8, 12.5, 2.4] } }
+    sim: { 5: [34.8, 61.5, 3.7, 1.3], 6: [56.2, 40.9, 2.9, 1.8] } } // v53: the city wins as soon as the Corrupter is out
 ];
 MINI.forEach(sc => {
   ['name', 'lore', 'rules'].forEach(k => Object.defineProperty(sc, k, { get() { const p = (L.mini && L.mini[sc.id]) || I18N.ru.mini[sc.id]; return p[k]; }, enumerable: true }));
   SCENARIO[sc.id] = sc;
 });
+/* Bomb hunt (v53): the host puts 1–3 Bombs in place of Citizens; 5 players — up to 2 Bombs, 6 — up to 3 (the Bombs win only with a majority) */
+const BOMBS_MAX = { 5: 2, 6: 3 };
+const bombsMax = n => BOMBS_MAX[n] || 1;
+const clampBombs = (n, b) => Math.max(1, Math.min(bombsMax(n), +b || 1));
+function bombHuntComp(n, bombs) { const b = clampBombs(n, bombs); return ['sapper'].concat(Array(b).fill('bomb'), Array(Math.max(0, n - 1 - b)).fill('citizen')); }
+const bombsIn = comp => comp.filter(x => x === 'bomb').length;
+/* simulated balance of a small-table line-up: [city %, the other side %, maniac %, average nights] */
+function miniSim(sc, n, comp) { const s = sc.sim[n]; if (!s) return null; return Array.isArray(s) ? s : s[bombsIn(comp || scenarioComp(sc, n))] || null; }
+/* v53: in the bomb hunt the Bomb plays for the mafia — its card shows the mafia side and the mode's own rules */
+const MODE_ROLE = {};
+function roleFor(mods, roleId) {
+  const r = ROLE[roleId];
+  if (!r || roleId !== 'bomb' || !mods || !mods.bombHunt) return r;
+  if (!MODE_ROLE.bomb) {
+    const card = () => ((L.mini && L.mini.bomb_hunt) || I18N.ru.mini.bomb_hunt).bombCard || {};
+    MODE_ROLE.bomb = Object.create(r, { team: { value: 'black', enumerable: true }, side: { value: 'mafia', enumerable: true },
+      kind: { get() { return card().kind || r.kind; }, enumerable: true }, short: { get() { return card().short || r.short; }, enumerable: true },
+      rules: { get() { return card().rules || r.rules; }, enumerable: true }, tip: { get() { return card().tip || r.tip; }, enumerable: true } });
+  }
+  return MODE_ROLE.bomb;
+}
 /* Build a scenario composition for n players from the balanced preset, swapping scenario roles in by team */
-function scenarioComp(sc, n) {
+function scenarioComp(sc, n, opts) {
+  if (sc.compFor) return sc.compFor(Math.max(sc.min, Math.min(sc.max, n)), opts && opts.bombs);
   if (sc.comps) return (sc.comps[n] || sc.comps[sc.min]).slice();
   if (sc.comp) return sc.comp.slice();
   n = Math.max(sc.min, Math.min(sc.max, n));
@@ -4894,10 +5111,10 @@ const isBlack = p => ROLE[p.roleId].team === 'black';
 /* Corrupter (v50): a recruited player keeps their card but plays for the mafia until the game ends or they leave */
 const onMafiaSide = p => isBlack(p) || !!p.recruitedBy;
 const liveRecruitOf = (g, corrId) => alive(g).find(p => p.recruitedBy === corrId) || null;
-/* which side a player plays for in this game (recruits — mafia; the Bomb of the bomb hunt — itself) */
+/* which side a player plays for in this game (recruits — mafia; v53: the Bombs of the bomb hunt — mafia too) */
 function playSideOf(g, p) {
   if (p.recruitedBy) return 'mafia';
-  if (g.mods && g.mods.bombHunt && p.roleId === 'bomb') return 'bomb';
+  if (g.mods && g.mods.bombHunt && p.roleId === 'bomb') return 'mafia';
   return ROLE[p.roleId].side;
 }
 /* a recruit may not vote against the corrupter who bought them */
@@ -4947,8 +5164,10 @@ function buildNight0Steps(g) {
   });
   NIGHT0_ORDER.forEach(rid => {
     const m = aliveWith(g, rid);
-    if (m.length) steps.push({ id: uid(), type: 'meet', title: ROLE[rid].name, roleId: rid, members: m,
-      script: tt(L.e.night0Role, { role: ROLE[rid].name, tail: ROLE[rid].wake ? L.e.night0Active : L.e.night0Passive }) });
+    // v53: the Bombs of the bomb hunt do not know each other — each one wakes alone
+    const groups = rid === 'bomb' && g.mods && g.mods.bombHunt ? m.map(p => [p]) : m.length ? [m] : [];
+    groups.forEach(ms => steps.push({ id: uid(), type: 'meet', title: ROLE[rid].name, roleId: rid, members: ms,
+      script: tt(L.e.night0Role, { role: ROLE[rid].name, tail: ROLE[rid].wake ? L.e.night0Active : L.e.night0Passive }) }));
   });
   aliveWith(g, 'corrupter').forEach(c => steps.push({ id: uid(), type: 'act', roleId: 'corrupter', actorId: c.id, ability: 'recruit', targets: 1, allowSelf: false, script: L.e.recruitScript0 }));
   return steps;
@@ -5029,7 +5248,6 @@ function stepTargets(g, step) {
     if (step.roleId === 'jailer' && p.id === actor.lastJail) { ok = false; why = L.e.whyJailLast; }
     if (p.id === actor.id && !step.allowSelf) { ok = false; why = L.e.why.self; }
     if (actor.recruitedBy && p.id === actor.recruitedBy && (['shoot', 'execute', 'snipe'].includes(step.ability) || (step.modes && step.modes.includes('shoot')))) { ok = false; why = L.e.whyRecruiter; }
-    if (step.ability === 'recruit' && p.id !== actor.id && onMafiaSide(p)) { ok = false; why = L.e.whyMafiaAlready; }
     if (step.roleId === 'mafia_doctor') {
       if (!isBlack(p) || (g.twoFamilies && p.family !== actor.family)) { ok = false; why = L.e.why.family; }
       if (p.id === actor.lastHeal) { ok = false; why = L.e.why.healedLast; }
@@ -5090,7 +5308,8 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'compare') { const r = compareResult(g, targets[0], targets[1]); result = { kind: 'same', same: r.same }; }
   if (ability === 'spy') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
   if (ability === 'findSheriff') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'sheriff', yes: t.roleId === 'sheriff', who: t }; }
-  if (ability === 'recruit') { const t = P(g, targets[0]); t.recruitedBy = actor.id; t.recruitedOn = g.night; result = { kind: 'text', text: tt(L.e.recruitDone, { target: label(t), actor: label(actor) }) }; }
+  // v53: the Corrupter buys any card at the table; with two families the bought player plays for the Corrupter's family
+  if (ability === 'recruit') { const t = P(g, targets[0]); t.recruitedBy = actor.id; t.recruitedOn = g.night; if (g.twoFamilies && actor.family) t.family = actor.family; result = { kind: 'text', text: tt(L.e.recruitDone, { target: label(t), actor: label(actor) }) }; }
   if (ability === 'defuse' && g.mods && g.mods.bombHunt) { const t = P(g, targets[0]); result = { kind: 'text', text: tt(t.roleId === 'bomb' ? L.e.bhFound : L.e.bhNotFound, { target: label(t) }) }; }
   if (ability === 'execute') actor.executeUsed = true;
   if (ability === 'snipe') actor.snipeUsed = true;
@@ -5322,7 +5541,7 @@ function useBailiff(g, bailiffId) {
   addLog(g, tt(L.e.logFinal, { player: label(p) }));
   return true;
 }
-const dayAbilityBlocked = (g, id) => fxOn(g, 'intimidated', id) || fxOn(g, 'defused', id);
+const dayAbilityBlocked = (g, id) => fxOn(g, 'intimidated', id) || fxOn(g, 'defused', id) || !!(P(g, id) && P(g, id).disabled); // v53: Morpheus takes day skills too
 function useProsecutor(g, prosecutorId, candId) {
   const p = P(g, prosecutorId); if (!p || p.prosecuteUsed || !g.ballot.candidates.includes(candId)) return false;
   p.prosecuteUsed = true; g.ballot.prosecuted = candId;
@@ -5332,20 +5551,41 @@ function useProsecutor(g, prosecutorId, candId) {
 }
 
 /* ---------- Win check ---------- */
-/* Bomb hunt (v50): only the Sapper can defuse the Bomb at night. Voting out a defused Bomb — the city wins; an undefused one explodes — the city lost.
-   Two left: the Sapper with the Bomb — the Sapper wins; anyone else with the Bomb — the city lost. The Sapper gone and the Bomb live — nobody can defuse it. */
+/* Bomb hunt (v50, v53): 1–3 Bombs play for the mafia and do not know each other; only the Sapper defuses them at night.
+   An undefused Bomb voted out explodes — the mafia wins at once. Every Bomb gone defused — the city wins.
+   The mafia also wins with more Bombs than everyone else, when the Sapper is gone while an undefused Bomb is at the table,
+   and when two are left and the other one is not the Sapper (the Sapper left with the last Bomb defuses it — the city wins). */
 function bombHuntWin(g) {
-  const bomb = g.players.find(p => p.roleId === 'bomb'); if (!bomb) return null;
-  const al = alive(g);
+  const bombs = g.players.filter(p => p.roleId === 'bomb'); if (!bombs.length) return null;
   const city = text => ({ side: 'city', title: L.e.bhCityTitle, text });
-  const boom = text => ({ side: 'bomb', title: L.e.bhBombTitle, text });
-  if (!bomb.alive) return bomb.defused ? city(tt(L.e.bhDefusedOut, { player: label(bomb) })) : boom(tt(L.e.bhExploded, { player: label(bomb) }));
-  if (al.length <= 2) { const other = al.find(p => p.id !== bomb.id); return other && other.roleId === 'sapper' ? city(L.e.bhDuelSapper) : boom(L.e.bhDuelCitizen); }
-  if (!bomb.defused && !al.some(p => p.roleId === 'sapper')) return boom(L.e.bhNoSapper);
+  const mafia = (text, title) => ({ side: 'mafia', title: title || L.e.winMafia, text });
+  const blew = bombs.find(p => !p.alive && !p.defused);
+  if (blew) return mafia(tt(L.e.bhExploded, { player: label(blew) }), L.e.bhBombTitle);
+  const live = bombs.filter(p => p.alive);
+  if (!live.length) return city(bombs.length > 1 ? L.e.bhAllDefused : tt(L.e.bhDefusedOut, { player: label(bombs[0]) }));
+  const al = alive(g); const sapper = al.some(p => p.roleId === 'sapper');
+  if (live.length > al.length - live.length) return mafia(L.e.bhMajority);
+  if (al.length <= 2) return sapper ? city(L.e.bhDuelSapper) : mafia(L.e.bhDuelCitizen);
+  if (!sapper && live.some(p => !p.defused)) return mafia(L.e.bhNoSapper);
+  return null;
+}
+/* Corruption (v53): the city wins only by removing the Corrupter — voted out or killed — and then at once, even with his recruit at the table */
+function corruptionWin(g) {
+  const corr = g.players.filter(p => p.roleId === 'corrupter'); if (!corr.length) return null;
+  const al = alive(g);
+  if (!corr.some(p => p.alive)) {
+    const maniac = al.find(p => p.roleId === 'maniac' && !p.recruitedBy);
+    if (maniac && al.length <= 2) return { side: 'maniac', title: L.e.winManiac, text: tt(L.e.winManiacText, { player: label(maniac) }) };
+    const out = corr[corr.length - 1]; const rec = al.find(p => p.recruitedBy);
+    return { side: 'city', title: L.e.winCity, text: rec ? tt(L.e.corrOutRecruit, { player: label(out), recruit: label(rec) }) : tt(L.e.corrOut, { player: label(out) }) };
+  }
+  const blacks = al.filter(onMafiaSide);
+  if (blacks.length > al.length - blacks.length) return { side: 'mafia', title: L.e.winMafia, text: L.e.winMafiaText };
   return null;
 }
 function checkWin(g) {
   if (g.mods && g.mods.bombHunt) return bombHuntWin(g);
+  if (g.mods && g.mods.corruption) { const w = corruptionWin(g); if (w || g.players.some(p => p.roleId === 'corrupter')) return w; }
   const al = alive(g);
   const blacks = al.filter(onMafiaSide);
   const others = al.filter(p => !onMafiaSide(p));
@@ -5385,8 +5625,8 @@ function startDay(g) {
   // sport rules: the first day has no night before it (straight to speeches)
   if (isClassic(g) && g.night === 0) g.dayStage = 'speeches';
   addLog(g, tt(L.e.logDay, { n: g.day }));
-  // Azazel killed last night takes a player with him at the day's results (he may also let it go)
-  ((g.nightResult && g.nightResult.removed) || []).forEach(d => { const p = P(g, d.id); if (p && !p.alive && p.roleId === 'azazel') g.pendingTriggers.push({ type: 'azazel', actorId: p.id, night: true }); });
+  // Azazel and (v53) Morpheus killed last night act at the day's results (they may also let it go)
+  ((g.nightResult && g.nightResult.removed) || []).forEach(d => { const p = P(g, d.id); if (p && !p.alive && (p.roleId === 'azazel' || p.roleId === 'morpheus')) g.pendingTriggers.push({ type: p.roleId, actorId: p.id, night: true }); });
   // diplomacy: the Provocateur's victim is already on the ballot (unless under the Pastor's sanctuary)
   alive(g).filter(p => fxOn(g, 'forcedCand', p.id) && canNominate(g, p.id)).forEach(p => { g.ballot.candidates.push(p.id); g.ballot.forced = (g.ballot.forced || []).concat([p.id]); addLog(g, tt(L.e.logProvoked, { target: label(p) })); });
 }
@@ -5572,13 +5812,27 @@ function voteRestToLast(g) {
 function applyTrigger(g, trig, targetId) {
   const actor = P(g, trig.actorId); const t = P(g, targetId);
   if (trig.type === 'azazel') { eliminate(g, targetId, tt(L.e.causeAzazel, { player: label(actor) }), g.voteResult.removed); }
-  if (trig.type === 'morpheus') { t.disabled = true; addLog(g, tt(L.e.logMorpheus, { actor: label(actor), target: label(t), role: ROLE[t.roleId].name })); }
+  if (trig.type === 'morpheus') {
+    const took = morpheusTakes(g, t); const pr = { actor: label(actor), target: label(t), role: ROLE[t.roleId].name };
+    if (took) t.disabled = true;
+    addLog(g, tt(took === 'shoot' ? L.e.logMorpheusShot : took ? L.e.logMorpheus : L.e.logMorpheusNone, pr));
+    if (g.voteResult) (g.voteResult.morph = g.voteResult.morph || []).push({ id: t.id, took: took || null });
+  }
   g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig);
 }
-/* a trigger the player may decline (Azazel killed at night) */
+/* Morpheus (v53) takes only an active skill the player holds right now: the shot of whoever shoots for the family by seniority,
+   a night ability or an unused day ability. Passive cards and the mafia who do not shoot have nothing to take. */
+const DAY_SKILL_USED = { kamikaze: 'kamikazeUsed', judge: 'judgeUsed', lawyer: 'lawyerUsed', prosecutor: 'prosecuteUsed', bailiff: 'finalUsed' };
+function morpheusTakes(g, p) {
+  if (!p || !p.alive || p.disabled) return null;
+  const a = activeAbilityOf(g, p); if (a) return a;
+  const used = DAY_SKILL_USED[p.roleId];
+  return used && !p[used] ? 'day' : null;
+}
+/* a trigger the player may decline (Azazel or Morpheus killed at night) */
 function skipTrigger(g, trig) {
   if (!trig || !trig.night) return false;
-  addLog(g, tt(L.e.logAzazelSkip, { player: label(P(g, trig.actorId)) }));
+  addLog(g, tt(trig.type === 'morpheus' ? L.e.logMorpheusSkip : L.e.logAzazelSkip, { player: label(P(g, trig.actorId)) }));
   g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig); return true;
 }
 function useJudge(g, judgeId) {
@@ -5861,7 +6115,7 @@ function homeScreen() {
 
 /* ---------- Setup ---------- */
 function setupScreen() {
-  const u = U(); const st = S.setup, stats = compositionStats(st.comp);
+  const u = U(); const st = S.setup, stats = compositionStats(st.comp, setupMods());
   const two = st.n >= TWO_FAMILIES_FROM;
   const groups = [['black', u.groupFamily], ['ww', u.groupWW], ['neutral', u.groupNeutral], ['red', u.groupCity]];
   const cnt = id => st.comp.filter(x => x === id).length;
@@ -5878,14 +6132,16 @@ function setupScreen() {
   // classic: the line-up is the sport one and cannot be edited — a plain list instead of the +/− editor
   const mini = !!(sc && sc.mini); // small-table scenarios: a fixed line-up for 5 or 6, like the classic
   const fixedIds = st.scenario === 'classic' ? ['don', 'mafia', 'sheriff', 'citizen'] : mini ? [...new Set(st.comp)] : [];
-  const fixedRows = fixedIds.length ? `<div class="comp-group"><div class="comp">${fixedIds.filter(id => ROLE[id]).map(id => `<div class="comp-row">${sealHTML(ROLE[id])}<div><div class="n">${ROLE[id].name}</div><div class="s">${ROLE[id].short}</div></div><div class="ctl"><span class="c">${cnt(id)}</span></div></div>`).join('')}</div></div><p class="hint">${u.compFixed}</p>` : '';
+  // v53: in the bomb hunt the number of Bombs (1–3, in place of Citizens) is the one thing the host may change
+  const bombCtl = id => sc && sc.bombs && id === 'bomb' ? `<button data-a="bombs" data-d="-1" aria-label="${u.remove}" ${cnt(id) <= 1 ? 'disabled' : ''}>−</button><span class="c">${cnt(id)}</span><button data-a="bombs" data-d="1" aria-label="${u.add}" ${cnt(id) >= bombsMax(st.n) ? 'disabled' : ''}>+</button>` : `<span class="c">${cnt(id)}</span>`;
+  const fixedRows = fixedIds.length ? `<div class="comp-group"><div class="comp">${fixedIds.filter(id => ROLE[id]).map(id => { const r = roleFor(setupMods(), id); return `<div class="comp-row">${sealHTML(r)}<div><div class="n">${r.name}</div><div class="s">${r.short}</div></div><div class="ctl">${bombCtl(id)}</div></div>`; }).join('')}</div></div><p class="hint">${sc && sc.bombs ? tt(u.bhBombsHint, { max: bombsMax(st.n) }) : u.compFixed}</p>` : '';
   const twoFrom = sc && sc.mods.twoFamiliesFrom ? sc.mods.twoFamiliesFrom : TWO_FAMILIES_FROM;
   const two2 = st.n >= twoFrom;
   const unowned = unownedInComp(st.comp);
   let warn = '';
   if (unowned.length) warn = `<div class="warnbox">${tt(u.lockedInComp, { list: unowned.map(id => ROLE[id].name).join(', ') })}</div>`;
   else if (stats.total !== st.n) warn = `<div class="warnbox">${tt(u.warnCount, { total: stats.total, n: st.n, verb: stats.total < st.n ? u.addVerb : u.removeVerb, diff: Math.abs(stats.total - st.n) })}</div>`;
-  else if (mini) { const s5 = sc.sim[st.n]; warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n) }) : ''}</div>`; }
+  else if (mini) { const s5 = miniSim(sc, st.n, st.comp); warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n, st.comp) }) : ''}</div>`; }
   else if (two2 && dons !== 2) warn = `<div class="warnbox">${tt(u.warnTwoDons, { n: twoFrom })}</div>`;
   else if (!two2 && dons !== 1) warn = `<div class="warnbox">${u.warnOneDon}</div>`;
   else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
@@ -5938,7 +6194,7 @@ function setupScreen() {
 /* ---------- Deal ---------- */
 function dealScreen() {
   const u = U(); const g = S.game; const done = g.dealIdx >= g.players.length;
-  const p = done ? null : g.players[g.dealIdx]; const r = p ? ROLE[p.roleId] : null;
+  const p = done ? null : g.players[g.dealIdx]; const r = p ? roleFor(g.mods, p.roleId) : null;
   const prog = `<div class="progress">${g.players.map((x, i) => `<i class="${i < g.dealIdx ? 'done' : i === g.dealIdx ? 'cur' : ''}"></i>`).join('')}</div>`;
   if (done || S.ui.showAll) {
     return `${topbar(u.dealTitle, S.ui.showAll ? u.hostTable : u.allDealt)}
@@ -5964,7 +6220,7 @@ function dealScreen() {
 }
 
 function playerRow(g, p, withRole, extra = '') {
-  const u = U(); const r = ROLE[p.roleId];
+  const u = U(); const r = roleFor(g.mods, p.roleId);
   const tags = [];
   if (withRole) tags.push(teamPill(r));
   if (p.family) tags.push(`<span class="pill gold">${FAMILY_NAMES[p.family]}</span>`);
@@ -6124,7 +6380,7 @@ function dayBody(g) {
     const r = g.nightResult || { removed: [], notes: [], quiet: [] };
     const deaths = r.removed.length ? r.removed.map(d => deathRow(g, d)).join('') : `<div class="okbox">${u.noDeaths}</div>`;
     const extra = al.filter(p => p.roleId === 'contractor' && p.contractId && P(g, p.contractId)).map(p => tt(u.contractInfo, { seat: p.seat, target: P(g, p.contractId).seat }))
-      .concat((g.pendingTriggers || []).filter(x => x.night).map(x => tt(u.azazelNightHint, { seat: P(g, x.actorId).seat })));
+      .concat((g.pendingTriggers || []).filter(x => x.night).map(x => tt(x.type === 'morpheus' ? u.morpheusNightHint : u.azazelNightHint, { seat: P(g, x.actorId).seat })));
     const secret = r.quiet.concat(r.shotLog || []).concat(extra).map(q => `<div class="quiet">${esc(q)}</div>`).join('');
     const w = checkWin(g); const classic = isClassic(g);
     const lastWords = classic && r.removed.length ? r.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lw-${g.day}-${i}`)}</div>`).join('') : '';
@@ -6303,11 +6559,13 @@ function resultBody(g) {
   let trigHTML = '';
   if (trig) {
     const a = P(g, trig.actorId); const sel = S.ui.pick;
-    const txt = trig.type === 'azazel' ? (trig.night ? u.trigAzazelNight : u.trigAzazel) : u.trigMorpheus;
+    const txt = trig.type === 'azazel' ? (trig.night ? u.trigAzazelNight : u.trigAzazel) : (trig.night ? u.trigMorpheusNight : u.trigMorpheus);
     trigHTML = `<div class="panel raised"><div class="eyebrow gold">${ROLE[a.roleId].name} ${a.seat}</div><div class="hint">${esc(a.name)} ${txt}.</div>
       <div class="picker" style="margin-top:10px">${alive(g).map(p => `<button class="pk ${sel[0] === p.id ? 'sel' : ''}" data-a="pick" data-id="${p.id}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>`).join('')}</div>
       <div class="btn-row" style="margin-top:10px">${trig.night ? `<button class="btn ghost" data-a="trig-skip">${u.trigSkip}</button>` : ''}<button class="btn danger grow" data-a="trig-confirm" ${sel.length ? '' : 'disabled'}>${u.confirm}</button></div></div>`;
   }
+  // v53: what Morpheus took (host only): a skill, the family shot, or nothing — the card had no active skill
+  const morph = (vr.morph || []).map(m => `<div class="quiet">${esc(tt(m.took === 'shoot' ? u.morphShot : m.took ? u.morphTook : u.morphNone, { player: label(P(g, m.id)) }))}</div>`).join('');
   const w = checkWin(g);
   const jester = vr.eliminatedId && P(g, vr.eliminatedId).roleId === 'jester' ? `<div class="result diff"><div class="eyebrow">${u.attention}</div><div class="big">${u.jesterWon}</div><div class="gesture">${u.jesterText}</div></div>` : '';
   const rl = vr.roulette && vr.roulette.hitId ? `<div class="result diff"><div class="eyebrow">${u.rouletteTitle}</div><div class="big">${vr.roulette.number}</div><div class="gesture">${tt(u.rouletteHit, { n: vr.roulette.number, seat: P(g, vr.roulette.hitId).seat })}</div></div>` : '';
@@ -6318,6 +6576,7 @@ function resultBody(g) {
   const lastWords = isClassic(g) && vr.removed.length ? vr.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lwv-${g.day}-${i}`)}</div>`).join('') : '';
   return `${phaseHead(g, title, vr.eliminatedId ? tt(u.leaves, { seat: P(g, vr.eliminatedId).seat }) : '')}${vr.round === 2 ? `<div class="eyebrow gold">${u.revoteTitle}</div>` : ''}${rows}${rl}${lift}${imm}${chair}${jester}${lastWords}
     ${removed ? `<div class="stack-s">${removed}</div>` : ''}
+    ${morph ? `<div class="panel"><div class="eyebrow">${u.hostSecret}</div><div class="stack-s" style="margin-top:8px">${morph}</div></div>` : ''}
     ${trigHTML}
     ${trig ? '' : (w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : `<button class="btn primary" data-a="night">${tt(u.sleepNightN, { n: g.night + 1 })}</button>`)}${undoBtnHTML(g)}`;
 }
@@ -6423,24 +6682,28 @@ function classicCardHTML() {
 }
 /* ---------- Small table (v50): scenarios for 5–6 players ---------- */
 function miniN() { const n = S.ui.miniN || 6; return Math.max(MINI_MIN, Math.min(MINI_MAX, n)); }
-function miniSimLine(sc, n) {
-  const u = U(); const s = sc.sim[n]; if (!s) return '';
+function miniSimLine(sc, n, comp) {
+  const u = U(); const s = miniSim(sc, n, comp); if (!s) return '';
   const parts = [tt(u.simCity, { v: s[0] }), sc.other === 'bomb' ? tt(u.simBomb, { v: s[1] }) : tt(u.simMafia, { v: s[1] })];
   if (s[2]) parts.push(tt(u.simManiac, { v: s[2] }));
   return parts.join(' · ');
 }
+function miniBombs(n) { return clampBombs(n, S.ui.miniBombs || 1); }
 function miniCardHTML(sc, n) {
-  const u = U(); const comp = scenarioComp(sc, n); const st = compositionStats(comp); const open = S.ui.miniRules === sc.id;
+  const u = U(); const bombs = sc.bombs ? miniBombs(n) : 0; const comp = scenarioComp(sc, n, { bombs }); const st = compositionStats(comp, sc.mods); const open = S.ui.miniRules === sc.id;
+  const counts = {}; comp.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
   const roles = comp.map(id => `<span class="ri" title="${ROLE[id].name}">${roleArt(id, 'portrait')}</span>`).join('');
-  const s = sc.sim[n];
+  const s = miniSim(sc, n, comp);
+  // v53: how many Bombs (in place of Citizens)
+  const bseg = sc.bombs ? `<div class="eyebrow" style="margin-top:8px">${u.bhBombs}</div><div class="segment n${bombsMax(n)}">${Array.from({ length: bombsMax(n) }, (_, i) => i + 1).map(k => `<button class="${k === bombs ? 'active' : ''}" data-a="mini-bombs" data-n="${k}">${u.bhBombsL[k - 1]}</button>`).join('')}</div>` : '';
   return `<div class="scen-card mini"><div class="row"><span class="premium-pill classic">${tt(u.miniPlayers || '{n}', { n })}</span><div class="t grow">${sc.name}</div></div>
     <div class="l">${sc.lore}</div>
     <div class="roles">${roles}</div>
-    <div class="m">${tt(u.miniCards, { list: comp.map(id => ROLE[id].name).join(', ') })}</div>
-    ${statsBar(st)}
-    ${s ? `<div class="m sim">${tt(u.miniSim, { line: miniSimLine(sc, n), nights: s[3] })}</div>` : ''}
+    <div class="m">${tt(u.miniCards, { list: Object.keys(counts).map(id => ROLE[id].name + (counts[id] > 1 ? ` ×${counts[id]}` : '')).join(', ') })}</div>
+    ${statsBar(st)}${bseg}
+    ${s ? `<div class="m sim">${tt(u.miniSim, { line: miniSimLine(sc, n, comp), nights: s[3] })}</div>` : ''}
     ${open ? `<ul class="rules">${sc.rules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-    <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="mini-rules" data-id="${sc.id}">${u.miniRules}</button><button class="btn primary sm grow" data-a="mini-use" data-id="${sc.id}" data-n="${n}">${u.miniUse}</button></div></div>`;
+    <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="mini-rules" data-id="${sc.id}">${u.miniRules}</button><button class="btn primary sm grow" data-a="mini-use" data-id="${sc.id}" data-n="${n}" ${sc.bombs ? `data-bombs="${bombs}"` : ''}>${u.miniUse}</button></div></div>`;
 }
 function miniScreen() {
   const u = U(); const n = miniN();
@@ -6578,11 +6841,13 @@ const ACT = {
   nrange(el) { setN(+el.value); },
   name(el) { S.setup.names[+el.dataset.i] = el.value; save(); },
   comp(el) { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
+  bombs(el) { const sc = SCENARIO[S.setup.scenario]; if (!sc || !sc.bombs) return; S.setup.bombs = clampBombs(S.setup.n, bombsIn(S.setup.comp) + (+el.dataset.d)); S.ui.miniBombs = S.setup.bombs; S.setup.comp = setupComp(S.setup.n); render(); },
   preset() { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
   'mini-n'(el) { S.ui.miniN = +el.dataset.n; render(); },
   'mini-rules'(el) { S.ui.miniRules = S.ui.miniRules === el.dataset.id ? null : el.dataset.id; render(); },
-  'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN()); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
+  'mini-bombs'(el) { S.ui.miniBombs = +el.dataset.n; render(); },
+  'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN(), { bombs: +el.dataset.bombs || miniBombs(+el.dataset.n || miniN()) }); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
   'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
@@ -6869,8 +7134,7 @@ function resultFor(g, p, w) {
   const role = ROLE[p.roleId]; const side = role.side;
   let won = false, solo = false; const extra = g.extraWinners || [];
   const ps = typeof playSideOf === 'function' ? playSideOf(g, p) : side;
-  if (ps === 'bomb') { won = w.side === 'bomb'; solo = won; }
-  else if (p.recruitedBy) won = w.side === 'mafia';
+  if (p.recruitedBy || (ps === 'mafia' && side !== 'mafia')) won = w.side === 'mafia'; // recruits and (v53) the bomb hunt's Bombs
   else if (p.roleId === 'jester') { won = g.jesterWon === p.id; solo = won; }
   else if (['survivor', 'contractor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer'].includes(p.roleId)) { won = extra.includes(p.id) || (p.roleId === 'survivor' && p.alive) || (p.roleId === 'peacemaker' && p.alive) || (p.roleId === 'lobbyist' && (p.lobbyHits || 0) >= 3) || (p.roleId === 'gambler' && (p.betHits || 0) >= 2); solo = won; }
   else if (p.roleId === 'witch') won = w.side === 'mafia';
@@ -8108,11 +8372,11 @@ function tablePub(g) {
   }
   const reveal = revealDeadIn(g); const shown = p => roleShown(g, p);
   const seats = g.players.map(p => { const s = { seat: p.seat, name: p.name, tgId: seatTg(g, p.seat), alive: p.alive, votedOut: !!p.votedOut, fouls: p.fouls || 0 }; if (g.winner || (!p.alive && shown(p))) { s.roleId = p.roleId; s.family = p.family || null; } return s; });
-  const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', open: reveal, online: !!g.online, openRoles: reveal, host: hostName(), day: g.day, night: g.night, seats, chat: false };
+  const pub = { v: 2, phase: g.winner ? 'end' : (!g.dealt ? 'deal' : g.phase), code, n: g.n, mode: isClassic(g) ? 'classic' : 'extended', open: reveal, online: !!g.online, openRoles: reveal, bh: !!(g.mods && g.mods.bombHunt), host: hostName(), day: g.day, night: g.night, seats, chat: false };
   if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; }
     let rv = null; try { rv = reviewGame(g); } catch (e) { rv = null; }
     const itemsOf = seat => { const p = g.players.find(x => x.seat === seat); const r = rv && p ? rv.byId[p.id] : null; return r && r.items ? r.items.slice(0, 20).map(it => ({ when: it.when, action: it.action, target: it.target, verdict: it.verdict, reason: it.reason || '', better: it.better || '', pts: it.pts || 0 })) : []; };
-    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
+    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
     pub.aborted = !!g.aborted; return pub; }
   if (!g.dealt) return pub;
   const asks = g.online ? buildAsks(g) : {};
@@ -8261,7 +8525,7 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
 }
 function tbRoleRow(roleId, big) {
-  const u = U(); const r = ROLE[roleId]; if (!r) return '';
+  const u = U(); const r = roleFor(TB.data && TB.data.pub && TB.data.pub.bh ? { bombHunt: true } : null, roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia
   if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dHTML(r, 'tb')}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
   return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealHTML(r)}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
 }
@@ -8294,7 +8558,7 @@ function tbAskHTML(ask, seats) {
   const pk = (ask.targets || []).map(tg => { const i = TB.pick.indexOf(tg.seat); return `<button class="pk ${i >= 0 ? 'sel' : ''} ${i === 1 ? 'n2' : ''} ${tg.ok ? '' : 'dis'}" data-a="tb-pick" data-seat="${tg.seat}" ${tg.ok ? '' : 'disabled'}><span class="seat">${tg.seat}</span><span class="nm">${esc((seats.find(s => s.seat === tg.seat) || {}).name || '')}</span>${i >= 0 && need > 1 ? `<span class="mark ${i === 1 ? 'c' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
   const ready = ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need;
   const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : ask.kind === 'trig' && ask.optional ? `<button class="btn ghost" data-a="tb-skip">${u.trigSkip}</button>` : '';
-  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? u.tbAzazelNight : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
+  return `<div class="panel raised tb-ask"><div class="row">${role ? sealHTML(role) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? (ask.trig === 'morpheus' ? u.tbMorpheusNight : u.tbAzazelNight) : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
     ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}
     <div class="btn-row" style="margin-top:10px">${skip}<button class="btn primary" data-a="tb-confirm" ${ready ? '' : 'disabled'}>${ask.kind === 'bestmove' ? u.tbBestSave : u.confirm}</button></div></div>`;
 }
@@ -8493,8 +8757,9 @@ Object.assign(ACT, {
 });
 /* ============================================================ RESULTS PODIUM: every player's 3D card, avatar / club, win streak in gold */
 const sideOf = roleId => { const r = ROLE[roleId]; return r ? (r.side === 'mafia' ? 'mafia' : r.side === 'city' ? 'city' : 'neutral') : 'city'; };
+const gameSideOf = (g, p) => { const s = ROLE[p.roleId] ? playSideOf(g, p) : 'city'; return s === 'mafia' ? 'mafia' : s === 'city' ? 'city' : 'neutral'; }; // v53: recruits and the bomb hunt's Bombs play for the mafia
 function localStreak(pr, side) { let n = 0; for (let i = pr.history.length - 1; i >= 0; i--) { const h = pr.history[i]; if (sideOf(h.roleId) !== side) continue; if (h.won) n++; else break; } return n; }
-function streakFor(g, p, tgId, pr) { const side = sideOf(p.roleId); const srv = g.streaks && tgId && g.streaks[tgId]; if (srv && srv.side === side) return srv.n; if (pr) return localStreak(pr, side); return null; }
+function streakFor(g, p, tgId, pr) { const side = gameSideOf(g, p); const srv = g.streaks && tgId && g.streaks[tgId]; if (srv && srv.side === side) return srv.n; if (pr) return localStreak(pr, side); return null; }
 /* rows of the finished game, best first: points, useful, avatar, club, streak */
 function resultRows(g) {
   const w = g.winner; if (!w) return []; const rv = reviewGame(g);
@@ -8502,12 +8767,12 @@ function resultRows(g) {
   return g.players.map(p => {
     const r = rv.byId[p.id] || { useful: 0, good: 0, bad: 0 }; const res = resultFor(g, p, w); const pts = pointsFor(p.roleId, res.won, p.alive, res.solo);
     const tgId = seatTg(g, p.seat); const pl = tgId ? tgl.find(x => x.tgId === tgId) : null; const pr = p.profileId ? profById(p.profileId) : null;
-    return { seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: sideOf(p.roleId), streak: streakFor(g, p, tgId, pr) };
+    return { seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), streak: streakFor(g, p, tgId, pr) };
   }).sort((a, b) => b.total - a.total || b.useful - a.useful || a.seat - b.seat).map((x, i) => Object.assign(x, { place: i + 1 }));
 }
 function streakHTML(row) { const u = U(); const n = row.streak; if (!n || n < 2) return ''; return `<div class="pod-streak">${tt(u.streakLine, { n, wins: plural(n, 'wins'), side: (u.streakFor || {})[row.side] || '' })}</div>`; }
 function podiumCardHTML(row, keyPrefix, big) {
-  const u = U(); const role = ROLE[row.roleId]; if (!role) return '';
+  const u = U(); const role = roleFor(row.bh ? { bombHunt: true } : null, row.roleId); if (!role) return '';
   const act = row.tgId ? `data-a="fr-open" data-id="${row.tgId}"` : row.profileId ? `data-a="prof-open" data-id="${esc(row.profileId)}"` : `data-a="role" data-id="${role.id}"`; // no profile → the card itself
   const av = row.photo ? `<img src="${esc(row.photo)}" alt="">` : `<span>${esc((row.name || '?').slice(0, 1).toUpperCase())}</span>`;
   return `<div class="pod-card ${big ? 'big' : ''} ${row.won ? 'win' : 'loss'} p${row.place}">
@@ -9093,13 +9358,14 @@ function buySheetHTML(kind, id) {
     <div class="btn-row"><button class="btn ghost" data-a="sheet-close">${u.cancel}</button><button class="btn primary" data-a="buy-confirm" data-kind="scen" data-id="${id}">${label(u.priceScen)}</button></div>`;
 }
 /* Scenario → setup */
-function applyScenario(id, n) {
+function applyScenario(id, n, opts) {
   const sc = SCENARIO[id]; if (!sc) return;
   S.setup.scenario = id;
   S.setup.n = Math.max(sc.min, Math.min(sc.max, n || S.setup.n));
-  S.setup.comp = scenarioComp(sc, S.setup.n);
+  if (sc.bombs) S.setup.bombs = clampBombs(S.setup.n, opts && opts.bombs);
+  S.setup.comp = scenarioComp(sc, S.setup.n, { bombs: S.setup.bombs });
 }
-function setupComp(n) { return S.setup.scenario && SCENARIO[S.setup.scenario] ? scenarioComp(SCENARIO[S.setup.scenario], n) : presetFor(n); }
+function setupComp(n) { return S.setup.scenario && SCENARIO[S.setup.scenario] ? scenarioComp(SCENARIO[S.setup.scenario], n, { bombs: S.setup.bombs }) : presetFor(n); }
 function setupMods() { return S.setup.scenario && SCENARIO[S.setup.scenario] ? SCENARIO[S.setup.scenario].mods : {}; }
 function unownedInComp(comp) { return [...new Set(comp.filter(id => !ownsRole(id)))]; }
 

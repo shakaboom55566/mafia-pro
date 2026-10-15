@@ -250,7 +250,7 @@ function homeScreen() {
 
 /* ---------- Setup ---------- */
 function setupScreen() {
-  const u = U(); const st = S.setup, stats = compositionStats(st.comp);
+  const u = U(); const st = S.setup, stats = compositionStats(st.comp, setupMods());
   const two = st.n >= TWO_FAMILIES_FROM;
   const groups = [['black', u.groupFamily], ['ww', u.groupWW], ['neutral', u.groupNeutral], ['red', u.groupCity]];
   const cnt = id => st.comp.filter(x => x === id).length;
@@ -267,14 +267,16 @@ function setupScreen() {
   // classic: the line-up is the sport one and cannot be edited — a plain list instead of the +/− editor
   const mini = !!(sc && sc.mini); // small-table scenarios: a fixed line-up for 5 or 6, like the classic
   const fixedIds = st.scenario === 'classic' ? ['don', 'mafia', 'sheriff', 'citizen'] : mini ? [...new Set(st.comp)] : [];
-  const fixedRows = fixedIds.length ? `<div class="comp-group"><div class="comp">${fixedIds.filter(id => ROLE[id]).map(id => `<div class="comp-row">${sealHTML(ROLE[id])}<div><div class="n">${ROLE[id].name}</div><div class="s">${ROLE[id].short}</div></div><div class="ctl"><span class="c">${cnt(id)}</span></div></div>`).join('')}</div></div><p class="hint">${u.compFixed}</p>` : '';
+  // v53: in the bomb hunt the number of Bombs (1–3, in place of Citizens) is the one thing the host may change
+  const bombCtl = id => sc && sc.bombs && id === 'bomb' ? `<button data-a="bombs" data-d="-1" aria-label="${u.remove}" ${cnt(id) <= 1 ? 'disabled' : ''}>−</button><span class="c">${cnt(id)}</span><button data-a="bombs" data-d="1" aria-label="${u.add}" ${cnt(id) >= bombsMax(st.n) ? 'disabled' : ''}>+</button>` : `<span class="c">${cnt(id)}</span>`;
+  const fixedRows = fixedIds.length ? `<div class="comp-group"><div class="comp">${fixedIds.filter(id => ROLE[id]).map(id => { const r = roleFor(setupMods(), id); return `<div class="comp-row">${sealHTML(r)}<div><div class="n">${r.name}</div><div class="s">${r.short}</div></div><div class="ctl">${bombCtl(id)}</div></div>`; }).join('')}</div></div><p class="hint">${sc && sc.bombs ? tt(u.bhBombsHint, { max: bombsMax(st.n) }) : u.compFixed}</p>` : '';
   const twoFrom = sc && sc.mods.twoFamiliesFrom ? sc.mods.twoFamiliesFrom : TWO_FAMILIES_FROM;
   const two2 = st.n >= twoFrom;
   const unowned = unownedInComp(st.comp);
   let warn = '';
   if (unowned.length) warn = `<div class="warnbox">${tt(u.lockedInComp, { list: unowned.map(id => ROLE[id].name).join(', ') })}</div>`;
   else if (stats.total !== st.n) warn = `<div class="warnbox">${tt(u.warnCount, { total: stats.total, n: st.n, verb: stats.total < st.n ? u.addVerb : u.removeVerb, diff: Math.abs(stats.total - st.n) })}</div>`;
-  else if (mini) { const s5 = sc.sim[st.n]; warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n) }) : ''}</div>`; }
+  else if (mini) { const s5 = miniSim(sc, st.n, st.comp); warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n, st.comp) }) : ''}</div>`; }
   else if (two2 && dons !== 2) warn = `<div class="warnbox">${tt(u.warnTwoDons, { n: twoFrom })}</div>`;
   else if (!two2 && dons !== 1) warn = `<div class="warnbox">${u.warnOneDon}</div>`;
   else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
@@ -327,7 +329,7 @@ function setupScreen() {
 /* ---------- Deal ---------- */
 function dealScreen() {
   const u = U(); const g = S.game; const done = g.dealIdx >= g.players.length;
-  const p = done ? null : g.players[g.dealIdx]; const r = p ? ROLE[p.roleId] : null;
+  const p = done ? null : g.players[g.dealIdx]; const r = p ? roleFor(g.mods, p.roleId) : null;
   const prog = `<div class="progress">${g.players.map((x, i) => `<i class="${i < g.dealIdx ? 'done' : i === g.dealIdx ? 'cur' : ''}"></i>`).join('')}</div>`;
   if (done || S.ui.showAll) {
     return `${topbar(u.dealTitle, S.ui.showAll ? u.hostTable : u.allDealt)}
@@ -353,7 +355,7 @@ function dealScreen() {
 }
 
 function playerRow(g, p, withRole, extra = '') {
-  const u = U(); const r = ROLE[p.roleId];
+  const u = U(); const r = roleFor(g.mods, p.roleId);
   const tags = [];
   if (withRole) tags.push(teamPill(r));
   if (p.family) tags.push(`<span class="pill gold">${FAMILY_NAMES[p.family]}</span>`);
@@ -513,7 +515,7 @@ function dayBody(g) {
     const r = g.nightResult || { removed: [], notes: [], quiet: [] };
     const deaths = r.removed.length ? r.removed.map(d => deathRow(g, d)).join('') : `<div class="okbox">${u.noDeaths}</div>`;
     const extra = al.filter(p => p.roleId === 'contractor' && p.contractId && P(g, p.contractId)).map(p => tt(u.contractInfo, { seat: p.seat, target: P(g, p.contractId).seat }))
-      .concat((g.pendingTriggers || []).filter(x => x.night).map(x => tt(u.azazelNightHint, { seat: P(g, x.actorId).seat })));
+      .concat((g.pendingTriggers || []).filter(x => x.night).map(x => tt(x.type === 'morpheus' ? u.morpheusNightHint : u.azazelNightHint, { seat: P(g, x.actorId).seat })));
     const secret = r.quiet.concat(r.shotLog || []).concat(extra).map(q => `<div class="quiet">${esc(q)}</div>`).join('');
     const w = checkWin(g); const classic = isClassic(g);
     const lastWords = classic && r.removed.length ? r.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lw-${g.day}-${i}`)}</div>`).join('') : '';
@@ -692,11 +694,13 @@ function resultBody(g) {
   let trigHTML = '';
   if (trig) {
     const a = P(g, trig.actorId); const sel = S.ui.pick;
-    const txt = trig.type === 'azazel' ? (trig.night ? u.trigAzazelNight : u.trigAzazel) : u.trigMorpheus;
+    const txt = trig.type === 'azazel' ? (trig.night ? u.trigAzazelNight : u.trigAzazel) : (trig.night ? u.trigMorpheusNight : u.trigMorpheus);
     trigHTML = `<div class="panel raised"><div class="eyebrow gold">${ROLE[a.roleId].name} ${a.seat}</div><div class="hint">${esc(a.name)} ${txt}.</div>
       <div class="picker" style="margin-top:10px">${alive(g).map(p => `<button class="pk ${sel[0] === p.id ? 'sel' : ''}" data-a="pick" data-id="${p.id}"><span class="seat">${p.seat}</span><span class="nm">${esc(p.name)}</span></button>`).join('')}</div>
       <div class="btn-row" style="margin-top:10px">${trig.night ? `<button class="btn ghost" data-a="trig-skip">${u.trigSkip}</button>` : ''}<button class="btn danger grow" data-a="trig-confirm" ${sel.length ? '' : 'disabled'}>${u.confirm}</button></div></div>`;
   }
+  // v53: what Morpheus took (host only): a skill, the family shot, or nothing — the card had no active skill
+  const morph = (vr.morph || []).map(m => `<div class="quiet">${esc(tt(m.took === 'shoot' ? u.morphShot : m.took ? u.morphTook : u.morphNone, { player: label(P(g, m.id)) }))}</div>`).join('');
   const w = checkWin(g);
   const jester = vr.eliminatedId && P(g, vr.eliminatedId).roleId === 'jester' ? `<div class="result diff"><div class="eyebrow">${u.attention}</div><div class="big">${u.jesterWon}</div><div class="gesture">${u.jesterText}</div></div>` : '';
   const rl = vr.roulette && vr.roulette.hitId ? `<div class="result diff"><div class="eyebrow">${u.rouletteTitle}</div><div class="big">${vr.roulette.number}</div><div class="gesture">${tt(u.rouletteHit, { n: vr.roulette.number, seat: P(g, vr.roulette.hitId).seat })}</div></div>` : '';
@@ -707,6 +711,7 @@ function resultBody(g) {
   const lastWords = isClassic(g) && vr.removed.length ? vr.removed.map((d, i) => `<div class="panel"><div class="eyebrow">${u.lastWord} · ${esc(label(P(g, d.id)))}</div>${timerHTML(S.settings.speech, `lwv-${g.day}-${i}`)}</div>`).join('') : '';
   return `${phaseHead(g, title, vr.eliminatedId ? tt(u.leaves, { seat: P(g, vr.eliminatedId).seat }) : '')}${vr.round === 2 ? `<div class="eyebrow gold">${u.revoteTitle}</div>` : ''}${rows}${rl}${lift}${imm}${chair}${jester}${lastWords}
     ${removed ? `<div class="stack-s">${removed}</div>` : ''}
+    ${morph ? `<div class="panel"><div class="eyebrow">${u.hostSecret}</div><div class="stack-s" style="margin-top:8px">${morph}</div></div>` : ''}
     ${trigHTML}
     ${trig ? '' : (w ? `<button class="btn primary" data-a="finish">${tt(u.gameOver, { title: w.title })}</button>` : `<button class="btn primary" data-a="night">${tt(u.sleepNightN, { n: g.night + 1 })}</button>`)}${undoBtnHTML(g)}`;
 }
@@ -812,24 +817,28 @@ function classicCardHTML() {
 }
 /* ---------- Small table (v50): scenarios for 5–6 players ---------- */
 function miniN() { const n = S.ui.miniN || 6; return Math.max(MINI_MIN, Math.min(MINI_MAX, n)); }
-function miniSimLine(sc, n) {
-  const u = U(); const s = sc.sim[n]; if (!s) return '';
+function miniSimLine(sc, n, comp) {
+  const u = U(); const s = miniSim(sc, n, comp); if (!s) return '';
   const parts = [tt(u.simCity, { v: s[0] }), sc.other === 'bomb' ? tt(u.simBomb, { v: s[1] }) : tt(u.simMafia, { v: s[1] })];
   if (s[2]) parts.push(tt(u.simManiac, { v: s[2] }));
   return parts.join(' · ');
 }
+function miniBombs(n) { return clampBombs(n, S.ui.miniBombs || 1); }
 function miniCardHTML(sc, n) {
-  const u = U(); const comp = scenarioComp(sc, n); const st = compositionStats(comp); const open = S.ui.miniRules === sc.id;
+  const u = U(); const bombs = sc.bombs ? miniBombs(n) : 0; const comp = scenarioComp(sc, n, { bombs }); const st = compositionStats(comp, sc.mods); const open = S.ui.miniRules === sc.id;
+  const counts = {}; comp.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
   const roles = comp.map(id => `<span class="ri" title="${ROLE[id].name}">${roleArt(id, 'portrait')}</span>`).join('');
-  const s = sc.sim[n];
+  const s = miniSim(sc, n, comp);
+  // v53: how many Bombs (in place of Citizens)
+  const bseg = sc.bombs ? `<div class="eyebrow" style="margin-top:8px">${u.bhBombs}</div><div class="segment n${bombsMax(n)}">${Array.from({ length: bombsMax(n) }, (_, i) => i + 1).map(k => `<button class="${k === bombs ? 'active' : ''}" data-a="mini-bombs" data-n="${k}">${u.bhBombsL[k - 1]}</button>`).join('')}</div>` : '';
   return `<div class="scen-card mini"><div class="row"><span class="premium-pill classic">${tt(u.miniPlayers || '{n}', { n })}</span><div class="t grow">${sc.name}</div></div>
     <div class="l">${sc.lore}</div>
     <div class="roles">${roles}</div>
-    <div class="m">${tt(u.miniCards, { list: comp.map(id => ROLE[id].name).join(', ') })}</div>
-    ${statsBar(st)}
-    ${s ? `<div class="m sim">${tt(u.miniSim, { line: miniSimLine(sc, n), nights: s[3] })}</div>` : ''}
+    <div class="m">${tt(u.miniCards, { list: Object.keys(counts).map(id => ROLE[id].name + (counts[id] > 1 ? ` ×${counts[id]}` : '')).join(', ') })}</div>
+    ${statsBar(st)}${bseg}
+    ${s ? `<div class="m sim">${tt(u.miniSim, { line: miniSimLine(sc, n, comp), nights: s[3] })}</div>` : ''}
     ${open ? `<ul class="rules">${sc.rules.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-    <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="mini-rules" data-id="${sc.id}">${u.miniRules}</button><button class="btn primary sm grow" data-a="mini-use" data-id="${sc.id}" data-n="${n}">${u.miniUse}</button></div></div>`;
+    <div class="btn-row" style="margin-top:10px"><button class="btn ghost sm" data-a="mini-rules" data-id="${sc.id}">${u.miniRules}</button><button class="btn primary sm grow" data-a="mini-use" data-id="${sc.id}" data-n="${n}" ${sc.bombs ? `data-bombs="${bombs}"` : ''}>${u.miniUse}</button></div></div>`;
 }
 function miniScreen() {
   const u = U(); const n = miniN();
@@ -967,11 +976,13 @@ const ACT = {
   nrange(el) { setN(+el.value); },
   name(el) { S.setup.names[+el.dataset.i] = el.value; save(); },
   comp(el) { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; const id = el.dataset.id, d = +el.dataset.d; if (d > 0) S.setup.comp.push(id); else { const i = S.setup.comp.indexOf(id); if (i >= 0) S.setup.comp.splice(i, 1); } render(); },
+  bombs(el) { const sc = SCENARIO[S.setup.scenario]; if (!sc || !sc.bombs) return; S.setup.bombs = clampBombs(S.setup.n, bombsIn(S.setup.comp) + (+el.dataset.d)); S.ui.miniBombs = S.setup.bombs; S.setup.comp = setupComp(S.setup.n); render(); },
   preset() { if (S.setup.scenario === 'classic' || (SCENARIO[S.setup.scenario] && SCENARIO[S.setup.scenario].mini)) return; S.setup.comp = setupComp(S.setup.n); render(); toast(U().toastPreset); },
   scen(el) { S.setup.scenario = null; S.setup.n = +el.dataset.n; S.setup.comp = presetFor(S.setup.n); go('setup'); },
   'mini-n'(el) { S.ui.miniN = +el.dataset.n; render(); },
   'mini-rules'(el) { S.ui.miniRules = S.ui.miniRules === el.dataset.id ? null : el.dataset.id; render(); },
-  'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN()); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
+  'mini-bombs'(el) { S.ui.miniBombs = +el.dataset.n; render(); },
+  'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN(), { bombs: +el.dataset.bombs || miniBombs(+el.dataset.n || miniN()) }); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
   'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },

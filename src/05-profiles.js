@@ -84,8 +84,7 @@ function resultFor(g, p, w) {
   const role = ROLE[p.roleId]; const side = role.side;
   let won = false, solo = false; const extra = g.extraWinners || [];
   const ps = typeof playSideOf === 'function' ? playSideOf(g, p) : side;
-  if (ps === 'bomb') { won = w.side === 'bomb'; solo = won; }
-  else if (p.recruitedBy) won = w.side === 'mafia';
+  if (p.recruitedBy || (ps === 'mafia' && side !== 'mafia')) won = w.side === 'mafia'; // recruits and (v53) the bomb hunt's Bombs
   else if (p.roleId === 'jester') { won = g.jesterWon === p.id; solo = won; }
   else if (['survivor', 'contractor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer'].includes(p.roleId)) { won = extra.includes(p.id) || (p.roleId === 'survivor' && p.alive) || (p.roleId === 'peacemaker' && p.alive) || (p.roleId === 'lobbyist' && (p.lobbyHits || 0) >= 3) || (p.roleId === 'gambler' && (p.betHits || 0) >= 2); solo = won; }
   else if (p.roleId === 'witch') won = w.side === 'mafia';

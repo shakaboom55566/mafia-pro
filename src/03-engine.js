@@ -39,10 +39,10 @@ const isBlack = p => ROLE[p.roleId].team === 'black';
 /* Corrupter (v50): a recruited player keeps their card but plays for the mafia until the game ends or they leave */
 const onMafiaSide = p => isBlack(p) || !!p.recruitedBy;
 const liveRecruitOf = (g, corrId) => alive(g).find(p => p.recruitedBy === corrId) || null;
-/* which side a player plays for in this game (recruits — mafia; the Bomb of the bomb hunt — itself) */
+/* which side a player plays for in this game (recruits — mafia; v53: the Bombs of the bomb hunt — mafia too) */
 function playSideOf(g, p) {
   if (p.recruitedBy) return 'mafia';
-  if (g.mods && g.mods.bombHunt && p.roleId === 'bomb') return 'bomb';
+  if (g.mods && g.mods.bombHunt && p.roleId === 'bomb') return 'mafia';
   return ROLE[p.roleId].side;
 }
 /* a recruit may not vote against the corrupter who bought them */
@@ -92,8 +92,10 @@ function buildNight0Steps(g) {
   });
   NIGHT0_ORDER.forEach(rid => {
     const m = aliveWith(g, rid);
-    if (m.length) steps.push({ id: uid(), type: 'meet', title: ROLE[rid].name, roleId: rid, members: m,
-      script: tt(L.e.night0Role, { role: ROLE[rid].name, tail: ROLE[rid].wake ? L.e.night0Active : L.e.night0Passive }) });
+    // v53: the Bombs of the bomb hunt do not know each other — each one wakes alone
+    const groups = rid === 'bomb' && g.mods && g.mods.bombHunt ? m.map(p => [p]) : m.length ? [m] : [];
+    groups.forEach(ms => steps.push({ id: uid(), type: 'meet', title: ROLE[rid].name, roleId: rid, members: ms,
+      script: tt(L.e.night0Role, { role: ROLE[rid].name, tail: ROLE[rid].wake ? L.e.night0Active : L.e.night0Passive }) }));
   });
   aliveWith(g, 'corrupter').forEach(c => steps.push({ id: uid(), type: 'act', roleId: 'corrupter', actorId: c.id, ability: 'recruit', targets: 1, allowSelf: false, script: L.e.recruitScript0 }));
   return steps;
@@ -174,7 +176,6 @@ function stepTargets(g, step) {
     if (step.roleId === 'jailer' && p.id === actor.lastJail) { ok = false; why = L.e.whyJailLast; }
     if (p.id === actor.id && !step.allowSelf) { ok = false; why = L.e.why.self; }
     if (actor.recruitedBy && p.id === actor.recruitedBy && (['shoot', 'execute', 'snipe'].includes(step.ability) || (step.modes && step.modes.includes('shoot')))) { ok = false; why = L.e.whyRecruiter; }
-    if (step.ability === 'recruit' && p.id !== actor.id && onMafiaSide(p)) { ok = false; why = L.e.whyMafiaAlready; }
     if (step.roleId === 'mafia_doctor') {
       if (!isBlack(p) || (g.twoFamilies && p.family !== actor.family)) { ok = false; why = L.e.why.family; }
       if (p.id === actor.lastHeal) { ok = false; why = L.e.why.healedLast; }
@@ -235,7 +236,8 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'compare') { const r = compareResult(g, targets[0], targets[1]); result = { kind: 'same', same: r.same }; }
   if (ability === 'spy') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
   if (ability === 'findSheriff') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'sheriff', yes: t.roleId === 'sheriff', who: t }; }
-  if (ability === 'recruit') { const t = P(g, targets[0]); t.recruitedBy = actor.id; t.recruitedOn = g.night; result = { kind: 'text', text: tt(L.e.recruitDone, { target: label(t), actor: label(actor) }) }; }
+  // v53: the Corrupter buys any card at the table; with two families the bought player plays for the Corrupter's family
+  if (ability === 'recruit') { const t = P(g, targets[0]); t.recruitedBy = actor.id; t.recruitedOn = g.night; if (g.twoFamilies && actor.family) t.family = actor.family; result = { kind: 'text', text: tt(L.e.recruitDone, { target: label(t), actor: label(actor) }) }; }
   if (ability === 'defuse' && g.mods && g.mods.bombHunt) { const t = P(g, targets[0]); result = { kind: 'text', text: tt(t.roleId === 'bomb' ? L.e.bhFound : L.e.bhNotFound, { target: label(t) }) }; }
   if (ability === 'execute') actor.executeUsed = true;
   if (ability === 'snipe') actor.snipeUsed = true;
@@ -467,7 +469,7 @@ function useBailiff(g, bailiffId) {
   addLog(g, tt(L.e.logFinal, { player: label(p) }));
   return true;
 }
-const dayAbilityBlocked = (g, id) => fxOn(g, 'intimidated', id) || fxOn(g, 'defused', id);
+const dayAbilityBlocked = (g, id) => fxOn(g, 'intimidated', id) || fxOn(g, 'defused', id) || !!(P(g, id) && P(g, id).disabled); // v53: Morpheus takes day skills too
 function useProsecutor(g, prosecutorId, candId) {
   const p = P(g, prosecutorId); if (!p || p.prosecuteUsed || !g.ballot.candidates.includes(candId)) return false;
   p.prosecuteUsed = true; g.ballot.prosecuted = candId;
@@ -477,20 +479,41 @@ function useProsecutor(g, prosecutorId, candId) {
 }
 
 /* ---------- Win check ---------- */
-/* Bomb hunt (v50): only the Sapper can defuse the Bomb at night. Voting out a defused Bomb — the city wins; an undefused one explodes — the city lost.
-   Two left: the Sapper with the Bomb — the Sapper wins; anyone else with the Bomb — the city lost. The Sapper gone and the Bomb live — nobody can defuse it. */
+/* Bomb hunt (v50, v53): 1–3 Bombs play for the mafia and do not know each other; only the Sapper defuses them at night.
+   An undefused Bomb voted out explodes — the mafia wins at once. Every Bomb gone defused — the city wins.
+   The mafia also wins with more Bombs than everyone else, when the Sapper is gone while an undefused Bomb is at the table,
+   and when two are left and the other one is not the Sapper (the Sapper left with the last Bomb defuses it — the city wins). */
 function bombHuntWin(g) {
-  const bomb = g.players.find(p => p.roleId === 'bomb'); if (!bomb) return null;
-  const al = alive(g);
+  const bombs = g.players.filter(p => p.roleId === 'bomb'); if (!bombs.length) return null;
   const city = text => ({ side: 'city', title: L.e.bhCityTitle, text });
-  const boom = text => ({ side: 'bomb', title: L.e.bhBombTitle, text });
-  if (!bomb.alive) return bomb.defused ? city(tt(L.e.bhDefusedOut, { player: label(bomb) })) : boom(tt(L.e.bhExploded, { player: label(bomb) }));
-  if (al.length <= 2) { const other = al.find(p => p.id !== bomb.id); return other && other.roleId === 'sapper' ? city(L.e.bhDuelSapper) : boom(L.e.bhDuelCitizen); }
-  if (!bomb.defused && !al.some(p => p.roleId === 'sapper')) return boom(L.e.bhNoSapper);
+  const mafia = (text, title) => ({ side: 'mafia', title: title || L.e.winMafia, text });
+  const blew = bombs.find(p => !p.alive && !p.defused);
+  if (blew) return mafia(tt(L.e.bhExploded, { player: label(blew) }), L.e.bhBombTitle);
+  const live = bombs.filter(p => p.alive);
+  if (!live.length) return city(bombs.length > 1 ? L.e.bhAllDefused : tt(L.e.bhDefusedOut, { player: label(bombs[0]) }));
+  const al = alive(g); const sapper = al.some(p => p.roleId === 'sapper');
+  if (live.length > al.length - live.length) return mafia(L.e.bhMajority);
+  if (al.length <= 2) return sapper ? city(L.e.bhDuelSapper) : mafia(L.e.bhDuelCitizen);
+  if (!sapper && live.some(p => !p.defused)) return mafia(L.e.bhNoSapper);
+  return null;
+}
+/* Corruption (v53): the city wins only by removing the Corrupter — voted out or killed — and then at once, even with his recruit at the table */
+function corruptionWin(g) {
+  const corr = g.players.filter(p => p.roleId === 'corrupter'); if (!corr.length) return null;
+  const al = alive(g);
+  if (!corr.some(p => p.alive)) {
+    const maniac = al.find(p => p.roleId === 'maniac' && !p.recruitedBy);
+    if (maniac && al.length <= 2) return { side: 'maniac', title: L.e.winManiac, text: tt(L.e.winManiacText, { player: label(maniac) }) };
+    const out = corr[corr.length - 1]; const rec = al.find(p => p.recruitedBy);
+    return { side: 'city', title: L.e.winCity, text: rec ? tt(L.e.corrOutRecruit, { player: label(out), recruit: label(rec) }) : tt(L.e.corrOut, { player: label(out) }) };
+  }
+  const blacks = al.filter(onMafiaSide);
+  if (blacks.length > al.length - blacks.length) return { side: 'mafia', title: L.e.winMafia, text: L.e.winMafiaText };
   return null;
 }
 function checkWin(g) {
   if (g.mods && g.mods.bombHunt) return bombHuntWin(g);
+  if (g.mods && g.mods.corruption) { const w = corruptionWin(g); if (w || g.players.some(p => p.roleId === 'corrupter')) return w; }
   const al = alive(g);
   const blacks = al.filter(onMafiaSide);
   const others = al.filter(p => !onMafiaSide(p));
@@ -530,8 +553,8 @@ function startDay(g) {
   // sport rules: the first day has no night before it (straight to speeches)
   if (isClassic(g) && g.night === 0) g.dayStage = 'speeches';
   addLog(g, tt(L.e.logDay, { n: g.day }));
-  // Azazel killed last night takes a player with him at the day's results (he may also let it go)
-  ((g.nightResult && g.nightResult.removed) || []).forEach(d => { const p = P(g, d.id); if (p && !p.alive && p.roleId === 'azazel') g.pendingTriggers.push({ type: 'azazel', actorId: p.id, night: true }); });
+  // Azazel and (v53) Morpheus killed last night act at the day's results (they may also let it go)
+  ((g.nightResult && g.nightResult.removed) || []).forEach(d => { const p = P(g, d.id); if (p && !p.alive && (p.roleId === 'azazel' || p.roleId === 'morpheus')) g.pendingTriggers.push({ type: p.roleId, actorId: p.id, night: true }); });
   // diplomacy: the Provocateur's victim is already on the ballot (unless under the Pastor's sanctuary)
   alive(g).filter(p => fxOn(g, 'forcedCand', p.id) && canNominate(g, p.id)).forEach(p => { g.ballot.candidates.push(p.id); g.ballot.forced = (g.ballot.forced || []).concat([p.id]); addLog(g, tt(L.e.logProvoked, { target: label(p) })); });
 }
@@ -717,13 +740,27 @@ function voteRestToLast(g) {
 function applyTrigger(g, trig, targetId) {
   const actor = P(g, trig.actorId); const t = P(g, targetId);
   if (trig.type === 'azazel') { eliminate(g, targetId, tt(L.e.causeAzazel, { player: label(actor) }), g.voteResult.removed); }
-  if (trig.type === 'morpheus') { t.disabled = true; addLog(g, tt(L.e.logMorpheus, { actor: label(actor), target: label(t), role: ROLE[t.roleId].name })); }
+  if (trig.type === 'morpheus') {
+    const took = morpheusTakes(g, t); const pr = { actor: label(actor), target: label(t), role: ROLE[t.roleId].name };
+    if (took) t.disabled = true;
+    addLog(g, tt(took === 'shoot' ? L.e.logMorpheusShot : took ? L.e.logMorpheus : L.e.logMorpheusNone, pr));
+    if (g.voteResult) (g.voteResult.morph = g.voteResult.morph || []).push({ id: t.id, took: took || null });
+  }
   g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig);
 }
-/* a trigger the player may decline (Azazel killed at night) */
+/* Morpheus (v53) takes only an active skill the player holds right now: the shot of whoever shoots for the family by seniority,
+   a night ability or an unused day ability. Passive cards and the mafia who do not shoot have nothing to take. */
+const DAY_SKILL_USED = { kamikaze: 'kamikazeUsed', judge: 'judgeUsed', lawyer: 'lawyerUsed', prosecutor: 'prosecuteUsed', bailiff: 'finalUsed' };
+function morpheusTakes(g, p) {
+  if (!p || !p.alive || p.disabled) return null;
+  const a = activeAbilityOf(g, p); if (a) return a;
+  const used = DAY_SKILL_USED[p.roleId];
+  return used && !p[used] ? 'day' : null;
+}
+/* a trigger the player may decline (Azazel or Morpheus killed at night) */
 function skipTrigger(g, trig) {
   if (!trig || !trig.night) return false;
-  addLog(g, tt(L.e.logAzazelSkip, { player: label(P(g, trig.actorId)) }));
+  addLog(g, tt(trig.type === 'morpheus' ? L.e.logMorpheusSkip : L.e.logAzazelSkip, { player: label(P(g, trig.actorId)) }));
   g.pendingTriggers = g.pendingTriggers.filter(x => x !== trig); return true;
 }
 function useJudge(g, judgeId) {
