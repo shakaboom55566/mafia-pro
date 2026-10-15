@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -756,6 +756,37 @@ clearInterval(X.T.iv);
     const c = by(h2, 'corrupter'); const rival = h2.players.find(p => ['don', 'mafia'].includes(p.roleId) && p.family !== c.family);
     const st2 = h2.steps.find(s => s.ability === 'recruit'); E('recordAction')(h2, st2, [rival.id]); if (rival.recruitedBy !== c.id || rival.family !== c.family) F('a bought mafioso of the rival family joins the Corrupter\'s family'); }
   console.log('v53 ok');
+}
+// v54: ranks — a badge at the nickname, the rank card, all ranks, the wreath of the top three, the host's hat, a rank-up in the results
+{ const u = X.U(); const F = m => { fails++; console.log('FAIL v54 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  const idx = E('rankIdx'); const got = [[1000, 4], [1000, 5], [1149, 9], [1150, 9], [1350, 20], [1600, 30], [1900, 40], [2300, 50], [2900, 60], [900, 30]].map(([p, g]) => idx(p, g)).join();
+  if (got !== '0,1,1,2,3,4,5,6,7,1') F('rank by rating: ' + got);
+  if (!Array.isArray(u.rankNames) || u.rankNames.length !== 8 || u.rankNames.some(x => !x) || !Array.isArray(u.hostNames) || u.hostNames.length !== 3) F('rank and host names in this language');
+  const ico = E('rankIco'); const top = E('CLOUD'); top.top = [{ rank: 1, tgId: 91 }, { rank: 2, tgId: 92 }, { rank: 3, tgId: 93 }, { rank: 4, tgId: 94 }];
+  const plain = ico({ points: 1700, games: 60, tgId: 94 }); const wreath = ico({ points: 3000, games: 200, tgId: 91, hosted: 230 });
+  if (!plain.includes('viewBox="0 0 32 32"') || plain.includes('0 0 48 32') || !plain.includes(u.rankNames[4])) F('a plain badge for №4 (Мастер): ' + plain.slice(0, 120));
+  if (!wreath.includes('viewBox="0 0 48 32"') || !wreath.includes(X.tt(u.rkPlace, { n: 1 })) || !wreath.includes(u.hostNames[2])) F('№1 gets the wreath, a gold hat for 230 games hosted');
+  if (ico({ points: null }) !== '' || ico(null) !== '') F('no rating → no badge');
+  top.top = null;
+  // a profile on this device: 6 games → Любитель, the card shows the way to Игрок
+  const pr = E('newProfile')({ name: 'Ранг Тест' }); for (let i = 0; i < 6; i++) pr.history.push({ id: 'h' + i, date: Date.now(), gameId: 'old' + i, n: 7, roleId: 'sheriff', won: true, points: 24, survived: true });
+  S.profiles.push(pr); S.ui.profileId = pr.id; S.screen = 'profile'; X.render(); check('v54 profile');
+  if (!app.innerHTML.includes('class="rk-card r1"') || !app.innerHTML.includes(u.rankNames[1]) || !app.innerHTML.includes(u.rankNames[2])) F('the profile shows the rank card: Любитель → Игрок');
+  S.screen = 'profiles'; X.render(); check('v54 profiles'); if (!app.innerHTML.includes('class="rk"')) F('the profiles list shows badges');
+  S.screen = 'ratings'; X.render(); check('v54 ratings'); if (!app.innerHTML.includes('class="rk"')) F('the local rating shows badges');
+  A.ranks(el('ranks', { i: '1' })); S.screen = 'profile'; X.render(); check('v54 ranks sheet');
+  if (!u.rankNames.every(n => app.innerHTML.includes(n)) || !u.hostNames.every(n => app.innerHTML.includes(n)) || !app.innerHTML.includes(u.rkWreath) || !app.innerHTML.includes('class="rk-row cur"')) F('the ranks sheet lists every rank, the wreath and the host badges, marks the current one');
+  S.ui.sheet = null;
+  const nov = E('rankBlockHTML')({ points: 1000, games: 2 }); app.innerHTML = nov; check('v54 novice card'); if (!nov.includes(u.rankNames[0])) F('a Новичок card');
+  const leg = E('rankBlockHTML')({ points: 3100, games: 300 }); app.innerHTML = leg; check('v54 legend card'); if (!leg.includes(u.rkMax)) F('Легенда: the top');
+  // results: the fifth game of a profile → a rank-up on the podium
+  const p5 = E('newProfile')({ name: 'Пятая' }); for (let i = 0; i < 4; i++) p5.history.push({ id: 'q' + i, date: Date.now(), gameId: 'q' + i, n: 7, roleId: 'sheriff', won: true, points: 24, survived: true });
+  S.profiles.push(p5); const g = E('newGame')(7, ['don', 'mafia', 'sheriff', 'doctor', 'citizen', 'citizen', 'citizen'], [], {}, [], {}); g.dealt = true;
+  const sh = g.players.find(p => p.roleId === 'sheriff'); sh.profileId = p5.id; g.players.filter(p => ['don', 'mafia'].includes(p.roleId)).forEach(p => { p.alive = false; });
+  E('finishGame')(g, E('checkWin')(g)); const rows = E('resultRows')(g); const r5 = rows.find(r => r.seat === sh.seat);
+  if (!r5 || r5.up !== 1 || !r5.rk || r5.rk.games !== 5) F('the fifth game: Новичок → Любитель in the results: ' + JSON.stringify(r5 && { up: r5.up, rk: r5.rk }));
+  const pod = E('podiumHTML')(rows, 'pod'); app.innerHTML = pod; check('v54 podium'); if (!pod.includes(X.tt(u.rkUp, { rank: u.rankNames[1] }))) F('the podium says «new rank»');
+  S.profiles = S.profiles.filter(x => x.id !== pr.id && x.id !== p5.id); S.screen = 'home'; S.ui.profileId = null; X.render(); console.log('v54 ok');
 }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
 console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);

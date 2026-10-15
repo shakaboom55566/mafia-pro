@@ -105,7 +105,7 @@ function seedDemoProfiles() { // sample profiles were removed: drop any that are
 function profilesScreen() {
   const u = U(); const me = S.meId ? profById(S.meId) : null;
   const list = S.profiles.filter(p => !me || p.id !== me.id).map(p => Object.assign({ p }, { st: profStats(p) })).sort((a, b) => b.st.rating - a.st.rating);
-  const row = (p, st, cls = '') => `<button class="prof-card ${cls}" data-a="prof-open" data-id="${p.id}">${avatarHTML(p, 'sm')}<div><div class="nm">${esc(p.name)} ${p.demo ? `<span class="demo-badge">${u.demoLabel}</span>` : ''}</div><div class="sub">${[flagOf(p.country), esc(p.city)].filter(Boolean).join(' ')}${p.city ? ' · ' : ''}${tt(u.rtGW, { g: st.games, w: st.wins })}</div></div><span class="r">${st.rating}<span class="k">${u.rating}</span></span></button>`;
+  const row = (p, st, cls = '') => `<button class="prof-card ${cls}" data-a="prof-open" data-id="${p.id}">${avatarHTML(p, 'sm')}<div><div class="nm">${rankIco(profRank(p))}${esc(p.name)} ${p.demo ? `<span class="demo-badge">${u.demoLabel}</span>` : ''}</div><div class="sub">${[flagOf(p.country), esc(p.city)].filter(Boolean).join(' ')}${p.city ? ' · ' : ''}${tt(u.rtGW, { g: st.games, w: st.wins })}</div></div><span class="r">${st.rating}<span class="k">${u.rating}</span></span></button>`;
   return `${topbar(u.plLocalBtn || u.allPlayers, u.plLocalD || u.profilesD)}
   <div class="stack">
     ${me ? `<div class="eyebrow">${u.myProfile}</div>${row(me, profStats(me), 'me')}` : `<button class="btn primary" data-a="prof-new" data-me="1">${u.createMy}</button>`}
@@ -135,8 +135,9 @@ function profileScreen() {
   const isMe = pr.id === S.meId;
   return `${topbar(isMe ? u.myProfile : u.editProfile, pr.demo ? u.demoLabel : (isMe ? u.myProfileD : ''))}
   <div class="stack">
-    <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
+    <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
+    ${rankBlockHTML(profRank(pr))}
     <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole)}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
     <div class="eyebrow">${u.stats}</div>
     <div class="status">${tile(st.games, u.games)}${tile(st.wins, u.wins, 'color:#9fe0ab')}${tile(st.winRate + '%', u.winRate, 'color:var(--gold-2)')}${tile(st.rating, u.rating, 'color:var(--gold-2)')}</div>
@@ -191,7 +192,7 @@ function ratingsScreen() {
   } else {
     rows = pool.map(p => { const st = profStats(p, since); return { p, g: st.games, w: st.wins, pts: rt.period === 'all' ? st.rating : st.points, show: rt.period === 'all' ? String(st.rating) : (st.points > 0 ? '+' : '') + st.points }; }).filter(x => x.g > 0).sort((a, b) => b.pts - a.pts || b.w - a.w);
   }
-  const list = rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`;
+  const list = rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${rankIco(profRank(x.p))}${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`;
   return `${topbar(u.tabRatings, u.ratingsD, false)}
   <div class="stack">
     ${scopeSeg}${periodSeg}${picker}

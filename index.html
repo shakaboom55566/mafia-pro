@@ -975,6 +975,31 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .pl-cd.over { font-size: 16px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
 .pl-cands.big span { width: 44px; height: 44px; font-size: 18px; }
 .dl-row { display: flex; align-items: center; gap: 10px; } .dl-row .dl-tok { flex: none; width: 108px; min-height: 76px; padding: 6px 4px; } .dl-row .dl-tok .word { font-size: 14px; max-width: 100px; } .dl-row .dl-toks { display: flex; gap: 6px; flex: none; } .dl-help { min-width: 0; font-size: 14px; }
+/* v54 ranks: the badge next to a nickname, the rank card on a profile, the ranks sheet, a rank-up in the results */
+.rk { display: inline-flex; align-items: center; gap: 2px; vertical-align: -3px; margin-right: 5px; flex: none; line-height: 0; }
+.rk .rk-svg { display: block; flex: none; }
+.prof-head .nm .rk, h2 .rk { vertical-align: -4px; }
+.rt-meta .rk { vertical-align: -2px; margin-right: 3px; }
+.rk-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); cursor: pointer; text-align: left; }
+.rk-card:active { transform: scale(.99); }
+.rk-card.r4, .rk-card.r5 { border-color: rgba(216,169,76,.35); } .rk-card.r6, .rk-card.r7 { border-color: rgba(240,205,122,.6); background: linear-gradient(135deg, rgba(240,205,122,.08), var(--bg-2) 60%); }
+.rk-card .rk-svg { flex: none; }
+.rk-card > .grow, .rk-row > .grow { flex: 1; min-width: 0; }
+.rk-nm { font-family: var(--font-display); font-weight: 800; font-size: 16px; line-height: 1.2; }
+.rk-sub { font-size: 12px; color: var(--gold-2); margin-top: 1px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.rk-sub .rk-svg { display: inline-block; vertical-align: -2px; }
+.rk-bar { height: 5px; border-radius: 3px; background: var(--bg-3); margin-top: 7px; overflow: hidden; }
+.rk-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--gold-dim), var(--gold-2)); }
+.rk-next { font-size: 11.5px; color: var(--fg-2); margin-top: 4px; }
+.rk-chev { color: var(--muted); font-size: 22px; flex: none; }
+.rk-row { display: flex; align-items: center; gap: 12px; padding: 7px 10px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--line); }
+.rk-row.cur { border-color: var(--gold-2); background: rgba(240,205,122,.07); }
+.rk-row b { font-weight: 800; }
+.rk-you { font-size: 11px; font-weight: 700; color: var(--bg); background: var(--gold-2); padding: 2px 8px; border-radius: 999px; flex: none; }
+.rk-wreaths { display: flex; gap: 14px; justify-content: center; margin-top: 8px; }
+.rk-up { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-weight: 800; color: var(--gold-2); font-size: 14px; }
+.rk-up.sm { justify-content: flex-start; margin-top: 2px; font-size: 11.5px; gap: 4px; }
+.pod-plaque .rk-up.sm { justify-content: center; }
 </style>
 </head><body>
 <div id="app"></div>
@@ -4394,6 +4419,82 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   });
 })();
 /* ============================================================
+   v54 ranks: eight game titles by the rating, the host's top hat, the wreath of the top three (texts; logic — 11-ranks.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      rankNames: ['Новичок', 'Любитель', 'Игрок', 'Знаток', 'Мастер', 'Эксперт', 'Гроссмейстер', 'Легенда'],
+      hostNames: ['Ведущий', 'Опытный ведущий', 'Ведущий-легенда'],
+      forms: { points: ['очко', 'очка', 'очков'], games: ['партия', 'партии', 'партий'] },
+      rkTitle: 'Ранги', rkAll: 'Все ранги',
+      rkHint: 'Ранг считается по общему рейтингу. Победа приносит +24…+44, поражение отнимает 10, ещё добавляются очки за полезные ходы. Рейтинг опустился ниже порога — ранг тоже становится ниже.',
+      rkNovice: 'первые {n} партий', rkBelow: 'до {n}', rkFrom: 'от {n}', rkYou: 'вы здесь',
+      rkNextPts: 'До ранга «{rank}» — ещё {n} {pts}', rkNextGames: 'Ещё {n} {games} — и появится настоящий ранг', rkMax: 'Высший ранг — выше только №1 в общем рейтинге',
+      rkPlace: '№{n} в общем рейтинге',
+      rkWreath: 'Венок', rkWreathHint: 'Золотой, серебряный и бронзовый венок вокруг значка — у №1, №2 и №3 общего рейтинга. Меняется вместе с рейтингом.',
+      rkHost: 'Значок ведущего', rkHostHint: 'Цилиндр рядом со значком ранга — за проведённые партии: бронзовый, серебряный, золотой.', rkHostRule: 'от {n} проведённых партий', rkHosted: 'провёл(а) партий: {n}',
+      rkUp: 'Новый ранг: {rank}', rkUpShort: 'новый ранг'
+    },
+    uk: {
+      rankNames: ['Новачок', 'Любитель', 'Гравець', 'Знавець', 'Майстер', 'Експерт', 'Гросмейстер', 'Легенда'],
+      hostNames: ['Ведучий', 'Досвідчений ведучий', 'Ведучий-легенда'],
+      forms: { points: ['очко', 'очки', 'очок'], games: ['партія', 'партії', 'партій'] },
+      rkTitle: 'Ранги', rkAll: 'Усі ранги',
+      rkHint: 'Ранг рахується за загальним рейтингом. Перемога дає +24…+44, поразка забирає 10, ще додаються очки за корисні ходи. Рейтинг опустився нижче порогу — ранг теж стає нижчим.',
+      rkNovice: 'перші {n} партій', rkBelow: 'до {n}', rkFrom: 'від {n}', rkYou: 'ви тут',
+      rkNextPts: 'До рангу «{rank}» — ще {n} {pts}', rkNextGames: 'Ще {n} {games} — і з’явиться справжній ранг', rkMax: 'Найвищий ранг — вище лише №1 у загальному рейтингу',
+      rkPlace: '№{n} у загальному рейтингу',
+      rkWreath: 'Вінок', rkWreathHint: 'Золотий, срібний і бронзовий вінок навколо значка — у №1, №2 і №3 загального рейтингу. Змінюється разом із рейтингом.',
+      rkHost: 'Значок ведучого', rkHostHint: 'Циліндр поруч зі значком рангу — за проведені партії: бронзовий, срібний, золотий.', rkHostRule: 'від {n} проведених партій', rkHosted: 'провів(ла) партій: {n}',
+      rkUp: 'Новий ранг: {rank}', rkUpShort: 'новий ранг'
+    },
+    en: {
+      rankNames: ['Rookie', 'Amateur', 'Player', 'Adept', 'Master', 'Expert', 'Grandmaster', 'Legend'],
+      hostNames: ['Host', 'Seasoned host', 'Legendary host'],
+      forms: { points: ['point', 'points'], games: ['game', 'games'] },
+      rkTitle: 'Ranks', rkAll: 'All ranks',
+      rkHint: 'Your rank follows the overall rating. A win brings +24…+44, a loss takes 10, and useful moves add points. If the rating drops below a threshold, the rank drops too.',
+      rkNovice: 'first {n} games', rkBelow: 'below {n}', rkFrom: 'from {n}', rkYou: 'you are here',
+      rkNextPts: '{n} more {pts} to «{rank}»', rkNextGames: '{n} more {games} — then you get a real rank', rkMax: 'The top rank — only №1 of the overall rating is higher',
+      rkPlace: '№{n} in the overall rating',
+      rkWreath: 'Wreath', rkWreathHint: 'A gold, silver and bronze wreath around the badge belongs to №1, №2 and №3 of the overall rating. It moves with the rating.',
+      rkHost: 'Host badge', rkHostHint: 'The top hat next to the rank badge is for games hosted: bronze, silver, gold.', rkHostRule: 'from {n} games hosted', rkHosted: 'games hosted: {n}',
+      rkUp: 'New rank: {rank}', rkUpShort: 'new rank'
+    },
+    pl: {
+      rankNames: ['Nowicjusz', 'Amator', 'Gracz', 'Znawca', 'Mistrz', 'Ekspert', 'Arcymistrz', 'Legenda'],
+      hostNames: ['Prowadzący', 'Doświadczony prowadzący', 'Legendarny prowadzący'],
+      forms: { points: ['punkt', 'punkty', 'punktów'], games: ['partia', 'partie', 'partii'] },
+      rkTitle: 'Rangi', rkAll: 'Wszystkie rangi',
+      rkHint: 'Ranga zależy od ogólnego rankingu. Wygrana daje +24…+44, przegrana odbiera 10, a pożyteczne ruchy dodają punkty. Gdy ranking spadnie poniżej progu, ranga też spada.',
+      rkNovice: 'pierwsze {n} partii', rkBelow: 'poniżej {n}', rkFrom: 'od {n}', rkYou: 'tu jesteś',
+      rkNextPts: 'Do rangi «{rank}» — jeszcze {n} {pts}', rkNextGames: 'Jeszcze {n} {games} — i pojawi się prawdziwa ranga', rkMax: 'Najwyższa ranga — wyżej jest tylko №1 ogólnego rankingu',
+      rkPlace: '№{n} w ogólnym rankingu',
+      rkWreath: 'Wieniec', rkWreathHint: 'Złoty, srebrny i brązowy wieniec wokół odznaki mają №1, №2 i №3 ogólnego rankingu. Zmienia się razem z rankingiem.',
+      rkHost: 'Odznaka prowadzącego', rkHostHint: 'Cylinder obok odznaki rangi — za poprowadzone partie: brązowy, srebrny, złoty.', rkHostRule: 'od {n} poprowadzonych partii', rkHosted: 'poprowadzone partie: {n}',
+      rkUp: 'Nowa ranga: {rank}', rkUpShort: 'nowa ranga'
+    },
+    hy: {
+      rankNames: ['Սկսնակ', 'Սիրող', 'Խաղացող', 'Գիտակ', 'Վարպետ', 'Փորձագետ', 'Գրոսմայստեր', 'Լեգենդ'],
+      hostNames: ['Վարող', 'Փորձառու վարող', 'Լեգենդար վարող'],
+      forms: { points: ['միավոր'], games: ['խաղ'] },
+      rkTitle: 'Կոչումներ', rkAll: 'Բոլոր կոչումները',
+      rkHint: 'Կոչումը հաշվվում է ընդհանուր վարկանիշով։ Հաղթանակը տալիս է +24…+44, պարտությունը հանում է 10, իսկ օգտակար քայլերը ավելացնում են միավորներ։ Եթե վարկանիշն իջնի շեմից ցածր, կոչումն էլ կիջնի։',
+      rkNovice: 'առաջին {n} խաղերը', rkBelow: 'մինչև {n}', rkFrom: '{n}-ից', rkYou: 'դուք այստեղ եք',
+      rkNextPts: 'Մինչև «{rank}» կոչումը՝ ևս {n} {pts}', rkNextGames: 'Եվս {n} {games}, և կհայտնվի իսկական կոչում', rkMax: 'Բարձրագույն կոչումը․ ավելի բարձր է միայն ընդհանուր վարկանիշի №1-ը',
+      rkPlace: '№{n} ընդհանուր վարկանիշում',
+      rkWreath: 'Դափնեպսակ', rkWreathHint: 'Ոսկե, արծաթե և բրոնզե դափնեպսակը կրծքանշանի շուրջ ունեն ընդհանուր վարկանիշի №1, №2 և №3-ը։ Փոխվում է վարկանիշի հետ։',
+      rkHost: 'Վարողի կրծքանշան', rkHostHint: 'Գլխարկը կոչման կրծքանշանի կողքին՝ անցկացված խաղերի համար. բրոնզե, արծաթե, ոսկե։', rkHostRule: '{n} անցկացված խաղից', rkHosted: 'անցկացրած խաղեր՝ {n}',
+      rkUp: 'Նոր կոչում՝ {rank}', rkUpShort: 'նոր կոչում'
+    }
+  };
+  Object.keys(R).forEach(code => {
+    const p = I18N[code]; if (!p) return; const d = Object.assign({}, R[code]); const forms = d.forms; delete d.forms;
+    Object.assign(p.forms = p.forms || {}, forms); Object.assign(p.ui, d);
+  });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -6810,6 +6911,7 @@ function sheetHTML(enter = true) {
     body = `<h2>${u.logSheet}</h2><p class="hint" style="margin:4px 0 10px">${u.logHint}</p><div class="log">${g.log.slice().reverse().map(l => `<div class="l ${l.secret ? 'secret' : ''}"><span class="ph">${l.ph}${l.secret ? ' ·' : ''}</span><span>${esc(l.text)}</span></div>`).join('') || `<div class="hint">${u.logEmpty}</div>`}</div>`;
   }
   if (sh.type === 'profEdit') body = profEditHTML(sh.id);
+  if (sh.type === 'ranks' && typeof ranksSheetHTML === 'function') body = ranksSheetHTML(sh.i); // v54
   if (sh.type === 'buy') body = buySheetHTML(sh.kind, sh.id);
   if (sh.type === 'friend' && typeof friendSheetHTML === 'function') body = friendSheetHTML(sh.id);
   if (sh.type === 'clubEdit' && typeof clubEditHTML === 'function') body = clubEditHTML(sh.id);
@@ -7155,7 +7257,7 @@ function seedDemoProfiles() { // sample profiles were removed: drop any that are
 function profilesScreen() {
   const u = U(); const me = S.meId ? profById(S.meId) : null;
   const list = S.profiles.filter(p => !me || p.id !== me.id).map(p => Object.assign({ p }, { st: profStats(p) })).sort((a, b) => b.st.rating - a.st.rating);
-  const row = (p, st, cls = '') => `<button class="prof-card ${cls}" data-a="prof-open" data-id="${p.id}">${avatarHTML(p, 'sm')}<div><div class="nm">${esc(p.name)} ${p.demo ? `<span class="demo-badge">${u.demoLabel}</span>` : ''}</div><div class="sub">${[flagOf(p.country), esc(p.city)].filter(Boolean).join(' ')}${p.city ? ' · ' : ''}${tt(u.rtGW, { g: st.games, w: st.wins })}</div></div><span class="r">${st.rating}<span class="k">${u.rating}</span></span></button>`;
+  const row = (p, st, cls = '') => `<button class="prof-card ${cls}" data-a="prof-open" data-id="${p.id}">${avatarHTML(p, 'sm')}<div><div class="nm">${rankIco(profRank(p))}${esc(p.name)} ${p.demo ? `<span class="demo-badge">${u.demoLabel}</span>` : ''}</div><div class="sub">${[flagOf(p.country), esc(p.city)].filter(Boolean).join(' ')}${p.city ? ' · ' : ''}${tt(u.rtGW, { g: st.games, w: st.wins })}</div></div><span class="r">${st.rating}<span class="k">${u.rating}</span></span></button>`;
   return `${topbar(u.plLocalBtn || u.allPlayers, u.plLocalD || u.profilesD)}
   <div class="stack">
     ${me ? `<div class="eyebrow">${u.myProfile}</div>${row(me, profStats(me), 'me')}` : `<button class="btn primary" data-a="prof-new" data-me="1">${u.createMy}</button>`}
@@ -7185,8 +7287,9 @@ function profileScreen() {
   const isMe = pr.id === S.meId;
   return `${topbar(isMe ? u.myProfile : u.editProfile, pr.demo ? u.demoLabel : (isMe ? u.myProfileD : ''))}
   <div class="stack">
-    <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
+    <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
+    ${rankBlockHTML(profRank(pr))}
     <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole)}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
     <div class="eyebrow">${u.stats}</div>
     <div class="status">${tile(st.games, u.games)}${tile(st.wins, u.wins, 'color:#9fe0ab')}${tile(st.winRate + '%', u.winRate, 'color:var(--gold-2)')}${tile(st.rating, u.rating, 'color:var(--gold-2)')}</div>
@@ -7241,7 +7344,7 @@ function ratingsScreen() {
   } else {
     rows = pool.map(p => { const st = profStats(p, since); return { p, g: st.games, w: st.wins, pts: rt.period === 'all' ? st.rating : st.points, show: rt.period === 'all' ? String(st.rating) : (st.points > 0 ? '+' : '') + st.points }; }).filter(x => x.g > 0).sort((a, b) => b.pts - a.pts || b.w - a.w);
   }
-  const list = rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`;
+  const list = rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${rankIco(profRank(x.p))}${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`;
   return `${topbar(u.tabRatings, u.ratingsD, false)}
   <div class="stack">
     ${scopeSeg}${periodSeg}${picker}
@@ -7629,7 +7732,7 @@ function sendResult(g, w) {
     const role = ROLE[p.roleId]; const ps = role ? playSideOf(g, p) : 'city'; const side = ps === 'mafia' ? 'mafia' : ps === 'city' ? 'city' : 'neutral';
     return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
-  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
+  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
 }
 /* ---------- lobby: players join from Telegram and receive their card privately ---------- */
 function cardTextFor(p, lang) {
@@ -7819,7 +7922,7 @@ function friendsScreen() {
     <div class="fr-link">${FR.link ? esc(FR.link) : u.frLoading}</div>
     <div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="fr-share" ${FR.link ? '' : 'disabled'}>${u.frShare}</button><button class="btn ghost" data-a="fr-copy" ${FR.link ? '' : 'disabled'} style="flex:0 0 auto;width:auto">${u.frCopy}</button></div></div>`;
   const list = FR.list || [];
-  const rows = list.map(f => `<div class="fr-row ${sel.includes(f.tgId) ? 'sel' : ''}" role="button" tabindex="0" data-a="fr-open" data-id="${f.tgId}"><span class="chk" data-a="fr-toggle" data-id="${f.tgId}" role="checkbox" aria-checked="${sel.includes(f.tgId)}">${sel.includes(f.tgId) ? '✓' : ''}</span>${friendAvatar(f)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}${f.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(f.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(f)} · ${tt(u.frStats, { g: f.games, w: f.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${f.points}</span><button class="btn xs ghost" data-a="fr-remove-ask" data-id="${f.tgId}" aria-label="${u.frRemove}" style="color:var(--muted);border-color:transparent">✕</button></div>`).join('');
+  const rows = list.map(f => `<div class="fr-row ${sel.includes(f.tgId) ? 'sel' : ''}" role="button" tabindex="0" data-a="fr-open" data-id="${f.tgId}"><span class="chk" data-a="fr-toggle" data-id="${f.tgId}" role="checkbox" aria-checked="${sel.includes(f.tgId)}">${sel.includes(f.tgId) ? '✓' : ''}</span>${friendAvatar(f)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(f)}${esc(f.name)}${f.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(f.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(f)} · ${tt(u.frStats, { g: f.games, w: f.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${f.points}</span><button class="btn xs ghost" data-a="fr-remove-ask" data-id="${f.tgId}" aria-label="${u.frRemove}" style="color:var(--muted);border-color:transparent">✕</button></div>`).join('');
   const ask = S.ui.frAsk ? (() => { const f = list.find(x => x.tgId === S.ui.frAsk); return f ? `<div class="panel" style="border-color:var(--crimson-2)"><div>${tt(u.frRemoveAsk, { name: esc(f.name) })}</div><div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="fr-remove" data-id="${f.tgId}" style="color:var(--crimson-2)">${u.frRemove}</button><button class="btn sm ghost" data-a="fr-ask-cancel">${u.cancel}</button></div></div>` : ''; })() : '';
   const cl = currentLobby();
   if (S.ui.frMode === 'host') { // choosing who runs the table: one friend, a different button
@@ -7923,14 +8026,14 @@ function friendSheetHTML(id) {
   const d = c && !c.loading && !c.error ? c : null;
   const usr = d ? d.user : known; const fmt = ms => new Date(ms).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU');
   const tile = (v, k, col = '') => `<div class="st"><div class="v num" style="${col}">${v}</div><div class="k">${k}</div></div>`;
-  const head = `<div class="row" style="gap:12px">${usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow" style="min-width:0"><h2 style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(usr.name)}</h2>${usr.username ? `<div class="hint" style="margin:0">@${esc(usr.username)}</div>` : ''}<div style="font-size:12px;margin-top:2px">${presenceHTML(usr)}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
+  const head = `<div class="row" style="gap:12px">${usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow" style="min-width:0"><h2 style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : known, 20)}${esc(usr.name)}</h2>${usr.username ? `<div class="hint" style="margin:0">@${esc(usr.username)}</div>` : ''}<div style="font-size:12px;margin-top:2px">${presenceHTML(usr)}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
   let body;
   if (!d) body = c && c.error ? `<div class="hint" style="margin-top:12px">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</div>` : `<div class="hint" style="margin-top:12px">${u.frLoading}</div>`;
   else {
     const r = d.rating; const wr = r.games ? Math.round(100 * r.wins / r.games) : 0;
     const roles = d.roles.slice(0, 3).map(x => { const role = ROLE[x.roleId]; return role ? `<div class="fav">${sealHTML(role)}<div class="grow" style="min-width:0"><div class="n">${role.name}</div><div class="hint" style="margin:0">${tt(u.bestRoleText, { wins: x.wins, games: x.games })}</div></div><span class="num" style="color:var(--gold-2)">${x.points > 0 ? '+' : ''}${x.points}</span></div>` : ''; }).join('');
     const recent = d.recent.slice(0, 8).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div class="grow"><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.frPlayers, { n: h.n })} · ${fmt(h.at)}</div></div><span class="num" style="color:${h.won ? '#9fe0ab' : 'var(--crimson-2)'}">${h.won ? u.frWon : u.frLost} ${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
-    body = `<div class="status" style="margin-top:14px">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate)}</div>
+    body = `<div style="margin-top:14px">${rankBlockHTML(Object.assign({ tgId: id }, r))}</div><div class="status" style="margin-top:10px">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate)}</div>
       ${usr.since ? `<div class="hint" style="text-align:center;margin-top:6px">${tt(u.frSince, { date: fmt(usr.since) })}</div>` : ''}
       ${roles ? `<div class="eyebrow" style="margin-top:12px">${u.frBestRoles}</div><div class="stack-s">${roles}</div>` : ''}
       <div class="eyebrow" style="margin-top:12px">${u.frRecent}</div>${recent ? `<div class="hist">${recent}</div>` : `<div class="hint">${u.frNoGames}</div>`}`;
@@ -7955,7 +8058,7 @@ function cloudStatsHTML(d, opts = {}) { // tiles + roles + by side + recent game
   const recent = d.recent.slice(0, opts.recent || 12).map(h => { const role = ROLE[h.roleId]; return `<div class="h">${role ? sealHTML(role) : ''}<div><div class="t">${role ? role.name : esc(h.roleId)}</div><div class="d">${tt(u.histLine, { n: h.n, date: fmt(h.at) })}</div></div><span class="res ${h.won ? 'win' : 'loss'}">${h.won ? u.won : u.lost}<br>${h.points > 0 ? '+' : ''}${h.points}</span></div>`; }).join('');
   const st = d.streaks || {}; const streakKeys = ['city', 'mafia', 'neutral'].filter(k => st[k] >= 2);
   const streaks = streakKeys.length && u.streakLine ? `<div class="panel" style="text-align:center;border-color:rgba(240,205,122,.5)"><div class="eyebrow gold">${u.streakTitle}</div>${streakKeys.map(k => `<div class="pod-streak" style="font-size:14px;margin-top:4px">${tt(u.streakLine, { n: st[k], wins: plural(st[k], 'wins'), side: (u.streakFor || {})[k] || '' })}</div>`).join('')}</div>` : '';
-  return `<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>${streaks}
+  return `${opts.rank === false ? '' : rankBlockHTML(Object.assign({ tgId: d.user && d.user.tgId }, r))}<div class="status">${tile(r.points, u.rating, 'color:var(--gold-2)')}${tile(r.games, u.games)}${tile(r.wins, u.wins, 'color:#9fe0ab')}${tile(wr + '%', u.winRate, 'color:var(--gold-2)')}</div>${streaks}
     ${roles ? `<div class="eyebrow">${opts.allRoles ? u.psAllRoles : u.frBestRoles}</div><div class="stack-s">${roles}</div>` : `<p class="hint">${u.noGamesYet}</p>`}
     ${opts.sides && d.roles.length ? `<div class="eyebrow">${u.bySide}</div><div class="stack-s">${sideRow('city', u.sideCity)}${sideRow('mafia', u.sideMafia)}${sideRow('self', u.sideSolo)}</div>` : ''}
     <div class="eyebrow">${u.frRecent}</div>${recent ? `<div class="hist">${recent}</div>` : `<p class="hint">${u.frNoGames}</p>`}`;
@@ -7965,12 +8068,12 @@ function playerStatsScreen() {
   loadPlayerProfile(id, false); const c = FRP[id]; const d = c && !c.loading && !c.error ? c : null;
   const usr = d ? d.user : knownUser(id); const isMe = S.cloud && S.cloud.user && S.cloud.user.id === id;
   const fmt = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
-  const head = `<div class="prof-head">${usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow" style="min-width:0"><div class="nm">${esc(usr.name)}</div>${usr.username ? `<div class="un">@${esc(usr.username)}</div>` : ''}<div class="loc">${presenceHTML(usr)}${usr.since ? ` · ${tt(u.psSince, { date: fmt(usr.since) })}` : ''}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
+  const head = `<div class="prof-head">${usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow" style="min-width:0"><div class="nm">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : usr, 22)}${esc(usr.name)}</div>${usr.username ? `<div class="un">@${esc(usr.username)}</div>` : ''}<div class="loc">${presenceHTML(usr)}${usr.since ? ` · ${tt(u.psSince, { date: fmt(usr.since) })}` : ''}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
   let body;
   if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
   else {
     const best = d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = best || ROLE.sheriff;
-    body = `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole, 'pstats')}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12 })}`;
+    body = `${rankBlockHTML(Object.assign({ tgId: id }, d.rating))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dHTML(bestRole, 'pstats')}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
   const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
@@ -7994,7 +8097,7 @@ async function loadPlayers(reset) {
 function playersDirectoryHTML() {
   if (!TG.app || !apiBase()) return '';
   const u = U(); if (!PL.list && !PL.busy) setTimeout(() => loadPlayers(true), 0);
-  const row = p => `<div class="fr-row" role="button" data-a="fr-open" data-id="${p.tgId}"><span style="width:0"></span>${friendAvatar(p)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}${p.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(p.username)}</span>` : ''}${p.isFriend ? ` <span class="hint" style="margin:0;display:inline">· ${u.plFriend}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(p)} · ${tt(u.frStats, { g: p.games, w: p.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${p.points}</span></div>`;
+  const row = p => `<div class="fr-row" role="button" data-a="fr-open" data-id="${p.tgId}"><span style="width:0"></span>${friendAvatar(p)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(p)}${esc(p.name)}${p.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(p.username)}</span>` : ''}${p.isFriend ? ` <span class="hint" style="margin:0;display:inline">· ${u.plFriend}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(p)} · ${tt(u.frStats, { g: p.games, w: p.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${p.points}</span></div>`;
   const list = PL.list || [];
   return `<div class="row"><div class="eyebrow grow">${u.plAll}${PL.list ? ` · ${PL.total}` : ''}</div>${PL.list ? `<span class="fr-on" style="font-size:12px">● ${tt(u.plOnline, { n: PL.online })}</span>` : ''}<button class="btn xs ghost" data-a="pl-refresh">${PL.busy ? '…' : u.tgRefresh}</button></div>
     <div class="row"><input class="input grow" id="pl-q" data-a="pl-q" placeholder="${u.plSearchPh}" value="${esc(PL.q)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm" data-a="pl-search" style="flex:0 0 auto">🔍</button></div>
@@ -8113,7 +8216,7 @@ function clubScreen() {
     ${d.myRole ? `<div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="club-call">🎴 ${u.clubCallTable}</button>${d.canManage ? `<button class="btn ghost" data-a="club-edit" data-id="${c.id}" style="flex:0 0 auto;width:auto">${u.clubEdit}</button>` : ''}</div>` : (d.myRequest === 'apply' ? `<div class="hint" style="margin-top:10px">${u.clubApplied}</div>` : d.myRequest === 'invite' ? `<div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="club-respond" data-id="${c.id}" data-ok="1">${u.clubAccept}</button><button class="btn ghost" data-a="club-respond" data-id="${c.id}" data-ok="0">${u.clubDecline}</button></div>` : d.inOtherClub ? `<div class="hint" style="margin-top:10px">${u.clubInOther}</div>` : `<button class="btn primary" style="margin-top:10px" data-a="club-join" data-id="${c.id}">${u.clubJoin}</button>`)}</div>`;
   const manage = d.canManage ? `<div class="panel"><div class="eyebrow">${u.clubInvite}</div><div class="row" style="margin-top:8px"><input class="input grow" id="cl-inv-q" data-a="cl-inv-q" placeholder="${u.clubInvitePh}" value="${esc(CL.invQ)}" autocomplete="off" autocapitalize="off"><button class="btn sm" data-a="club-invite" style="flex:0 0 auto">${u.clubInvite}</button></div>
     ${d.requests.length ? `<div class="eyebrow" style="margin-top:12px">${u.clubRequests} · ${d.requests.length}</div><div class="stack-s" style="margin-top:6px">${d.requests.map(r => `<div class="row" style="gap:8px">${friendAvatar(r)}<div class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(r.name)}</b>${r.username ? ` <span style="color:var(--muted)">@${esc(r.username)}</span>` : ''} <span class="hint" style="display:inline;margin:0">· ${r.kind === 'apply' ? u.clubRequests.toLowerCase() : u.clubInvited.toLowerCase()}</span></div>${r.kind === 'apply' ? `<button class="btn xs primary" data-a="club-approve" data-id="${r.tgId}" data-ok="1">${u.clubAccept}</button><button class="btn xs ghost" data-a="club-approve" data-id="${r.tgId}" data-ok="0">${u.clubDecline}</button>` : ''}</div>`).join('')}</div>` : ''}</div>` : '';
-  const members = `<div class="eyebrow">${u.clubMembersTitle} · ${d.members.length}</div><div class="stack-s">${d.members.map(m => `<div class="fr-row" role="button" data-a="fr-open" data-id="${m.tgId}"><span style="width:0"></span>${friendAvatar(m)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}${m.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(m.username)}</span>` : ''}${m.role !== 'member' ? ` <span class="premium-pill" style="font-size:10px">${roleLabel(m.role)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(m)} · ${tt(u.frStats, { g: m.games, w: m.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${m.points}</span>${d.canManage && m.role !== 'owner' && m.tgId !== me ? `<button class="btn xs ghost" data-a="club-kick" data-id="${m.tgId}" style="color:var(--muted);border-color:transparent">✕</button>` : ''}</div>`).join('')}</div>`;
+  const members = `<div class="eyebrow">${u.clubMembersTitle} · ${d.members.length}</div><div class="stack-s">${d.members.map(m => `<div class="fr-row" role="button" data-a="fr-open" data-id="${m.tgId}"><span style="width:0"></span>${friendAvatar(m)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(m)}${esc(m.name)}${m.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(m.username)}</span>` : ''}${m.role !== 'member' ? ` <span class="premium-pill" style="font-size:10px">${roleLabel(m.role)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${presenceHTML(m)} · ${tt(u.frStats, { g: m.games, w: m.wins })}</div></div><span class="num" style="color:var(--gold-2);font-weight:700">${m.points}</span>${d.canManage && m.role !== 'owner' && m.tgId !== me ? `<button class="btn xs ghost" data-a="club-kick" data-id="${m.tgId}" style="color:var(--muted);border-color:transparent">✕</button>` : ''}</div>`).join('')}</div>`;
   const fmtT = ms => { try { return new Date(ms).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
   const msgHTML = m => m.kind === 'system' ? `<div class="msg sys">${m.text === '🏛' ? u.clubSysCreated : m.text.startsWith('+') ? tt(u.clubSysJoined, { name: esc(m.text.slice(1)) }) : esc(m.text)}</div>`
     : m.kind === 'lobby' ? `<div class="msg lobby ${m.me ? 'me' : ''}"><div class="who">${esc(m.name)}</div>${esc(tt(u.clubLobbyMsg, { name: m.name, code: m.code }))}<div style="margin-top:6px"><button class="btn xs primary" data-a="club-join-table" data-code="${esc(m.code)}">${u.clubJoinTable} ${esc(m.code)}</button></div><div class="when">${fmtT(m.at)}</div></div>`
@@ -8215,7 +8318,7 @@ function cloudTopHTML() {
   // opening the ratings screen shows what is already loaded at once and quietly refreshes it in the background
   if (!CLOUD.onRatings) { CLOUD.onRatings = true; topPoll(!!CLOUD.topAt && Date.now() - CLOUD.topAt > 10000); } else topPoll();
   const when = CLOUD.topSrv ? new Date(CLOUD.topSrv).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) : '';
-  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${rankIco(r)}${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
   return `<div class="panel" style="margin-top:12px"><div class="eyebrow">${u.tgTop}</div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}${CLOUD.top ? `<div class="hint" style="margin-top:8px;font-size:11.5px">${when ? tt(u.tgTopAuto, { time: when }) : u.tgTopAutoNo}</div>` : ''}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
 }
 /* top of clubs by members (public endpoint), refreshed every minute while the ratings screen is open */
@@ -8260,7 +8363,7 @@ function withClubBrand(html) { const b = clubBrandHTML(); if (!b) return html; c
     const u = U(); const id = S.cloud.user.id; loadPlayerProfile(id, false); const c = FRP[id]; const d = c && !c.loading && !c.error ? c : null;
     const r = (d && d.rating) || Object.assign({}, S.cloud.rating || {}, { points: 1000 + ((S.cloud.rating || {}).points || 0) });
     const cloud = `<div class="panel" style="border-color:rgba(240,205,122,.45)"><div class="row"><div class="eyebrow gold grow">☁︎ ${u.psCloud}</div><button class="btn xs ghost" data-a="ps-open" data-id="${id}">${u.psBtn}</button></div>
-      ${d ? cloudStatsHTML(d, { allRoles: false, sides: false, recent: 5 }) : `<div class="status" style="margin-top:8px"><div class="st"><div class="v num" style="color:var(--gold-2)">${r.points || 1000}</div><div class="k">${u.rating}</div></div><div class="st"><div class="v num">${r.games || 0}</div><div class="k">${u.games}</div></div><div class="st"><div class="v num" style="color:#9fe0ab">${r.wins || 0}</div><div class="k">${u.wins}</div></div></div>${c && c.error ? '' : `<div class="hint" style="text-align:center">${u.frLoading}</div>`}`}</div>`;
+      ${d ? cloudStatsHTML(d, { allRoles: false, sides: false, recent: 5, rank: false }) : `<div class="status" style="margin-top:8px"><div class="st"><div class="v num" style="color:var(--gold-2)">${r.points || 1000}</div><div class="k">${u.rating}</div></div><div class="st"><div class="v num">${r.games || 0}</div><div class="k">${u.games}</div></div><div class="st"><div class="v num" style="color:#9fe0ab">${r.wins || 0}</div><div class="k">${u.wins}</div></div></div>${c && c.error ? '' : `<div class="hint" style="text-align:center">${u.frLoading}</div>`}`}</div>`;
     const marker = '<div class="eyebrow">' + u.stats + '</div>'; const i = html.indexOf(marker); return i < 0 ? html : html.slice(0, i) + cloud + `<div class="eyebrow">${u.psLocal}</div>` + html.slice(i + marker.length);
   };
   // creating the game: the pre-game table becomes the game's table, seats map to players, cards go out at once
@@ -8376,7 +8479,7 @@ function tablePub(g) {
   if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; }
     let rv = null; try { rv = reviewGame(g); } catch (e) { rv = null; }
     const itemsOf = seat => { const p = g.players.find(x => x.seat === seat); const r = rv && p ? rv.byId[p.id] : null; return r && r.items ? r.items.slice(0, 20).map(it => ({ when: it.when, action: it.action, target: it.target, verdict: it.verdict, reason: it.reason || '', better: it.better || '', pts: it.pts || 0 })) : []; };
-    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
+    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, rg: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].games || 0 : null, rh: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].hosted || 0 : 0, up: r.up || 0, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
     pub.aborted = !!g.aborted; return pub; }
   if (!g.dealt) return pub;
   const asks = g.online ? buildAsks(g) : {};
@@ -8462,13 +8565,13 @@ function modeSegmentHTML() {
 function hostTableHTML(st) {
   if (!TG.app || !apiBase()) return ''; const l = S.lobby; if (!l || !l.code || (S.game && !S.game.winner)) return ''; // a finished game is history: the new table's waiting room shows
   const u = U(); const seats = []; const profiles = {}; const marks = {};
-  l.players.forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
+  l.players.forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
   for (let i = 0; i < st.n; i++) { const e = Object.entries(l.seats || {}).find(([k, v]) => Number(v) === i); const pl = e && l.players.find(p => p.tgId === Number(e[0])); const prof = (st.seatProfiles || [])[i] ? profById(st.seatProfiles[i]) : null; const name = (st.names[i] || '').trim() || (pl ? pl.name : '') || (prof ? prof.name : ''); seats.push({ seat: i + 1, name: name || u.tbSeatFree, tgId: e ? Number(e[0]) : null, alive: true }); if (!name) marks[i + 1] = { dim: true }; if (pl) marks[i + 1] = { joined: true }; }
   const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-host">${esc(hostName())}</div><div class="rt-n">${tt(u.tbPlayersN, { n: `${l.players.length} / ${st.n}` })}</div>`;
   // the host moves players by tapping: a player, then a seat (whoever sat there takes the vacated one)
   const sel = S.ui.seatSel || 0; seats.forEach(sx => { const m = marks[sx.seat] = marks[sx.seat] || {}; m.act = `data-a="host-seat" data-seat="${sx.seat}"`; if (sx.seat === sel) m.picked = true; if (sel && sx.seat !== sel) m.pick = true; });
   const selPl = sel ? l.players.find(p => l.seats && l.seats[p.tgId] === sel - 1) : null;
-  const rows = l.players.map(pl => { const seated = l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n; const watching = ONL.watching.includes(pl.tgId) || !!pl.online; return `<div class="fr-row" role="button" data-a="fr-open" data-id="${pl.tgId}" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(pl)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${seated ? tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 }) : u.tbNoSeat}${pl.points ? ` · ${pl.points}` : ''}${pl.club ? ` · ${esc(pl.club)}` : ''}${watching ? ` · <span class="fr-on">${u.tbInApp}</span>` : ''}</div></div>${seated ? '' : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`; }).join('');
+  const rows = l.players.map(pl => { const seated = l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n; const watching = ONL.watching.includes(pl.tgId) || !!pl.online; return `<div class="fr-row" role="button" data-a="fr-open" data-id="${pl.tgId}" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(pl)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${rankIco(pl)}${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${seated ? tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 }) : u.tbNoSeat}${pl.points ? ` · ${pl.points}` : ''}${pl.club ? ` · ${esc(pl.club)}` : ''}${watching ? ` · <span class="fr-on">${u.tbInApp}</span>` : ''}</div></div>${seated ? '' : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`; }).join('');
   return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button></div>${roundTableHTML(seats, profiles, center, marks)}
     <div class="hint" style="text-align:center;margin-top:6px">${selPl ? `${tt(u.seatMoveHint, { name: esc(selPl.name) })} <button class="btn xs ghost" data-a="host-seat" data-seat="${sel}">${u.seatMoveCancel}</button>` : l.players.length ? u.seatTapHint : ''}</div>
     <div class="eyebrow" style="margin-top:12px">${u.tbJoinedList} · ${l.players.length}</div>${rows ? `<div class="stack-s" style="margin-top:6px">${rows}</div>` : `<div class="hint" style="margin-top:6px">${u.tgWaiting}</div>`}</div>`;
@@ -8520,7 +8623,7 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
     const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
     const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : ''].filter(Boolean).join(' ');
     const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
-    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `<div class="rt-meta">${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
+    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
 }
@@ -8590,10 +8693,10 @@ function tableScreen() {
   // ----- end of the game: results for everyone (also the eliminated)
   if (pub.phase === 'end' && pub.result) {
     const w = pub.result; const mine = (pub.roles || []).find(r => r.seat === mySeat);
-    const rows = (pub.roles || []).map(r => { const role = ROLE[r.roleId]; return `<div class="fr-row" ${r.tgId ? `role="button" data-a="fr-open" data-id="${r.tgId}"` : ''}><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${r.seat}</span>${role ? sealHTML(role) : ''}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.seat === mySeat ? ` <small>· ${u.tbYou}</small>` : ''}</div><div class="hint" style="margin:0">${role ? role.name : esc(r.roleId)}${r.family ? ' · ' + esc(FAMILY_NAMES[r.family] || r.family) : ''}${typeof r.total === 'number' ? ` · ${r.total > 0 ? '+' : ''}${r.total}` : ''}</div>${r.streak >= 2 ? `<div class="pod-streak" style="margin-top:2px">${tt(u.streakLine, { n: r.streak, wins: plural(r.streak, 'wins'), side: (u.streakFor || {})[r.side] || '' })}</div>` : ''}</div><span class="num" style="color:${r.won ? '#9fe0ab' : 'var(--crimson-2)'};font-weight:700">${r.won ? u.won : u.lost}</span></div>`; }).join('');
-    const podRows = (pub.roles || []).filter(r => typeof r.place === 'number').slice().sort((a, b) => a.place - b.place).map(r => { const pr = r.tgId && profiles[r.tgId]; return Object.assign({}, r, { photo: pr ? pr.photo : '', club: pr ? pr.club : '', clubLogo: pr ? pr.clubLogo : '', profileId: null }); });
+    const rows = (pub.roles || []).map(r => { const role = ROLE[r.roleId]; return `<div class="fr-row" ${r.tgId ? `role="button" data-a="fr-open" data-id="${r.tgId}"` : ''}><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${r.seat}</span>${role ? sealHTML(role) : ''}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${typeof r.rating === 'number' ? rankIco({ points: r.rating, games: r.rg, hosted: r.rh, tgId: r.tgId }) : ''}${esc(r.name)}${r.seat === mySeat ? ` <small>· ${u.tbYou}</small>` : ''}</div>${r.up ? `<div class="rk-up sm">${rankSVG(r.up, 14)} ${tt(u.rkUp, { rank: rankName(r.up) })}</div>` : ''}<div class="hint" style="margin:0">${role ? role.name : esc(r.roleId)}${r.family ? ' · ' + esc(FAMILY_NAMES[r.family] || r.family) : ''}${typeof r.total === 'number' ? ` · ${r.total > 0 ? '+' : ''}${r.total}` : ''}</div>${r.streak >= 2 ? `<div class="pod-streak" style="margin-top:2px">${tt(u.streakLine, { n: r.streak, wins: plural(r.streak, 'wins'), side: (u.streakFor || {})[r.side] || '' })}</div>` : ''}</div><span class="num" style="color:${r.won ? '#9fe0ab' : 'var(--crimson-2)'};font-weight:700">${r.won ? u.won : u.lost}</span></div>`; }).join('');
+    const podRows = (pub.roles || []).filter(r => typeof r.place === 'number').slice().sort((a, b) => a.place - b.place).map(r => { const pr = r.tgId && profiles[r.tgId]; return Object.assign({}, r, { photo: pr ? pr.photo : '', club: pr ? pr.club : '', clubLogo: pr ? pr.clubLogo : '', profileId: null, rk: typeof r.rating === 'number' ? { points: r.rating, games: r.rg, hosted: r.rh, tgId: r.tgId } : null }); });
     const myStreak = mine && mine.streak >= 2 ? `<div class="pod-streak" style="margin-top:6px;font-size:14px">${tt(u.streakLine, { n: mine.streak, wins: plural(mine.streak, 'wins'), side: (u.streakFor || {})[mine.side] || '' })}</div>` : '';
-    const myRating = mine && typeof mine.rating === 'number' ? `<div class="hint" style="margin-top:4px">${tt(u.tbRatingNow, { rating: mine.rating, delta: (mine.total > 0 ? '+' : '') + mine.total })}</div>` : '';
+    const myRating = mine && typeof mine.rating === 'number' ? `<div class="hint" style="margin-top:4px">${rankIco({ points: mine.rating, games: mine.rg, hosted: mine.rh, tgId: mine.tgId })}${tt(u.tbRatingNow, { rating: mine.rating, delta: (mine.total > 0 ? '+' : '') + mine.total })}</div>${rankUpHTML(mine.up)}` : '';
     const review = mine && !pub.aborted ? `<div class="panel"><div class="eyebrow gold">${u.tbReview}</div><div class="hint" style="margin:4px 0 8px">${tt(u.tbPointsLine, { r: (mine.pts > 0 ? '+' : '') + (mine.pts || 0), u: (mine.useful > 0 ? '+' : '') + (mine.useful || 0), t: (mine.total > 0 ? '+' : '') + (mine.total || 0) })}</div>${mine.items && mine.items.length ? `<div class="rv-items" style="padding:0">${mine.items.map(it => `<div class="it ${it.verdict}"><span class="mark">${it.verdict === 'good' ? '✓' : it.verdict === 'bad' ? '✗' : '•'}</span><div><div class="w">${esc(it.when)} · ${esc(it.action)} ${esc(it.target)}</div><div class="r">${it.verdict === 'good' ? u.rvGood : it.verdict === 'bad' ? u.rvBad : u.rvNeutral}${it.reason ? ' — ' + esc(it.reason) : ''} <span class="p">${it.pts > 0 ? '+' : ''}${it.pts || 0}</span></div>${it.better ? `<div class="b">${tt(u.rvBetter, { text: esc(it.better) })}</div>` : ''}</div></div>`).join('')}</div>` : `<div class="hint">${u.tbNoReview}</div>`}</div>` : '';
     return `${topbar(pub.aborted ? u.tbAborted : u.tbEnd, tt(u.tbTitle, { code: TB.code }))}<div class="stack">
       <div class="winner ${w.side}"><div class="e">${pub.aborted ? u.tbAborted : u.tbWinner}</div><h1>${esc(w.title)}</h1><p class="hint" style="margin-top:8px">${esc(w.text || '')}</p>${mine && !pub.aborted ? `<div style="margin-top:10px;font-weight:800;color:${mine.won ? '#9fe0ab' : 'var(--crimson-2)'}">${mine.won ? u.tbYouWon : u.tbYouLost}${typeof mine.total === 'number' ? ` · ${mine.total > 0 ? '+' : ''}${mine.total}` : ''}</div>` : ''}${myStreak}${myRating}</div>
@@ -8767,7 +8870,11 @@ function resultRows(g) {
   return g.players.map(p => {
     const r = rv.byId[p.id] || { useful: 0, good: 0, bad: 0 }; const res = resultFor(g, p, w); const pts = pointsFor(p.roleId, res.won, p.alive, res.solo);
     const tgId = seatTg(g, p.seat); const pl = tgId ? tgl.find(x => x.tgId === tgId) : null; const pr = p.profileId ? profById(p.profileId) : null;
-    return { seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), streak: streakFor(g, p, tgId, pr) };
+    // v54: the rank after this game and a rank-up — the server's word for Telegram players, this device's history for offline profiles
+    const ctg = tgId || (pr && pr.tgId) || null; const cr = ctg && g.cloudRatings ? g.cloudRatings[ctg] : null; let rk = null, up = 0;
+    if (cr) { rk = { points: 1000 + (cr.points || 0), games: cr.games || 0, hosted: cr.hosted || 0, tgId: ctg }; up = (g.cloudRankUp && g.cloudRankUp[ctg]) || 0; }
+    else if (pr && !ctg) { const st = profStats(pr); const e = pr.history.find(x => x.gameId === g.id); rk = { points: st.rating, games: st.games, tgId: null }; if (e) up = rankUpOf({ points: st.rating - (e.points || 0), games: st.games - 1 }, rk); }
+    return { rk, up, seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), streak: streakFor(g, p, tgId, pr) };
   }).sort((a, b) => b.total - a.total || b.useful - a.useful || a.seat - b.seat).map((x, i) => Object.assign(x, { place: i + 1 }));
 }
 function streakHTML(row) { const u = U(); const n = row.streak; if (!n || n < 2) return ''; return `<div class="pod-streak">${tt(u.streakLine, { n, wins: plural(n, 'wins'), side: (u.streakFor || {})[row.side] || '' })}</div>`; }
@@ -8778,7 +8885,7 @@ function podiumCardHTML(row, keyPrefix, big) {
   return `<div class="pod-card ${big ? 'big' : ''} ${row.won ? 'win' : 'loss'} p${row.place}">
     <div class="pod-3d">${card3dHTML(role, keyPrefix + row.seat).replace('<div class="card3d-wrap"', `<div class="card3d-wrap" ${big ? '' : 'data-still="1"'}`)}
       <div class="pod-av" role="button" tabindex="0" ${act}>${av}<i class="pod-seat">${row.seat}</i></div>${row.clubLogo ? `<div class="pod-club" title="${esc(row.club)}"><img src="${esc(row.clubLogo)}" alt=""></div>` : ''}${row.place <= 3 ? `<i class="pod-medal m${row.place}">${row.place}</i>` : ''}</div>
-    <div class="pod-plaque" role="button" tabindex="0" ${act}><div class="pod-nm">${esc(row.name)}</div><div class="pod-role">${role.name}${row.family ? ' · ' + esc(FAMILY_NAMES[row.family] || row.family) : ''}</div><div class="pod-pts ${row.won ? 'win' : 'loss'}">${row.total > 0 ? '+' : ''}${row.total} <small>${u.pts}</small></div>${row.club && !row.clubLogo ? `<div class="pod-clubname">${esc(row.club)}</div>` : ''}${streakHTML(row)}</div>
+    <div class="pod-plaque" role="button" tabindex="0" ${act}><div class="pod-nm">${row.rk ? rankIco(row.rk, 14) : ''}${esc(row.name)}</div>${row.up ? `<div class="rk-up sm">${rankSVG(row.up, 14)} ${tt(u.rkUp, { rank: rankName(row.up) })}</div>` : ''}<div class="pod-role">${role.name}${row.family ? ' · ' + esc(FAMILY_NAMES[row.family] || row.family) : ''}</div><div class="pod-pts ${row.won ? 'win' : 'loss'}">${row.total > 0 ? '+' : ''}${row.total} <small>${u.pts}</small></div>${row.club && !row.clubLogo ? `<div class="pod-clubname">${esc(row.club)}</div>` : ''}${streakHTML(row)}</div>
   </div>`;
 }
 function podiumHTML(rows, keyPrefix = 'pod') {
@@ -9268,6 +9375,138 @@ function dcWidgetHTML() {
   // the host's game strip carries the room link
   const origStrip = onlineStripHTML; onlineStripHTML = function (g) { const s = origStrip(g); const v = g && g.tg && g.tg.voice; if (!s || !v || !v.on || !v.invite) return s; return s.replace(/<\/div>$/, ` <button class="btn xs ghost" data-a="dc-join" data-url="${esc(v.invite)}" style="margin-left:4px;padding:3px 8px">🎧 ${U().dcTag}</button></div>`); };
 })();
+/* ============================================================
+   v54 RANKS — eight game titles strictly by the rating (1000 + points); the first five games are «Новичок».
+   A badge stands next to the nickname everywhere a rating is known: the overall rating, friends, players, clubs, the table,
+   profiles, the results. №1–3 of the overall rating get a gold / silver / bronze wreath, hosts — a top hat for games hosted.
+   The same table is on the server (backend/src/ranks.js: the bot's message, Discord roles); backend/test/run.js checks they match.
+   ============================================================ */
+const RANK_NOVICE_GAMES = 5;
+const RANK_MIN = [0, 0, 1150, 1350, 1600, 1900, 2300, 2900];
+const HOST_LEVELS = [10, 50, 200];
+/* shape (c — round token, s — shield, x — eight-point star), symbol, fill, rim, symbol color */
+const RANK_LOOK = [
+  ['c', 'card', '#3a3f4d', '#6b7180', '#c9cfdb'],
+  ['c', 'mask', '#55361f', '#9a6a3f', '#f0c79a'],
+  ['c', 'spade', '#7a4c26', '#c08a4e', '#ffe0b8'],
+  ['s', 'lens', '#454c5c', '#a7afc2', '#eef1f7'],
+  ['s', 'target', '#5f687d', '#d6dbe6', '#ffffff'],
+  ['s', 'eye', '#6e5320', '#d8a94c', '#f7dc9a'],
+  ['x', 'ring', '#6a1a17', '#e8605a', '#f0cd7a'],
+  ['x', 'crown', '#141018', '#f0cd7a', '#f0cd7a']
+];
+const RANK_WREATH = ['', '#f0cd7a', '#d6dbe6', '#c08a4e'];
+const HOST_RIM = ['', '#c08a4e', '#d6dbe6', '#f0cd7a'];
+const RK_SHAPE = {
+  c: (f, r) => `<circle cx="16" cy="16" r="13.5" fill="${f}" stroke="${r}" stroke-width="2"/>`,
+  s: (f, r) => `<path d="M16 2.5L28 6.5V15C28 22.5 22.5 27.5 16 29.5C9.5 27.5 4 22.5 4 15V6.5Z" fill="${f}" stroke="${r}" stroke-width="2" stroke-linejoin="round"/>`,
+  x: (f, r) => `<polygon points="16,1 20.4,5.4 26.6,5.4 26.6,11.6 31,16 26.6,20.4 26.6,26.6 20.4,26.6 16,31 11.6,26.6 5.4,26.6 5.4,20.4 1,16 5.4,11.6 5.4,5.4 11.6,5.4" fill="${f}" stroke="${r}" stroke-width="1.6" stroke-linejoin="round"/>`
+};
+const RK_SYM = {
+  card: (s) => `<rect x="11.5" y="9" width="9" height="14" rx="1.5" fill="none" stroke="${s}" stroke-width="1.6"/><path d="M16 13L18 16L16 19L14 16Z" fill="${s}"/>`,
+  mask: (s, f) => `<path d="M8 13.6C8 12 9.6 11.2 11.1 11.6C13 12.2 14.5 13 16 13S19 12.2 20.9 11.6C22.4 11.2 24 12 24 13.6C24 17.2 22 20.2 19.5 20.2C17.8 20.2 17 18.7 16 18.7S14.2 20.2 12.5 20.2C10 20.2 8 17.2 8 13.6Z" fill="${s}"/><ellipse cx="12.4" cy="15.3" rx="1.9" ry="1.2" fill="${f}"/><ellipse cx="19.6" cy="15.3" rx="1.9" ry="1.2" fill="${f}"/>`,
+  spade: (s) => `<path d="M16 8C16 8 9.5 13 9.5 16.8C9.5 19.2 11.3 20.6 13.1 20.6C14.2 20.6 15.1 20 15.5 19.4C15.3 21 14.6 22.6 13.2 23.6H18.8C17.4 22.6 16.7 21 16.5 19.4C16.9 20 17.8 20.6 18.9 20.6C20.7 20.6 22.5 19.2 22.5 16.8C22.5 13 16 8 16 8Z" fill="${s}"/>`,
+  lens: (s) => `<circle cx="14.6" cy="14.4" r="4.6" fill="none" stroke="${s}" stroke-width="2"/><path d="M18 17.8L22.4 22.2" stroke="${s}" stroke-width="2.8" stroke-linecap="round"/>`,
+  target: (s) => `<circle cx="16" cy="15.6" r="7.2" fill="none" stroke="${s}" stroke-width="1.6"/><circle cx="16" cy="15.6" r="4" fill="none" stroke="${s}" stroke-width="1.6"/><circle cx="16" cy="15.6" r="1.5" fill="${s}"/>`,
+  eye: (s, f) => `<path d="M7.5 15.6C10 11.8 13 10.2 16 10.2S22 11.8 24.5 15.6C22 19.4 19 21 16 21S10 19.4 7.5 15.6Z" fill="none" stroke="${s}" stroke-width="1.6"/><circle cx="16" cy="15.6" r="3.1" fill="${s}"/><circle cx="17.1" cy="14.6" r="0.9" fill="${f}"/>`,
+  ring: (s) => `<circle cx="16" cy="19.5" r="5" fill="none" stroke="${s}" stroke-width="2.2"/><path d="M16 8.5L19.3 11.8L16 15L12.7 11.8Z" fill="${s}"/>`,
+  crown: (s) => `<path d="M9 21V12.2L12.6 15.6L16 9.8L19.4 15.6L23 12.2V21Z" fill="${s}"/><rect x="9" y="22" width="14" height="2.2" rx="0.6" fill="${s}"/>`
+};
+const RK_CACHE = {};
+function rankIdx(points, games) {
+  if ((Number(games) || 0) < RANK_NOVICE_GAMES) return 0;
+  const p = Number(points) || 0; let i = 1;
+  for (let k = 2; k < RANK_MIN.length; k++) if (p >= RANK_MIN[k]) i = k;
+  return i;
+}
+function rankNext(points, games) {
+  const i = rankIdx(points, games); const p = Number(points) || 0;
+  if (i === 0) return { idx: rankIdx(p, RANK_NOVICE_GAMES), games: RANK_NOVICE_GAMES - (Number(games) || 0) };
+  if (i >= RANK_MIN.length - 1) return null;
+  return { idx: i + 1, points: RANK_MIN[i + 1] - p };
+}
+const hostLevel = hosted => HOST_LEVELS.filter(n => (Number(hosted) || 0) >= n).length;
+const rankName = i => ((U().rankNames || [])[i]) || '';
+const hostTitle = lvl => ((U().hostNames || [])[lvl - 1]) || '';
+/* №1–3 of the overall rating (the leaderboard the app keeps fresh), else 0 */
+function topPlaceOf(tgId) {
+  try { if (!tgId || !CLOUD.top) return 0; const r = CLOUD.top.slice(0, 3).find(x => x.tgId === Number(tgId)); return r ? (r.rank || CLOUD.top.indexOf(r) + 1) : 0; } catch (e) { return 0; }
+}
+function rankInner(i) { const l = RANK_LOOK[i] || RANK_LOOK[0]; return RK_SHAPE[l[0]](l[2], l[3]) + RK_SYM[l[1]](l[4], l[2]); }
+function wreathSVG(place) { // two laurel branches either side of a 32-unit badge, in a 48×32 box: a stem and pairs of leaves along it
+  const col = RANK_WREATH[place] || RANK_WREATH[1]; const R = 17.6, cx = 24, cy = 16.4; const f = n => n.toFixed(2);
+  const pt = (a, r) => [cx + r * Math.cos(a * Math.PI / 180), cy + r * Math.sin(a * Math.PI / 180)];
+  const leaf = (x, y, rot) => `<ellipse cx="${f(x)}" cy="${f(y)}" rx="2.7" ry="1.05" transform="rotate(${rot.toFixed(0)} ${f(x)} ${f(y)})" fill="${col}"/>`;
+  let left = ''; const [sx, sy] = pt(128, R), [ex, ey] = pt(236, R);
+  left += `<path d="M${f(sx)} ${f(sy)}A${R} ${R} 0 0 1 ${f(ex)} ${f(ey)}" fill="none" stroke="${col}" stroke-width="0.9" stroke-linecap="round"/>`;
+  [136, 154, 172, 190, 208, 226].forEach(a => {
+    const [ox, oy] = pt(a, R + 1.9), [ix, iy] = pt(a, R - 1.9); const t = a + 90; // the tangent points up the branch
+    left += leaf(ox, oy, t - 38) + leaf(ix, iy, t + 38);
+  });
+  const [tx, ty] = pt(238, R + 0.4); left += leaf(tx, ty, 238 + 90);
+  return `<g>${left}</g><g transform="translate(48 0) scale(-1 1)">${left}</g>`;
+}
+/* the badge alone (size = height in px); with a top place — inside the wreath, 1.5× wider */
+function rankSVG(i, size = 16, place = 0) {
+  const key = i + '|' + size + '|' + place; if (RK_CACHE[key]) return RK_CACHE[key];
+  const svg = place ? `<svg class="rk-svg" width="${Math.round(size * 1.5)}" height="${size}" viewBox="0 0 48 32" aria-hidden="true">${wreathSVG(place)}<g transform="translate(8 0)">${rankInner(i)}</g></svg>`
+    : `<svg class="rk-svg" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true">${rankInner(i)}</svg>`;
+  return (RK_CACHE[key] = svg);
+}
+function hostSVG(lvl, size = 14) {
+  const key = 'h' + lvl + '|' + size; if (RK_CACHE[key]) return RK_CACHE[key]; const r = HOST_RIM[lvl] || HOST_RIM[1];
+  return (RK_CACHE[key] = `<svg class="rk-svg" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#1e1a26" stroke="${r}" stroke-width="2"/><rect x="11" y="7.5" width="10" height="12.5" rx="1.2" fill="${r}"/><rect x="11" y="16.2" width="10" height="2.2" fill="#1e1a26"/><rect x="6.5" y="20" width="19" height="3" rx="1.5" fill="${r}"/></svg>`);
+}
+/* o = { points (1000-based), games, hosted, tgId } → the badge next to a nickname ('' while the rating is unknown) */
+function rankIco(o, size = 16) {
+  if (!o || o.points == null || o.points === '') return '';
+  const i = rankIdx(o.points, o.games); const place = o.tgId ? topPlaceOf(o.tgId) : 0; const hl = hostLevel(o.hosted);
+  const u = U(); const title = [rankName(i), place ? tt(u.rkPlace, { n: place }) : '', hl ? hostTitle(hl) : ''].filter(Boolean).join(' · ');
+  return `<span class="rk" title="${esc(title)}" aria-label="${esc(title)}">${rankSVG(i, size, place)}${hl ? hostSVG(hl, Math.round(size * 0.85)) : ''}</span>`;
+}
+/* the rank card on a profile: the big badge, the title, the way to the next rank; a tap opens all ranks */
+function rankBlockHTML(o) {
+  if (!o || o.points == null) return '';
+  const u = U(); const i = rankIdx(o.points, o.games); const place = o.tgId ? topPlaceOf(o.tgId) : 0; const hl = hostLevel(o.hosted); const nx = rankNext(o.points, o.games);
+  let pct = 100, next = u.rkMax;
+  if (nx && nx.games != null) { pct = 100 * (Number(o.games) || 0) / RANK_NOVICE_GAMES; next = tt(u.rkNextGames, { n: nx.games, games: plural(nx.games, 'games') }); }
+  else if (nx) { const lo = i <= 1 ? 1000 : RANK_MIN[i]; pct = Math.max(0, Math.min(100, 100 * (o.points - lo) / (RANK_MIN[nx.idx] - lo))); next = tt(u.rkNextPts, { rank: rankName(nx.idx), n: nx.points, pts: plural(nx.points, 'points') }); }
+  const sub = [place ? tt(u.rkPlace, { n: place }) : '', hl ? `${hostSVG(hl, 13)} ${hostTitle(hl)}` : ''].filter(Boolean).join(' · ');
+  return `<div class="rk-card r${i}" role="button" tabindex="0" data-a="ranks" data-i="${i}">${rankSVG(i, 46, place)}<div class="grow" style="min-width:0"><div class="rk-nm">${rankName(i)}</div>${sub ? `<div class="rk-sub">${sub}</div>` : ''}<div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div><div class="rk-next">${next}</div></div><span class="rk-chev">›</span></div>`;
+}
+/* all ranks: thresholds, where the viewer is, the wreath and the host's hat */
+function ranksSheetHTML(cur) {
+  const u = U(); const c = Number(cur);
+  const rows = RANK_LOOK.map((x, i) => {
+    const rule = i === 0 ? tt(u.rkNovice, { n: RANK_NOVICE_GAMES }) : i === 1 ? tt(u.rkBelow, { n: RANK_MIN[2] }) : tt(u.rkFrom, { n: RANK_MIN[i] });
+    return `<div class="rk-row ${i === c ? 'cur' : ''}">${rankSVG(i, 34)}<div class="grow"><b>${rankName(i)}</b><div class="hint" style="margin:0">${rule}</div></div>${i === c ? `<span class="rk-you">${u.rkYou}</span>` : ''}</div>`;
+  }).reverse().join('');
+  const hosts = HOST_LEVELS.map((n, k) => `<div class="rk-row">${hostSVG(k + 1, 30)}<div class="grow"><b>${hostTitle(k + 1)}</b><div class="hint" style="margin:0">${tt(u.rkHostRule, { n })}</div></div></div>`).join('');
+  const wreaths = [1, 2, 3].map(p => `<span title="№${p}">${rankSVG(Number.isFinite(c) && c > 0 ? c : 7, 34, p)}</span>`).join('');
+  return `<h2>${u.rkTitle}</h2><p class="hint" style="margin:4px 0 10px">${u.rkHint}</p><div class="stack-s">${rows}</div>
+    <div class="eyebrow" style="margin-top:14px">${u.rkWreath}</div><div class="rk-wreaths">${wreaths}</div><p class="hint" style="margin:6px 0 0">${u.rkWreathHint}</p>
+    <div class="eyebrow" style="margin-top:14px">${u.rkHost}</div><p class="hint" style="margin:4px 0 8px">${u.rkHostHint}</p><div class="stack-s">${hosts}</div>`;
+}
+/* a rank-up mark for the results: the rank before and after this game */
+function rankUpOf(before, after) {
+  if (!before || !after || before.points == null || after.points == null) return 0;
+  const a = rankIdx(before.points, before.games), b = rankIdx(after.points, after.games); return b > a ? b : 0;
+}
+function rankUpHTML(idx) { idx = Math.max(0, Math.min(RANK_LOOK.length - 1, Number(idx) || 0)); if (!idx) return ''; const u = U(); return `<div class="rk-up">${rankSVG(idx, 18)} ${tt(u.rkUp, { rank: rankName(idx) })}</div>`; }
+/* the rating of a profile kept on this device (offline games) — or the account's, when it is the Telegram player himself */
+function profRank(pr) {
+  if (!pr) return null;
+  try {
+    if (pr.tgId && S.cloud && S.cloud.user && S.cloud.user.id === pr.tgId) {
+      const f = FRP[pr.tgId]; if (f && f.rating) return Object.assign({ tgId: pr.tgId }, f.rating); // the freshest: the profile just loaded
+      if (S.cloud.rating) { const r = S.cloud.rating; return { points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, tgId: pr.tgId }; }
+    }
+  } catch (e) {}
+  const st = profStats(pr); return { points: st.rating, games: st.games, tgId: pr.tgId || null };
+}
+Object.assign(ACT, {
+  ranks(el) { S.ui.sheet = { type: 'ranks', i: el && el.dataset ? el.dataset.i : '' }; render(); }
+});
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

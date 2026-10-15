@@ -41,7 +41,7 @@ database_id = "__D1_DATABASE_ID__"   # replaced by the deploy workflow; any valu
 
 # every 5 minutes: approved channel posts whose time has come are published; every minute: Discord members (joins / leaves analytics)
 [triggers]
-crons = ["*/5 * * * *", "* * * * *"]
+crons = ["*/5 * * * *", "* * * * *", "*/15 * * * *"]
 
 [observability]
 enabled = true

@@ -6,7 +6,8 @@
    game text channels exist in five languages (ru, uk, en, pl, hy) and each set is visible only to its language role.
    The 🌐 channel has buttons: a language button gives / takes the language role, 🎩 / 🎲 — the game roles. Clicks reach the
    backend worker (/discord/interactions), which this script registers as the app's Interactions Endpoint URL.
-   - roles: 🎩 Ведущий, 🎲 Игрок, Русский, Українська, English, Polski, Հայերեն
+   - roles: 🎩 Ведущий, 🎲 Игрок, Русский, Українська, English, Polski, Հայերեն; v54 — eight rank roles («🎯 Мастер · Master»…), placed above
+     🎩 / 🎲 and the languages (the name takes the rank's color); the backend gives them to members who linked Telegram
    - categories / channels: info (welcome, server rules, news, how to play), library (mafia / city / neutral cards,
      scenarios, game rules), game (#ищу-игру, #результаты, chat, ideas, 🔊 Лобби), 🎧 ИГРОВЫЕ СТОЛЫ (voice rooms of tables)
    - 🔗 social media in every language's library (15.10.2026): a card per link (SOCIALS in texts.mjs), and a permanent invite to 🌐
@@ -24,6 +25,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { T, LANG_ORDER, GAME_ROLES, SOCIALS } from './texts.mjs';
 import { HOOKS, PERM } from '../backend/src/discord.js';
+import { RANK_IDS, RANK_COLOR, rankRoleName } from '../backend/src/ranks.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -212,7 +214,24 @@ export const COMMANDS = [
 export const ROLES_LAYOUT = [
   { key: 'host', name: '🎩 Ведущий', color: COLOR.gold, hoist: true, mentionable: true },
   { key: 'player', name: '🎲 Игрок', color: COLOR.blurple, hoist: false, mentionable: false }
-].concat(LANG_ORDER.map(l => ({ key: 'lang_' + l, name: T[l].name, color: 0, hoist: false, mentionable: false })));
+].concat(LANG_ORDER.map(l => ({ key: 'lang_' + l, name: T[l].name, color: 0, hoist: false, mentionable: false })))
+  .concat(RANK_IDS.map((id, i) => ({ key: 'rank_' + i, name: rankRoleName(i), color: RANK_COLOR[i], hoist: false, mentionable: false })));
+/* v54: the rank roles sit right above 🎩 / 🎲 and the language roles (so a member's name shows the rank's color), Легенда on top;
+   only roles below the bot's own role are moved, the others keep their order */
+export async function placeRankRoles(api, guildId, botId, state, log) {
+  const all = await api('GET', `/guilds/${guildId}/roles`); const rankIds = RANK_IDS.map((_, i) => state.roles['rank_' + i]).filter(Boolean);
+  const own = all.filter(r => r.managed && r.tags && String(r.tags.bot_id) === String(botId)); const botTop = own.length ? Math.max(...own.map(r => r.position)) : Infinity;
+  const below = all.filter(r => r.id !== guildId && r.position < botTop).sort((a, b) => a.position - b.position || (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
+  const ranks = rankIds.map(id => below.find(r => r.id === id));
+  if (ranks.some(r => !r)) { log('rank roles: some are above the bot\'s role — move the bot\'s role to the top in Server Settings → Roles'); return false; }
+  const rest = below.filter(r => !rankIds.includes(r.id)); const anchors = ['host', 'player'].concat(LANG_ORDER.map(l => 'lang_' + l)).map(k => state.roles[k]);
+  let at = -1; rest.forEach((r, i) => { if (anchors.includes(r.id)) at = i; });
+  const want = rest.slice(0, at + 1).concat(ranks, rest.slice(at + 1)); const base = below.length ? Math.min(...below.map(r => r.position)) : 1;
+  const pos = want.map((r, i) => ({ id: r.id, position: Math.max(1, base) + i }));
+  if (pos.every((p, i) => want[i].position === p.position)) return true;
+  await api('PATCH', `/guilds/${guildId}/roles`, pos); log(`rank roles: placed above 🎩 / 🎲 and the languages`);
+  return true;
+}
 const norm = (s, type) => (type === 0 ? String(s).toLowerCase().replace(/\s+/g, '-') : String(s)).trim();
 /* the permission overwrites a channel should have (v36.1 — one explicit matrix, so the server's base role does not matter):
    - read-only (info, library, bot channels): readers get view + history; nobody may write, react, open threads, send voice messages
@@ -274,6 +293,7 @@ export async function run(env, log = console.log) {
     else if (cur.name !== spec.name || cur.color !== spec.color || cur.hoist !== spec.hoist || cur.mentionable !== spec.mentionable) { await api('PATCH', `/guilds/${guildId}/roles/${cur.id}`, spec); log(`~ role ${r.name}`); }
     state.roles[r.key] = cur.id;
   }
+  await placeRankRoles(api, guildId, me.id, state, log);
   const managed = new Set([guildId].concat(oldLangRoles, OUR_ROLES.map(k => state.roles[k]).filter(Boolean))); // a language role deleted by hand and re-created: its old overwrites go too
   const ADMIN = 1n << 3n; const rolesNow = await api('GET', `/guilds/${guildId}/roles`);
   const exempt = new Set([String(me.id)].concat(rolesNow.filter(r => r.id !== guildId && (r.managed || (BigInt(r.permissions || 0) & ADMIN))).map(r => String(r.id)))); // the bot, integrations, administrators

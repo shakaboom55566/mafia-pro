@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { startMockDiscord } from '../backend/test/mock-discord.js';
-import { run, LAYOUT, ROLES_LAYOUT, loadApp, buildContent, buildShared, LK, LANG_CHANNELS, effective } from './setup.mjs';
+import { run, LAYOUT, ROLES_LAYOUT, loadApp, buildContent, buildShared, LK, LANG_CHANNELS, effective, placeRankRoles } from './setup.mjs';
+import { RANK_COLOR, rankRoleName } from '../backend/src/ranks.js';
 import { PERM, createVoice } from '../backend/src/discord.js';
 import { T, LANG_ORDER, SOCIALS } from './texts.mjs';
 
@@ -72,6 +73,21 @@ ok(dc.channels.size === n33 + LAYOUT.length - Object.keys(v33).length, `new chan
 ok(C('welcome').name === '👋・welcome' && C('news').name === '📣・news' && C('lobby').name === '🔊 Lobby' && C('catLib').name === '📚 БИБЛИОТЕКА · RU' && C('catGame').name === '🎲 ИГРА · RU', 'v33 names → the new names');
 ok(C('rules').parent_id === s1.channels.catLib && C('howto').parent_id === s1.channels.catLib && C('lobby').parent_id === s1.channels.catInfo, 'rules and how-to moved into the Russian library, the lobby into 📌');
 ok(ROLES_LAYOUT.every(r => [...dc.roles.values()].some(x => x.id === s1.roles[r.key] && x.name === r.name)) && [...dc.roles.values()].filter(r => r.name === '🎩 Ведущий').length === 1, 'roles: 🎩 🎲 and the five languages, no duplicate');
+console.log('v54: rank roles — eight, colored, placed above 🎩 / 🎲 and the languages, below the bot');
+{ const ranks = ROLES_LAYOUT.filter(r => r.key.startsWith('rank_'));
+  ok(ranks.length === 8 && ranks.every((r, i) => r.key === 'rank_' + i && r.name === rankRoleName(i) && r.color === RANK_COLOR[i] && !r.hoist), 'eight rank roles in the layout, with the badge colors');
+  ok(ranks.every(r => [...dc.roles.values()].some(x => x.id === s1.roles[r.key] && x.color === r.color)), 'made on the server');
+  const keys = ['host', 'player'].concat(LANG_ORDER.map(l => 'lang_' + l)); const pos = k => dc.roles.get(s1.roles[k]).position;
+  ok(ranks.every((r, i) => pos(r.key) > Math.max(...keys.map(pos)) && (i === 0 || pos(r.key) > pos('rank_' + (i - 1)))), 'on the server: above 🎩 / 🎲 / languages, Легенда on top');
+  // a server where new roles land at the bottom (as Discord does): they are moved up, roles above the bot are left alone
+  const st = { roles: {} }; const bottomUp = ranks.map(r => r.key).concat(LANG_ORDER.map(l => 'lang_' + l), ['player', 'host']);
+  const fake = [{ id: 'G', position: 0 }].concat(bottomUp.map((k, i) => { st.roles[k] = 'r' + i; return { id: 'r' + i, position: i + 1 }; }), [{ id: 'mod', position: 16 }, { id: 'botRole', position: 17, managed: true, tags: { bot_id: 'B' } }, { id: 'owner', position: 18 }]);
+  let patched = null; const api = async (m, p, body) => { if (m === 'GET') return fake.map(r => Object.assign({}, r)); patched = body; body.forEach(x => { fake.find(r => r.id === x.id).position = x.position; }); return []; };
+  const lg = []; ok(await placeRankRoles(api, 'G', 'B', st, x => lg.push(x)) && patched && !patched.some(x => ['botRole', 'owner', 'G'].includes(x.id)), 'moved with one request, the bot\'s role and the roles above it untouched');
+  const P = k => fake.find(r => r.id === st.roles[k]).position; const mod = fake.find(r => r.id === 'mod').position;
+  ok(ranks.every((r, i) => P(r.key) > P('host') && P(r.key) < mod && (i === 0 || P(r.key) > P('rank_' + (i - 1)))) && P('host') > P('player'), 'ranks right above 🎩, under a hand-made role that was above them');
+  patched = null; await placeRankRoles(api, 'G', 'B', st, () => {}); ok(patched === null, 'already in place → no request');
+  fake.find(r => r.id === st.roles.rank_7).position = 20; const lg2 = []; ok(!(await placeRankRoles(api, 'G', 'B', st, x => lg2.push(x))) && lg2.some(x => x.includes('above the bot')), 'a rank role above the bot: nothing moved, the log says what to do'); }
 const ow = (k, id) => (C(k).permission_overwrites || []).find(o => o.id === id);
 for (const l of LANG_ORDER) {
   const role = s1.roles['lang_' + l]; const keys = [LK('catLib', l), LK('catGame', l)].concat(LANG_CHANNELS.lib.map(k => LK(k, l)), LANG_CHANNELS.game.map(k => LK(k, l)));

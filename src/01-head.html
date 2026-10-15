@@ -907,4 +907,29 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .pl-cd.over { font-size: 16px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
 .pl-cands.big span { width: 44px; height: 44px; font-size: 18px; }
 .dl-row { display: flex; align-items: center; gap: 10px; } .dl-row .dl-tok { flex: none; width: 108px; min-height: 76px; padding: 6px 4px; } .dl-row .dl-tok .word { font-size: 14px; max-width: 100px; } .dl-row .dl-toks { display: flex; gap: 6px; flex: none; } .dl-help { min-width: 0; font-size: 14px; }
+/* v54 ranks: the badge next to a nickname, the rank card on a profile, the ranks sheet, a rank-up in the results */
+.rk { display: inline-flex; align-items: center; gap: 2px; vertical-align: -3px; margin-right: 5px; flex: none; line-height: 0; }
+.rk .rk-svg { display: block; flex: none; }
+.prof-head .nm .rk, h2 .rk { vertical-align: -4px; }
+.rt-meta .rk { vertical-align: -2px; margin-right: 3px; }
+.rk-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); cursor: pointer; text-align: left; }
+.rk-card:active { transform: scale(.99); }
+.rk-card.r4, .rk-card.r5 { border-color: rgba(216,169,76,.35); } .rk-card.r6, .rk-card.r7 { border-color: rgba(240,205,122,.6); background: linear-gradient(135deg, rgba(240,205,122,.08), var(--bg-2) 60%); }
+.rk-card .rk-svg { flex: none; }
+.rk-card > .grow, .rk-row > .grow { flex: 1; min-width: 0; }
+.rk-nm { font-family: var(--font-display); font-weight: 800; font-size: 16px; line-height: 1.2; }
+.rk-sub { font-size: 12px; color: var(--gold-2); margin-top: 1px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.rk-sub .rk-svg { display: inline-block; vertical-align: -2px; }
+.rk-bar { height: 5px; border-radius: 3px; background: var(--bg-3); margin-top: 7px; overflow: hidden; }
+.rk-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--gold-dim), var(--gold-2)); }
+.rk-next { font-size: 11.5px; color: var(--fg-2); margin-top: 4px; }
+.rk-chev { color: var(--muted); font-size: 22px; flex: none; }
+.rk-row { display: flex; align-items: center; gap: 12px; padding: 7px 10px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--line); }
+.rk-row.cur { border-color: var(--gold-2); background: rgba(240,205,122,.07); }
+.rk-row b { font-weight: 800; }
+.rk-you { font-size: 11px; font-weight: 700; color: var(--bg); background: var(--gold-2); padding: 2px 8px; border-radius: 999px; flex: none; }
+.rk-wreaths { display: flex; gap: 14px; justify-content: center; margin-top: 8px; }
+.rk-up { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-weight: 800; color: var(--gold-2); font-size: 14px; }
+.rk-up.sm { justify-content: flex-start; margin-top: 2px; font-size: 11.5px; gap: 4px; }
+.pod-plaque .rk-up.sm { justify-content: center; }
 </style>

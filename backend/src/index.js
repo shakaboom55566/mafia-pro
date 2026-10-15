@@ -55,6 +55,7 @@ import { onSocialCommand, onSocialCallback, socialCallback, socialCreds, socialR
 import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, runAdsCron, adsKey } from './ads.js';
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
+import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS } from './ranks.js';
 
 const VERSION = '0.1.0';
 const KINDS = ['role', 'scenario', 'pack'];
@@ -157,10 +158,10 @@ async function befriend(env, a, b) { // symmetric; returns true when the pair is
 async function userRow(env, tgId) { return env.DB.prepare('SELECT tg_id, username, first_name, last_name, lang, photo_url, seen_at, created_at FROM users WHERE tg_id = ?1').bind(tgId).first(); }
 const rowName = r => (r ? ([r.first_name, r.last_name].filter(Boolean).join(' ') || r.username || String(r.tg_id)) : '');
 async function friendsOf(env, tgId) {
-  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.lang, u.photo_url, u.seen_at, f.created_at, r.points, r.games, r.wins
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.lang, u.photo_url, u.seen_at, f.created_at, r.points, r.games, r.wins, r.hosted
     FROM friends f JOIN users u ON u.tg_id = f.friend_id LEFT JOIN ratings r ON r.tg_id = f.friend_id WHERE f.tg_id = ?1 ORDER BY (u.seen_at > ?2) DESC, u.seen_at DESC`).bind(tgId, now() - ONLINE_SEC).all()).results || [];
   const ts = now();
-  return rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', lang: r.lang || 'ru', since: r.created_at, points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)) }));
+  return rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', lang: r.lang || 'ru', since: r.created_at, points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, hosted: r.hosted || 0, online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)) }));
 }
 let botUsernameCache = null;
 /* ---------- referrals & rewards ---------- */
@@ -227,8 +228,8 @@ async function apiClubsTop(env, url) {
 }
 async function clubMembers(env, clubId) {
   const ts = now();
-  const rows = (await env.DB.prepare('SELECT m.tg_id, m.role, m.joined_at, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins FROM club_members m LEFT JOIN users u ON u.tg_id = m.tg_id LEFT JOIN ratings r ON r.tg_id = m.tg_id WHERE m.club_id = ?1 ORDER BY (m.role = ?2) DESC, (u.seen_at > ?3) DESC, u.seen_at DESC').bind(clubId, 'owner', ts - ONLINE_SEC).all()).results || [];
-  return rows.map(r => ({ tgId: r.tg_id, role: r.role, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, joinedAt: r.joined_at * 1000 }));
+  const rows = (await env.DB.prepare('SELECT m.tg_id, m.role, m.joined_at, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, r.hosted FROM club_members m LEFT JOIN users u ON u.tg_id = m.tg_id LEFT JOIN ratings r ON r.tg_id = m.tg_id WHERE m.club_id = ?1 ORDER BY (m.role = ?2) DESC, (u.seen_at > ?3) DESC, u.seen_at DESC').bind(clubId, 'owner', ts - ONLINE_SEC).all()).results || [];
+  return rows.map(r => ({ tgId: r.tg_id, role: r.role, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, hosted: r.hosted || 0, joinedAt: r.joined_at * 1000 }));
 }
 async function clubCard(env, c) {
   const ts = now();
@@ -748,9 +749,9 @@ async function apiPlayers(env, body) {
   const args = q ? [limit, offset, q + '%', cap + '%', q.toUpperCase() + '%'] : [limit, offset];
   const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM users u ${where}`).bind(...args.slice(2)).first('n');
   const online = await env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE seen_at > ?1').bind(now() - ONLINE_SEC).first('n');
-  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, u.created_at, r.points, r.games, r.wins FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id ${where} ORDER BY u.seen_at DESC LIMIT ?1 OFFSET ?2`).bind(...args).all()).results || [];
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, u.created_at, r.points, r.games, r.wins, r.hosted FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id ${where} ORDER BY u.seen_at DESC LIMIT ?1 OFFSET ?2`).bind(...args).all()).results || [];
   const ts = now(); const mine = new Set((await friendsOf(env, v.user.id)).map(f => f.tgId));
-  return json({ ok: true, total, online, offset, players: rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, isFriend: mine.has(r.tg_id), me: r.tg_id === v.user.id })) });
+  return json({ ok: true, total, online, offset, players: rows.map(r => ({ tgId: r.tg_id, name: rowName(r), username: r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (r.seen_at || 0)), points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, hosted: r.hosted || 0, isFriend: mine.has(r.tg_id), me: r.tg_id === v.user.id })) });
 }
 async function apiPing(env, bot, body) { const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401); try { await sweepVoice(env); } catch (e) {} if (discordReady(env)) bg(env, sweepPosts(env, bot)); return json({ ok: true, invites: await pendingInvites(env, v.user.id), table: await tableOf(env, v.user.id) }); }
 async function apiFriendSearch(env, body) {
@@ -877,20 +878,45 @@ async function apiResult(env, bot, body) {
   const ins = await env.DB.prepare('INSERT OR IGNORE INTO games (game_id, host_id, code, mode, players, winner, summary, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
     .bind(gameId, hostId, code, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), now()).run();
   if (flood && ins.meta && ins.meta.changes > 0) secEvent(env, 'result_flood', 'medium', { tg: hostId, path: '/api/game/result', detail: { last24h: recent.n } });
-  const ratings = {};
+  const ratings = {}; const rankUp = {};
   await trackGameNames(env, players);
   if (ins.meta && ins.meta.changes > 0 && !flood) { // first report of this game → credit the players
+    const hb = await ratingFor(env, hostId);
     await bumpRating(env, hostId, 0, 0, 0, 1);
+    if (hostLevel(hb.hosted + 1) > hostLevel(hb.hosted)) { try { await noteHostUp(env, bot, hostId, hostLevel(hb.hosted + 1)); } catch (e) { console.error('host up', e); } }
     for (const p of players) {
       const tgId = Number(p.tgId); if (!tgId) continue;
-      const pts = p.points;
+      const pts = p.points; const before = await ratingFor(env, tgId);
       await bumpRating(env, tgId, pts, 1, p.won ? 1 : 0, 0);
+      // v54: a new rank → a mark in the results (rankUp) and, the first time this rank is reached, a message from the bot
+      const a = rankIdx(1000 + before.points, before.games), b = rankIdx(1000 + before.points + pts, before.games + 1);
+      if (b > a) { rankUp[tgId] = b; try { await noteRankUp(env, bot, tgId, b, a, 1000 + before.points + pts); } catch (e) { console.error('rank up', e); } }
       try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); }
     }
   }
   const streaks = {};
   for (const p of players) { const tgId = Number(p.tgId); if (!tgId) continue; if (!ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); const side = String(p.side || ''); if (side) streaks[tgId] = { side, n: (await streaksOf(env, tgId))[side] || 0 }; }
-  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks });
+  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp });
+}
+/* v54: the bot congratulates on a rank reached for the first time (rank_best keeps the highest one announced: going down and back up
+   near a threshold does not repeat the message) and on a new host badge */
+async function noteRankUp(env, bot, tgId, idx, prev, rating) {
+  const row = await env.DB.prepare('SELECT best, host FROM rank_best WHERE tg_id = ?1').bind(tgId).first();
+  const best = row ? row.best : prev;
+  if (idx <= best) { if (!row) await env.DB.prepare('INSERT OR IGNORE INTO rank_best (tg_id, best, host, updated_at) VALUES (?1, ?2, 0, ?3)').bind(tgId, Math.max(prev, idx), now()).run(); return false; }
+  await env.DB.prepare('INSERT INTO rank_best (tg_id, best, host, updated_at) VALUES (?1, ?2, 0, ?3) ON CONFLICT(tg_id) DO UPDATE SET best = ?2, updated_at = ?3').bind(tgId, idx, now()).run();
+  const u = await userRow(env, tgId); const lang = pickLang(u && u.lang); const nx = rankNext(rating, 99); // idx ≥ 1: five games are behind
+  const next = nx && nx.idx > idx ? t(lang, 'rankUpNext', { rank: rankName(lang, nx.idx), n: RANK_MIN[nx.idx] }) : t(lang, 'rankUpTop');
+  await bot.send(tgId, t(lang, 'rankUp', { rank: rankLabel(lang, idx), rating, next }), bot.playButton(t(lang, 'play'), env.APP_URL));
+  return true;
+}
+async function noteHostUp(env, bot, tgId, lvl) {
+  const row = await env.DB.prepare('SELECT host FROM rank_best WHERE tg_id = ?1').bind(tgId).first();
+  if (row && row.host >= lvl) return false;
+  await env.DB.prepare('INSERT INTO rank_best (tg_id, best, host, updated_at) VALUES (?1, 0, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET host = ?2, updated_at = ?3').bind(tgId, lvl, now()).run();
+  const u = await userRow(env, tgId); const lang = pickLang(u && u.lang);
+  await bot.send(tgId, t(lang, 'hostUp', { badge: t(lang, 'hostLvl' + lvl), n: HOST_LEVELS[lvl - 1] }), bot.playButton(t(lang, 'play'), env.APP_URL));
+  return true;
 }
 /* current win streaks per side (city / mafia / neutral): consecutive wins while playing for that side, latest game first */
 async function streaksOf(env, tgId) {
@@ -941,7 +967,7 @@ async function apiLobbyStatus(env, bot, body) {
   const hostInvite = await env.DB.prepare('SELECT i.tg_id, i.status, u.first_name, u.last_name, u.username FROM table_invites i LEFT JOIN users u ON u.tg_id = i.tg_id WHERE i.code = ?1 AND i.kind = ?2 ORDER BY i.created_at DESC LIMIT 1').bind(lobby.code, 'host').first();
   const voice = await voiceInfo(env, lobby.code, v.user.id); const flag = flagOf(await lobbyLang(env, lobby.code));
   if (opts.online) bg(env, announceTable(env, bot, lobby.code, { seats: Math.round(Number(body.seats)) || null }));
-  return json({ ok: true, code: lobby.code, status: lobby.status, hostPlays: opts.hostPlays, online: opts.online, flag, voice, hostInvite: hostInvite ? { tgId: hostInvite.tg_id, name: rowName(hostInvite) || String(hostInvite.tg_id), status: hostInvite.status } : null, players: players.map(p => Object.assign({}, p, profiles[p.tgId] ? { photo: profiles[p.tgId].photo, points: profiles[p.tgId].points, city: profiles[p.tgId].city, club: profiles[p.tgId].club, online: profiles[p.tgId].online } : {})) });
+  return json({ ok: true, code: lobby.code, status: lobby.status, hostPlays: opts.hostPlays, online: opts.online, flag, voice, hostInvite: hostInvite ? { tgId: hostInvite.tg_id, name: rowName(hostInvite) || String(hostInvite.tg_id), status: hostInvite.status } : null, players: players.map(p => Object.assign({}, p, profiles[p.tgId] ? { photo: profiles[p.tgId].photo, points: profiles[p.tgId].points, games: profiles[p.tgId].games, hosted: profiles[p.tgId].hosted, city: profiles[p.tgId].city, club: profiles[p.tgId].club, online: profiles[p.tgId].online } : {})) });
 }
 /* cards go to the app: each player's role is stored in their private table state; a short DM (no role text) pings those not looking at the table */
 async function apiLobbyDeal(env, bot, body) {
@@ -982,9 +1008,9 @@ function tableButton(env, lang, code) { return { reply_markup: { inline_keyboard
 async function seatProfiles(env, ids) {
   ids = [...new Set(ids.map(Number).filter(Boolean))].slice(0, 40); if (!ids.length) return {};
   const q = ids.map((_, i) => '?' + (i + 1)).join(',');
-  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, uc.city, c.name AS club, c.logo AS clubLogo FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities uc ON uc.tg_id = u.tg_id LEFT JOIN club_members m ON m.tg_id = u.tg_id LEFT JOIN clubs c ON c.id = m.club_id AND c.status = 'active' WHERE u.tg_id IN (${q})`).bind(...ids).all()).results || [];
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, r.hosted, uc.city, c.name AS club, c.logo AS clubLogo FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities uc ON uc.tg_id = u.tg_id LEFT JOIN club_members m ON m.tg_id = u.tg_id LEFT JOIN clubs c ON c.id = m.club_id AND c.status = 'active' WHERE u.tg_id IN (${q})`).bind(...ids).all()).results || [];
   const ts = now(); const out = {};
-  for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, wins: r.wins || 0, city: r.city || '', club: r.club || '', clubLogo: r.clubLogo || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
+  for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, wins: r.wins || 0, city: r.city || '', club: r.club || '', clubLogo: r.clubLogo || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
   return out;
 }
 async function pendingInvites(env, tgId) {
@@ -1373,7 +1399,8 @@ async function postResult(env, code, pub) {
   const side = pub.result.side; const color = side === 'mafia' ? 0x8b1e2d : side === 'city' ? 0xd4a24c : 0x7a7f8c;
   const roles = (Array.isArray(pub.roles) ? pub.roles : []).slice().sort((a, b) => (a.place || 99) - (b.place || 99) || a.seat - b.seat);
   const medal = p => (p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : '▫️');
-  const line = r => `${medal(r.place)} \`${String(r.seat).padStart(2)}\` ${dmd(String(r.name || '—').slice(0, 32))} — ${dmd(String(r.rn || r.roleId || '').slice(0, 32))} ${r.won ? '✅' : '❌'}${typeof r.total === 'number' ? ` ${r.total > 0 ? '+' : ''}${r.total}` : ''}`;
+  const rk = await ranksOf(env, roles.map(r => Number(r.tgId)).filter(Boolean)); // v54: the rank of every Telegram player, from the server's own ratings
+  const line = r => `${medal(r.place)} \`${String(r.seat).padStart(2)}\` ${rk[Number(r.tgId)] != null ? RANK_EMOJI[rk[Number(r.tgId)]] + ' ' : ''}${dmd(String(r.name || '—').slice(0, 32))} — ${dmd(String(r.rn || r.roleId || '').slice(0, 32))} ${r.won ? '✅' : '❌'}${typeof r.total === 'number' ? ` ${r.total > 0 ? '+' : ''}${r.total}` : ''}`;
   let list = ''; for (const r of roles) { const l = line(r) + '\n'; if (list.length + l.length > 3800) { list += '…'; break; } list += l; }
   const payload = { embeds: [{ title: `🏆 ${String(pub.result.title || T.results).slice(0, 200)}`, description: `${flag} ${T.table} **${code}** · ${T.host_l} ${dmd(rowName(host).slice(0, 60)) || '—'}${pub.day ? ` · ${T.days}: ${pub.day}` : ''}\n\n${list}`, color, timestamp: new Date().toISOString(), footer: { text: T.footer } }] };
   const r = await hookSend(env, 'results', payload, null, hl);
@@ -1385,6 +1412,52 @@ async function postResult(env, code, pub) {
 async function sweepPosts(env, bot) {
   const rows = (await env.DB.prepare("SELECT p.code FROM discord_posts p JOIN lobbies l ON l.code = p.code WHERE p.kind = 'table' AND p.final = 0 AND l.status IN ('closed', 'finished') LIMIT 3").all()).results || [];
   for (const r of rows) { try { await announceTable(env, bot, r.code, { force: true }); } catch (e) { console.error('post sweep', e); } }
+}
+/* ---------- v54 ranks on the Discord server ---------- */
+async function ranksOf(env, ids) {
+  ids = [...new Set(ids)].slice(0, 40); const out = {}; if (!ids.length) return out;
+  const rows = (await env.DB.prepare(`SELECT tg_id, points, games FROM ratings WHERE tg_id IN (${ids.map((_, i) => '?' + (i + 1)).join(',')})`).bind(...ids).all()).results || [];
+  for (const r of rows) out[r.tg_id] = rankIdx(1000 + (r.points || 0), r.games || 0);
+  for (const id of ids) if (out[id] == null) out[id] = 0;
+  return out;
+}
+async function topPlace(env, tgId) { try { const { top } = await cachedLeaderboard(env); const r = top.slice(0, 3).find(x => x.tgId === Number(tgId)); return r ? r.rank : 0; } catch (e) { return 0; } }
+/* the eight rank roles (made by discord/setup.mjs, found by name, cached in discord_cfg for 6 hours) */
+async function rankRoleIds(env, fresh) {
+  const key = 'rank_roles'; const ts = now();
+  if (!fresh) { const c = await env.DB.prepare('SELECT value, updated_at FROM discord_cfg WHERE key = ?1').bind(key).first(); if (c && ts - c.updated_at < (c.value ? 6 * 3600 : 600)) { try { return c.value ? JSON.parse(c.value) : null; } catch (e) {} } }
+  const r = await dcall(env, 'GET', `/guilds/${String(env.DISCORD_GUILD_ID).trim()}/roles`); if (!r.ok || !Array.isArray(r.data)) return null;
+  const ids = RANK_EMOJI.map((_, i) => { const x = r.data.find(y => y && y.name === rankRoleName(i)); return x ? String(x.id) : null; });
+  const val = ids.every(Boolean) ? JSON.stringify(ids) : '';
+  await cfgSet(env, key, val); return val ? ids : null;
+}
+/* every 15 minutes: a linked member gets the role of his rank, the old one goes; an unlinked one loses it (≤ 15 changes a run) */
+async function syncRankRoles(env) {
+  if (!discordReady(env)) return { ok: false, error: 'no_discord' };
+  const roles = await rankRoleIds(env, false); if (!roles) return { ok: false, error: 'no_roles' };
+  const g = String(env.DISCORD_GUILD_ID).trim(); let changed = 0, failed = 0; const LIMIT = 15;
+  const rows = (await env.DB.prepare(`SELECT m.user_id, r.points, r.games, d.rank AS cur FROM discord_members m LEFT JOIN ratings r ON r.tg_id = m.tg_id LEFT JOIN discord_rank d ON d.user_id = m.user_id
+    WHERE m.status = 'in' AND m.tg_id IS NOT NULL ORDER BY m.updated_at DESC LIMIT 1000`).all()).results || [];
+  for (const m of rows) {
+    if (changed + failed >= LIMIT) break;
+    const want = rankIdx(1000 + (m.points || 0), m.games || 0); if (m.cur === want) continue;
+    const put = await dcall(env, 'PUT', `/guilds/${g}/members/${m.user_id}/roles/${roles[want]}`);
+    if (!put.ok) {
+      failed++; if (put.status === 404 && /role/i.test(String(put.error || ''))) { await rankRoleIds(env, true); break; } // a rank role deleted by hand: look again next time
+      if (put.status === 404) await env.DB.prepare('INSERT INTO discord_rank (user_id, rank, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(user_id) DO UPDATE SET rank = ?2, updated_at = ?3').bind(m.user_id, want, now()).run(); // not on the server any more: no retry until the rank changes
+      continue;
+    }
+    if (m.cur != null && roles[m.cur] && m.cur !== want) await dcall(env, 'DELETE', `/guilds/${g}/members/${m.user_id}/roles/${roles[m.cur]}`);
+    await env.DB.prepare('INSERT INTO discord_rank (user_id, rank, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(user_id) DO UPDATE SET rank = ?2, updated_at = ?3').bind(m.user_id, want, now()).run();
+    changed++;
+  }
+  // unlinked (/deletedata, another account) or gone: the role is taken back while the member is still on the server
+  const stale = (await env.DB.prepare(`SELECT d.user_id, d.rank, m.status FROM discord_rank d LEFT JOIN discord_members m ON m.user_id = d.user_id WHERE m.user_id IS NULL OR m.tg_id IS NULL OR m.status != 'in' LIMIT 10`).all()).results || [];
+  for (const d of stale) {
+    if (d.status === 'in' && roles[d.rank]) await dcall(env, 'DELETE', `/guilds/${g}/members/${d.user_id}/roles/${roles[d.rank]}`);
+    await env.DB.prepare('DELETE FROM discord_rank WHERE user_id = ?1').bind(d.user_id).run();
+  }
+  return { ok: true, changed, failed, removed: stale.length };
 }
 /* ---------- Discord server analytics (v35): who joined through whose invite, who left — polled every minute by the cron ---------- */
 async function cfgGet(env, key) { return env.DB.prepare('SELECT value FROM discord_cfg WHERE key = ?1').bind(key).first('value'); }
@@ -1502,14 +1575,17 @@ async function apiDiscordInvite(env, body) {
 }
 /* ---------- slash commands: /stats [player], /link, /invites (admins) ---------- */
 const ephemeral = (content, extra = {}) => json(Object.assign({ type: 4, data: Object.assign({ content, flags: 64, allowed_mentions: { parse: [] } }, extra) }));
+const ruPl = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c; };
 function pct(a, b) { return b ? Math.round(100 * a / b) + '%' : '—'; }
 async function statsEmbed(env, tgId, member) {
   const d = await profileData(env, tgId); if (!d) return null;
   const r = d.rating; const top = (d.roles || []).slice(0, 3).map(x => `${ROLE_NAMES[x.roleId] || x.roleId} — ${x.wins}/${x.games}`).join('\n');
   const st = d.streaks || {}; const best = Object.entries(st).filter(([, n]) => n >= 2).map(([k, n]) => `${{ city: 'город', mafia: 'мафия', neutral: 'нейтрал' }[k]} ×${n}`).join(', ');
   const recent = (d.recent || []).slice(0, 5).map(g => (g.won ? '✅' : '❌')).join(' ');
-  const fields = [{ name: 'Рейтинг', value: String(r.points), inline: true }, { name: 'Игр', value: String(r.games || 0), inline: true }, { name: 'Побед', value: `${r.wins || 0} · ${pct(r.wins || 0, r.games || 0)}`, inline: true }];
-  if (r.hosted) fields.push({ name: 'Вёл партий', value: String(r.hosted), inline: true });
+  const ri = rankIdx(r.points, r.games); const nx = rankNext(r.points, r.games); const place = await topPlace(env, tgId);
+  const rankVal = `**${rankLabel('ru', ri)}**${place ? ` · ${['', '🥇', '🥈', '🥉'][place]} №${place} в рейтинге` : ''}${nx && nx.games != null ? `\nещё ${nx.games} ${ruPl(nx.games, 'партия', 'партии', 'партий')} — и появится ранг` : nx ? `\nдо «${rankName('ru', nx.idx)}» — ${nx.points} ${ruPl(nx.points, 'очко', 'очка', 'очков')}` : ''}`;
+  const fields = [{ name: 'Ранг', value: rankVal }, { name: 'Рейтинг', value: String(r.points), inline: true }, { name: 'Игр', value: String(r.games || 0), inline: true }, { name: 'Побед', value: `${r.wins || 0} · ${pct(r.wins || 0, r.games || 0)}`, inline: true }];
+  if (r.hosted) fields.push({ name: 'Вёл партий', value: `${r.hosted}${hostLevel(r.hosted) ? ` · 🎩 ${t('ru', 'hostLvl' + hostLevel(r.hosted))}` : ''}`, inline: true });
   if (d.user.club) fields.push({ name: 'Клуб', value: dmd(d.user.club.slice(0, 100)), inline: true });
   if (best) fields.push({ name: 'Серия побед', value: best, inline: true });
   if (top) fields.push({ name: 'Лучшие роли', value: top.slice(0, 1000) });
@@ -1606,8 +1682,8 @@ async function apiTableVoice(env, body) {
    a new game result or a deleted account drops the cache, so the next request rebuilds it */
 const LB_KEY = 'lb:top', LB_EVERY = 600, LB_MAX = 100;
 async function buildLeaderboard(env) {
-  const rows = (await env.DB.prepare('SELECT r.tg_id, r.points, r.games, r.wins, u.first_name, u.username, u.photo_url FROM ratings r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.games > 0 ORDER BY r.points DESC, r.wins DESC LIMIT ?1').bind(LB_MAX).all()).results || [];
-  const top = rows.map((r, i) => ({ rank: i + 1, tgId: r.tg_id, name: r.first_name || r.username || '—', username: r.username || '', photo: r.photo_url || '', points: 1000 + r.points, games: r.games, wins: r.wins }));
+  const rows = (await env.DB.prepare('SELECT r.tg_id, r.points, r.games, r.wins, r.hosted, u.first_name, u.username, u.photo_url FROM ratings r LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.games > 0 ORDER BY r.points DESC, r.wins DESC LIMIT ?1').bind(LB_MAX).all()).results || [];
+  const top = rows.map((r, i) => ({ rank: i + 1, tgId: r.tg_id, name: r.first_name || r.username || '—', username: r.username || '', photo: r.photo_url || '', points: 1000 + r.points, games: r.games, wins: r.wins, hosted: r.hosted || 0 }));
   const at = now();
   await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(LB_KEY, JSON.stringify(top), at).run();
   return { top, at };
@@ -1759,6 +1835,7 @@ export default {
   },
   /* cron (wrangler.toml [triggers]): channel posts whose time has come, new players (growth.js), Discord members, /broadcast portions (broadcast.js) */
   async scheduled(event, env, ctx) {
+    if (event && event.cron === '*/15 * * * *') { ctx.waitUntil(syncRankRoles(env).catch(e => console.error('rank roles', e && e.stack || e))); return; } // v54: Discord rank roles, on a trigger of their own
     const minute = !!(event && event.cron === '* * * * *'); // every minute: Discord members; every 5 minutes: channel posts
     if (!minute) ctx.waitUntil(runPostsCron(env, new Bot(env)).catch(e => console.error('posts cron', e && e.stack || e)));
     if (!minute && (!event || !event.scheduledTime || new Date(event.scheduledTime).getUTCMinutes() % 10 === 0)) ctx.waitUntil(buildLeaderboard(env).catch(e => console.error('leaderboard', e && e.stack || e))); // the rating every 10 minutes

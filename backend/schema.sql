@@ -502,3 +502,17 @@ CREATE TABLE IF NOT EXISTS ad_clicks (
 CREATE INDEX IF NOT EXISTS ad_clicks_created ON ad_clicks (created_at);
 CREATE INDEX IF NOT EXISTS ad_clicks_tg ON ad_clicks (tg_id);
 CREATE INDEX IF NOT EXISTS ad_clicks_ip ON ad_clicks (ip, created_at);
+
+-- v54 ranks: the highest rank and host badge the bot has already congratulated on (no repeats when a rating wobbles at a threshold)
+CREATE TABLE IF NOT EXISTS rank_best (
+  tg_id      INTEGER PRIMARY KEY,
+  best       INTEGER NOT NULL DEFAULT 0,  -- rank index 0…7 (backend/src/ranks.js)
+  host       INTEGER NOT NULL DEFAULT 0,  -- host badge level 0…3
+  updated_at INTEGER NOT NULL
+);
+-- v54: the rank role given to a linked member of the Discord server (so only changes cost a request)
+CREATE TABLE IF NOT EXISTS discord_rank (
+  user_id    TEXT PRIMARY KEY,
+  rank       INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);

@@ -1386,6 +1386,68 @@ console.log('security: webhook only from Telegram, forged logins, limits, bans, 
   const h = await call('/'); ok(h.headers.get('X-Content-Type-Options') === 'nosniff' && /frame-ancestors 'none'/.test(h.headers.get('Content-Security-Policy') || ''), 'API answers carry security headers');
   sec._resetSecurityMemory(); await env.DB.prepare('DELETE FROM security_bans').run(); await env.DB.prepare("DELETE FROM discord_cfg WHERE key LIKE 'sec:%'").run(); }
 
+console.log('ranks (v54): the same table as the app, a rank-up in the result and once from the bot, the host badge, rank roles in Discord, /stats');
+{ const R = await import('../src/ranks.js'); const fs = await import('node:fs');
+  const app = fs.readFileSync(path.join(here, '..', '..', 'src', '11-ranks.js'), 'utf8'); const appT = fs.readFileSync(path.join(here, '..', '..', 'src', '02u-i18n-ranks.js'), 'utf8');
+  const arr = name => JSON.parse(app.match(new RegExp('const ' + name + ' = (\\[[^\\]]*\\])'))[1]);
+  eq(arr('RANK_MIN'), R.RANK_MIN, 'thresholds are the same in the app'); eq(arr('HOST_LEVELS'), R.HOST_LEVELS, 'host levels are the same in the app');
+  ok(Number(app.match(/const RANK_NOVICE_GAMES = (\d+)/)[1]) === R.RANK_NOVICE_GAMES, 'the novice games are the same in the app');
+  for (const l of ['ru', 'uk', 'en', 'pl', 'hy']) { const m = appT.match(new RegExp(l + ': \\{\\s*rankNames: (\\[[^\\]]*\\])')); eq(m && JSON.parse(m[1].replace(/'/g, '"')), R.RANK_NAMES[l], l + ': rank names are the same in the app'); }
+  eq([[1000, 4], [1000, 5], [1149, 9], [1150, 9], [1349, 20], [1350, 20], [1600, 30], [1900, 40], [2300, 50], [2899, 60], [2900, 60], [900, 30]].map(([p, g]) => R.rankIdx(p, g)), [0, 1, 1, 2, 2, 3, 4, 5, 6, 6, 7, 1], 'rank by rating and games (the first five games are Новичок)');
+  eq(R.rankNext(1000, 2), { idx: 1, games: 3 }, 'Новичок: games to go'); eq(R.rankNext(1612, 40), { idx: 5, points: 288 }, 'points to the next rank'); eq(R.rankNext(3000, 99), null, 'nothing above Легенда');
+  eq([0, 9, 10, 49, 50, 199, 200].map(R.hostLevel), [0, 0, 1, 1, 2, 2, 3], 'host badge levels');
+  ok(R.RANK_EMOJI.length === 8 && R.RANK_COLOR.length === 8 && new Set(R.RANK_EMOJI.map((_, i) => R.rankRoleName(i))).size === 8, 'eight distinct Discord role names');
+
+  const H = 5401, P1 = 5402; await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (5401, 5402, 0), (5402, 5401, 0)').run();
+  await hook(msg(user(P1, 'uk'), '/start')); await hook(msg(user(H, 'ru'), '/start'));
+  const host = await initData(user(H));
+  const play = async (id, pts) => (await post('/api/game/result', { initData: host, game: { id, mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'P', tgId: P1, roleId: 'sheriff', won: pts > 0, points: pts, side: 'city' }] } })).json();
+  const rankDMs = () => tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === P1 && /Новий ранг/.test(c.params.text));
+  let quiet = true; for (let i = 1; i <= 4; i++) { const r = await play('rk-' + i, 24); if (Object.keys(r.rankUp || {}).length) quiet = false; } ok(quiet, 'games 1–4: still Новичок, no rank-up');
+  let r = await play('rk-5', 24); eq(r.rankUp, { [P1]: 1 }, 'the fifth game: Любитель (rating 1120)');
+  ok(rankDMs().length === 1 && rankDMs()[0].params.text.includes('🎭 Любитель') && rankDMs()[0].params.text.includes('Гравець') && rankDMs()[0].params.text.includes('1150'), 'the bot congratulates in the player\'s language, with the next rank: ' + (rankDMs()[0] || { params: {} }).params.text);
+  ok(rankDMs()[0].params.reply_markup && rankDMs()[0].params.reply_markup.inline_keyboard[0][0].web_app, 'with a Play button');
+  r = await play('rk-6', 60); eq(r.rankUp, { [P1]: 2 }, 'a big win: Игрок (1180)'); ok(rankDMs().length === 2 && rankDMs()[1].params.text.includes('♠️ Гравець'), 'second message');
+  r = await play('rk-7', -60); eq(r.rankUp, {}, 'a loss below 1150: back to Любитель, no rank-up'); eq(r.ratings[P1].points, 120, 'rating 1120');
+  r = await play('rk-8', 60); eq(r.rankUp, { [P1]: 2 }, 'up again: the result marks it'); ok(rankDMs().length === 2, 'but the bot does not repeat a rank it already announced');
+  eq(await env.DB.prepare('SELECT best FROM rank_best WHERE tg_id = ?1').bind(P1).first('best'), 2, 'rank_best keeps the highest announced rank');
+  const hostDMs = () => tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === H && c.params.text.includes('🎩 Новый значок ведущего'));
+  ok(hostDMs().length === 0, '8 games hosted: no host badge yet'); await play('rk-9', 1); await play('rk-10', 1);
+  ok(hostDMs().length === 1 && hostDMs()[0].params.text.includes('<b>Ведущий</b>') && hostDMs()[0].params.text.includes('10'), 'the tenth hosted game: the host badge message');
+  await play('rk-11', 1); ok(hostDMs().length === 1, 'only once');
+  const lb = await (await call('/api/leaderboard?limit=50')).json(); const row = lb.top.find(x => x.tgId === P1); ok(row && row.games === 11 && 'hosted' in row, 'the leaderboard carries games and hosted (for the badges)');
+  const fr = await (await post('/api/friends', { initData: host })).json(); const f = (fr.friends || fr.list || []).find(x => x.tgId === P1); ok(fr.ok && f && f.games === 11 && 'hosted' in f, 'friends carry games and hosted');
+  const ex = await exportUser(env, P1); ok(ex.rankAnnounced && ex.rankAnnounced.best === 2, '/mydata includes the announced rank');
+
+  // Discord: rank roles for linked members
+  const dc = await startMockDiscord(8799); Object.assign(env, { DISCORD_BOT_TOKEN: 'dc-token', DISCORD_GUILD_ID: '111111111111', DISCORD_API: dc.base });
+  const dreq = async (method, p, body) => (await fetch(dc.base + p, { method, headers: { Authorization: 'Bot dc-token', 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })).json();
+  const sync = async () => { await worker.scheduled({ cron: '*/15 * * * *' }, env, ctx); await settle(); };
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'rank_roles'").run(); await env.DB.prepare('DELETE FROM discord_rank').run();
+  const DU = '800000000000005402'; dc.join({ id: DU, username: 'p1' });
+  await env.DB.prepare("INSERT OR REPLACE INTO discord_members (user_id, username, status, tg_id, updated_at) VALUES (?1, 'p1', 'in', ?2, ?3)").bind(DU, P1, now() + 10).run();
+  const calls0 = dc.calls.length; await sync(); ok(await env.DB.prepare('SELECT COUNT(*) AS n FROM discord_rank').first('n') === 0 && dc.calls.length - calls0 <= 1, 'no rank roles on the server yet → nothing given, one look at the roles');
+  const roleIds = []; for (let i = 0; i < 8; i++) roleIds.push((await dreq('POST', '/guilds/111111111111/roles', { name: R.rankRoleName(i) })).id);
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'rank_roles'").run();
+  await sync(); ok(dc.members.get(DU).roles.includes(roleIds[2]), 'a linked member gets the role of his rank (♠️ Игрок · Player)');
+  await env.DB.prepare('UPDATE ratings SET points = 100 WHERE tg_id = ?1').bind(P1).run(); await sync();
+  ok(dc.members.get(DU).roles.includes(roleIds[1]) && !dc.members.get(DU).roles.includes(roleIds[2]), 'a lower rating swaps the role (strictly by the rating)');
+  const calls1 = dc.calls.length; await sync(); ok(dc.calls.length === calls1, 'nothing changed → no requests to Discord');
+  await env.DB.prepare('UPDATE ratings SET points = 2000 WHERE tg_id = ?1').bind(P1).run(); await sync(); ok(dc.members.get(DU).roles.includes(roleIds[7]) && dc.members.get(DU).roles.filter(x => roleIds.includes(x)).length === 1, 'Легенда: one rank role at a time');
+  // /stats shows the rank
+  const kp = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']); env.DISCORD_PUBLIC_KEY = Buffer.from(await crypto.subtle.exportKey('raw', kp.publicKey)).toString('hex');
+  const signed = async bodyObj => { const ts = String(Math.floor(Date.now() / 1000)); const raw = JSON.stringify(bodyObj); const sig = Buffer.from(await crypto.subtle.sign({ name: 'Ed25519' }, kp.privateKey, new TextEncoder().encode(ts + raw))).toString('hex'); return call('/discord/interactions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature-Ed25519': sig, 'X-Signature-Timestamp': ts }, body: raw }); };
+  const st = await (await signed({ type: 2, data: { name: 'stats' }, member: { user: { id: DU, username: 'p1' } } })).json();
+  const rf = st.data && st.data.embeds && st.data.embeds[0].fields.find(x => x.name === 'Ранг'); ok(rf && rf.value.includes('👑 Легенда'), '/stats: the rank first: ' + (rf && rf.value));
+  // unlinked (/deletedata) → the role goes
+  await env.DB.prepare('UPDATE discord_members SET tg_id = NULL WHERE user_id = ?1').bind(DU).run(); await sync();
+  ok(!dc.members.get(DU).roles.some(x => roleIds.includes(x)) && !(await env.DB.prepare('SELECT rank FROM discord_rank WHERE user_id = ?1').bind(DU).first()), 'unlinked → the rank role is taken back');
+  ok(await env.DB.prepare("SELECT COUNT(*) AS n FROM discord_rank WHERE user_id = '800000000000000002'").first('n') === 1, 'a linked member who is not on the server: remembered, not retried every run');
+  for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API', 'DISCORD_PUBLIC_KEY']) delete env[k];
+  await dc.close();
+  await env.DB.prepare("DELETE FROM games WHERE game_id LIKE 'rk-%'").run(); await env.DB.prepare('DELETE FROM ratings WHERE tg_id IN (5401, 5402)').run(); await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:top'").run();
+}
+
 console.log('privacy: /privacy, /mydata, /unsubscribe, /support, /deletedata');
 { const p = user(41, 'uk'); await hook(msg(p, '/start'));
   await hook(msg(p, '/privacy')); ok(lastTo(41).params.text.includes('https://shakaboom55566.github.io/uk/privacy/') || lastTo(41).params.text.includes('/uk/privacy/'), 'policy link in the player language: ' + lastTo(41).params.text.slice(-60));

@@ -32,7 +32,7 @@ export const PRIVACY = {
         '**Развитие сервиса** (законный интерес): понимать, какие каналы и посты приводят игроков, — в сводных цифрах.',
         '**Измерение рекламы** (законный интерес): сообщаем Meta, что человек, пришедший по рекламе, впервые открыл бота, — чтобы реклама показывалась тем, кому игра интересна, и бюджет не уходил впустую. Meta получает хэш Telegram id (без имени и самого id), метки перехода, IP и браузер.',
         '**Новости в боте** (законный интерес): изредка рассылаем новости и приглашения. Отказаться — команда /unsubscribe, вернуть — /subscribe.',
-        '**Discord** (ваше действие): выдача языковых ролей, карточки столов и итогов, /stats.'
+        '**Discord** (ваше действие): выдача языковых ролей, роль ранга по рейтингу (если вы привязали Telegram), карточки столов и итогов, /stats.'
       ] },
       { h: '4. Кто видит ваши данные', ul: [
         '**Другие игроки:** ваше имя, @ник, фото, рейтинг и статистику, онлайн ли вы, ваш клуб; за столом — то, что показывает игра; сообщения в чате стола и клуба. В общем рейтинге видны имя, @ник, фото и очки. Вас можно найти по @нику или имени в поиске игроков.',
@@ -97,7 +97,7 @@ export const PRIVACY = {
         '**Розвиток сервісу** (законний інтерес): розуміти, які канали й пости приводять гравців, — у зведених цифрах.',
         '**Вимірювання реклами** (законний інтерес): повідомляємо Meta, що людина, яка прийшла з реклами, уперше відкрила бота, — щоб реклама показувалася тим, кому гра цікава, і бюджет не витрачався даремно. Meta отримує хеш Telegram id (без імені й самого id), мітки переходу, IP і браузер.',
         '**Новини в боті** (законний інтерес): зрідка надсилаємо новини й запрошення. Відмовитися — команда /unsubscribe, повернути — /subscribe.',
-        '**Discord** (ваша дія): мовні ролі, картки столів і підсумків, /stats.'
+        '**Discord** (ваша дія): мовні ролі, роль рангу за рейтингом (якщо ви прив’язали Telegram), картки столів і підсумків, /stats.'
       ] },
       { h: '4. Хто бачить ваші дані', ul: [
         '**Інші гравці:** ваше ім’я, @нік, фото, рейтинг і статистику, чи ви онлайн, ваш клуб; за столом — те, що показує гра; повідомлення в чаті столу й клубу. У загальному рейтингу видно ім’я, @нік, фото й очки. Вас можна знайти за @ніком або ім’ям у пошуку гравців.',
@@ -162,7 +162,7 @@ export const PRIVACY = {
         '**Improving the service** (legitimate interest): to understand which channels and posts bring players — as aggregate numbers.',
         '**Measuring ads** (legitimate interest): we tell Meta that a person who came through an ad opened the bot for the first time, so ads are shown to people who like the game and the budget is not wasted. Meta receives a hash of the Telegram id (not your name or the id itself), the click tags, IP and browser.',
         '**News in the bot** (legitimate interest): we occasionally send news and invitations. To opt out — /unsubscribe; to opt back in — /subscribe.',
-        '**Discord** (your action): language roles, table and result cards, /stats.'
+        '**Discord** (your action): language roles, the role of your rank by the rating (if you linked Telegram), table and result cards, /stats.'
       ] },
       { h: '4. Who sees your data', ul: [
         '**Other players:** your name, @username, photo, rating and statistics, whether you are online, your club; at a table — what the game shows; messages in table and club chats. The public leaderboard shows name, @username, photo and points. You can be found by @username or name in the player search.',
@@ -227,7 +227,7 @@ export const PRIVACY = {
         '**Rozwój serwisu** (prawnie uzasadniony interes): zrozumienie, które kanały i posty przyprowadzają graczy — w zbiorczych liczbach.',
         '**Pomiar reklam** (prawnie uzasadniony interes): informujemy Meta, że osoba, która przyszła z reklamy, po raz pierwszy otworzyła bota — aby reklama trafiała do osób zainteresowanych grą, a budżet nie był marnowany. Meta otrzymuje hash Telegram id (bez imienia i samego id), znaczniki kliknięcia, IP i przeglądarkę.',
         '**Aktualności w bocie** (prawnie uzasadniony interes): od czasu do czasu wysyłamy nowości i zaproszenia. Rezygnacja — /unsubscribe, powrót — /subscribe.',
-        '**Discord** (Twoje działanie): role językowe, karty stołów i wyników, /stats.'
+        '**Discord** (Twoje działanie): role językowe, rola rangi według rankingu (jeśli powiązałeś Telegram), karty stołów i wyników, /stats.'
       ] },
       { h: '4. Kto widzi Twoje dane', ul: [
         '**Inni gracze:** Twoje imię, @nazwę, zdjęcie, ranking i statystyki, czy jesteś online, Twój klub; przy stole — to, co pokazuje gra; wiadomości na czacie stołu i klubu. W rankingu ogólnym widać imię, @nazwę, zdjęcie i punkty. Można Cię znaleźć po @nazwie lub imieniu w wyszukiwarce graczy.',
@@ -292,7 +292,7 @@ export const PRIVACY = {
         '**Ծառայության զարգացում** (օրինական շահ). հասկանալ, թե որ ալիքներն ու գրառումներն են բերում խաղացողներ՝ ամփոփ թվերով։',
         '**Գովազդի չափում** (օրինական շահ). Meta-ին հայտնում ենք, որ գովազդով եկած մարդը առաջին անգամ բացել է բոտը, որպեսզի գովազդը ցուցադրվի նրանց, ում հետաքրքիր է խաղը, և բյուջեն չվատնվի։ Meta-ն ստանում է Telegram id-ի հեշը (առանց անվան և հենց id-ի), անցման պիտակները, IP-ն և դիտարկիչը։',
         '**Նորություններ բոտում** (օրինական շահ). երբեմն ուղարկում ենք նորություններ և հրավերներ։ Հրաժարվել՝ /unsubscribe, վերադարձնել՝ /subscribe։',
-        '**Discord** (ձեր գործողությամբ). լեզվային դերեր, սեղանների և արդյունքների քարտեր, /stats։'
+        '**Discord** (ձեր գործողությամբ). լեզվային դերեր, կոչման դեր՝ ըստ վարկանիշի (եթե կապել եք Telegram-ը), սեղանների և արդյունքների քարտեր, /stats։'
       ] },
       { h: '4. Ով է տեսնում ձեր տվյալները', ul: [
         '**Մյուս խաղացողները.** ձեր անունը, @օգտանունը, լուսանկարը, վարկանիշն ու վիճակագրությունը, առցանց լինելը, ձեր ակումբը. սեղանի շուրջ՝ այն, ինչ ցույց է տալիս խաղը. սեղանի և ակումբի չաթի հաղորդագրությունները։ Ընդհանուր վարկանիշում երևում են անունը, @օգտանունը, լուսանկարը և միավորները։ Ձեզ կարելի է գտնել @օգտանունով կամ անունով խաղացողների որոնման մեջ։',

@@ -945,6 +945,7 @@ function sheetHTML(enter = true) {
     body = `<h2>${u.logSheet}</h2><p class="hint" style="margin:4px 0 10px">${u.logHint}</p><div class="log">${g.log.slice().reverse().map(l => `<div class="l ${l.secret ? 'secret' : ''}"><span class="ph">${l.ph}${l.secret ? ' ·' : ''}</span><span>${esc(l.text)}</span></div>`).join('') || `<div class="hint">${u.logEmpty}</div>`}</div>`;
   }
   if (sh.type === 'profEdit') body = profEditHTML(sh.id);
+  if (sh.type === 'ranks' && typeof ranksSheetHTML === 'function') body = ranksSheetHTML(sh.i); // v54
   if (sh.type === 'buy') body = buySheetHTML(sh.kind, sh.id);
   if (sh.type === 'friend' && typeof friendSheetHTML === 'function') body = friendSheetHTML(sh.id);
   if (sh.type === 'clubEdit' && typeof clubEditHTML === 'function') body = clubEditHTML(sh.id);
