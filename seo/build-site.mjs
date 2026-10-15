@@ -19,6 +19,7 @@ import { loadApp } from '../discord/setup.mjs';
 import { T } from '../discord/texts.mjs';
 import { S } from './texts.mjs';
 import { PRIVACY, UPDATED } from './privacy.mjs';
+import { LANDINGS, landingPage } from '../ads/landing.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const LANGS = ['ru', 'uk', 'en', 'pl', 'hy'];
@@ -190,7 +191,7 @@ ${body}
     /* privacy policy (v44): seo/privacy.mjs — must stay true to backend/src (privacy.js, security.js) */
     const pv = PRIVACY[l];
     const pvBody = `<p class="lead"><small>${esc(pv.updatedLabel)} ${esc(UPDATED[l])}</small></p>` + pv.sections.map(sec => `<section><h2>${esc(sec.h)}</h2>${(sec.p || []).map(x => `<p>${md(x)}</p>`).join('')}${sec.ul ? `<ul>${sec.ul.map(x => `<li>${md(x)}</li>`).join('')}</ul>` : ''}${(sec.after || []).map(x => `<p>${md(x)}</p>`).join('')}</section>`).join('\n');
-    write(`${l}/privacy/index.html`, page({ l, p: `${l}/privacy/`, title: pv.title, desc: pv.desc, h1: pv.h1, lead: pv.lead, crumbs: [[pv.label, `${l}/privacy/`]], ld: [{ '@context': 'https://schema.org', '@type': 'WebPage', name: pv.title, description: pv.desc, inLanguage: s.html, url: abs(`${l}/privacy/`), dateModified: '2026-10-14', publisher: { '@type': 'Organization', name: 'Mafia Pro' } }], body: pvBody }));
+    write(`${l}/privacy/index.html`, page({ l, p: `${l}/privacy/`, title: pv.title, desc: pv.desc, h1: pv.h1, lead: pv.lead, crumbs: [[pv.label, `${l}/privacy/`]], ld: [{ '@context': 'https://schema.org', '@type': 'WebPage', name: pv.title, description: pv.desc, inLanguage: s.html, url: abs(`${l}/privacy/`), dateModified: '2026-10-15', publisher: { '@type': 'Organization', name: 'Mafia Pro' } }], body: pvBody }));
 
     /* the picture for link previews (rendered to og/<lang>.png by seo/render-images.js) */
     write(`og/${l}.html`, `<!doctype html><html lang="${s.html}"><head><meta charset="utf-8"><meta name="robots" content="noindex"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800&family=Manrope:wght@600&family=Noto+Sans+Armenian:wght@700&display=swap"><style>
@@ -203,6 +204,10 @@ h1{font:800 70px/1.05 Unbounded,'Noto Sans Armenian',sans-serif;margin:22px 0 26
 </style></head><body><div class="bg"></div><div class="t"><div class="e">Mafia Pro</div><h1>${esc(s.home.h1)}</h1><p>${esc(app.L.ui.heroTag || '')}</p></div>
 <div class="c"><img src="../cards/${l}/don.png" alt=""><img src="../cards/${l}/sheriff.png" alt=""><img src="../cards/${l}/doctor.png" alt=""></div></body></html>`);
   }
+
+  /* landing pages of the paid ads (ads/landing.mjs): not in the sitemap, noindex */
+  const API = String(env.API_URL || (() => { try { return fs.readFileSync(path.join(ROOT, '.mafia-api-url'), 'utf8').trim(); } catch (e) { return ''; } })() || 'https://api.mafiapro.app').replace(/\/$/, '');
+  for (const L of LANDINGS) write(L.path + 'index.html', landingPage(L, { base: BASE, api: API, bot: BOT }));
 
   /* sitemap with hreflang alternates, robots */
   const today = new Date().toISOString().slice(0, 10);

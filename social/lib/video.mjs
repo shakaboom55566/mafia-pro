@@ -33,7 +33,7 @@ export function subtitleTimes(pieces, start, duration) {
 }
 
 /* raw Veo bytes → finished mp4 bytes. voice: WAV bytes (Ukrainian voice-over); title: text on screen; subtitles: pieces of the voice text */
-export function finishVideo(raw, { logo, card = CARD, workDir, voice, title, subtitles } = {}) {
+export function finishVideo(raw, { logo, card = CARD, workDir, voice, title, subtitles, titleY } = {}) { // titleY: lower for ads (the feed crops 9:16 to 4:5)
   const dir = workDir || fs.mkdtempSync(path.join(os.tmpdir(), 'social-'));
   const inFile = path.join(dir, 'raw.mp4'), outFile = path.join(dir, 'final.mp4'); fs.writeFileSync(inFile, raw);
   const p = probe(inFile); const D = Math.max(1, p.duration || 8); const C = card.seconds;
@@ -52,7 +52,7 @@ export function finishVideo(raw, { logo, card = CARD, workDir, voice, title, sub
   let tn = 0; const txt = s => { const tf = path.join(dir, `t${tn++}.txt`); fs.writeFileSync(tf, s); return tf.replace(/\\/g, '/').replace(/:/g, '\\:'); };
   const f = [];
   const overlays = [];
-  if (font && title) overlays.push(`drawtext=fontfile='${esc(font)}':textfile='${txt(wrap(title, TITLE.maxChars))}':fontcolor=${card.gold}:fontsize=${TITLE.size}:line_spacing=10:x=(w-text_w)/2:y=${TITLE.y}:box=1:boxcolor=0x0d0c14@0.55:boxborderw=22:shadowcolor=black@0.6:shadowx=2:shadowy=2:enable='between(t,${TITLE.from},${TITLE.to})'`);
+  if (font && title) overlays.push(`drawtext=fontfile='${esc(font)}':textfile='${txt(wrap(title, TITLE.maxChars))}':fontcolor=${card.gold}:fontsize=${TITLE.size}:line_spacing=10:x=(w-text_w)/2:y=${titleY || TITLE.y}:box=1:boxcolor=0x0d0c14@0.55:boxborderw=22:shadowcolor=black@0.6:shadowx=2:shadowy=2:enable='between(t,${TITLE.from},${TITLE.to})'`);
   const subs = [];
   if (font && subtitles && subtitles.length && voiceIdx > 0) {
     const spoken = Math.min(voiceDur / tempo, D - VOICE.start - 0.2);

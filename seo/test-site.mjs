@@ -6,18 +6,30 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { build, LANGS, DEFAULT_SITE } from './build-site.mjs';
+import { LANDINGS } from '../ads/landing.mjs';
 
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('✗ ' + m); } };
 const out = fs.mkdtempSync(path.join(os.tmpdir(), 'mp-site-'));
 const r = build(out, { SITE_URL: DEFAULT_SITE });
 const BASE = new URL(DEFAULT_SITE).pathname;
 const files = []; (function walk(d) { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (f.name === 'index.html') files.push(p); } })(out);
-ok(files.length === r.pages && r.pages === LANGS.length * (5 + 57), `pages: ${files.length} / ${r.pages}`);
 const exists = u => { // a site URL or a root-relative path → a file in the build (the app root and images are made by other steps)
   let p = u.startsWith(DEFAULT_SITE) ? u.slice(DEFAULT_SITE.length) : u.startsWith(BASE) ? u.slice(BASE.length) : null; if (p === null) return true;
   p = p.split('#')[0]; if (p === '' || /^(cards|og)\/|favicon\.png$/.test(p)) return true;
   return fs.existsSync(path.join(out, p, p.endsWith('/') ? 'index.html' : ''));
 };
+const landings = files.filter(f => LANDINGS.some(L => path.relative(out, f) === L.path + 'index.html')); // ads pages (ads/landing.mjs): checked below, not SEO pages
+files.splice(0, files.length, ...files.filter(f => !landings.includes(f)));
+ok(landings.length === LANDINGS.length, `ad landing pages: ${landings.length}`);
+for (const f of landings) {
+  const h = fs.readFileSync(f, 'utf8'); const rel = path.relative(out, f); const L = LANDINGS.find(x => rel === x.path + 'index.html');
+  ok(/<meta name="robots" content="noindex">/.test(h), rel + ': noindex'); ok((h.match(/<h1>/g) || []).length === 1, rel + ': one h1');
+  ok((h.match(/data-bot href="https:\/\/t\.me\/mafiaprof_bot\?start=fb_/g) || []).length === 2 && h.includes(`start=fb_${L.tag}"`), rel + ': two buttons with the plain tagged bot link');
+  ok(/"api":"https:\/\/api\.mafiapro\.app"/.test(h) && h.includes('/api/click') && h.includes('fbevents.js'), rel + ': token from the API, pixel loader');
+  ok(!/undefined|\[object |NaN/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), rel + ': no undefined in the text');
+  for (const m of h.matchAll(/href="([^"]+)"/g)) if (m[1].startsWith('/')) ok(exists(m[1]), `${rel}: broken link ${m[1]}`);
+}
+ok(files.length === r.pages && r.pages === LANGS.length * (5 + 57), `pages: ${files.length} / ${r.pages}`);
 const titles = new Map(), descs = new Map();
 for (const f of files) {
   const h = fs.readFileSync(f, 'utf8'); const rel = path.relative(out, f);
@@ -35,6 +47,7 @@ for (const f of files) {
 }
 const sm = fs.readFileSync(path.join(out, 'sitemap.xml'), 'utf8');
 ok((sm.match(/<url>/g) || []).length === r.pages + 1, 'sitemap lists every page + the app');
+ok(!/dnipro/.test(sm), 'ad landing pages are not in the sitemap');
 ok(fs.readFileSync(path.join(out, 'robots.txt'), 'utf8').includes('Sitemap: ' + DEFAULT_SITE + 'sitemap.xml'), 'robots.txt points at the sitemap');
 for (const l of LANGS) { const h = fs.readFileSync(path.join(out, l, 'privacy/index.html'), 'utf8'); ok(h.includes('/mydata') && h.includes('/deletedata') && h.includes('/support') && (h.match(/<h2>/g) || []).length >= 11, l + ': privacy policy with the bot commands and all sections'); ok(fs.readFileSync(path.join(out, l, 'index.html'), 'utf8').includes(`${BASE}${l}/privacy/`), l + ': footer links the policy'); }
 const ovr = path.join(os.tmpdir(), 'mp-ovr.json'); fs.writeFileSync(ovr, JSON.stringify({ 'ru/roles/don/': { title: 'Дон мафии: как играть за главу семьи | Mafia Pro', intro: 'Проверочный абзац.', faq: [['Кто такой Дон?', 'Глава мафии.']] }, 'en/': { faq: [['Extra?', 'Yes.']] } }));

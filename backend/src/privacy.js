@@ -103,6 +103,7 @@ export async function exportUser(env, id) {
     tableInvites: await all('SELECT code, tg_id, from_id, kind, status, created_at FROM table_invites WHERE tg_id = ?1 OR from_id = ?1', id),
     cameFrom: await one('SELECT source, detail, param, game_name, game_at, created_at FROM player_track WHERE tg_id = ?1', id),
     trackedLinks: await all('SELECT param, is_new, hits, first_at, last_at FROM start_hits WHERE tg_id = ?1', id),
+    adClicks: await all('SELECT src, ad_id, ip, ua, fbc, fbp, is_new, lead_sent, created_at, started_at FROM ad_clicks WHERE tg_id = ?1', id), // Meta ads (ads.js): match data erased after 7 days
     discord: await all('SELECT user_id, username, display, status, joined_at, left_at FROM discord_members WHERE tg_id = ?1', id),
     broadcastsReceived: await all('SELECT bid, status, at FROM broadcast_queue WHERE tg_id = ?1', id),
     securityEvents30d: await all('SELECT at, type, path, country FROM security_events WHERE tg_id = ?1 ORDER BY id DESC LIMIT 500', id)
@@ -133,7 +134,7 @@ export async function deleteUser(env, id) {
     st('DELETE FROM ratings WHERE tg_id = ?1'), st('DELETE FROM partners WHERE tg_id = ?1'),
     env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:top'"), // the cached leaderboard is rebuilt without this player
     st('DELETE FROM club_members WHERE tg_id = ?1'), st('DELETE FROM club_requests WHERE tg_id = ?1'), st('DELETE FROM club_messages WHERE tg_id = ?1'),
-    st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'),
+    st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'), st('DELETE FROM ad_clicks WHERE tg_id = ?1'),
     st('DELETE FROM broadcast_queue WHERE tg_id = ?1'), st('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_members SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE discord_invites SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_events SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM users WHERE tg_id = ?1')

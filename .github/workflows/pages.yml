@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    paths-ignore: ['seo/reports/**', 'seo/journal.md']  # the weekly SEO report commits only data — no redeploy
+    paths-ignore: ['seo/reports/**', 'seo/journal.md', 'ads/creatives/**', 'ads/state/**', 'ads/reports/**', 'ads/journal.md', 'ads/AGENT.md', 'ads/PLAN.md']  # data of the SEO report and the ads agent — no redeploy
   workflow_dispatch:
     inputs:
       api_url:

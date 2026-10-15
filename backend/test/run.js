@@ -12,6 +12,10 @@ import { Bot } from '../src/tg.js';
 import { writeFileSync } from 'node:fs';
 import { startMockSocial } from './mock-social.js';
 import { socialKey, seal, unseal } from '../src/social.js';
+import { adsKey, parseAdParam } from '../src/ads.js';
+import { exportUser } from '../src/privacy.js';
+import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const worker = (await import('../src/index.js')).default;
@@ -1159,6 +1163,101 @@ console.log('social media: /social, Facebook + Instagram and TikTok consent → 
   sm.state.pageTokenOk = true;
   for (const k of ['META_GRAPH_BASE', 'META_DIALOG_BASE', 'TIKTOK_API', 'TIKTOK_AUTH', 'SOCIAL_BASE', 'META_APP_ID', 'META_APP_SECRET', 'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET']) delete env[k];
   await sm.close(); }
+
+console.log('meta ads: landing click → token, /start fb_<src>_<token> → player + Lead to the Conversions API, /ads/creds, /ads/stats, /ads, pause in Meta, cleanup');
+{ const G = { calls: [], fail: false };
+  const gs = createServer((req, res) => { const parts = []; req.on('data', c => parts.push(c)); req.on('end', () => {
+    const raw = Buffer.concat(parts).toString('utf8'); const u = new URL(req.url, 'http://x'); let body = null;
+    try { body = /json/.test(req.headers['content-type'] || '') ? JSON.parse(raw) : Object.fromEntries(new URLSearchParams(raw)); } catch (e) {}
+    G.calls.push({ m: req.method, p: u.pathname, body }); res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (/\/events$/.test(u.pathname)) return res.end(JSON.stringify(G.fail ? { error: { message: 'Invalid OAuth access token', code: 190 } } : { events_received: 1, fbtrace_id: 'x' }));
+    return res.end(JSON.stringify({ success: true })); }); });
+  await new Promise(r => gs.listen(8794, '127.0.0.1', r));
+  const ak = (p, b = {}, key) => post(p, b, { 'X-Ads-Key': key || AK });
+  const AK = await adsKey('test-token'); const adm = user(777);
+  const click = (b, ip = '198.51.100.20', ua = 'Mozilla/5.0 (iPhone) Instagram 300') => post('/api/click', b, { 'CF-Connecting-IP': ip, 'User-Agent': ua, Origin: 'https://mafiapro.app' });
+  // landing page → token
+  eq((await click({ src: 'xx' })).status, 400, 'click: unknown campaign tag → 400');
+  let r = await click({ src: 'dnp', ad: '120210000000001', fbclid: 'IwAR0abcDEF_123-xyz', fbp: 'fb.1.1760000000000.123456789' }); let d = await r.json();
+  ok(r.status === 200 && d.ok && /^[A-Za-z0-9]{10}$/.test(d.token) && d.pixel === null, 'click: token, no pixel yet');
+  let row = await env.DB.prepare('SELECT * FROM ad_clicks WHERE token = ?1').bind(d.token).first();
+  ok(row && row.src === 'dnp' && row.ad_id === '120210000000001' && /^fb\.1\.\d{13}\.IwAR0abcDEF_123-xyz$/.test(row.fbc) && row.fbp === 'fb.1.1760000000000.123456789' && row.ip === '198.51.100.20' && /Instagram/.test(row.ua), 'click stored: ad, fbc built from fbclid, fbp, IP, browser');
+  r = await click({ src: 'dnp', ad: 'x<script>', fbclid: 'bad id!', fbp: 'nope' }); d = await r.json(); row = await env.DB.prepare('SELECT * FROM ad_clicks WHERE token = ?1').bind(d.token).first();
+  ok(row && row.ad_id === null && row.fbc === null && row.fbp === null, 'junk ad id / fbclid / fbp dropped');
+  eq(parseAdParam('fb_dnp_' + d.token), { src: 'dnp', token: d.token }, 'bot link parsed'); eq(parseAdParam('fb_dnp'), null, 'plain tag: no token'); eq(parseAdParam('fb_zz_AAAAAAAAAA'), null, 'unknown tag');
+  // a new player from the ad: the click gets the player; no Conversions API without the keys
+  const t1 = (await (await click({ src: 'dnp', ad: '120210000000001', fbclid: 'IwAR1first' })).json()).token;
+  await hook(msg(user(9101, 'uk'), '/start fb_dnp_' + t1)); await settle();
+  row = await env.DB.prepare('SELECT * FROM ad_clicks WHERE token = ?1').bind(t1).first();
+  ok(row.tg_id === 9101 && row.is_new === 1 && row.started_at > 0 && row.lead_sent === 0, 'new player tied to the click; no keys → no Lead');
+  eq(await env.DB.prepare('SELECT source || \':\' || detail AS s FROM player_track WHERE tg_id = 9101').first('s'), 'facebook:dnp_' + t1, 'growth: came from Facebook ads (dnp)');
+  ok(/Mafia Pro|Мафі/.test(lastTo(9101).params.text), 'the player still gets the welcome');
+  // with the keys: Lead with the click's match data and a hashed Telegram id
+  Object.assign(env, { META_ADS_TOKEN: 'ads-token-1', META_PIXEL_ID: '987654321012', META_GRAPH_BASE: 'http://127.0.0.1:8794' });
+  d = await (await click({ src: 'dnp', ad: '120210000000002', fbclid: 'IwAR2second', fbp: 'fb.1.1760000000001.42' }, '198.51.100.21')).json(); ok(d.pixel === '987654321012', 'click: the pixel id for the page');
+  await hook(msg(user(9102, 'ru'), '/start fb_dnp_' + d.token)); await settle();
+  const ev = G.calls.find(c => /\/v25\.0\/987654321012\/events$/.test(c.p));
+  const e0 = ev && ev.body && ev.body.data && ev.body.data[0];
+  ok(e0 && e0.event_name === 'Lead' && e0.event_id === 'lead_' + d.token && e0.action_source === 'website' && ev.body.access_token === 'ads-token-1', 'Lead sent to the Conversions API');
+  ok(e0 && e0.user_data.external_id[0] === createHash('sha256').update('9102').digest('hex') && e0.user_data.client_ip_address === '198.51.100.21' && /^fb\.1\.\d+\.IwAR2second$/.test(e0.user_data.fbc) && e0.user_data.fbp === 'fb.1.1760000000001.42' && /Instagram/.test(e0.user_data.client_user_agent), 'Lead: hashed id, IP, browser, fbc, fbp');
+  ok(e0 && !JSON.stringify(e0).includes('9102,') && !JSON.stringify(e0).includes('User9102') && e0.custom_data.ad_id === '120210000000002' && e0.custom_data.content_name === 'dnp', 'Lead: no name or raw id; ad id and tag');
+  eq(await env.DB.prepare('SELECT lead_sent FROM ad_clicks WHERE token = ?1').bind(d.token).first('lead_sent'), 1, 'lead_sent = 1');
+  // a returning player, a shared link and a second click of the same player: no Lead
+  const n0 = G.calls.filter(c => /events$/.test(c.p)).length;
+  d = await (await click({ src: 'dnp', ad: '120210000000002' })).json(); await hook(msg(user(9102, 'ru'), '/start fb_dnp_' + d.token)); await settle();
+  await hook(msg(user(9103, 'ru'), '/start fb_dnp_' + d.token)); await settle();
+  eq(await env.DB.prepare('SELECT tg_id FROM ad_clicks WHERE token = ?1').bind(d.token).first('tg_id'), 9102, 'a shared link keeps its first player');
+  await hook(msg(user(10, 'ru'), '/start fb_dnp_' + (await (await click({ src: 'dnp' })).json()).token)); await settle();
+  eq(G.calls.filter(c => /events$/.test(c.p)).length, n0, 'no Lead for returning players or shared links');
+  // Meta refuses → marked, the player is not affected
+  G.fail = true; d = await (await click({ src: 'dnp', ad: '120210000000003' })).json(); await hook(msg(user(9104, 'uk'), '/start fb_dnp_' + d.token)); await settle(); G.fail = false;
+  eq(await env.DB.prepare('SELECT lead_sent FROM ad_clicks WHERE token = ?1').bind(d.token).first('lead_sent'), 2, 'Meta error → lead_sent = 2');
+  ok(lastTo(9104) && lastTo(9104).params.chat_id === 9104, 'the player still got the welcome');
+  // one address, many visits: tokens stop, the page falls back to the plain tag
+  for (let i = 0; i < 30; i++) await click({ src: 'dnp' }, '203.0.113.99');
+  d = await (await click({ src: 'dnp' }, '203.0.113.99')).json(); ok(d.ok && d.token === null, 'flood from one address: no more tokens');
+  await hook(msg(user(9105, 'uk'), '/start fb_dnp'));
+  // the workflow
+  eq((await post('/ads/creds', {})).status, 403, 'ads/creds: no key → 403'); eq((await ak('/ads/creds', {}, 'y'.repeat(48))).status, 403, 'ads/creds: wrong key → 403');
+  let cr = await (await ak('/ads/creds', { campaigns: ['120200000000777', 'bad'] })).json();
+  ok(cr.ok && cr.paused === false && cr.muted === false && cr.locked === false && cr.capi === true && cr.admins.includes(777), 'creds: switches, Conversions API ready, admins');
+  eq(await env.DB.prepare("SELECT value FROM discord_cfg WHERE key = 'ads:campaigns'").first('value'), '120200000000777', 'campaign ids remembered (junk dropped)');
+  await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (9102, 10, 1, 1, 0, 1) ON CONFLICT(tg_id) DO UPDATE SET games = 1').run();
+  const st = await (await ak('/ads/stats', { since: now() - 3600 })).json();
+  const a2 = st.ads['120210000000002'];
+  ok(st.ok && a2 && a2.visits === 2 && a2.starts === 2 && a2.newPlayers === 1 && a2.played === 1 && a2.leads === 1, 'stats per ad: visits → starts → new → played, leads');
+  ok(st.sources.dnp.newPlayers >= 3 && st.total.visits >= 36 && st.plain.dnp && st.plain.dnp.newPlayers === 1, 'stats per tag; plain tagged link counted');
+  ok(!JSON.stringify(st).includes('9102') && !JSON.stringify(st).includes('198.51.100'), 'stats: no ids, no addresses');
+  // /ads in the bot
+  await hook(msg(user(55), '/ads')); ok(!/Реклама Instagram/.test(lastTo(55).params.text), '/ads: not for players');
+  await hook(msg(adm, '/ads')); let c = lastTo(777);
+  ok(/Реклама Instagram \+ Facebook/.test(c.params.text) && /Кампании в Meta: 1 · ▶️ идут/.test(c.params.text) && /За 7 дней:<\/b> страница \d+ → бот \d+ → новые \d+ → сыграли 1/.test(c.params.text) && /Conversions API[^\n]*✅/.test(c.params.text), '/ads: status, numbers, Conversions API');
+  const adc = data => hook({ update_id: 3, callback_query: { id: 'q' + data, from: adm, data, message: { message_id: 70, chat: { id: 777, type: 'private' }, text: 'Реклама Instagram' } } });
+  const ans = () => lastCall('answerCallbackQuery').params;
+  await adc('ads_pause'); await settle();
+  ok((await (await ak('/ads/creds')).json()).paused === true && /на паузе в Meta/.test(ans().text), 'pause: switch on');
+  ok(G.calls.some(x => x.p === '/v25.0/120200000000777' && x.body && x.body.status === 'PAUSED' && x.body.access_token === 'ads-token-1'), 'pause: campaign paused in Meta at once');
+  await adc('ads_resume'); ok(G.calls.some(x => x.p === '/v25.0/120200000000777' && x.body.status === 'ACTIVE') && (await (await ak('/ads/creds')).json()).paused === false, 'resume: campaign active again');
+  await adc('ads_mute'); ok((await (await ak('/ads/creds')).json()).muted === true, 'notices muted'); await adc('ads_unmute'); ok((await (await ak('/ads/creds')).json()).muted === false, 'notices back');
+  await hook({ update_id: 4, callback_query: { id: 'qx', from: user(55), data: 'ads_pause', message: { message_id: 1, chat: { id: 55, type: 'private' } } } });
+  ok((await (await ak('/ads/creds')).json()).paused === false, 'players cannot pause the ads');
+  { const sec = await import('../src/security.js'); await sec.setLockdown(env, true, 'test', 'test'); sec._resetSecurityMemory();
+    cr = await (await ak('/ads/creds')).json(); ok(cr.locked === true, 'lockdown reaches the workflow');
+    await adc('ads_pause'); ok(/блокировки/.test(ans().text) && (await (await ak('/ads/creds')).json()).paused === false, 'lockdown: /ads buttons off');
+    await sec.setLockdown(env, false, 'test'); sec._resetSecurityMemory(); }
+  // without the worker token: the switch waits for the workflow
+  delete env.META_ADS_TOKEN; await adc('ads_pause'); ok(/следующей проверке/.test(ans().text), 'no token in the worker: the workflow pauses it'); await adc('ads_resume');
+  // privacy: export and delete
+  const ex = await exportUser(env, 9102); ok(ex.adClicks && ex.adClicks.length === 2 && ex.adClicks[0].src === 'dnp', '/mydata: ad clicks included');
+  // cleanup: match data after 7 days, rows after 180
+  await env.DB.prepare('UPDATE ad_clicks SET created_at = ?1 WHERE token = ?2').bind(now() - 8 * 86400, t1).run();
+  await env.DB.prepare("INSERT INTO ad_clicks (token, src, ip, ua, created_at) VALUES ('OLDOLDOLD1', 'dnp', '1.2.3.4', 'ua', ?1)").bind(now() - 200 * 86400).run();
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'ads:clean_at'").run(); let waits = []; await worker.scheduled({ cron: '*/5 * * * *' }, env, { waitUntil: p => waits.push(p) }); await Promise.all(waits);
+  row = await env.DB.prepare('SELECT * FROM ad_clicks WHERE token = ?1').bind(t1).first();
+  ok(row && row.ip === null && row.ua === null && row.fbc === null && row.tg_id === 9101, 'after 7 days: IP, browser, Meta ids erased; the count stays');
+  ok(!(await env.DB.prepare("SELECT 1 FROM ad_clicks WHERE token = 'OLDOLDOLD1'").first()), 'after 180 days: deleted');
+  for (const k of ['META_ADS_TOKEN', 'META_PIXEL_ID', 'META_GRAPH_BASE']) delete env[k];
+  await new Promise(r2 => gs.close(r2)); }
 
 console.log('security: webhook only from Telegram, forged logins, limits, bans, defused table state, anti-cheat, watch → incidents → alerts, lockdown, report');
 { const sec = await import('../src/security.js'); sec._resetSecurityMemory();

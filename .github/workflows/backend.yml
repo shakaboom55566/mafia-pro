@@ -4,6 +4,7 @@ name: Deploy backend (Cloudflare Worker)
 # Secrets (Settings → Secrets and variables → Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, BOT_TOKEN.
 # Optional (Discord voice rooms for online tables): DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_CATEGORY_ID.
 # Optional (social media, /social in the bot): META_APP_ID, META_APP_SECRET, META_CONFIG_ID, TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET.
+# Optional (Meta ads, ads.js — the Conversions API and the /ads pause button): META_ADS_TOKEN, META_PIXEL_ID.
 # Runs on every push that touches backend/, or manually: Actions → "Deploy backend" → Run workflow.
 # The (sanitized) log of the deploy steps is posted as a comment on the commit, so it can be read without opening the run.
 # v44 security: the webhook secret is masked and never exported to later steps (this repository and its logs are public);
@@ -38,6 +39,8 @@ jobs:
       META_CONFIG_ID: ${{ secrets.META_CONFIG_ID }}
       TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
       TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+      META_ADS_TOKEN: ${{ secrets.META_ADS_TOKEN }}
+      META_PIXEL_ID: ${{ secrets.META_PIXEL_ID }}
       WRANGLER_SEND_METRICS: 'false'
       LOG: /tmp/mafia-deploy.log
     defaults:
@@ -78,6 +81,7 @@ jobs:
           DISCORD_BOT_TOKEN: ''
           META_APP_SECRET: ''
           TIKTOK_CLIENT_SECRET: ''
+          META_ADS_TOKEN: ''
         run: |
           if [ -f package-lock.json ]; then npm ci --no-audit --no-fund 2>&1 | tail -3; else npm install --no-audit --no-fund 2>&1 | tail -3; fi
           echo "wrangler $(node -p 'require("wrangler/package.json").version')" | tee -a "$LOG"
@@ -88,6 +92,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ''
           BOT_TOKEN: ''
           DISCORD_BOT_TOKEN: ''
+          META_ADS_TOKEN: ''
+          META_PIXEL_ID: ''
         run: node --no-warnings test/run.js 2>&1 | tee -a "$LOG"
 
       - name: D1 database (create once, migrate every time)
@@ -165,7 +171,7 @@ jobs:
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
           printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
           if [ -n "$DISCORD_BOT_TOKEN" ]; then printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN; fi
-          for k in META_APP_ID META_APP_SECRET META_CONFIG_ID TIKTOK_CLIENT_KEY TIKTOK_CLIENT_SECRET; do # social media apps (optional)
+          for k in META_APP_ID META_APP_SECRET META_CONFIG_ID TIKTOK_CLIENT_KEY TIKTOK_CLIENT_SECRET META_ADS_TOKEN META_PIXEL_ID; do # social media apps, Meta ads (optional)
             v="${!k}"; if [ -n "$v" ]; then printf '%s' "$v" | npx wrangler secret put "$k" > /dev/null && echo "$k: set"; else echo "$k: not set"; fi
           done
           } 2>&1 | tee -a "$LOG"
@@ -243,7 +249,7 @@ jobs:
           node -e '
             const fs = require("fs"); const crypto = require("crypto"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
             const wh = process.env.BOT_TOKEN ? crypto.createHash("sha256").update(process.env.BOT_TOKEN + ":mafia-pro-webhook:v2").digest("hex").slice(0, 48) : "";
-            const keys = { BOT_TOKEN: process.env.BOT_TOKEN, CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID, WEBHOOK_SECRET: wh, DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN };
+            const keys = { BOT_TOKEN: process.env.BOT_TOKEN, CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID, WEBHOOK_SECRET: wh, DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN, META_ADS_TOKEN: process.env.META_ADS_TOKEN, META_APP_SECRET: process.env.META_APP_SECRET, TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET };
             for (const [k, v] of Object.entries(keys)) { if (v && v.length > 3) s = s.split(v).join("<" + k + ">"); }
             s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>").replace(/(ADMIN_IDS[^\n]*?)\d{5,}(?:,\d{5,})*/g, "$1<ids>");
             if (s.length > 12000) s = s.slice(0, 4000) + "\n…\n" + s.slice(-8000);

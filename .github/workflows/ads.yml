@@ -1,0 +1,141 @@
+name: Ads
+
+# Paid ads in Instagram + Facebook through the Meta Marketing API (ads/AGENT.md — the daily agent, ads/PLAN.md — the rules).
+# Every hour in the daytime: the campaign of ads/config.json (created once), its ads judged after 6 daytime hours (ads/lib/rules.mjs),
+# a weak one paused and replaced by the next brief from ads/creatives/ (Gemini: Veo / Imagen), the admins told in Telegram, a report on
+# Mondays and at the end. State: ads/state/<tag>.json, reports: ads/reports/ (committed, no personal data). The log goes to a commit
+# comment when something changed.
+# Secrets: META_ADS_TOKEN (system user token: ads_management, ads_read), META_AD_ACCOUNT_ID (digits), META_PIXEL_ID (optional:
+# optimizes for landing page views and keeps audiences), META_PAGE_ID (optional when the Page is connected in /social), GEMINI_API_KEY,
+# BOT_TOKEN. Nothing is spent until the ad account has a spending limit (Ads Manager → Billing).
+# Manual: Actions → Ads → Run workflow. From the agent:
+#   gh api -X POST repos/<owner>/<repo>/actions/workflows/ads.yml/dispatches -f ref=main -f 'inputs[mode]=stats'
+on:
+  push:
+    branches: [main]
+    paths: ['ads/**', 'social/lib/**', '.github/workflows/ads.yml', '!ads/state/**', '!ads/reports/**', '!ads/journal.md']
+  schedule:
+    - cron: '7 5-22 * * *'   # hourly; the script works by Kyiv time (ads are shown 09:00–24:00, verdicts only then)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'check | status | stats | report | report-final | preview | launch | briefs'
+        type: choice
+        options: [check, status, stats, report, report-final, preview, launch, briefs]
+        default: status
+      brief:
+        description: 'Brief id for preview / launch (dnp-001)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ads
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      META_ADS_TOKEN: ${{ secrets.META_ADS_TOKEN }}
+      META_AD_ACCOUNT_ID: ${{ secrets.META_AD_ACCOUNT_ID }}
+      META_PIXEL_ID: ${{ secrets.META_PIXEL_ID }}
+      META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+      TZ: Europe/Kiev
+      LOG: /tmp/ads.log
+      CHANGED: /tmp/ads.changed
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: What to do
+        id: plan
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          : > "$LOG"; tests=0
+          if [ "$EVENT" = "push" ]; then
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+              changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+            else changed=$(git show --name-only --pretty=format: "$GITHUB_SHA"); fi
+            echo "$changed" | grep -qE '^(ads/(lib/|run\.mjs|test\.mjs|config\.json)|social/lib/|\.github/workflows/ads\.yml)' && tests=1
+            mode=briefs
+          elif [ "$EVENT" = "schedule" ]; then mode=check
+          else mode="$MODE"; fi
+          need=0; case "$mode" in check|preview|launch) need=1;; esac; [ "$tests" = 1 ] && need=1
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"; echo "tests=$tests" >> "$GITHUB_OUTPUT"; echo "ffmpeg=$need" >> "$GITHUB_OUTPUT"
+          echo "## ads: $mode" | tee -a "$LOG"
+
+      - name: ffmpeg and a font
+        if: steps.plan.outputs.ffmpeg == '1'
+        run: |
+          if ! command -v ffmpeg >/dev/null || [ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf ]; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core >/dev/null
+          fi
+          ffmpeg -version | head -1
+
+      - name: Tests (fake Marketing API, Gemini, backend, Telegram)
+        if: steps.plan.outputs.tests == '1'
+        env:
+          BOT_TOKEN: ''
+          GEMINI_API_KEY: ''
+          META_ADS_TOKEN: ''
+        run: node ads/test.mjs 2>&1 | tee -a "$LOG"
+
+      - name: Run
+        id: run
+        env:
+          MODE: ${{ steps.plan.outputs.mode }}
+          BRIEF: ${{ inputs.brief }}
+        run: |
+          set -o pipefail
+          case "$MODE" in
+            check)        node ads/run.mjs check ;;
+            stats)        node ads/run.mjs stats ;;
+            report)       node ads/run.mjs report ;;
+            report-final) node ads/run.mjs report --final ;;
+            preview)      node ads/run.mjs preview "$BRIEF" ;;
+            launch)       node ads/run.mjs launch "$BRIEF" ;;
+            briefs)       node ads/run.mjs briefs ;;
+            *)            node ads/run.mjs status ;;
+          esac
+
+      - name: Commit the state and reports
+        if: always()
+        continue-on-error: true
+        run: |
+          git add ads/state ads/reports 2>/dev/null || true
+          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          git config user.name "mafia-pro-ads"
+          git config user.email "ads@users.noreply.github.com"
+          git commit -m "ads: state $(date +%F\ %H:%M)"
+          for i in 1 2 3 4 5; do git fetch -q origin main && git rebase -q origin/main && git push -q origin HEAD:main && { echo "pushed"; exit 0; }; sleep $((i * 5)); done
+          echo "::warning::could not push ads/state"
+
+      - name: Post the log as a commit comment
+        if: always()   # an hourly check without changes, warnings or errors posts nothing (below)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          MODE: ${{ steps.plan.outputs.mode }}
+        run: |
+          if [ "$MODE" = "check" ] && [ ! -f "$CHANGED" ] && [ "$JOB_STATUS" = "success" ] && ! grep -q "::error::\|::warning::" "$LOG"; then echo "nothing to report"; exit 0; fi
+          node -e '
+            const fs = require("fs"); let s = ""; try { s = fs.readFileSync(process.env.LOG, "utf8"); } catch (e) { s = "(no log)"; }
+            for (const k of ["BOT_TOKEN", "GEMINI_API_KEY", "META_ADS_TOKEN"]) { const v = process.env[k]; if (v && v.length > 5) s = s.split(v).join("<" + k + ">"); }
+            s = s.replace(/bot\d{6,}:[A-Za-z0-9_-]{20,}/g, "bot<token>").replace(/::add-mask::\S+/g, "");
+            const body = "**Ads** (" + process.env.MODE + ") run " + process.env.GITHUB_RUN_NUMBER + " — **" + process.env.JOB_STATUS + "**\n\n```\n" + s.slice(-14000) + "\n```";
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/comment.json", JSON.stringify({ body }));
+          '
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" --method POST --input "$RUNNER_TEMP/comment.json" > /dev/null && echo "log posted"

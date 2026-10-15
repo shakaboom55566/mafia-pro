@@ -483,3 +483,22 @@ CREATE TABLE IF NOT EXISTS social_posts (    -- what the workflow published: soc
   video_bytes INTEGER,
   created_at  INTEGER NOT NULL
 );
+
+-- Meta ads (15.10.2026): paid ads in Instagram / Facebook (ads.js). A visit of the ad landing page (mafiapro.app/uk/dnipro/) mints a token for the bot link
+-- t.me/<bot>?start=fb_<src>_<token>; the bot ties it to the player and (new players only) sends Meta a "Lead". IP, browser and Meta ids
+-- are kept only for that match: erased after 7 days (runAdsCron); rows after 180 days.
+CREATE TABLE IF NOT EXISTS ad_clicks (
+  token      TEXT PRIMARY KEY,
+  src        TEXT NOT NULL,                -- campaign tag: dnp (Dnipro), ua, am
+  ad_id      TEXT,                         -- Meta ad id ({{ad.id}} in the ad's link)
+  fbc        TEXT, fbp TEXT,               -- Meta click id / browser id
+  ip         TEXT, ua TEXT,                -- for the Conversions API match only
+  tg_id      INTEGER,                      -- who opened the bot with this token
+  is_new     INTEGER NOT NULL DEFAULT 0,
+  lead_sent  INTEGER NOT NULL DEFAULT 0,   -- 1 sent to Meta, 2 failed
+  created_at INTEGER NOT NULL,
+  started_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS ad_clicks_created ON ad_clicks (created_at);
+CREATE INDEX IF NOT EXISTS ad_clicks_tg ON ad_clicks (tg_id);
+CREATE INDEX IF NOT EXISTS ad_clicks_ip ON ad_clicks (ip, created_at);

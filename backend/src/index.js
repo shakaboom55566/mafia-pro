@@ -36,6 +36,8 @@
    - POST /posts/stats         per channel post: people who came through its button, new players, played (X-Posts-Key; no personal data; growth.js)
    - GET  /social/cb/meta|tiktok  OAuth return from Facebook Login / TikTok Login (state minted by /social in the bot; social.js)
    - POST /social/creds|report|stats  the "Social" workflow: tokens for one run, what it published, visits from the profile links (X-Social-Key)
+   - POST /api/click          the ad landing page (mafiapro.app/uk/dnipro/): a token for the bot link start=fb_<src>_<token> (ads.js)
+   - POST /ads/creds|stats    the "Ads" workflow: switches (pause, notices) and per-ad numbers: visits → bot → new players → played (X-Ads-Key)
    - POST /api/lobby/discord   host: Discord voice room of an online table on / off / resize (seats + 1)
    - POST /api/lobby/voice-confirm  host: everyone is on voice → the deal opens
    - POST /api/table/voice     player: "I'm on voice"
@@ -50,6 +52,7 @@ import { trackStart, trackApp, trackGameNames, runGrowthCron, onPlayersCommand, 
 import { t, pickLang } from './texts.js';
 import { onBroadcastCommand, onBroadcastCallback, runBroadcastCron } from './broadcast.js';
 import { onSocialCommand, onSocialCallback, socialCallback, socialCreds, socialReport, socialStats, runSocialCron, socialKey } from './social.js';
+import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, runAdsCron, adsKey } from './ads.js';
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 
@@ -441,13 +444,14 @@ async function onCallback(env, bot, q) {
   if (await bannedTg(env, u.id) || botFlood(env, u.id)) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
   if (/^sec_/.test(q.data || '') && await onSecurityCallback(env, bot, q, id => isAdmin(env, id))) return;
   if (/^pv_/.test(q.data || '') && await onPrivacyCallback(env, bot, q, lang)) return;
-  if (/^(cp|bc|sm)_/.test(q.data || '') && isAdmin(env, u.id)) { // admin powers: audited, off in lockdown
-    secAudit(env, u.id, /^bc_go/.test(q.data) ? 'broadcast_send' : /^cp_/.test(q.data) ? 'post_' + String(q.data).split('_')[1] : /^sm_/.test(q.data) ? 'social_' + String(q.data).split('_')[1] : 'broadcast', { detail: String(q.data).slice(0, 40) });
+  if (/^(cp|bc|sm|ads)_/.test(q.data || '') && isAdmin(env, u.id)) { // admin powers: audited, off in lockdown
+    secAudit(env, u.id, /^bc_go/.test(q.data) ? 'broadcast_send' : /^cp_/.test(q.data) ? 'post_' + String(q.data).split('_')[1] : /^sm_/.test(q.data) ? 'social_' + String(q.data).split('_')[1] : /^ads_/.test(q.data) ? 'ads_' + String(q.data).split('_')[1] : 'broadcast', { detail: String(q.data).slice(0, 40) });
     if (await isLockdown(env)) return bot.call('answerCallbackQuery', { callback_query_id: q.id, text: '🔒 Режим блокировки: действие отключено', show_alert: true });
   }
   if (/^cp_/.test(q.data || '') && await onPostCallback(env, bot, q, id => isAdmin(env, id))) return;
   if (/^bc_/.test(q.data || '') && await onBroadcastCallback(env, bot, q, id => isAdmin(env, id))) return;
   if (/^sm_/.test(q.data || '') && await onSocialCallback(env, bot, q, id => isAdmin(env, id))) return; // social media: pause, TikTok mode, delete a post
+  if (/^ads_/.test(q.data || '') && await onAdsCallback(env, bot, q, id => isAdmin(env, id))) return; // paid ads: pause, notices
   const cm = /^cl_(acc|dec)_(\d+)$/.exec(q.data || '');
   if (cm) {
     const r = await respondClubInvite(env, bot, u, Number(cm[2]), cm[1] === 'acc');
@@ -521,6 +525,7 @@ async function onText(env, bot, msg) {
   const play = bot.playButton(t(lang, 'play'), env.APP_URL);
   const m = /^\/start(?:@\w+)?(?:\s+(\S+))?/.exec(text);
   await trackStart(env, u, m ? (m[1] || '') : '', isNew); // where new players come from; visitors of tracked links (growth.js)
+  if (m && /^fb_[a-z]{2,4}_/.test(m[1] || '')) { const ap = adStart(env, u, m[1], isNew); if (env.bg) env.bg(ap); else await ap; } // a player from our Meta ads: the click → Lead (ads.js)
   if (m) {
     const param = m[1] || '';
     const j = /^join_([A-Z0-9]{4,8})$/i.exec(param);
@@ -536,10 +541,10 @@ async function onText(env, bot, msg) {
     return bot.send(chat, t(lang, 'welcome'), play);
   }
   if (await onPrivacyText(env, bot, msg, lang)) return; // /privacy /mydata /deletedata /unsubscribe /subscribe /support (privacy.js)
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
   if (isAdmin(env, u.id)) {
     if (/^\/security(?:@\w+)?(?:\s|$)/.test(text)) return onSecurityCommand(env, bot, msg);
-    const power = /^\/(players|broadcast|social|grant|revoke|partner|partner_no|club_ok|club_no)(?:@\w+)?(?:\s|$)/.exec(text);
+    const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no)(?:@\w+)?(?:\s|$)/.exec(text);
     if (power || (msg.reply_to_message && !text.startsWith('/'))) { // admin powers: every use is audited; all off in lockdown
       secAudit(env, u.id, power ? (power[1] === 'players' ? 'players_export' : power[1]) : 'post_reply', { detail: text.split(/\s+/).slice(0, 2).join(' ').slice(0, 60) });
       if (await isLockdown(env)) return bot.send(chat, LOCKED_TEXT);
@@ -550,6 +555,7 @@ async function onText(env, bot, msg) {
     if (/^\/players(?:@\w+)?(?:\s|$)/.test(text)) return onPlayersCommand(env, bot, msg);
     if (/^\/broadcast(?:@\w+)?(?:\s|$)/.test(text)) return onBroadcastCommand(env, bot, msg);
     if (/^\/social(?:@\w+)?(?:\s|$)/.test(text)) return onSocialCommand(env, bot, msg); // Instagram, Facebook, TikTok (social.js)
+    if (/^\/ads(?:@\w+)?(?:\s|$)/.test(text)) return onAdsCommand(env, bot, msg); // paid ads in Meta: pause, notices, numbers (ads.js)
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
       const target = await findUser(env, g[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(g[2]) }));
@@ -1652,6 +1658,11 @@ export default {
         if (path === '/social/report') return json(await socialReport(env, b || {}));
         return json(await socialStats(env, b && b.days));
       }
+      if ((path === '/ads/creds' || path === '/ads/stats') && req.method === 'POST') { // the "Ads" workflow (ads/run.mjs)
+        if (!env.BOT_TOKEN || !(await keyGate(env, g, req.headers.get('X-Ads-Key'), await adsKey(env.BOT_TOKEN), 'ads'))) return json({ ok: false, error: 'forbidden' }, 403);
+        let b = {}; try { b = JSON.parse(await readBody(req)); } catch (e) {}
+        return json(path === '/ads/creds' ? await adsCreds(env, b || {}, await isLockdown(env)) : await adsStats(env, b || {}));
+      }
       if ((path === '/sec/report' || path === '/sec/act') && req.method === 'POST') { // the "Security" workflow (on-call agent): no personal data in the report
         if (!env.BOT_TOKEN || !(await keyGate(env, g, req.headers.get('X-Sec-Key'), await secKey(env.BOT_TOKEN), 'security'))) return json({ ok: false, error: 'forbidden' }, 403);
         let b = {}; try { b = JSON.parse(await readBody(req)); } catch (e) {}
@@ -1735,6 +1746,7 @@ export default {
           case '/api/table/actions': return wrap(apiTableActions(env, bot, body));
           case '/api/table/chat/send': return wrap(apiTableChatSend(env, body));
           case '/api/table/invite/respond': return wrap(apiTableInviteRespond(env, bot, body));
+          case '/api/click': return wrap(apiAdClick(env, req, body).then(r => json(r.body, r.status))); // the ad landing page: no login (ads.js)
           default: return wrap(Promise.resolve(json({ ok: false, error: 'not_found' }, 404)));
         }
       }
@@ -1752,6 +1764,7 @@ export default {
     if (!minute && (!event || !event.scheduledTime || new Date(event.scheduledTime).getUTCMinutes() % 10 === 0)) ctx.waitUntil(buildLeaderboard(env).catch(e => console.error('leaderboard', e && e.stack || e))); // the rating every 10 minutes
     if (!minute) ctx.waitUntil(runGrowthCron(env, new Bot(env)).catch(e => console.error('growth cron', e && e.stack || e))); // new players: notice to admins, daily digest with the table
     if (!minute) ctx.waitUntil(runSocialCron(env, new Bot(env)).catch(e => console.error('social cron', e && e.stack || e))); // social media tokens: twice a day
+    if (!minute) ctx.waitUntil(runAdsCron(env).catch(e => console.error('ads cron', e && e.stack || e))); // ad clicks: Meta match data erased after 7 days
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
     if (minute || !event || !event.cron) ctx.waitUntil(runBroadcastCron(env, new Bot(env)).catch(e => console.error('broadcast cron', e && e.stack || e))); // /broadcast: the next portion
     if (minute || !event || !event.cron) ctx.waitUntil(runSecurityWatch(env, new Bot(env)).catch(e => console.error('security watch', e && e.stack || e))); // incidents → response → alerts (security.js)

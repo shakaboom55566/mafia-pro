@@ -1,0 +1,34 @@
+{
+  "_": "Paid ads in Instagram + Facebook (ads/AGENT.md). The hourly check applies these numbers; change them here (budget, days, target) and push.",
+  "campaigns": [
+    {
+      "tag": "dnp",
+      "enabled": true,
+      "name": "Mafia Pro · Дніпро",
+      "city": "Днепр",
+      "days": 15,
+      "weekly_total_usd": 100,
+      "vat": 0.2,
+      "geo": { "lat": 48.4647, "lng": 35.0462, "radius_km": 15 },
+      "ages": [18, 45],
+      "hours": [9, 24],
+      "landing": "https://mafiapro.app/uk/dnipro/",
+      "active_ads": 3,
+      "max_gemini_usd_per_day": 4
+    }
+  ],
+  "rules": {
+    "day_hours": 6,
+    "min_impressions": 500,
+    "dead_hours": 12,
+    "dead_impressions": 250,
+    "hook_floor": 0.2,
+    "ctr_floor": 0.007,
+    "cost_ratio": 1.5,
+    "max_swaps_per_check": 1,
+    "max_launches_per_day": 4,
+    "min_live": 2
+  },
+  "require_spend_cap": true,
+  "report": { "weekday": "Mon", "hour": 10 }
+}
