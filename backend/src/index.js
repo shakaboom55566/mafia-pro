@@ -19,6 +19,8 @@
    - POST /api/profile         a player's public game profile (rating, per-role stats, recent games, worn skins)
    - POST /api/skin/equip      v56: put a card skin on / take it off (role, skin | null; the player must own it)
    - POST /api/skins           v56: the skins several players wear (ids) — the host's table shows each player's own card face
+   - POST /api/skin/buy        v63: an Epic skin for emeralds (emeralds.js); /api/emeralds — the balance, the ledger, the packs
+   - POST /api/tournament      v63: the weekly tournament (tournament.js): state, standings, my table; /join — register; /admin — format, draw, hosts, close
    - POST /api/players         everyone who opened the bot: name, @username, presence, rating (paged, optional prefix filter)
    - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
    - POST /api/referrals       my referral link, invited / qualified counts, milestones, credits
@@ -58,10 +60,12 @@ import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, r
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
-import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName } from './skins.js';
+import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts } from './skins.js';
+import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, PACKS as EM_PACKS } from './emeralds.js';
+import { tournamentView, joinTournament, openTournament, drawRound, setTableHost, closeTournament, setTournament, creditGame, borrowsSkins, runTournamentCron, tournamentStatusText, currentTournament, takeTable } from './tournament.js';
 
 const VERSION = '0.1.0';
-const KINDS = ['role', 'scenario', 'pack'];
+const KINDS = ['role', 'scenario', 'pack', 'emeralds'];
 const ID_RE = /^[a-z][a-z0-9_]{1,31}$/;
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const now = () => Math.floor(Date.now() / 1000);
@@ -557,10 +561,10 @@ async function onText(env, bot, msg) {
     return bot.send(chat, t(lang, 'welcome'), play);
   }
   if (await onPrivacyText(env, bot, msg, lang)) return; // /privacy /mydata /deletedata /unsubscribe /subscribe /support (privacy.js)
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n' + t(lang, 'adminHelpEmeralds') + '\n' + t(lang, 'adminHelpTrn') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
   if (isAdmin(env, u.id)) {
     if (/^\/security(?:@\w+)?(?:\s|$)/.test(text)) return onSecurityCommand(env, bot, msg);
-    const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no)(?:@\w+)?(?:\s|$)/.exec(text);
+    const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no|emeralds)(?:@\w+)?(?:\s|$)/.exec(text);
     if (power || (msg.reply_to_message && !text.startsWith('/'))) { // admin powers: every use is audited; all off in lockdown
       secAudit(env, u.id, power ? (power[1] === 'players' ? 'players_export' : power[1]) : 'post_reply', { detail: text.split(/\s+/).slice(0, 2).join(' ').slice(0, 60) });
       if (await isLockdown(env)) return bot.send(chat, LOCKED_TEXT);
@@ -572,6 +576,8 @@ async function onText(env, bot, msg) {
     if (/^\/broadcast(?:@\w+)?(?:\s|$)/.test(text)) return onBroadcastCommand(env, bot, msg);
     if (/^\/social(?:@\w+)?(?:\s|$)/.test(text)) return onSocialCommand(env, bot, msg); // Instagram, Facebook, TikTok (social.js)
     if (/^\/ads(?:@\w+)?(?:\s|$)/.test(text)) return onAdsCommand(env, bot, msg); // paid ads in Meta: pause, notices, numbers (ads.js)
+    if (/^\/emeralds(?:@\w+)?(?:\s|$)/.test(text)) return onEmeraldsCommand(env, bot, msg); // v63: a player's emeralds
+    if (/^\/tournament(?:@\w+)?(?:\s|$)/.test(text)) return bot.send(chat, await tournamentStatusText(env)); // v63: the week's tournament
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
       const target = await findUser(env, g[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(g[2]) }));
@@ -621,11 +627,20 @@ async function onPreCheckout(env, bot, q) {
 }
 async function onPaid(env, bot, msg) {
   const sp = msg.successful_payment; const u = msg.from || {}; const lang = pickLang(u.language_code);
+  const pend = await env.DB.prepare('SELECT id, tg_id, kind, item FROM purchases WHERE payload = ?1 AND status = ?2').bind(sp.invoice_payload || '', 'pending').first();
   const r = await env.DB.prepare('UPDATE purchases SET status = ?1, charge_id = ?2, paid_at = ?3 WHERE payload = ?4 AND status = ?5')
     .bind('paid', sp.telegram_payment_charge_id || null, now(), sp.invoice_payload || '', 'pending').run();
   if (!(r.meta && r.meta.changes > 0)) { // unknown payload: still record it so nothing paid is ever lost
     await env.DB.prepare('INSERT OR IGNORE INTO purchases (tg_id, kind, item, stars, payload, status, charge_id, created_at, paid_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)')
       .bind(u.id, 'unknown', 'unknown', Number(sp.total_amount) || 0, sp.invoice_payload || ('orphan_' + randomId(6)), 'paid', sp.telegram_payment_charge_id || null, now()).run();
+  } else if (pend && pend.kind === 'emeralds' && isPack(pend.item)) { // v63: the emeralds land on the account (this row just turned paid — a repeated update cannot credit twice)
+    const pk = PACK[pend.item]; const ts = now();
+    const earlier = await env.DB.prepare("SELECT COUNT(*) AS n FROM purchases WHERE tg_id = ?1 AND kind = 'emeralds' AND item = ?2 AND status = 'paid' AND id != ?3").bind(pend.tg_id, pend.item, pend.id).first('n');
+    const g = packGrant(pk, !earlier);
+    const stmts = changeStmts(env, pend.tg_id, g.emeralds, 'pack', pend.item, ts); if (g.bonus) stmts.push(...changeStmts(env, pend.tg_id, g.bonus, 'bonus', pend.item, ts));
+    await env.DB.batch(stmts);
+    const balance = await balanceOf(env, pend.tg_id);
+    return bot.send(msg.chat.id, t(lang, 'emPaid', { n: g.total, bonus: g.bonus ? t(lang, 'emBonus', { b: g.bonus }) : '', balance }), bot.playButton(t(lang, 'play'), env.APP_URL));
   }
   return bot.send(msg.chat.id, t(lang, 'paid'), bot.playButton(t(lang, 'play'), env.APP_URL));
 }
@@ -648,8 +663,11 @@ async function apiMe(env, bot, body) {
   if (typeof body.city === 'string') { const city = body.city.trim().slice(0, 48); await env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2, updated_at = ?3').bind(u.id, city, now()).run(); }
   const table = await tableOf(env, u.id); const invites = await pendingInvites(env, u.id);
   const sz = seasonNow(env); const peak = await peakOf(env, v.user.id, sz, rating);
-  const skins = { owned: await ownedSkins(env, u.id, isAdmin(env, u.id)), equipped: await equippedSkins(env, u.id) }; // v56
-  return json({ ok: true, season: seasonInfo(sz), peak, skins, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  const borrow = await borrowsSkins(env, u.id); // v63: a tournament participant wears any Epic skin while the games are on
+  const skins = { owned: await ownedSkins(env, u.id, isAdmin(env, u.id), borrow ? epicSkinIds() : []), equipped: await equippedSkins(env, u.id), borrowed: borrow ? borrow.until : 0 }; // v56
+  const emeralds = await emeraldsInfo(env, u.id); // v63
+  const tournament = await tournamentBrief(env, u.id);
+  return json({ ok: true, season: seasonInfo(sz), peak, skins, emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -758,11 +776,86 @@ async function profileData(env, id) {
     rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id) };
 }
 /* ---------- v56 card skins (skins.js) ---------- */
+const epicSkinIds = () => Object.keys(SKINS).filter(id => SKINS[id].rarity === 'epic');
 async function apiSkinEquip(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
-  const r = await equipSkin(env, v.user.id, body.role, body.skin == null ? null : String(body.skin), isAdmin(env, v.user.id), now());
+  const borrow = await borrowsSkins(env, v.user.id); // v63: the tournament's weekend — any Epic skin
+  const r = await equipSkin(env, v.user.id, body.role, body.skin == null ? null : String(body.skin), isAdmin(env, v.user.id), now(), borrow ? epicSkinIds() : []);
   if (!r.ok) return json(r, 400);
   return json({ ok: true, equipped: await equippedSkins(env, v.user.id) });
+}
+/* ---------- v63 emeralds: the balance and the ledger; an Epic skin for emeralds ---------- */
+async function apiEmeralds(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  return json(Object.assign({ ok: true }, await emeraldsInfo(env, v.user.id), { ledger: await ledgerOf(env, v.user.id, 30), packs: EM_PACKS }));
+}
+async function apiSkinBuy(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const skin = String(body.skin || ''); if (!isSkin(skin)) return json({ ok: false, error: 'bad_skin' }, 400);
+  if (SKINS[skin].rarity !== 'epic' || SKINS[skin].season) return json({ ok: false, error: 'not_for_sale' }, 400); // the season's reward is earned, not bought
+  const admin = isAdmin(env, v.user.id);
+  const own = (await ownedSkins(env, v.user.id, false)).includes(skin); if (own || admin) return json({ ok: true, owned: true, balance: await balanceOf(env, v.user.id), skins: { owned: await ownedSkins(env, v.user.id, admin, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) } });
+  const price = epicPrice(env); const balance = await balanceOf(env, v.user.id);
+  if (balance < price) return json({ ok: false, error: 'not_enough', price, balance, short: price - balance }, 402);
+  const ts = now();
+  await env.DB.batch([...changeStmts(env, v.user.id, -price, 'skin', skin, ts), ...buySkinStmts(env, v.user.id, skin, 'em_' + randomId(10), ts)]);
+  secAudit(env, v.user.id, 'skin_buy', { detail: skin });
+  return json({ ok: true, bought: skin, price, balance: await balanceOf(env, v.user.id), skins: { owned: await ownedSkins(env, v.user.id, false, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) } });
+}
+/* ---------- v63 the weekly tournament (tournament.js) ---------- */
+/* a line for /api/me and the home screen: the tournament's state and whether I am in */
+async function tournamentBrief(env, tgId) {
+  const tr = await currentTournament(env); if (!tr || !['reg', 'live'].includes(tr.status)) return null;
+  const me = await env.DB.prepare('SELECT role, status FROM tournament_players WHERE tid = ?1 AND tg_id = ?2').bind(tr.id, tgId).first();
+  const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM tournament_players WHERE tid = ?1 AND role = 'player' AND status = 'in'").bind(tr.id).first('n');
+  const ms = env.TRN_NOW_MS ? Number(env.TRN_NOW_MS) : Date.now();
+  return { week: tr.week, status: tr.status, phase: ms >= tr.closes_at * 1000 ? 'over' : ms >= tr.games_at * 1000 ? 'games' : 'reg', mode: tr.mode, scenario: tr.scenario, n: tr.n, fund: tr.fund, round: tr.round || 0, players: n || 0, gamesAt: tr.games_at * 1000, closesAt: tr.closes_at * 1000, me: me ? { in: me.status === 'in', role: me.role } : null };
+}
+async function apiTournament(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  return json(await tournamentView(env, v.user.id, isAdmin(env, v.user.id)));
+}
+async function apiTournamentJoin(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const tr = await currentTournament(env); const r = await joinTournament(env, tr, v.user, body);
+  if (!r.ok) return json(r, 409);
+  return json(Object.assign(r, await tournamentView(env, v.user.id, isAdmin(env, v.user.id))));
+}
+/* the host of a tournament table opens it in his app: the table becomes his newest open lobby (then /api/lobby returns it) */
+async function apiTournamentTable(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const r = await takeTable(env, await currentTournament(env), v.user.id);
+  return json(r, r.ok ? 200 : 409);
+}
+async function apiTournamentAdmin(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!isAdmin(env, v.user.id)) { secEvent(env, 'admin_denied', 'medium', { tg: v.user.id, path: 'tournament' }); return json({ ok: false, error: 'forbidden' }, 403); }
+  const action = String(body.action || '');
+  secAudit(env, v.user.id, 'tournament', { detail: action }); if (await isLockdown(env)) return json({ ok: false, error: 'lockdown' }, 423);
+  let tr = await currentTournament(env); let r = { ok: true };
+  if (action === 'open') { tr = await openTournament(env, bot, body); r = { ok: true, week: tr.week }; }
+  else if (action === 'settings') r = await setTournament(env, tr, body);
+  else if (action === 'draw') r = await drawRound(env, bot, tr, { final: !!body.final });
+  else if (action === 'host') r = tr ? await setTableHost(env, bot, tr, Number(body.round) || tr.round, Number(body.idx) || 0, Number(body.tgId) || 0) : { ok: false, error: 'closed' };
+  else if (action === 'close') r = await closeTournament(env, bot, tr, displayName(v.user));
+  else if (action === 'kick') { if (!tr) r = { ok: false, error: 'closed' }; else { await env.DB.prepare("UPDATE tournament_players SET status = 'out', updated_at = ?3 WHERE tid = ?1 AND tg_id = ?2").bind(tr.id, Number(body.tgId) || 0, now()).run(); r = { ok: true }; } }
+  else return json({ ok: false, error: 'bad_action' }, 400);
+  if (!r.ok) return json(r, 409);
+  return json(Object.assign(r, await tournamentView(env, v.user.id, true)));
+}
+/* /emeralds in the bot (admins): a balance, or a change with a signed number */
+async function onEmeraldsCommand(env, bot, msg) {
+  const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id;
+  const m = /^\/emeralds(?:@\w+)?\s+(\S+)(?:\s+([+-]?\d{1,7}))?/.exec(msg.text.trim());
+  if (!m) return bot.send(chat, t(lang, 'adminHelpEmeralds'));
+  const target = await findUser(env, m[1]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(m[1]) }));
+  if (m[2] == null) return bot.send(chat, `💎 ${esc(rowName(target) || String(target.tg_id))}${target.username ? ' @' + esc(target.username) : ''}: <b>${await balanceOf(env, target.tg_id)}</b> 💎`);
+  const delta = Number(m[2]); if (!delta) return bot.send(chat, t(lang, 'adminHelpEmeralds'));
+  const bal = await balanceOf(env, target.tg_id); if (bal + delta < 0) return bot.send(chat, `На счету только ${bal} 💎 — списать ${-delta} нельзя.`);
+  await env.DB.batch(changeStmts(env, target.tg_id, delta, 'admin', 'admin:' + u.id, now()));
+  const balance = await balanceOf(env, target.tg_id);
+  try { await bot.send(target.tg_id, t(pickLang(target.lang), 'emAdmin', { delta: (delta > 0 ? '+' : '') + delta, balance }), bot.playButton(t(pickLang(target.lang), 'play'), env.APP_URL)); } catch (e) {}
+  return bot.send(chat, `💎 ${esc(rowName(target) || String(target.tg_id))}: ${delta > 0 ? '+' : ''}${delta} → <b>${balance}</b> 💎`);
 }
 async function apiSkinsOf(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -866,6 +959,16 @@ async function apiInvoice(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const kind = String(body.kind || ''), item = String(body.id || '');
   if (!KINDS.includes(kind) || !ID_RE.test(item)) return json({ ok: false, error: 'bad_item' }, 400);
+  if (kind === 'emeralds') { // v63: a pack of emeralds — bought any number of times; the first purchase of a pack carries its bonus
+    if (!isPack(item)) return json({ ok: false, error: 'bad_item' }, 400);
+    const pk = PACK[item]; const first = !(await boughtPacks(env, v.user.id)).includes(item); const g = packGrant(pk, first);
+    const title = String(body.title || `${pk.emeralds} 💎`).slice(0, 32), description = String(body.description || 'Mafia Pro').slice(0, 255) || 'Mafia Pro';
+    const payload = 'p_' + randomId(12);
+    await env.DB.prepare('INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)').bind(v.user.id, kind, item, pk.stars, payload, 'pending', now()).run();
+    const r = await bot.call('createInvoiceLink', { title, description, payload, currency: 'XTR', prices: [{ label: title, amount: pk.stars }] });
+    if (!r || !r.ok) return json({ ok: false, error: 'telegram', detail: r && r.description }, 502);
+    return json({ ok: true, link: r.result, stars: pk.stars, payload, emeralds: g.emeralds, bonus: g.bonus, first });
+  }
   const owned = await ownedFor(env, v.user.id);
   if ((kind === 'role' && owned.roles.includes(item)) || (kind === 'scenario' && owned.scenarios.includes(item)) || (kind === 'pack' && owned.packs.includes(item))) return json({ ok: true, owned: true });
   if (body.useCredit && (kind === 'role' || kind === 'scenario')) { // a free card / scenario earned through referrals
@@ -923,9 +1026,11 @@ async function apiResult(env, bot, body) {
       try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); }
     }
   }
+  let tournament = null; // v63: a game at a tournament table (the host's own, by its code) counts in the standings — once per table
+  if (ins.meta && ins.meta.changes > 0 && !flood && code) { try { tournament = await creditGame(env, code, hostId, players); } catch (e) { console.error('trn credit', e); } }
   const streaks = {};
   for (const p of players) { const tgId = Number(p.tgId); if (!tgId) continue; if (!ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); const side = String(p.side || ''); if (side) streaks[tgId] = { side, n: (await streaksOf(env, tgId))[side] || 0 }; }
-  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp, season: seasonInfo(sz) });
+  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp, season: seasonInfo(sz), tournament });
 }
 /* v54: the bot congratulates on a rank reached for the first time (rank_best keeps the highest one announced: going down and back up
    near a threshold does not repeat the message) and on a new host badge */
@@ -1848,6 +1953,12 @@ export default {
           case '/api/profile': return wrap(apiProfile(env, body));
           case '/api/skin/equip': return wrap(apiSkinEquip(env, body));
           case '/api/skins': return wrap(apiSkinsOf(env, body));
+          case '/api/skin/buy': return wrap(apiSkinBuy(env, bot, body)); // v63: an Epic skin for emeralds
+          case '/api/emeralds': return wrap(apiEmeralds(env, body));
+          case '/api/tournament': return wrap(apiTournament(env, body));
+          case '/api/tournament/join': return wrap(apiTournamentJoin(env, bot, body));
+          case '/api/tournament/table': return wrap(apiTournamentTable(env, body));
+          case '/api/tournament/admin': return wrap(apiTournamentAdmin(env, bot, body));
           case '/api/players': return wrap(apiPlayers(env, body));
           case '/api/admin/grant': return wrap(apiAdmin(env, bot, body, 'grant'));
           case '/api/admin/revoke': return wrap(apiAdmin(env, bot, body, 'revoke'));
@@ -1914,6 +2025,7 @@ export default {
     if (!minute) ctx.waitUntil(runSocialCron(env, new Bot(env)).catch(e => console.error('social cron', e && e.stack || e))); // social media tokens: twice a day
     if (!minute) ctx.waitUntil(runAdsCron(env).catch(e => console.error('ads cron', e && e.stack || e))); // ad clicks: Meta match data erased after 7 days
     if (!minute) ctx.waitUntil(runSeasonCron(env, new Bot(env)).catch(e => console.error('season cron', e && e.stack || e))); // v55: a finished season → results, ratings back to 1000
+    if (!minute) ctx.waitUntil(runTournamentCron(env, new Bot(env)).catch(e => console.error('tournament cron', e && e.stack || e))); // v63: Monday 12:00 registration opens, Saturday the games begin, Monday 00:00 prizes
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
     if (minute || !event || !event.cron) ctx.waitUntil(runBroadcastCron(env, new Bot(env)).catch(e => console.error('broadcast cron', e && e.stack || e))); // /broadcast: the next portion
     if (minute || !event || !event.cron) ctx.waitUntil(runSecurityWatch(env, new Bot(env)).catch(e => console.error('security watch', e && e.stack || e))); // incidents → response → alerts (security.js)

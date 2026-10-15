@@ -279,3 +279,52 @@ Object.assign(TEXTS.uk, { seasonLegendSkin: '👑 <b>Сезон {n} заверш
 Object.assign(TEXTS.en, { seasonLegendSkin: '👑 <b>Season {n} is over — you are a Legend!</b>\nYour rating at the end of the season: {rating}. Your reward is the Epic skin <b>“{skin}”</b>: it is already on your Don card, and everyone at the table sees it. Take it off or put it back in Cards → Skins.\nEveryone\'s rating is back to 1000, the new season starts on {next}.' });
 Object.assign(TEXTS.pl, { seasonLegendSkin: '👑 <b>Sezon {n} zakończony — jesteś Legendą!</b>\nTwój ranking na koniec sezonu: {rating}. Twoja nagroda to skórka Epic <b>„{skin}”</b>: jest już założona na twoją kartę Dona i widzą ją wszyscy przy stole. Zdjąć lub założyć ponownie — „Karty” → „Skórki”.\nRanking wszystkich graczy wraca do 1000, nowy sezon startuje {next}.' });
 Object.assign(TEXTS.hy, { seasonLegendSkin: '👑 <b>Սեզոն {n}-ն ավարտվեց․ դուք Լեգենդ եք։</b>\nՁեր վարկանիշը սեզոնի վերջում՝ {rating}։ Ձեր պարգևը Epic սքինն է՝ <b>«{skin}»</b>․ այն արդեն հագցված է ձեր Դոնի քարտին, և այն տեսնում են սեղանի բոլոր խաղացողները։ Հանել կամ նորից հագցնել՝ «Քարտեր» → «Սքիններ»։\nԲոլոր խաղացողների վարկանիշը վերադարձել է 1000-ի, նոր սեզոնը սկսվում է {next}-ին։' });
+
+/* v63 emeralds and the weekly tournament (emeralds.js, tournament.js) */
+Object.assign(TEXTS.ru, {
+  emPaid: '💎 Изумруды зачислены: <b>+{n}</b>{bonus}. На счету — <b>{balance}</b> 💎. Тратьте на Epic-скины: «Карты» → «Скины».', emBonus: ' (из них бонус за первую покупку пака: +{b})',
+  emAdmin: '💎 Ваш счёт изумрудов изменён администратором: {delta}. На счету — <b>{balance}</b> 💎.',
+  adminHelpEmeralds: '/emeralds @user +500 — начислить (или −500 списать) изумруды, /emeralds @user — баланс', adminHelpTrn: '/tournament — турнир недели: статус и таблица (управление — в приложении)',
+  trnMode_online: 'онлайн', trnMode_offline: 'офлайн', trnScen_classic: 'Классическая мафия', trnScen_preset: 'Ролевая мафия', trnScen_intro_first: 'Первый вечер', trnScen_intro_detective: 'Следствие', trnScen_intro_guard: 'Под охраной', trnScen_intro_trumps: 'Козыри мафии', trnScen_intro_third: 'Третья сила',
+  trnOpened: '🏆 Открыта регистрация на турнир недели: игры в субботу {sat} и воскресенье {sun}. Формат сейчас: {mode}, {scen}, стол {n}, фонд {fund} 💎 — поменять можно в приложении: Турнир → панель администратора.',
+  trnStart: '🏆 <b>Турнир выходных начинается!</b> Игроков: {n}, призовой фонд — {fund} 💎. Когда ведущий рассадит раунд, придёт сообщение с вашим столом. Все Epic-скины на эти два дня открыты — наденьте любой.', trnStartHost: '🎩 <b>Турнир выходных начинается!</b> Игроков: {n}. Вы записаны ведущим: когда администратор рассадит раунд, вам придёт стол с кодом.', trnStartAdmin: '🏆 Сегодня турнир: игроков {n}, ведущих {h}. Рассадить первый раунд — в приложении: Турнир → панель администратора.', trnBtn: '🏆 Турнир',
+  trnSeat: '🏆 <b>Раунд {round}, стол {table}, место {seat}</b>\nВедущий: {host} · код стола {code} · {mode}.', trnNoHostYet: 'назначается', trnBench: 'Раунд {round}: мест за столами не хватило, этот раунд вы пропускаете — в следующем сядете первым.',
+  trnHostTable: '🎩 <b>Раунд {round}: вы ведёте стол {table}</b> — {n} игроков, {scen}, {mode}. Код стола {code}. Откройте приложение → Турнир → «Открыть стол»: игроки уже рассажены.',
+  trnPrize: '🏆 <b>Турнир недели завершён: вы на {place}-м месте из {n}</b> ({points} очков). Приз — <b>{prize}</b> 💎, уже на счету. Потратить: «Карты» → «Скины».'
+});
+Object.assign(TEXTS.uk, {
+  emPaid: '💎 Смарагди зараховано: <b>+{n}</b>{bonus}. На рахунку — <b>{balance}</b> 💎. Витрачайте на Epic-скіни: «Карти» → «Скіни».', emBonus: ' (з них бонус за першу покупку паку: +{b})',
+  emAdmin: '💎 Ваш рахунок смарагдів змінив адміністратор: {delta}. На рахунку — <b>{balance}</b> 💎.',
+  trnMode_online: 'онлайн', trnMode_offline: 'офлайн', trnScen_classic: 'Класична мафія', trnScen_preset: 'Рольова мафія', trnScen_intro_first: 'Перший вечір', trnScen_intro_detective: 'Слідство', trnScen_intro_guard: 'Під охороною', trnScen_intro_trumps: 'Козирі мафії', trnScen_intro_third: 'Третя сила',
+  trnStart: '🏆 <b>Турнір вихідних починається!</b> Гравців: {n}, призовий фонд — {fund} 💎. Коли ведучий розсадить раунд, прийде повідомлення з вашим столом. Усі Epic-скіни на ці два дні відкриті — вдягніть будь-який.', trnStartHost: '🎩 <b>Турнір вихідних починається!</b> Гравців: {n}. Ви записані ведучим: коли адміністратор розсадить раунд, вам прийде стіл із кодом.', trnBtn: '🏆 Турнір',
+  trnSeat: '🏆 <b>Раунд {round}, стіл {table}, місце {seat}</b>\nВедучий: {host} · код столу {code} · {mode}.', trnNoHostYet: 'призначається', trnBench: 'Раунд {round}: місць за столами не вистачило, цей раунд ви пропускаєте — у наступному сядете першим.',
+  trnHostTable: '🎩 <b>Раунд {round}: ви ведете стіл {table}</b> — {n} гравців, {scen}, {mode}. Код столу {code}. Відкрийте застосунок → Турнір → «Відкрити стіл»: гравці вже розсаджені.',
+  trnPrize: '🏆 <b>Турнір тижня завершено: ви на {place}-му місці з {n}</b> ({points} очок). Приз — <b>{prize}</b> 💎, уже на рахунку. Витратити: «Карти» → «Скіни».'
+});
+Object.assign(TEXTS.en, {
+  emPaid: '💎 Emeralds added: <b>+{n}</b>{bonus}. Your balance: <b>{balance}</b> 💎. Spend them on Epic skins: Cards → Skins.', emBonus: ' (including the first-purchase bonus of this pack: +{b})',
+  emAdmin: '💎 An admin changed your emerald balance: {delta}. Your balance: <b>{balance}</b> 💎.',
+  trnMode_online: 'online', trnMode_offline: 'offline', trnScen_classic: 'Classic mafia', trnScen_preset: 'Role-play mafia', trnScen_intro_first: 'First Evening', trnScen_intro_detective: 'Investigation', trnScen_intro_guard: 'Under Guard', trnScen_intro_trumps: 'Mafia Trumps', trnScen_intro_third: 'Third Force',
+  trnStart: '🏆 <b>The weekend tournament begins!</b> Players: {n}, prize fund: {fund} 💎. When the host seats a round, you will get a message with your table. Every Epic skin is open for these two days — wear any.', trnStartHost: '🎩 <b>The weekend tournament begins!</b> Players: {n}. You are signed up as a host: when the admin seats a round, you will get a table with its code.', trnBtn: '🏆 Tournament',
+  trnSeat: '🏆 <b>Round {round}, table {table}, seat {seat}</b>\nHost: {host} · table code {code} · {mode}.', trnNoHostYet: 'to be assigned', trnBench: 'Round {round}: not enough seats — you sit this round out and are seated first in the next one.',
+  trnHostTable: '🎩 <b>Round {round}: you host table {table}</b> — {n} players, {scen}, {mode}. Table code {code}. Open the app → Tournament → “Open the table”: the players are already seated.',
+  trnPrize: '🏆 <b>The weekly tournament is over: you finished {place} of {n}</b> ({points} points). Your prize: <b>{prize}</b> 💎, already on your balance. Spend it: Cards → Skins.'
+});
+Object.assign(TEXTS.pl, {
+  emPaid: '💎 Szmaragdy dodane: <b>+{n}</b>{bonus}. Saldo: <b>{balance}</b> 💎. Wydaj je na skórki Epic: Karty → Skórki.', emBonus: ' (w tym bonus za pierwszy zakup tego pakietu: +{b})',
+  emAdmin: '💎 Administrator zmienił Twoje saldo szmaragdów: {delta}. Saldo: <b>{balance}</b> 💎.',
+  trnMode_online: 'online', trnMode_offline: 'offline', trnScen_classic: 'Mafia klasyczna', trnScen_preset: 'Mafia z rolami', trnScen_intro_first: 'Pierwszy wieczór', trnScen_intro_detective: 'Śledztwo', trnScen_intro_guard: 'Pod ochroną', trnScen_intro_trumps: 'Atuty mafii', trnScen_intro_third: 'Trzecia siła',
+  trnStart: '🏆 <b>Weekendowy turniej się zaczyna!</b> Graczy: {n}, pula nagród: {fund} 💎. Gdy prowadzący rozsadzi rundę, dostaniesz wiadomość ze swoim stołem. Wszystkie skórki Epic są na te dwa dni otwarte — załóż dowolną.', trnStartHost: '🎩 <b>Weekendowy turniej się zaczyna!</b> Graczy: {n}. Jesteś zapisany jako prowadzący: gdy administrator rozsadzi rundę, dostaniesz stół z kodem.', trnBtn: '🏆 Turniej',
+  trnSeat: '🏆 <b>Runda {round}, stół {table}, miejsce {seat}</b>\nProwadzący: {host} · kod stołu {code} · {mode}.', trnNoHostYet: 'w trakcie przydzielania', trnBench: 'Runda {round}: zabrakło miejsc przy stołach — tę rundę pauzujesz, w następnej siadasz pierwszy.',
+  trnHostTable: '🎩 <b>Runda {round}: prowadzisz stół {table}</b> — {n} graczy, {scen}, {mode}. Kod stołu {code}. Otwórz aplikację → Turniej → „Otwórz stół”: gracze już siedzą.',
+  trnPrize: '🏆 <b>Turniej tygodnia zakończony: zająłeś(-aś) {place}. miejsce z {n}</b> ({points} pkt). Nagroda: <b>{prize}</b> 💎, już na saldzie. Wydaj: Karty → Skórki.'
+});
+Object.assign(TEXTS.hy, {
+  emPaid: '💎 Զմրուխտները հաշվեգրվել են՝ <b>+{n}</b>{bonus}։ Հաշվին՝ <b>{balance}</b> 💎։ Ծախսեք Epic սքինների վրա՝ «Քարտեր» → «Սքիններ»։', emBonus: ' (այդ թվում՝ փաթեթի առաջին գնման բոնուս՝ +{b})',
+  emAdmin: '💎 Ադմինիստրատորը փոխել է ձեր զմրուխտների հաշիվը՝ {delta}։ Հաշվին՝ <b>{balance}</b> 💎։',
+  trnMode_online: 'առցանց', trnMode_offline: 'օֆլայն', trnScen_classic: 'Դասական մաֆիա', trnScen_preset: 'Դերային մաֆիա', trnScen_intro_first: 'Առաջին երեկո', trnScen_intro_detective: 'Հետաքննություն', trnScen_intro_guard: 'Պահպանության տակ', trnScen_intro_trumps: 'Մաֆիայի հաղթաթղթեր', trnScen_intro_third: 'Երրորդ ուժ',
+  trnStart: '🏆 <b>Հանգստյան օրերի մրցաշարը սկսվում է։</b> Խաղացողներ՝ {n}, մրցանակային ֆոնդ՝ {fund} 💎։ Երբ վարողը նստեցնի ռաունդը, կստանաք ձեր սեղանի հաղորդագրությունը։ Բոլոր Epic սքինները այս երկու օրը բաց են՝ հագցրեք ցանկացածը։', trnStartHost: '🎩 <b>Հանգստյան օրերի մրցաշարը սկսվում է։</b> Խաղացողներ՝ {n}։ Դուք գրանցված եք որպես վարող․ երբ ադմինիստրատորը նստեցնի ռաունդը, կստանաք սեղան՝ կոդով։', trnBtn: '🏆 Մրցաշար',
+  trnSeat: '🏆 <b>Ռաունդ {round}, սեղան {table}, տեղ {seat}</b>\nՎարող՝ {host} · սեղանի կոդ {code} · {mode}։', trnNoHostYet: 'նշանակվում է', trnBench: 'Ռաունդ {round}․ սեղանների տեղերը չբավականացրին, այս ռաունդը բաց եք թողնում․ հաջորդում առաջինը կնստեք։',
+  trnHostTable: '🎩 <b>Ռաունդ {round}․ դուք վարում եք {table} սեղանը</b>՝ {n} խաղացող, {scen}, {mode}։ Սեղանի կոդ՝ {code}։ Բացեք հավելվածը → Մրցաշար → «Բացել սեղանը»․ խաղացողներն արդեն նստած են։',
+  trnPrize: '🏆 <b>Շաբաթվա մրցաշարն ավարտվեց․ դուք {place}-րդն եք {n}-ից</b> ({points} միավոր)։ Մրցանակը՝ <b>{prize}</b> 💎, արդեն հաշվին է։ Ծախսել՝ «Քարտեր» → «Սքիններ»։'
+});

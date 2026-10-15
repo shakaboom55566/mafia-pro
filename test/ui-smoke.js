@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -872,7 +872,7 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   A['skin-filter'](el('skin-filter', { id: 'black' })); A['skin-rar'](el('skin-rar', { id: 'epic' })); h = app.innerHTML; if (h.includes('data-id="lilac_doctor"') || !h.includes('data-id="orchid_surgeon"')) F('v60: rarity and team filters work together');
   A['skin-rar'](el('skin-rar', { id: 'nonsense' })); if (S.ui.skinRar !== 'all') F('v60: an unknown rarity means all');
   A['skin-filter'](el('skin-filter', { id: 'all' })); A['skin-sheet'](el('skin-sheet', { id: 'lilac_doctor' })); check('v57 skin sheet'); h = app.innerHTML;
-  if (!h.includes('sk-sheet') || !h.includes('lilac-doctor.webp') || !h.includes(u.skHowSoon) || h.includes('data-a="skin-wear"') || !h.includes(E('SKIN.lilac_doctor.name'))) F('v57: the sheet of a skin not owned: card, story, coming soon, no button');
+  if (!h.includes('sk-sheet') || !h.includes('lilac-doctor.webp') || !h.includes(X.tt(u.emSkinHow, { n: '7 500' })) || h.includes('data-a="skin-wear"') || !h.includes('data-kind="emeralds"') || !h.includes(E('SKIN.lilac_doctor.name'))) F('v57/v63: the sheet of a skin not owned: card, story, the price in emeralds, a buy button, no wear button');
   S.ui.sheet = null; S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: SK.map(x => x.id), equipped: { doctor: 'lilac_doctor' } }; X.render(); check('v57 owned'); h = app.innerHTML;
   if (!h.includes(u.skMine + ' · ' + SK.length) || !h.includes('sk-tile epic own worn')) F('v57: an admin owns all — the Mine filter, the worn tile marked');
   A['skin-sheet'](el('skin-sheet', { id: 'lilac_doctor' })); h = app.innerHTML; if (!h.includes('data-a="skin-wear" data-id="lilac_doctor" data-on="0"') || h.includes(u.skHowSoon)) F('v57: the sheet of my worn skin offers to take it off');
@@ -927,6 +927,17 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   A['guide-game'](el('guide-game', { id: 'role' })); check('v61 back to role'); if (S.ui.guideGame !== 'role' || !app.innerHTML.includes(g.leadPlayer)) F('the switch returns to the role game');
   A.back(el('back')); if (S.screen !== 'setup') F('Back returns to the classic setup (' + S.screen + ')');
   S.game = null; S.setup.scenario = null; S.screen = 'home'; X.render(); console.log('v59 ok');
+  // v63: the shop's Emeralds tab, the skin's price, the tournament screen (outside Telegram: the rules only), the home menu
+  X.render(); h = app.innerHTML; if (!h.includes(u.trnMenu) || !h.includes('data-to="tournament"')) F('v63: the tournament is in the home menu');
+  A.go(el('go', { to: 'shop' })); check('v63 shop cards tab'); h = app.innerHTML; if (!h.includes(u.shopSegCards) || !h.includes(u.shopSegEm) || h.includes('em-pack')) F('v62: the shop opens on cards with a segment');
+  A['shop-tab'](el('shop-tab', { v: 'emeralds' })); check('v63 shop emeralds tab'); h = app.innerHTML;
+  if ((h.match(/class="em-pack /g) || []).length !== 8 || (h.match(/em-badge/g) || []).length !== 8 || !h.includes('7 500') || !h.includes('<b>10 500</b>') || !h.includes('20 000') || !h.includes(X.tt(u.emFirst, { pct: 100 })) || !h.includes(X.tt(u.emFirst, { pct: 20 }))) F('v62: eight packs, every first-purchase bonus shown (7 500 → 10 500)');
+  if (!h.includes(X.tt(u.emPrice, { usd: E('emUsd')(39.99), stars: 2000 })) || !h.includes(u.emTgOnly) || !h.includes(u.emEmpty)) F('v62: the price in $ and Stars; outside Telegram — the hint');
+  if (E('prizeTable')(10, 10000).join(',') !== '2250,2150,2100,500,500,500,500,500,500,500' || E('prizeTable')(20, 10000).length !== 15) F('v63: the prize arithmetic');
+  A['shop-tab'](el('shop-tab', { v: 'cards' })); check('v63 shop back'); if (!app.innerHTML.includes('shop-grid')) F('v62: the cards tab returns');
+  A.go(el('go', { to: 'tournament' })); check('v63 tournament (web)'); h = app.innerHTML; if (!h.includes(u.trnTitle) || !h.includes(u.trnNeedTg) || !u.trnRules.every(r => h.includes(X.tt(r, { fund: '10 000' })))) F('v63: the tournament screen outside Telegram: the rules with the fund');
+  A.back(el('back')); if (S.screen !== 'home') F('v63: Back from the tournament goes home');
+  S.ui.shopTab = 'cards'; X.render(); console.log('v63 ok');
 }).catch(e => { fails++; console.log('FAIL v59 crashed', e && e.stack || e); }).then(() => {
   // v62: fouls in every mode and stage, 3 → no speech and no vote, 4 → removed (no last words, no Azazel / Morpheus, no blast), undo; last words 30 s
 { const u = X.U(); const F = m => { fails++; console.log('FAIL v62 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
@@ -998,7 +1009,7 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   if (!E('tbCanChat')({ chat: 'last', lastSeat: 3, timer: tm }, { seat: 3, alive: false }) || E('tbCanChat')({ chat: 'last', lastSeat: 3, timer: tm }, { seat: 4, alive: true })) F('online: only the last words\' seat may write');
   if (E('tbCanChat')({ chat: 'last', lastSeat: 3, timer: { left: 0, running: false, at: Date.now() } }, { seat: 3, alive: false })) F('online: the last words close with the timer');
   const rt = E('roundTableHTML')([{ seat: 1, name: 'A', fouls: 2, alive: true }, { seat: 2, name: 'B', fouls: 0, alive: true }], {}, ''); if (!rt.includes('rt-foul f2') || (rt.match(/rt-foul/g) || []).length !== 1) F('online: fouls at the seats');
-  S.game = null; S.screen = 'home'; S.ui.sheet = null; S.ui.kamikaze = null; S.ui.pick = []; X.render(); console.log('v62 ok');
+  S.game = null; S.screen = 'home'; S.ui.sheet = null; S.ui.kamikaze = null; S.ui.pick = []; X.render(); console.log('v63 ok');
 }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);

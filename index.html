@@ -1137,6 +1137,35 @@ html.lite .gd-img { box-shadow: none; }
 .rt-foul { position: absolute; left: -5px; top: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--warn); color: #1a1208; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg); }
 .rt-foul.f3 { background: var(--gold-2); } .rt-foul.f4 { background: var(--crimson-2); color: #fff; }
 .rt-seat.spk.muted .rt-av { box-shadow: 0 0 0 2px var(--gold-2); }
+/* v63 emeralds: the shop tab, the balance chip, the skin's price; the weekly tournament */
+.em-top { border-color: rgba(80, 200, 140, .45); background: radial-gradient(120% 90% at 0% 0%, rgba(40, 150, 100, .22), transparent 60%), var(--bg-2); }
+.em-balance { display: flex; flex-direction: column; gap: 2px; }
+.em-big { font-size: 28px; font-weight: 900; letter-spacing: -.3px; color: #8ff0b6; text-shadow: 0 0 18px rgba(80, 220, 150, .35); }
+.em-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.em-pack { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 10px 12px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); text-align: center; }
+.em-pack.first { border-color: rgba(80, 200, 140, .55); }
+.em-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: linear-gradient(180deg, #8ff0b6, #39b27a); color: #06261a; letter-spacing: .2px; }
+.em-gem { font-size: 26px; line-height: 1; margin-top: 4px; }
+.em-n { font-size: 22px; font-weight: 900; color: #8ff0b6; }
+.em-bonus { font-size: 12px; color: var(--muted); min-height: 16px; }
+.em-bonus b { color: #8ff0b6; }
+.em-pack .btn { width: 100%; margin-top: 6px; padding-left: 6px; padding-right: 6px; font-size: 12.5px; }
+.em-chip { color: #8ff0b6; border-color: rgba(80, 200, 140, .45); margin-right: 6px; }
+.em-price { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.em-tag { font-weight: 900; font-size: 18px; color: #8ff0b6; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(80, 200, 140, .45); background: rgba(40, 150, 100, .15); }
+.trn-head { border-color: var(--gold-dim); }
+.trn-fund { text-align: right; flex: none; }
+.trn-fund b { display: block; font-size: 18px; color: #8ff0b6; }
+.trn-table { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg-3); border: 1px solid var(--line-2); }
+.trn-seats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.trn-seats .chip { font-size: 11.5px; padding: 3px 8px; }
+.trn-prizes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.trn-prize { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.trn-prize b { color: #8ff0b6; font-size: 13px; }
+.trn-prize.top { border-color: var(--gold-dim); background: var(--bg-3); }
+.trn-prize.top b { font-size: 15px; }
+.trn-admin { border-color: rgba(240, 205, 122, .5); }
+.fr-row.me { border-color: var(--gold-dim); }
 </style>
 </head><body>
 <div id="app"></div>
@@ -6749,6 +6778,114 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.keys(R).forEach(code => { const p = I18N[code]; if (!p) return; Object.assign(p.e, R[code].e); Object.assign(p.ui, R[code].ui); });
 })();
 /* ============================================================
+   v63 emeralds and the weekly tournament (texts; logic — 15-emeralds.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      shopSegCards: 'Карты и сценарии', shopSegEm: 'Изумруды 💎',
+      emTitle: 'Изумруды', emBalance: 'На счету', emWhat: 'Изумруды — игровая валюта Mafia Pro: любой Epic-скин стоит {epic} 💎. Их выигрывают на турнире недели (фонд {fund} 💎) или покупают за Telegram Stars.',
+      emPacks: 'Паки изумрудов', emFirst: '1-я покупка +{pct} %', emFirstHint: 'Бонус за первую покупку каждого пака: до 4,99 $ — +100 %, до 40 $ — +40 %, до 99,99 $ — +20 %. Повторные покупки того же пака — без бонуса.',
+      emBuy: 'Купить', emPrice: '{usd} $ · {stars} ⭐', emGot: '+{n} 💎 зачислено', emLedger: 'История', emEmpty: 'Изумрудов пока нет — выиграйте их на турнире или купите пак.', emTgOnly: 'Изумруды привязаны к аккаунту Telegram — откройте игру в Telegram.',
+      emKind: { pack: 'Пак изумрудов', bonus: 'Бонус за первую покупку', skin: 'Epic-скин', prize: 'Приз турнира', admin: 'Начисление', refund: 'Возврат' },
+      emSkinBuy: 'Купить за {n} 💎', emSkinShort: 'Не хватает {n} 💎 — пополнить', emSkinHow: 'Epic-скин: {n} 💎 в магазине (вкладка «Изумруды») или бесплатно всем участникам турнира выходных.', emSkinBought: 'Скин «{name}» куплен и надет', emBorrowed: 'Турнир выходных: все Epic-скины открыты до {date}', emBorrowedSkin: 'Открыт на турнире выходных — наденьте бесплатно',
+      trnTitle: 'Турнир недели', trnSub: 'Каждые выходные · призы изумрудами', trnMenu: 'Турнир недели', trnMenuNone: 'Регистрация — по понедельникам с 12:00', trnMenuReg: 'Регистрация открыта · игроков: {n} · фонд {fund} 💎', trnMenuGames: 'Турнир идёт · раунд {r} · игроков: {n}', trnMenuIn: ' · вы участвуете',
+      trnNeedTg: 'Турниры — в Telegram-версии игры.', trnNone: 'Турнира сейчас нет. Регистрация на следующий откроется в понедельник {date} в 12:00 (Киев).',
+      trnWeek: 'Игры {sat} и {sun}', trnPhaseReg: 'Регистрация открыта — до первой рассадки в субботу', trnPhaseGames: 'Турнир идёт', trnPhaseDone: 'Турнир завершён, призы выданы', trnPhaseCancelled: 'Турнир не состоялся: партий не было',
+      trnFormat: 'Формат', trnModeOnline: 'Онлайн', trnModeOffline: 'Офлайн', trnScenPreset: 'Ролевая мафия (стандартный состав)', trnTableN: 'стол {n}', trnPlayers: 'Игроков: {n}', trnHosts: 'ведущих: {n}', trnFund: 'Призовой фонд', trnRound: 'Раунд {n}',
+      trnJoin: 'Участвую', trnJoinHost: 'Могу вести', trnLeave: 'Отменить участие', trnYouPlayer: 'Вы участвуете как игрок', trnYouHost: 'Вы записаны ведущим', trnJoined: 'Вы в турнире!', trnLeft: 'Участие отменено', trnHostHint: 'Ведущий не играет: он ведёт стол, который рассадит администратор.',
+      trnMyTable: 'Ваш стол', trnSeatLine: 'Раунд {r} · стол {t} · место {s}', trnHostLine: 'Ведущий: {name}', trnCode: 'Код {code}', trnSit: 'Сесть за стол', trnOffline: 'Стол офлайн: подойдите к ведущему, карта придёт в приложение.', trnBench: 'В этом раунде вы пропускаете: мест не хватило, в следующем сядете первым.', trnWaitDraw: 'Ждём рассадку — стол и место придут сообщением от бота.', trnPlayed: 'Партия сыграна — ждём следующий раунд.', trnHostNo: 'Ведущий назначается',
+      trnHosting: 'Вы ведёте стол {t}', trnHostOpen: 'Открыть стол', trnHostSeats: '{n} игроков уже рассажены — откройте стол и раздайте карты', trnHostOpened: 'Стол турнира открыт — раздавайте карты',
+      trnPrizes: 'Призы', trnPrizeFor: 'на {n} сыгравших', trnPlace: '{n}-е место', trnPrizeNote: 'Призы — по числу сыгравших: места 1–3 не меньше 2 000, 4–10 не меньше 500, 11–15 — по 100; остаток фонда достаётся тройке лидеров.',
+      trnStandings: 'Таблица', trnNoGames: 'ещё не играл', trnPts: '{n} очк.', trnGW: '{g} партий · {w} побед', trnEmpty: 'Пока никто не записался — будьте первым.', trnYou: 'вы',
+      trnRulesTitle: 'Как устроен турнир',
+      trnRules: ['Регистрация открывается в понедельник в 12:00 и длится до первой рассадки в субботу.', 'Играем в субботу и воскресенье: администратор рассаживает раунды, бот присылает стол, место и ведущего.', 'Очки — как в рейтинге: победа +24 (+4 выжил), сольная победа +40, полезные ходы до +25; за поражение — 0.', 'Места — по сумме очков, затем по победам.', 'Фонд {fund} 💎 делится между всеми, кто сыграл: 1–3 место не меньше 2 000, 4–10 не меньше 500, 11–15 — по 100.', 'На выходные турнира всем участникам открыты все Epic-скины.', 'Классика — столы ровно по 10; кому не хватило места, садится первым в следующем раунде.'],
+      trnAdmin: 'Панель администратора', trnOpenNow: 'Открыть турнир недели сейчас', trnSettings: 'Формат турнира', trnSave: 'Сохранить', trnSaved: 'Сохранено', trnFixed: 'Формат и сценарий зафиксированы после первой рассадки; фонд менять можно.', trnDraw: 'Рассадить раунд {n}', trnDrawFinal: 'Финал: рассадить по очкам', trnDrawn: 'Раунд {n} рассажен', trnFew: 'Мало игроков: нужно хотя бы {n}', trnClose: 'Завершить и выдать призы', trnCloseSure: 'Точно завершить?', trnClosed: 'Турнир завершён', trnTables: 'Столы раунда {n}', trnSetHost: 'Ведущий…', trnMeHost: 'Я (администратор)', trnHostSet: 'Ведущий назначен', trnByes: 'Пропускают раунд: {n}', trnVols: 'Ведущие ({n})', trnOut: 'снялись: {n}', trnSeats: 'Места', trnErr: 'Не удалось — проверьте связь и попробуйте снова'
+    },
+    uk: {
+      shopSegCards: 'Карти і сценарії', shopSegEm: 'Смарагди 💎',
+      emTitle: 'Смарагди', emBalance: 'На рахунку', emWhat: 'Смарагди — ігрова валюта Mafia Pro: будь-який Epic-скін коштує {epic} 💎. Їх виграють на турнірі тижня (фонд {fund} 💎) або купують за Telegram Stars.',
+      emPacks: 'Паки смарагдів', emFirst: '1-ша покупка +{pct} %', emFirstHint: 'Бонус за першу покупку кожного паку: до 4,99 $ — +100 %, до 40 $ — +40 %, до 99,99 $ — +20 %. Повторні покупки того самого паку — без бонусу.',
+      emBuy: 'Купити', emPrice: '{usd} $ · {stars} ⭐', emGot: '+{n} 💎 зараховано', emLedger: 'Історія', emEmpty: 'Смарагдів поки немає — виграйте їх на турнірі або купіть пак.', emTgOnly: 'Смарагди прив’язані до акаунта Telegram — відкрийте гру в Telegram.',
+      emKind: { pack: 'Пак смарагдів', bonus: 'Бонус за першу покупку', skin: 'Epic-скін', prize: 'Приз турніру', admin: 'Нарахування', refund: 'Повернення' },
+      emSkinBuy: 'Купити за {n} 💎', emSkinShort: 'Не вистачає {n} 💎 — поповнити', emSkinHow: 'Epic-скін: {n} 💎 у магазині (вкладка «Смарагди») або безкоштовно всім учасникам турніру вихідних.', emSkinBought: 'Скін «{name}» куплено і вдягнено', emBorrowed: 'Турнір вихідних: усі Epic-скіни відкриті до {date}', emBorrowedSkin: 'Відкритий на турнірі вихідних — вдягніть безкоштовно',
+      trnTitle: 'Турнір тижня', trnSub: 'Щовихідних · призи смарагдами', trnMenu: 'Турнір тижня', trnMenuNone: 'Реєстрація — щопонеділка з 12:00', trnMenuReg: 'Реєстрація відкрита · гравців: {n} · фонд {fund} 💎', trnMenuGames: 'Турнір триває · раунд {r} · гравців: {n}', trnMenuIn: ' · ви берете участь',
+      trnNeedTg: 'Турніри — у Telegram-версії гри.', trnNone: 'Турніру зараз немає. Реєстрація на наступний відкриється в понеділок {date} о 12:00 (Київ).',
+      trnWeek: 'Ігри {sat} і {sun}', trnPhaseReg: 'Реєстрація відкрита — до першої розсадки в суботу', trnPhaseGames: 'Турнір триває', trnPhaseDone: 'Турнір завершено, призи видано', trnPhaseCancelled: 'Турнір не відбувся: партій не було',
+      trnFormat: 'Формат', trnModeOnline: 'Онлайн', trnModeOffline: 'Офлайн', trnScenPreset: 'Рольова мафія (стандартний склад)', trnTableN: 'стіл {n}', trnPlayers: 'Гравців: {n}', trnHosts: 'ведучих: {n}', trnFund: 'Призовий фонд', trnRound: 'Раунд {n}',
+      trnJoin: 'Беру участь', trnJoinHost: 'Можу вести', trnLeave: 'Скасувати участь', trnYouPlayer: 'Ви берете участь як гравець', trnYouHost: 'Ви записані ведучим', trnJoined: 'Ви в турнірі!', trnLeft: 'Участь скасовано', trnHostHint: 'Ведучий не грає: він веде стіл, який розсадить адміністратор.',
+      trnMyTable: 'Ваш стіл', trnSeatLine: 'Раунд {r} · стіл {t} · місце {s}', trnHostLine: 'Ведучий: {name}', trnCode: 'Код {code}', trnSit: 'Сісти за стіл', trnOffline: 'Стіл офлайн: підійдіть до ведучого, карта прийде в застосунок.', trnBench: 'Цей раунд ви пропускаєте: місць не вистачило, у наступному сядете першим.', trnWaitDraw: 'Чекаємо розсадку — стіл і місце прийдуть повідомленням від бота.', trnPlayed: 'Партію зіграно — чекаємо наступний раунд.', trnHostNo: 'Ведучий призначається',
+      trnHosting: 'Ви ведете стіл {t}', trnHostOpen: 'Відкрити стіл', trnHostSeats: '{n} гравців уже розсаджені — відкрийте стіл і роздайте карти', trnHostOpened: 'Стіл турніру відкрито — роздавайте карти',
+      trnPrizes: 'Призи', trnPrizeFor: 'на {n} гравців', trnPlace: '{n}-е місце', trnPrizeNote: 'Призи — за кількістю тих, хто зіграв: місця 1–3 не менше 2 000, 4–10 не менше 500, 11–15 — по 100; залишок фонду — трійці лідерів.',
+      trnStandings: 'Таблиця', trnNoGames: 'ще не грав', trnPts: '{n} оч.', trnGW: '{g} партій · {w} перемог', trnEmpty: 'Поки ніхто не записався — будьте першим.', trnYou: 'ви',
+      trnRulesTitle: 'Як влаштовано турнір',
+      trnRules: ['Реєстрація відкривається в понеділок о 12:00 і триває до першої розсадки в суботу.', 'Граємо в суботу та неділю: адміністратор розсаджує раунди, бот надсилає стіл, місце і ведучого.', 'Очки — як у рейтингу: перемога +24 (+4 вижив), сольна перемога +40, корисні ходи до +25; за поразку — 0.', 'Місця — за сумою очок, потім за перемогами.', 'Фонд {fund} 💎 ділиться між усіма, хто зіграв: 1–3 місце не менше 2 000, 4–10 не менше 500, 11–15 — по 100.', 'На вихідні турніру всім учасникам відкриті всі Epic-скіни.', 'Класика — столи рівно по 10; кому не вистачило місця, сідає першим у наступному раунді.'],
+      trnAdmin: 'Панель адміністратора', trnOpenNow: 'Відкрити турнір тижня зараз', trnSettings: 'Формат турніру', trnSave: 'Зберегти', trnSaved: 'Збережено', trnFixed: 'Формат і сценарій зафіксовано після першої розсадки; фонд міняти можна.', trnDraw: 'Розсадити раунд {n}', trnDrawFinal: 'Фінал: розсадити за очками', trnDrawn: 'Раунд {n} розсаджено', trnFew: 'Мало гравців: потрібно хоча б {n}', trnClose: 'Завершити і видати призи', trnCloseSure: 'Точно завершити?', trnClosed: 'Турнір завершено', trnTables: 'Столи раунду {n}', trnSetHost: 'Ведучий…', trnMeHost: 'Я (адміністратор)', trnHostSet: 'Ведучого призначено', trnByes: 'Пропускають раунд: {n}', trnVols: 'Ведучі ({n})', trnOut: 'знялися: {n}', trnSeats: 'Місця', trnErr: 'Не вдалося — перевірте зв’язок і спробуйте знову'
+    },
+    en: {
+      shopSegCards: 'Cards & scenarios', shopSegEm: 'Emeralds 💎',
+      emTitle: 'Emeralds', emBalance: 'Balance', emWhat: 'Emeralds are the in-game currency of Mafia Pro: any Epic skin costs {epic} 💎. Win them at the weekly tournament (fund {fund} 💎) or buy them for Telegram Stars.',
+      emPacks: 'Emerald packs', emFirst: '1st purchase +{pct} %', emFirstHint: 'A bonus on the first purchase of each pack: up to $4.99 — +100 %, up to $40 — +40 %, up to $99.99 — +20 %. Later purchases of the same pack — no bonus.',
+      emBuy: 'Buy', emPrice: '${usd} · {stars} ⭐', emGot: '+{n} 💎 added', emLedger: 'History', emEmpty: 'No emeralds yet — win them at the tournament or buy a pack.', emTgOnly: 'Emeralds belong to your Telegram account — open the game in Telegram.',
+      emKind: { pack: 'Emerald pack', bonus: 'First-purchase bonus', skin: 'Epic skin', prize: 'Tournament prize', admin: 'Adjustment', refund: 'Refund' },
+      emSkinBuy: 'Buy for {n} 💎', emSkinShort: '{n} 💎 short — top up', emSkinHow: 'Epic skin: {n} 💎 in the shop (the Emeralds tab), or free for every player of the weekend tournament.', emSkinBought: 'Skin “{name}” bought and put on', emBorrowed: 'Tournament weekend: every Epic skin is open until {date}', emBorrowedSkin: 'Open for the tournament weekend — wear it for free',
+      trnTitle: 'Weekly tournament', trnSub: 'Every weekend · prizes in emeralds', trnMenu: 'Weekly tournament', trnMenuNone: 'Registration opens Mondays at 12:00', trnMenuReg: 'Registration open · players: {n} · fund {fund} 💎', trnMenuGames: 'Tournament on · round {r} · players: {n}', trnMenuIn: ' · you are in',
+      trnNeedTg: 'Tournaments are in the Telegram version of the game.', trnNone: 'No tournament right now. Registration for the next one opens on Monday {date} at 12:00 (Kyiv).',
+      trnWeek: 'Games on {sat} and {sun}', trnPhaseReg: 'Registration open — until the first draw on Saturday', trnPhaseGames: 'Tournament on', trnPhaseDone: 'Tournament over, prizes paid', trnPhaseCancelled: 'Tournament did not take place: no games',
+      trnFormat: 'Format', trnModeOnline: 'Online', trnModeOffline: 'Offline', trnScenPreset: 'Role-play mafia (standard setup)', trnTableN: 'table of {n}', trnPlayers: 'Players: {n}', trnHosts: 'hosts: {n}', trnFund: 'Prize fund', trnRound: 'Round {n}',
+      trnJoin: 'Count me in', trnJoinHost: 'I can host', trnLeave: 'Withdraw', trnYouPlayer: 'You are in as a player', trnYouHost: 'You are signed up as a host', trnJoined: 'You are in!', trnLeft: 'Withdrawn', trnHostHint: 'A host does not play: he runs the table the admin seats.',
+      trnMyTable: 'Your table', trnSeatLine: 'Round {r} · table {t} · seat {s}', trnHostLine: 'Host: {name}', trnCode: 'Code {code}', trnSit: 'Take the seat', trnOffline: 'An offline table: come to the host, your card arrives in the app.', trnBench: 'You sit this round out: not enough seats; next round you are seated first.', trnWaitDraw: 'Waiting for the draw — the bot will message your table and seat.', trnPlayed: 'Game played — waiting for the next round.', trnHostNo: 'Host to be assigned',
+      trnHosting: 'You host table {t}', trnHostOpen: 'Open the table', trnHostSeats: '{n} players are already seated — open the table and deal', trnHostOpened: 'The tournament table is open — deal the cards',
+      trnPrizes: 'Prizes', trnPrizeFor: 'for {n} who played', trnPlace: 'place {n}', trnPrizeNote: 'Prizes depend on how many played: places 1–3 at least 2 000, 4–10 at least 500, 11–15 — 100 each; what is left of the fund goes to the top three.',
+      trnStandings: 'Standings', trnNoGames: 'no games yet', trnPts: '{n} pts', trnGW: '{g} games · {w} wins', trnEmpty: 'Nobody has signed up yet — be the first.', trnYou: 'you',
+      trnRulesTitle: 'How the tournament works',
+      trnRules: ['Registration opens on Monday at 12:00 and lasts until the first draw on Saturday.', 'We play on Saturday and Sunday: the admin seats the rounds, the bot sends your table, seat and host.', 'Points as in the rating: a win +24 (+4 survived), a solo win +40, useful moves up to +25; a loss gives 0.', 'Places by the sum of points, then by wins.', 'The fund of {fund} 💎 is shared among everyone who played: places 1–3 at least 2 000, 4–10 at least 500, 11–15 — 100 each.', 'For the tournament weekend every participant may wear any Epic skin.', 'Classic — tables of exactly 10; whoever got no seat is seated first in the next round.'],
+      trnAdmin: 'Admin panel', trnOpenNow: 'Open this week\'s tournament now', trnSettings: 'Tournament format', trnSave: 'Save', trnSaved: 'Saved', trnFixed: 'The format and scenario are fixed after the first draw; the fund can still change.', trnDraw: 'Seat round {n}', trnDrawFinal: 'Final: seat by points', trnDrawn: 'Round {n} seated', trnFew: 'Too few players: at least {n} needed', trnClose: 'Finish and pay the prizes', trnCloseSure: 'Finish for sure?', trnClosed: 'Tournament finished', trnTables: 'Tables of round {n}', trnSetHost: 'Host…', trnMeHost: 'Me (admin)', trnHostSet: 'Host assigned', trnByes: 'Sitting out: {n}', trnVols: 'Hosts ({n})', trnOut: 'withdrawn: {n}', trnSeats: 'Seats', trnErr: 'Failed — check the connection and try again'
+    },
+    pl: {
+      shopSegCards: 'Karty i scenariusze', shopSegEm: 'Szmaragdy 💎',
+      emTitle: 'Szmaragdy', emBalance: 'Saldo', emWhat: 'Szmaragdy to waluta w grze Mafia Pro: każda skórka Epic kosztuje {epic} 💎. Wygrywa się je w cotygodniowym turnieju (pula {fund} 💎) lub kupuje za Telegram Stars.',
+      emPacks: 'Pakiety szmaragdów', emFirst: '1. zakup +{pct} %', emFirstHint: 'Bonus za pierwszy zakup każdego pakietu: do 4,99 $ — +100 %, do 40 $ — +40 %, do 99,99 $ — +20 %. Kolejne zakupy tego samego pakietu — bez bonusu.',
+      emBuy: 'Kup', emPrice: '{usd} $ · {stars} ⭐', emGot: '+{n} 💎 dodano', emLedger: 'Historia', emEmpty: 'Nie masz jeszcze szmaragdów — wygraj je w turnieju lub kup pakiet.', emTgOnly: 'Szmaragdy są przypisane do konta Telegram — otwórz grę w Telegramie.',
+      emKind: { pack: 'Pakiet szmaragdów', bonus: 'Bonus za pierwszy zakup', skin: 'Skórka Epic', prize: 'Nagroda turniejowa', admin: 'Korekta', refund: 'Zwrot' },
+      emSkinBuy: 'Kup za {n} 💎', emSkinShort: 'Brakuje {n} 💎 — doładuj', emSkinHow: 'Skórka Epic: {n} 💎 w sklepie (zakładka „Szmaragdy”) lub za darmo dla każdego uczestnika weekendowego turnieju.', emSkinBought: 'Skórka „{name}” kupiona i założona', emBorrowed: 'Weekend turnieju: wszystkie skórki Epic otwarte do {date}', emBorrowedSkin: 'Otwarta na weekend turnieju — załóż za darmo',
+      trnTitle: 'Turniej tygodnia', trnSub: 'Co weekend · nagrody w szmaragdach', trnMenu: 'Turniej tygodnia', trnMenuNone: 'Rejestracja w poniedziałki od 12:00', trnMenuReg: 'Rejestracja otwarta · graczy: {n} · pula {fund} 💎', trnMenuGames: 'Turniej trwa · runda {r} · graczy: {n}', trnMenuIn: ' · bierzesz udział',
+      trnNeedTg: 'Turnieje są w wersji gry w Telegramie.', trnNone: 'Teraz nie ma turnieju. Rejestracja na następny otworzy się w poniedziałek {date} o 12:00 (Kijów).',
+      trnWeek: 'Gry {sat} i {sun}', trnPhaseReg: 'Rejestracja otwarta — do pierwszego rozsadzenia w sobotę', trnPhaseGames: 'Turniej trwa', trnPhaseDone: 'Turniej zakończony, nagrody wypłacone', trnPhaseCancelled: 'Turniej się nie odbył: nie było partii',
+      trnFormat: 'Format', trnModeOnline: 'Online', trnModeOffline: 'Offline', trnScenPreset: 'Mafia z rolami (standardowy skład)', trnTableN: 'stół {n}', trnPlayers: 'Graczy: {n}', trnHosts: 'prowadzących: {n}', trnFund: 'Pula nagród', trnRound: 'Runda {n}',
+      trnJoin: 'Biorę udział', trnJoinHost: 'Mogę prowadzić', trnLeave: 'Wycofaj się', trnYouPlayer: 'Bierzesz udział jako gracz', trnYouHost: 'Jesteś zapisany jako prowadzący', trnJoined: 'Jesteś w turnieju!', trnLeft: 'Udział wycofany', trnHostHint: 'Prowadzący nie gra: prowadzi stół rozsadzony przez administratora.',
+      trnMyTable: 'Twój stół', trnSeatLine: 'Runda {r} · stół {t} · miejsce {s}', trnHostLine: 'Prowadzący: {name}', trnCode: 'Kod {code}', trnSit: 'Usiądź przy stole', trnOffline: 'Stół offline: podejdź do prowadzącego, karta przyjdzie w aplikacji.', trnBench: 'Tę rundę pauzujesz: zabrakło miejsc, w następnej siadasz pierwszy.', trnWaitDraw: 'Czekamy na rozsadzenie — bot przyśle stół i miejsce.', trnPlayed: 'Partia rozegrana — czekamy na następną rundę.', trnHostNo: 'Prowadzący w trakcie przydzielania',
+      trnHosting: 'Prowadzisz stół {t}', trnHostOpen: 'Otwórz stół', trnHostSeats: '{n} graczy już siedzi — otwórz stół i rozdaj karty', trnHostOpened: 'Stół turniejowy otwarty — rozdaj karty',
+      trnPrizes: 'Nagrody', trnPrizeFor: 'dla {n} grających', trnPlace: '{n}. miejsce', trnPrizeNote: 'Nagrody zależą od liczby grających: miejsca 1–3 co najmniej 2 000, 4–10 co najmniej 500, 11–15 — po 100; reszta puli trafia do pierwszej trójki.',
+      trnStandings: 'Tabela', trnNoGames: 'jeszcze nie grał', trnPts: '{n} pkt', trnGW: '{g} partii · {w} wygranych', trnEmpty: 'Nikt się jeszcze nie zapisał — bądź pierwszy.', trnYou: 'ty',
+      trnRulesTitle: 'Jak działa turniej',
+      trnRules: ['Rejestracja otwiera się w poniedziałek o 12:00 i trwa do pierwszego rozsadzenia w sobotę.', 'Gramy w sobotę i niedzielę: administrator rozsadza rundy, bot przysyła stół, miejsce i prowadzącego.', 'Punkty jak w rankingu: wygrana +24 (+4 za przetrwanie), wygrana w pojedynkę +40, pożyteczne ruchy do +25; przegrana — 0.', 'Miejsca według sumy punktów, potem według wygranych.', 'Pula {fund} 💎 dzielona jest między wszystkich, którzy grali: miejsca 1–3 co najmniej 2 000, 4–10 co najmniej 500, 11–15 — po 100.', 'Na weekend turnieju każdy uczestnik może założyć dowolną skórkę Epic.', 'Klasyka — stoły dokładnie po 10; kto nie dostał miejsca, siada pierwszy w następnej rundzie.'],
+      trnAdmin: 'Panel administratora', trnOpenNow: 'Otwórz turniej tygodnia teraz', trnSettings: 'Format turnieju', trnSave: 'Zapisz', trnSaved: 'Zapisano', trnFixed: 'Format i scenariusz są ustalone po pierwszym rozsadzeniu; pulę można zmieniać.', trnDraw: 'Rozsadź rundę {n}', trnDrawFinal: 'Finał: rozsadź według punktów', trnDrawn: 'Runda {n} rozsadzona', trnFew: 'Za mało graczy: potrzeba co najmniej {n}', trnClose: 'Zakończ i wypłać nagrody', trnCloseSure: 'Na pewno zakończyć?', trnClosed: 'Turniej zakończony', trnTables: 'Stoły rundy {n}', trnSetHost: 'Prowadzący…', trnMeHost: 'Ja (administrator)', trnHostSet: 'Prowadzący przydzielony', trnByes: 'Pauzują: {n}', trnVols: 'Prowadzący ({n})', trnOut: 'wycofali się: {n}', trnSeats: 'Miejsca', trnErr: 'Nie udało się — sprawdź połączenie i spróbuj ponownie'
+    },
+    hy: {
+      shopSegCards: 'Քարտեր և սցենարներ', shopSegEm: 'Զմրուխտներ 💎',
+      emTitle: 'Զմրուխտներ', emBalance: 'Հաշվին', emWhat: 'Զմրուխտները Mafia Pro-ի խաղային արժույթն են․ ցանկացած Epic սքին արժե {epic} 💎։ Դրանք շահում են շաբաթվա մրցաշարում (ֆոնդ՝ {fund} 💎) կամ գնում Telegram Stars-ով։',
+      emPacks: 'Զմրուխտների փաթեթներ', emFirst: '1-ին գնում՝ +{pct} %', emFirstHint: 'Յուրաքանչյուր փաթեթի առաջին գնման բոնուս․ մինչև 4,99 $՝ +100 %, մինչև 40 $՝ +40 %, մինչև 99,99 $՝ +20 %։ Նույն փաթեթի կրկնակի գնումները՝ առանց բոնուսի։',
+      emBuy: 'Գնել', emPrice: '{usd} $ · {stars} ⭐', emGot: '+{n} 💎 հաշվեգրված է', emLedger: 'Պատմություն', emEmpty: 'Զմրուխտներ դեռ չկան․ շահեք դրանք մրցաշարում կամ գնեք փաթեթ։', emTgOnly: 'Զմրուխտները կապված են Telegram հաշվին․ բացեք խաղը Telegram-ում։',
+      emKind: { pack: 'Զմրուխտների փաթեթ', bonus: 'Առաջին գնման բոնուս', skin: 'Epic սքին', prize: 'Մրցաշարի մրցանակ', admin: 'Հաշվեգրում', refund: 'Վերադարձ' },
+      emSkinBuy: 'Գնել {n} 💎-ով', emSkinShort: 'Պակասում է {n} 💎․ համալրել', emSkinHow: 'Epic սքին․ {n} 💎 խանութում («Զմրուխտներ» ներդիր) կամ անվճար՝ հանգստյան օրերի մրցաշարի բոլոր մասնակիցներին։', emSkinBought: '«{name}» սքինը գնված և հագցված է', emBorrowed: 'Մրցաշարի հանգստյան օրեր․ բոլոր Epic սքինները բաց են մինչև {date}', emBorrowedSkin: 'Բաց է մրցաշարի հանգստյան օրերին․ հագցրեք անվճար',
+      trnTitle: 'Շաբաթվա մրցաշար', trnSub: 'Ամեն հանգստյան օր · մրցանակները զմրուխտներով', trnMenu: 'Շաբաթվա մրցաշար', trnMenuNone: 'Գրանցումը՝ երկուշաբթի օրերին 12:00-ից', trnMenuReg: 'Գրանցումը բաց է · խաղացողներ՝ {n} · ֆոնդ՝ {fund} 💎', trnMenuGames: 'Մրցաշարն ընթանում է · ռաունդ {r} · խաղացողներ՝ {n}', trnMenuIn: ' · դուք մասնակցում եք',
+      trnNeedTg: 'Մրցաշարերը խաղի Telegram տարբերակում են։', trnNone: 'Այժմ մրցաշար չկա։ Հաջորդի գրանցումը կբացվի երկուշաբթի՝ {date}, 12:00-ին (Կիև)։',
+      trnWeek: 'Խաղերը՝ {sat} և {sun}', trnPhaseReg: 'Գրանցումը բաց է՝ մինչև շաբաթ օրվա առաջին նստեցումը', trnPhaseGames: 'Մրցաշարն ընթանում է', trnPhaseDone: 'Մրցաշարն ավարտված է, մրցանակները տրված են', trnPhaseCancelled: 'Մրցաշարը չկայացավ․ խաղեր չեն եղել',
+      trnFormat: 'Ձևաչափ', trnModeOnline: 'Առցանց', trnModeOffline: 'Օֆլայն', trnScenPreset: 'Դերային մաֆիա (ստանդարտ կազմ)', trnTableN: 'սեղան {n}', trnPlayers: 'Խաղացողներ՝ {n}', trnHosts: 'վարողներ՝ {n}', trnFund: 'Մրցանակային ֆոնդ', trnRound: 'Ռաունդ {n}',
+      trnJoin: 'Մասնակցում եմ', trnJoinHost: 'Կարող եմ վարել', trnLeave: 'Չեղարկել մասնակցությունը', trnYouPlayer: 'Դուք մասնակցում եք որպես խաղացող', trnYouHost: 'Դուք գրանցված եք որպես վարող', trnJoined: 'Դուք մրցաշարում եք', trnLeft: 'Մասնակցությունը չեղարկված է', trnHostHint: 'Վարողը չի խաղում․ նա վարում է այն սեղանը, որը նստեցնում է ադմինիստրատորը։',
+      trnMyTable: 'Ձեր սեղանը', trnSeatLine: 'Ռաունդ {r} · սեղան {t} · տեղ {s}', trnHostLine: 'Վարող՝ {name}', trnCode: 'Կոդ {code}', trnSit: 'Նստել սեղանի շուրջ', trnOffline: 'Օֆլայն սեղան․ մոտեցեք վարողին, քարտը կգա հավելվածում։', trnBench: 'Այս ռաունդը բաց եք թողնում․ տեղերը չբավականացրին, հաջորդում առաջինը կնստեք։', trnWaitDraw: 'Սպասում ենք նստեցմանը․ սեղանն ու տեղը կգան բոտի հաղորդագրությամբ։', trnPlayed: 'Խաղն ավարտված է․ սպասում ենք հաջորդ ռաունդին։', trnHostNo: 'Վարողը նշանակվում է',
+      trnHosting: 'Դուք վարում եք {t} սեղանը', trnHostOpen: 'Բացել սեղանը', trnHostSeats: '{n} խաղացող արդեն նստած են․ բացեք սեղանը և բաժանեք քարտերը', trnHostOpened: 'Մրցաշարի սեղանը բաց է․ բաժանեք քարտերը',
+      trnPrizes: 'Մրցանակներ', trnPrizeFor: '{n} խաղացածի համար', trnPlace: '{n}-րդ տեղ', trnPrizeNote: 'Մրցանակները՝ ըստ խաղացածների թվի․ 1–3 տեղերը՝ առնվազն 2 000, 4–10՝ առնվազն 500, 11–15՝ 100-ական․ ֆոնդի մնացորդը՝ առաջատար եռյակին։',
+      trnStandings: 'Աղյուսակ', trnNoGames: 'դեռ չի խաղացել', trnPts: '{n} միավ․', trnGW: '{g} խաղ · {w} հաղթանակ', trnEmpty: 'Դեռ ոչ ոք չի գրանցվել․ եղեք առաջինը։', trnYou: 'դուք',
+      trnRulesTitle: 'Ինչպես է կազմակերպված մրցաշարը',
+      trnRules: ['Գրանցումը բացվում է երկուշաբթի 12:00-ին և տևում է մինչև շաբաթ օրվա առաջին նստեցումը։', 'Խաղում ենք շաբաթ և կիրակի․ ադմինիստրատորը նստեցնում է ռաունդները, բոտն ուղարկում է սեղանը, տեղը և վարողին։', 'Միավորները՝ ինչպես վարկանիշում․ հաղթանակ՝ +24 (+4 ողջ մնալու համար), միայնակ հաղթանակ՝ +40, օգտակար քայլեր՝ մինչև +25, պարտություն՝ 0։', 'Տեղերը՝ ըստ միավորների գումարի, ապա ըստ հաղթանակների։', '{fund} 💎 ֆոնդը բաժանվում է բոլոր խաղացածների միջև․ 1–3 տեղերը՝ առնվազն 2 000, 4–10՝ առնվազն 500, 11–15՝ 100-ական։', 'Մրցաշարի հանգստյան օրերին բոլոր մասնակիցներին բաց են բոլոր Epic սքինները։', 'Դասականում սեղանները ճիշտ 10-ական են․ ում տեղ չի հասել, հաջորդ ռաունդում նստում է առաջինը։'],
+      trnAdmin: 'Ադմինիստրատորի վահանակ', trnOpenNow: 'Բացել շաբաթվա մրցաշարը հիմա', trnSettings: 'Մրցաշարի ձևաչափ', trnSave: 'Պահպանել', trnSaved: 'Պահպանված է', trnFixed: 'Ձևաչափն ու սցենարը ամրագրված են առաջին նստեցումից հետո․ ֆոնդը կարելի է փոխել։', trnDraw: 'Նստեցնել ռաունդ {n}', trnDrawFinal: 'Եզրափակիչ․ նստեցնել ըստ միավորների', trnDrawn: 'Ռաունդ {n}-ը նստեցված է', trnFew: 'Քիչ խաղացող․ պետք է առնվազն {n}', trnClose: 'Ավարտել և տալ մրցանակները', trnCloseSure: 'Իսկապե՞ս ավարտել', trnClosed: 'Մրցաշարն ավարտված է', trnTables: 'Ռաունդ {n}-ի սեղանները', trnSetHost: 'Վարող…', trnMeHost: 'Ես (ադմինիստրատոր)', trnHostSet: 'Վարողը նշանակված է', trnByes: 'Բաց են թողնում ռաունդը՝ {n}', trnVols: 'Վարողներ ({n})', trnOut: 'հրաժարվել են՝ {n}', trnSeats: 'Տեղեր', trnErr: 'Չստացվեց․ ստուգեք կապը և նորից փորձեք'
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -8480,6 +8617,7 @@ function render() {
     case 'tables': html = typeof tablesScreen === 'function' ? tablesScreen() : ''; break;
     case 'shop': html = shopScreen(); break;
     case 'guide': html = typeof guideScreen === 'function' ? guideScreen() : homeScreen(); break; // v59: the rules and the host's instruction
+    case 'tournament': html = typeof tournamentScreen === 'function' ? tournamentScreen() : homeScreen(); break; // v63: the weekly tournament
   }
   // enter animations only when the screen / phase / sheet actually changes (not on every tap)
   const key = S.screen + '|' + (S.screen === 'game' && S.game ? (S.game.winner ? 'end' : S.game.phase) : '') + '|' + (S.screen === 'profile' ? S.ui.profileId : '');
@@ -12425,6 +12563,285 @@ Object.assign(ACT, {
     const u = U(); return `<div class="sheet-bg ${enter !== false ? 'enter' : ''}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${foulSheetHTML(sh.id)}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${u.close}</button></div></div>`;
   };
 })();
+/* ============================================================
+   v63 EMERALDS 💎 and the WEEKLY TOURNAMENT
+   Emeralds — the in-game currency: won at the weekly tournament, bought for Telegram Stars in the shop's «Emeralds» tab,
+   spent on Epic card skins (7 500). The balance lives on the account (/api/me → S.em); packs and the prize arithmetic are the same
+   here and on the server (backend/src/emeralds.js; backend/test/run.js compares them).
+   The tournament: registration from Monday 12:00, games on Saturday and Sunday, the admin seats the rounds, the bot messages the
+   table / seat / host, prizes on Monday 00:00 (backend/src/tournament.js). Texts — src/02z-i18n-emeralds.js.
+   ============================================================ */
+/* packs:begin — the same list and arithmetic as PACKS / prizeTable in backend/src/emeralds.js */
+const EM_PACKS = [
+  { id: 'em_s', usd: 0.99, stars: 50, emeralds: 150 },
+  { id: 'em_m', usd: 1.99, stars: 100, emeralds: 320 },
+  { id: 'em_l', usd: 4.99, stars: 250, emeralds: 850 },
+  { id: 'em_xl', usd: 9.99, stars: 500, emeralds: 1800 },
+  { id: 'em_2xl', usd: 19.99, stars: 1000, emeralds: 3700 },
+  { id: 'em_3xl', usd: 39.99, stars: 2000, emeralds: 7500 },
+  { id: 'em_4xl', usd: 59.99, stars: 3000, emeralds: 11600 },
+  { id: 'em_5xl', usd: 99.99, stars: 5000, emeralds: 20000 }
+];
+const firstBonusPct = usd => (usd <= 4.99 ? 100 : usd <= 40 ? 40 : 20);
+const EM_EPIC = 7500;
+const PRIZE_FUND = 10000;
+function prizeTable(n, fund) {
+  n = Math.max(0, Math.floor(Number(n) || 0)); fund = Math.max(0, Math.floor(Number(fund) || 0));
+  const floors = []; for (let i = 0; i < Math.min(n, 15); i++) floors.push(i < 3 ? 2000 : i < 10 ? 500 : 100);
+  if (!floors.length) return [];
+  const base = floors.reduce((a, b) => a + b, 0);
+  if (fund <= base) { const out = floors.map(f => Math.floor(fund * f / base / 10) * 10); out[0] += fund - out.reduce((a, b) => a + b, 0); return out; }
+  const extra = fund - base; const share = [0.5, 0.3, 0.2].slice(0, Math.min(3, n)); const sum = share.reduce((a, b) => a + b, 0);
+  const out = floors.slice(); let given = 0;
+  share.forEach((s, i) => { const v = Math.floor(extra * s / sum / 10) * 10; out[i] += v; given += v; });
+  out[0] += extra - given;
+  return out;
+}
+/* packs:end */
+const EM_PACK = Object.fromEntries(EM_PACKS.map(p => [p.id, p]));
+S.em = S.em && typeof S.em === 'object' ? S.em : { balance: 0, bought: [], epic: EM_EPIC };
+const EMR = { ledger: null, at: 0, busy: false };
+const TRN = { d: null, at: 0, busy: false, form: null, closeAsk: 0 };
+const fmtEm = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const emUsd = usd => usd.toFixed(2).replace('.', L.code === 'en' ? '.' : ',');
+const emBalance = () => (S.em && Number(S.em.balance)) || 0;
+const emEpic = () => (S.em && Number(S.em.epic)) || EM_EPIC;
+const trnFund = () => (S.cloud && S.cloud.trn && Number(S.cloud.trn.fund)) || PRIZE_FUND;
+const emDate = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
+const emDay = d => { try { return new Date(Date.UTC(d.y, d.m - 1, d.d)).toLocaleDateString(locale(), { day: 'numeric', month: 'long', timeZone: 'UTC' }); } catch (e) { return `${d.d}.${d.m}`; } };
+const emInTg = () => typeof TG !== 'undefined' && !!TG.app && !!apiBase();
+
+/* ---------- the shop: «Cards & scenarios | Emeralds» ---------- */
+function emPackCardHTML(p) {
+  const u = U(); const first = !(S.em.bought || []).includes(p.id); const pct = firstBonusPct(p.usd); const bonus = first ? Math.round(p.emeralds * pct / 100) : 0;
+  return `<div class="em-pack ${first ? 'first' : ''}" data-id="${p.id}">
+    ${first ? `<span class="em-badge">${tt(u.emFirst, { pct })}</span>` : ''}
+    <div class="em-gem">💎</div>
+    <div class="em-n num">${fmtEm(p.emeralds)}</div>
+    ${bonus ? `<div class="em-bonus">+ ${fmtEm(bonus)} = <b>${fmtEm(p.emeralds + bonus)}</b></div>` : '<div class="em-bonus muted">&nbsp;</div>'}
+    <button class="btn primary sm" data-a="em-buy" data-id="${p.id}">${u.emBuy} · ${tt(u.emPrice, { usd: emUsd(p.usd), stars: p.stars })}</button>
+  </div>`;
+}
+function emLedgerHTML() {
+  const u = U(); const list = EMR.ledger || [];
+  if (!list.length) return '';
+  const kind = k => (u.emKind || {})[k] || k;
+  return `<div class="eyebrow" style="margin-top:14px">${u.emLedger}</div><div class="stack-s">${list.map(x => `<div class="fr-row"><div class="grow" style="min-width:0"><div style="font-weight:700">${esc(kind(x.kind))}${x.kind === 'pack' || x.kind === 'bonus' ? '' : x.kind === 'skin' && typeof SKIN !== 'undefined' && SKIN[x.ref] ? ' · ' + esc(SKIN[x.ref].name) : ''}</div><div class="hint" style="margin:0">${emDate(x.at)}</div></div><b class="num" style="color:${x.delta < 0 ? 'var(--crimson-2)' : '#7fe0a0'}">${x.delta > 0 ? '+' : ''}${fmtEm(x.delta)}</b></div>`).join('')}</div>`;
+}
+function emeraldsTabHTML() {
+  const u = U();
+  const bal = `<div class="em-balance"><div class="em-big">💎 <b class="num">${fmtEm(emBalance())}</b></div><div class="hint" style="margin:0">${u.emBalance}</div></div>`;
+  const what = `<p class="hint" style="margin:8px 0 0">${tt(u.emWhat, { epic: fmtEm(emEpic()), fund: fmtEm(trnFund()) })}</p>
+    <div class="btn-row" style="margin-top:10px"><button class="btn sm" data-a="skins-open">${u.skSegSkins}</button><button class="btn sm" data-a="go" data-to="tournament">🏆 ${u.trnTitle}</button></div>`;
+  const tg = emInTg() ? '' : `<p class="hint">${u.emTgOnly}</p>`;
+  return `<div class="panel em-top">${bal}${what}</div>${tg}
+    <h2 style="margin-top:14px">${u.emPacks}</h2><p class="hint" style="margin:0 0 8px">${u.emFirstHint}</p>
+    <div class="em-grid">${EM_PACKS.map(emPackCardHTML).join('')}</div>${emBalance() || (EMR.ledger || []).length ? emLedgerHTML() : `<p class="hint" style="margin-top:12px">${u.emEmpty}</p>`}`;
+}
+function emLedgerLoad() {
+  if (!emInTg() || EMR.busy || (EMR.at && Date.now() - EMR.at < 30000)) return;
+  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
+}
+(function () {
+  const orig = shopScreen;
+  shopScreen = function () {
+    const u = U(); const tab = S.ui.shopTab === 'emeralds' ? 'emeralds' : 'cards';
+    const seg = `<div class="segment">${[['cards', u.shopSegCards], ['emeralds', u.shopSegEm]].map(([id, l]) => `<button class="${tab === id ? 'active' : ''}" data-a="shop-tab" data-v="${id}">${l}</button>`).join('')}</div>`;
+    if (tab === 'emeralds') { emLedgerLoad(); return `${topbar(u.emTitle, u.shopSegEm)}<div class="stack">${seg}${emeraldsTabHTML()}</div>`; }
+    const html = orig(); const k = html.indexOf('<div class="stack">'); return k < 0 ? html : html.slice(0, k + 19) + seg + html.slice(k + 19);
+  };
+  /* a pack of emeralds goes through the same Stars invoice as the cards (08-telegram.js → tgBuy) */
+  if (typeof tgBuy === 'function') {
+    const origBuy = tgBuy;
+    tgBuy = function (kind, id, onDone) {
+      if (kind !== 'emeralds') return origBuy.apply(this, arguments);
+      const tg = TG.app; if (!tg || !tg.openInvoice || !apiBase()) return false; const u = U(); const p = EM_PACK[id]; if (!p) return false;
+      api('/api/invoice', { kind: 'emeralds', id, title: `${fmtEm(p.emeralds)} 💎 Mafia Pro`, description: u.emTitle + ' · Mafia Pro' }).then(d => {
+        if (d.ok && d.link) { tg.openInvoice(d.link, status => { if (status === 'paid') { toast(tt(u.emGot, { n: fmtEm(d.emeralds + (d.bonus || 0)) })); tgHaptic('success'); EMR.at = 0; setTimeout(() => { cloudSync(); emLedgerLoad(); }, 1500); } else if (status === 'failed') toast(u.tgPayFail); }); return; }
+        toast(d.error === 'network' || d.error === 'no_api' ? u.tgOffline : u.tgNA);
+      });
+      return true;
+    };
+  }
+  /* the account: the balance and the tournament brief come with /api/me */
+  const origSync = cloudSync;
+  cloudSync = async function () {
+    await origSync.apply(this, arguments);
+    const d = CLOUD.me; if (!d || !d.ok) return;
+    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC };
+    if (d.skins && typeof d.skins === 'object') S.skins.borrowed = Number(d.skins.borrowed) || 0;
+    S.cloud = S.cloud || {}; S.cloud.trn = d.tournament || null;
+    save(); render();
+  };
+})();
+
+/* ---------- the skin sheet: the price, «Buy for 7 500», the weekend's free skins ---------- */
+function emSkinForSale(s) { return !!(s && s.rarity === 'epic' && !s.season); }
+(function () {
+  if (typeof skinHowText === 'function') {
+    const origHow = skinHowText;
+    skinHowText = function (s) {
+      if (!emSkinForSale(s)) return origHow.apply(this, arguments);
+      const u = U(); const st = skinStatus(s);
+      if (st.own) return S.skins.borrowed && !(S.cloud && S.cloud.admin) ? tt(u.emBorrowed, { date: emDate(S.skins.borrowed) }) : '';
+      return tt(u.emSkinHow, { n: fmtEm(emEpic()) });
+    };
+  }
+  if (typeof skinSheetHTML === 'function') {
+    const origSheet = skinSheetHTML;
+    skinSheetHTML = function (id) {
+      const html = origSheet.apply(this, arguments); const s = SKIN[id]; if (!s || !emSkinForSale(s)) return html;
+      const u = U(); const st = skinStatus(s); if (st.own) return html;
+      const price = emEpic(); const short = price - emBalance();
+      const btn = short > 0 ? `<button class="btn primary" data-a="em-topup">${tt(u.emSkinShort, { n: fmtEm(short) })}</button>` : `<button class="btn primary" data-a="em-skin-buy" data-id="${s.id}">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`;
+      const block = `<div class="em-price"><span class="em-tag">💎 ${fmtEm(price)}</span><span class="hint" style="margin:0">${u.emBalance}: <b class="num">${fmtEm(emBalance())}</b> 💎</span></div><div class="btn-row" style="margin-top:10px">${emInTg() ? btn : `<button class="btn primary" data-a="buy-confirm" data-kind="emeralds" data-id="em_3xl">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`}</div>`;
+      const k = html.lastIndexOf('</div>'); return k < 0 ? html + block : html.slice(0, k) + block + html.slice(k);
+    };
+  }
+})();
+
+/* ---------- the tournament screen ---------- */
+function trnScenName(s) {
+  const u = U(); s = String(s || '');
+  if (s === 'classic') return typeof CLASSIC !== 'undefined' ? CLASSIC.name : 'Classic';
+  if (s === 'preset') return u.trnScenPreset;
+  if (s.startsWith('intro:') && typeof introText === 'function') { try { const x = introText(s.slice(6)); if (x && x.name) return x.name; } catch (e) {} }
+  return s;
+}
+function trnFetch(force) {
+  if (!emInTg() || TRN.busy) return; if (!force && TRN.at && Date.now() - TRN.at < 15000) return;
+  TRN.busy = true; api('/api/tournament', {}).then(d => { TRN.busy = false; TRN.at = Date.now(); if (d && d.ok) { TRN.d = d; if (TRN.form == null && d.t) TRN.form = { mode: d.t.mode, scenario: d.t.scenario, n: d.t.n, fund: d.t.fund }; if (S.screen === 'tournament') render(); } }).catch(() => { TRN.busy = false; });
+}
+try { setInterval(() => { try { if (S.screen === 'tournament') trnFetch(); } catch (e) {} }, 15000); } catch (e) {}
+function trnPhaseText(t) {
+  const u = U(); if (t.status === 'done') return u.trnPhaseDone; if (t.status === 'cancelled') return u.trnPhaseCancelled;
+  return t.phase === 'games' || t.round ? u.trnPhaseGames : u.trnPhaseReg;
+}
+function trnPrizesHTML(d) {
+  const u = U(); const t = d.t; const n = Math.max(t.played || 0, t.players || 0, 1); const list = prizeTable(n, t.fund);
+  return `<div class="eyebrow" style="margin-top:14px">${u.trnPrizes} · ${tt(u.trnPrizeFor, { n })}</div><div class="trn-prizes">${list.map((p, i) => `<div class="trn-prize ${i < 3 ? 'top' : ''}"><span>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '№' + (i + 1)}</span><b class="num">💎 ${fmtEm(p)}</b></div>`).join('')}</div><p class="hint" style="margin:6px 0 0">${u.trnPrizeNote}</p>`;
+}
+function trnStandingsHTML(d) {
+  const u = U(); const me = myTgId() || 0; const list = d.standings || [];
+  if (!list.length) return `<div class="eyebrow" style="margin-top:14px">${u.trnStandings}</div><p class="hint">${u.trnEmpty}</p>`;
+  return `<div class="eyebrow" style="margin-top:14px">${u.trnStandings} · ${list.length}</div><div class="stack-s">${list.map(p => `<div class="fr-row ${p.tgId === me ? 'me' : ''}" role="button" data-a="fr-open" data-id="${p.tgId}"><span class="pos" style="width:26px;color:var(--gold-2);font-weight:800">${p.place || '—'}</span><div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}${p.tgId === me ? ` <span class="hint" style="display:inline">(${u.trnYou})</span>` : ''}</div><div class="hint" style="margin:0">${p.games ? tt(u.trnGW, { g: p.games, w: p.wins }) : u.trnNoGames}${p.prize ? ` · 💎 ${fmtEm(p.prize)}` : ''}</div></div><b class="num" style="color:var(--gold-2)">${p.points}</b></div>`).join('')}</div>`;
+}
+function trnMeHTML(d) {
+  const u = U(); const t = d.t; const me = d.me; const live = t.status === 'reg' || t.status === 'live';
+  if (!live) return '';
+  if (!me || !me.in) return `<div class="panel"><div class="btn-row"><button class="btn primary grow" data-a="trn-join" data-host="0">🎲 ${u.trnJoin}</button><button class="btn grow" data-a="trn-join" data-host="1">🎩 ${u.trnJoinHost}</button></div><p class="hint" style="margin:8px 0 0">${u.trnHostHint}</p></div>`;
+  let body = `<div class="row"><div class="grow" style="font-weight:700">${me.role === 'host' ? '🎩 ' + u.trnYouHost : '🎲 ' + u.trnYouPlayer}</div><button class="btn xs ghost" data-a="trn-join" data-in="0">${u.trnLeave}</button></div>`;
+  if (me.role === 'player') {
+    if (d.myTable) {
+      const mt = d.myTable;
+      body += `<div class="trn-table"><div class="eyebrow gold">${u.trnMyTable}</div><div style="font-weight:800;font-size:17px;margin-top:4px">${tt(u.trnSeatLine, { r: mt.round, t: mt.idx, s: mt.seat })}</div><div class="hint" style="margin:4px 0 0">${tt(u.trnHostLine, { name: esc(mt.host || u.trnHostNo) })}${mt.code ? ' · ' + tt(u.trnCode, { code: mt.code }) : ''}</div>
+        ${mt.status === 'played' ? `<p class="hint" style="margin:6px 0 0">${u.trnPlayed}</p>` : t.mode === 'online' ? (mt.code ? `<button class="btn primary" style="margin-top:10px" data-a="trn-sit" data-code="${mt.code}">${u.trnSit}</button>` : `<p class="hint" style="margin:6px 0 0">${u.trnHostNo}</p>`) : `<p class="hint" style="margin:6px 0 0">${u.trnOffline}</p>`}
+        <div class="trn-seats">${mt.seats.map(s => `<span class="chip ${s.tgId === myTgId() ? 'active' : ''}">${s.seat} · ${esc(s.name)}</span>`).join('')}</div></div>`;
+    } else if (d.bench) body += `<p class="hint" style="margin:8px 0 0">${u.trnBench}</p>`;
+    else if (t.round) body += `<p class="hint" style="margin:8px 0 0">${u.trnWaitDraw}</p>`;
+  } else if (d.hosting) {
+    const h = d.hosting;
+    body += `<div class="trn-table"><div class="eyebrow gold">${tt(u.trnHosting, { t: h.idx })}</div><div class="hint" style="margin:4px 0 0">${tt(u.trnHostSeats, { n: h.size })} · ${tt(u.trnCode, { code: h.code || '—' })}</div>
+      ${h.status === 'played' ? `<p class="hint" style="margin:6px 0 0">${u.trnPlayed}</p>` : `<button class="btn primary" style="margin-top:10px" data-a="trn-host-open">${u.trnHostOpen}</button>`}
+      <div class="trn-seats">${h.seats.map(s => `<span class="chip">${s.seat} · ${esc(s.name)}</span>`).join('')}</div></div>`;
+  }
+  return `<div class="panel">${body}</div>`;
+}
+function trnAdminHTML(d) {
+  const u = U(); const t = d.t; const f = TRN.form || (t ? { mode: t.mode, scenario: t.scenario, n: t.n, fund: t.fund } : { mode: 'online', scenario: 'classic', n: 10, fund: PRIZE_FUND });
+  const live = t && (t.status === 'reg' || t.status === 'live');
+  const chip = (a, v, cur, label) => `<button class="chip ${String(cur) === String(v) ? 'active' : ''}" data-a="${a}" data-v="${v}">${label}</button>`;
+  const scens = (d.admin && d.admin.scenarios) || ['classic', 'preset', 'intro:first', 'intro:detective', 'intro:guard', 'intro:trumps', 'intro:third'];
+  const ns = []; for (let k = 7; k <= 16; k++) ns.push(k);
+  const settings = live ? `<div class="eyebrow" style="margin-top:10px">${u.trnSettings}</div>${t.round ? `<p class="hint" style="margin:4px 0">${u.trnFixed}</p>` : ''}
+    <div class="segment n2" style="margin-top:6px"><button class="${f.mode === 'online' ? 'active' : ''}" data-a="trn-f" data-k="mode" data-v="online" ${t.round ? 'disabled' : ''}>${u.trnModeOnline}</button><button class="${f.mode === 'offline' ? 'active' : ''}" data-a="trn-f" data-k="mode" data-v="offline" ${t.round ? 'disabled' : ''}>${u.trnModeOffline}</button></div>
+    <div class="filters wrap" style="margin-top:8px">${scens.map(s => `<button class="chip ${f.scenario === s ? 'active' : ''}" data-a="trn-f" data-k="scenario" data-v="${s}" ${t.round ? 'disabled' : ''}>${esc(trnScenName(s))}</button>`).join('')}</div>
+    ${f.scenario === 'classic' ? `<p class="hint" style="margin:6px 0 0">${tt(u.trnTableN, { n: 10 })}</p>` : `<div class="filters" style="margin-top:8px">${ns.map(k => chip('trn-fn', k, f.n, String(k))).join('')}</div>`}
+    <div class="filters" style="margin-top:8px">${[5000, 10000, 15000, 20000, 30000].map(v => chip('trn-ff', v, f.fund, '💎 ' + fmtEm(v))).join('')}</div>
+    <div class="btn-row" style="margin-top:10px"><button class="btn primary sm" data-a="trn-save">${u.trnSave}</button></div>` : '';
+  const draw = live ? `<div class="btn-row" style="margin-top:12px"><button class="btn primary grow" data-a="trn-draw" data-final="0">${tt(u.trnDraw, { n: (t.round || 0) + 1 })}</button>${t.round ? `<button class="btn grow" data-a="trn-draw" data-final="1">${u.trnDrawFinal}</button>` : ''}</div>
+    <div class="hint" style="margin:8px 0 0">${tt(u.trnPlayers, { n: t.players })} · ${tt(u.trnHosts, { n: t.hosts })}${d.admin ? ` · ${tt(u.trnByes, { n: d.admin.byes })} · ${tt(u.trnOut, { n: d.admin.out })}` : ''}</div>
+    <button class="btn ${TRN.closeAsk ? 'primary' : 'ghost'} sm" style="margin-top:10px;color:${TRN.closeAsk ? '#1a1206' : 'var(--crimson-2)'}" data-a="trn-close">${TRN.closeAsk ? u.trnCloseSure : u.trnClose}</button>` : `<button class="btn primary" style="margin-top:10px" data-a="trn-open">${u.trnOpenNow}</button>`;
+  const vols = d.admin && d.admin.hosts ? d.admin.hosts : [];
+  const tables = live && t.round ? `<div class="eyebrow" style="margin-top:14px">${tt(u.trnTables, { n: t.round })}</div><div class="stack-s">${(d.tables || []).map(tb => `<div class="panel" style="padding:10px 12px"><div class="row"><div class="grow" style="font-weight:700">№${tb.idx} · ${tb.size} · ${tb.status}</div><div class="hint" style="margin:0">${tb.code ? tt(u.trnCode, { code: tb.code }) : ''}</div></div>
+      <div class="hint" style="margin:4px 0 0">${tb.host ? tt(u.trnHostLine, { name: esc(tb.host) }) : u.trnHostNo}</div>
+      ${tb.status === 'open' ? `<div class="filters wrap" style="margin-top:6px"><span class="hint" style="margin:0 6px 0 0">${u.trnSetHost}</span>${[{ tgId: myTgId(), name: u.trnMeHost }].concat(vols).map(h => `<button class="chip ${tb.hostId === h.tgId ? 'active' : ''}" data-a="trn-host" data-round="${tb.round}" data-idx="${tb.idx}" data-id="${h.tgId}">${esc(h.name)}</button>`).join('')}</div>` : ''}
+      <div class="trn-seats">${tb.seats.map(s => `<span class="chip">${s.seat} · ${esc(s.name)}</span>`).join('')}</div></div>`).join('')}</div>` : '';
+  const hosts = vols.length ? `<div class="eyebrow" style="margin-top:14px">${tt(u.trnVols, { n: vols.length })}</div><div class="filters wrap">${vols.map(h => `<span class="chip">🎩 ${esc(h.name)}</span>`).join('')}</div>` : '';
+  return `<div class="panel trn-admin"><div class="eyebrow gold">${u.trnAdmin}</div>${settings}${draw}${tables}${hosts}</div>`;
+}
+function tournamentScreen() {
+  const u = U();
+  if (!emInTg()) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><p class="hint">${u.trnNeedTg}</p>${listHTML(u.trnRules.map(r => tt(r, { fund: fmtEm(PRIZE_FUND) })))}</div>`;
+  trnFetch(); const d = TRN.d;
+  if (!d) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><p class="hint">${u.tgTopLoading}</p></div>`;
+  const t = d.t;
+  if (!t) return `${topbar(u.trnTitle, u.trnSub)}<div class="stack"><div class="panel"><div style="font-weight:700">🏆 ${u.trnTitle}</div><p class="hint" style="margin:6px 0 0">${tt(u.trnNone, { date: d.next ? emDate(d.next.opensAt) : '' })}</p></div>${S.cloud && S.cloud.admin ? trnAdminHTML(d) : ''}<div class="eyebrow" style="margin-top:14px">${u.trnRulesTitle}</div>${listHTML(u.trnRules.map(r => tt(r, { fund: fmtEm(PRIZE_FUND) })))}</div>`;
+  const sat = emDate(t.gamesAt), sun = emDate(t.gamesAt + 86400000);
+  const head = `<div class="panel trn-head"><div class="row"><div class="grow"><div style="font-weight:800;font-size:17px">🏆 ${tt(u.trnWeek, { sat, sun })}</div><div class="hint" style="margin:2px 0 0">${trnPhaseText(t)}${t.round ? ' · ' + tt(u.trnRound, { n: t.round }) : ''}</div></div><div class="trn-fund"><div class="hint" style="margin:0">${u.trnFund}</div><b class="num">💎 ${fmtEm(t.fund)}</b></div></div>
+    <div class="hint" style="margin:8px 0 0">${u.trnFormat}: ${t.mode === 'online' ? u.trnModeOnline : u.trnModeOffline} · ${esc(trnScenName(t.scenario))} · ${tt(u.trnTableN, { n: t.n })}</div>
+    <div class="hint" style="margin:2px 0 0">${tt(u.trnPlayers, { n: t.players })} · ${tt(u.trnHosts, { n: t.hosts })}${S.skins.borrowed ? ` · ${tt(u.emBorrowed, { date: emDate(S.skins.borrowed) })}` : ''}</div></div>`;
+  return `${topbar(u.trnTitle, u.trnSub)}<div class="stack">${head}${trnMeHTML(d)}${S.cloud && S.cloud.admin ? trnAdminHTML(d) : ''}${trnPrizesHTML(d)}${trnStandingsHTML(d)}<div class="eyebrow" style="margin-top:14px">${u.trnRulesTitle}</div>${listHTML(u.trnRules.map(r => tt(r, { fund: fmtEm(t.fund) })))}</div>`;
+}
+/* the host's app takes the tournament table: the scenario and the size from the tournament, the players already seated on the server */
+function trnApplySetup(t, n) {
+  const s = String(t.scenario || 'classic');
+  if (s === 'classic') { applyScenario('classic', 10); return; }
+  S.setup.scenario = null; S.setup.n = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n || t.n || 10));
+  const theme = s.startsWith('intro:') ? s.slice(6) : ''; const sc = theme && typeof introFor === 'function' ? introFor(S.setup.n).find(x => x.id === theme) : null;
+  S.setup.comp = sc ? sc.comp.slice() : presetFor(S.setup.n);
+}
+/* the home screen: the balance next to the language, the tournament in the menu */
+(function () {
+  const orig = homeScreen;
+  homeScreen = function () {
+    let html = orig.apply(this, arguments); const u = U();
+    if (emInTg()) html = html.replace('<button class="btn xs ghost" data-a="go" data-to="settings"', `<button class="btn xs ghost em-chip" data-a="em-topup" aria-label="${u.emTitle}">💎 <b class="num">${fmtEm(emBalance())}</b></button><button class="btn xs ghost" data-a="go" data-to="settings"`);
+    const b = S.cloud && S.cloud.trn; const sub = !b ? u.trnMenuNone : (b.round || b.phase === 'games' ? tt(u.trnMenuGames, { r: b.round, n: b.players }) : tt(u.trnMenuReg, { n: b.players, fund: fmtEm(b.fund) })) + (b.me && b.me.in ? u.trnMenuIn : '');
+    const item = `<button class="menu-item" data-a="go" data-to="tournament"><div class="ico" style="color:var(--gold)">${I.trophy}</div><div><div class="t">${u.trnMenu}</div><div class="d">${sub}</div></div><span class="chev">${I.chev}</span></button>`;
+    const k = html.indexOf('<button class="menu-item" data-a="go" data-to="mini">'); return k < 0 ? html : html.slice(0, k) + item + html.slice(k);
+  };
+  const origStart = applyStartParam;
+  applyStartParam = function (sp) { if (sp === 'tournament') { S.screen = 'tournament'; return; } if (sp === 'emeralds') { S.screen = 'shop'; S.ui.shopTab = 'emeralds'; return; } return origStart.apply(this, arguments); };
+})();
+Object.assign(ACT, {
+  'shop-tab'(el) { S.ui.shopTab = el.dataset.v === 'emeralds' ? 'emeralds' : 'cards'; window.scrollTo(0, 0); render(); },
+  'em-topup'() { S.ui.sheet = null; S.ui.shopTab = 'emeralds'; go('shop'); },
+  'em-buy'(el) { const id = el.dataset.id; if (!EM_PACK[id]) return; if (emInTg() && tgBuy('emeralds', id, () => {})) return; ACT['buy-confirm']({ dataset: { kind: 'emeralds', id } }); },
+  async 'em-skin-buy'(el) {
+    const u = U(); const s = SKIN[el.dataset.id]; if (!s || !emInTg()) return;
+    const d = await api('/api/skin/buy', { skin: s.id });
+    if (d && d.ok) { if (d.skins) { S.skins.owned = d.skins.owned || S.skins.owned; S.skins.equipped = d.skins.equipped || S.skins.equipped; } if (d.balance != null) S.em.balance = d.balance; EMR.at = 0; save(); render(); toast(tt(u.emSkinBought, { name: s.name })); tgHaptic('success'); return; }
+    if (d && d.error === 'not_enough') { if (d.balance != null) S.em.balance = d.balance; toast(tt(u.emSkinShort, { n: fmtEm(d.short || 0) })); render(); return; }
+    toast(d && d.error === 'network' ? u.tgOffline : u.trnErr);
+  },
+  async 'trn-join'(el) {
+    const u = U(); if (!emInTg()) { toast(u.trnNeedTg); return; }
+    const leave = el.dataset.in === '0'; const d = await api('/api/tournament/join', leave ? { in: false } : { in: true, host: el.dataset.host === '1' });
+    if (!d || !d.ok) { toast(d && d.error === 'closed' ? u.trnPhaseDone : u.trnErr); return; }
+    TRN.d = d; TRN.at = Date.now(); if (S.cloud) { S.cloud.trn = Object.assign({}, S.cloud.trn || {}, { players: d.t.players, me: d.me ? { in: d.me.in, role: d.me.role } : null, fund: d.t.fund, round: d.t.round, phase: d.t.phase }); } save(); render(); toast(leave ? u.trnLeft : u.trnJoined); tgHaptic('success');
+  },
+  'trn-sit'(el) { if (typeof tableOpen === 'function') tableOpen(el.dataset.code); },
+  async 'trn-host-open'() {
+    const u = U(); const d = TRN.d; if (!d || !d.hosting || !d.hosting.code || !d.t) return;
+    const live = S.game && !S.game.winner && S.game.tg && S.game.tg.code; if (live && S.game.dealIdx >= S.game.players.length) { toast(u.frGameRunning); return; }
+    trnApplySetup(d.t, d.hosting.size); S.setup.hostRole = 'host'; S.setup.online = d.t.mode === 'online'; S.lobby = null; if (S.game && S.game.winner) S.game = null; clearTableSeats(); S.ui.showAll = false;
+    go('setup');
+    const tk = await api('/api/tournament/table', {}); if (!tk || !tk.ok) { toast(tk && tk.error === 'network' ? u.tgOffline : u.trnErr); return; } // the table becomes the host's newest open table again
+    const l = await openTable(false); if (l && l.code === d.hosting.code) toast(u.trnHostOpened); else if (l) toast(tt(u.tgTable, { code: l.code }));
+  },
+  'trn-f'(el) { if (el.disabled) return; TRN.form = Object.assign({}, TRN.form || {}, { [el.dataset.k]: el.dataset.v }); if (el.dataset.k === 'scenario' && el.dataset.v === 'classic') TRN.form.n = 10; render(); },
+  'trn-fn'(el) { TRN.form = Object.assign({}, TRN.form || {}, { n: Number(el.dataset.v) }); render(); },
+  'trn-ff'(el) { TRN.form = Object.assign({}, TRN.form || {}, { fund: Number(el.dataset.v) }); render(); },
+  async 'trn-save'() { const u = U(); const d = await api('/api/tournament/admin', Object.assign({ action: 'settings' }, TRN.form || {})); if (d && d.ok) { TRN.d = d; TRN.at = Date.now(); TRN.form = { mode: d.t.mode, scenario: d.t.scenario, n: d.t.n, fund: d.t.fund }; render(); toast(u.trnSaved); } else toast(d && d.error === 'drawn' ? u.trnFixed : u.trnErr); },
+  async 'trn-open'() { const u = U(); const d = await api('/api/tournament/admin', { action: 'open' }); if (d && d.ok) { TRN.d = d; TRN.at = Date.now(); TRN.form = null; cloudSync(); render(); } else toast(u.trnErr); },
+  async 'trn-draw'(el) { const u = U(); const d = await api('/api/tournament/admin', { action: 'draw', final: el.dataset.final === '1' }); if (d && d.ok) { TRN.d = d; TRN.at = Date.now(); render(); toast(tt(u.trnDrawn, { n: d.round })); tgHaptic('success'); } else toast(d && d.error === 'few_players' ? tt(u.trnFew, { n: d.need }) : u.trnErr); },
+  async 'trn-host'(el) { const u = U(); const d = await api('/api/tournament/admin', { action: 'host', round: Number(el.dataset.round), idx: Number(el.dataset.idx), tgId: Number(el.dataset.id) }); if (d && d.ok) { TRN.d = d; TRN.at = Date.now(); render(); toast(u.trnHostSet); } else toast(u.trnErr); },
+  async 'trn-close'() {
+    const u = U(); if (!TRN.closeAsk) { TRN.closeAsk = 1; render(); setTimeout(() => { if (TRN.closeAsk) { TRN.closeAsk = 0; render(); } }, 5000); return; }
+    TRN.closeAsk = 0; const d = await api('/api/tournament/admin', { action: 'close' }); if (d && d.ok) { TRN.d = d; TRN.at = Date.now(); cloudSync(); render(); toast(u.trnClosed); } else toast(u.trnErr);
+  }
+});
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

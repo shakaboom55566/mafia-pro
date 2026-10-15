@@ -435,7 +435,7 @@ const path = require('path'); const http = require('http');
   ok(!tg.calls.some(c => c.method === 'sendMessage' && c.params.chat_id === 601 && c.params.text.includes(oc)), 'online friend gets no DM');
   ok(await p.evaluate(c => S.screen === 'setup' && S.lobby && S.lobby.code === c, oc), 'host lands on the table setup after inviting');
   // the home screen carries no table list any more; "Find a table" sits right under Classic Mafia and lists every online table
-  await Q(() => { S.ui.sheet = null; go('home'); }); await q.waitForTimeout(400);
+  await Q(() => { if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; } S.ui.sheet = null; go('home'); }); await q.waitForTimeout(400); // the heartbeat would pop the invitation sheet over the finder mid-check; it comes back below
   ok(!(await q.$('[data-a="lb-join"]')) && await Q(() => { const items = [...document.querySelectorAll('.menu .menu-item')]; const i = items.findIndex(b => b.dataset.a === 'scen-use' && b.dataset.id === 'classic'); return i >= 0 && items[i + 1] && items[i + 1].dataset.to === 'tables'; }), 'no open-tables list on the home screen; "Find a table" is the item under Classic Mafia');
   await Q(() => { LB.at = 0; go('tables'); }); await q.waitForTimeout(1000);
   ok(await Q(() => Array.isArray(LB.list)), 'open tables loaded');
@@ -461,7 +461,7 @@ const path = require('path'); const http = require('http');
     await W(() => { LB.code = 'ab12cd'.toUpperCase(); ACT['lb-join']({ dataset: { code: '' } }); }); ok(await W(() => window.__opened[1] && window.__opened[1].endsWith('join_AB12CD')), 'web: join by code opens the bot too');
     ok(!errsW.length, 'web: no page errors ' + errsW.join('; ')); await w.close();
   }
-  await Q(async () => { const d = await api('/api/ping', {}); S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); }); await q.waitForTimeout(300);
+  await Q(async () => { startHeartbeat(); const d = await api('/api/ping', {}); S.cloud.invites = d.invites || []; S.cloud.table = d.table || null; showInvites(); }); await q.waitForTimeout(300);
   ok(await Q(() => S.ui.sheet && S.ui.sheet.type === 'tableInvite') && (await q.$eval('.sheet', el => el.textContent)).includes('Ведущий') && (await q.$eval('.sheet', el => el.textContent)).includes(oc), 'invitation sheet on the player’s screen with the host’s name and the table code');
   ok((await q.$eval('.sheet', el => el.textContent)).includes(await Q(() => U().modeClassic + ' · ' + U().modeOpen)), 'the sheet says "Classic mafia · open game"');
   await q.screenshot({ path: path.join(__dirname, '..', '..', 'qa-shots', 'online-invite.png') }).catch(() => {});
@@ -848,6 +848,41 @@ const path = require('path'); const http = require('http');
     await S(() => { S.game = null; S.lobby = null; ACT['scen-use']({ dataset: { id: 'classic' } }); }); await p.waitForTimeout(300); ok(!(await p.$('[data-a="dc-toggle"]')), 'classic (offline only): no Discord switch');
     await S(() => ACT.new({ dataset: {} })); await Q(() => { TB.code = null; TB.data = null; go('home'); });
     for (const k of ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_API']) delete env[k]; await dc.close(); }
+  console.log('v63: emeralds in the shop (a pack for Stars, the first-purchase bonus), an Epic skin for emeralds, the weekly tournament (open → join → settings → close)');
+  { await S(() => { S.ui.sheet = null; S.ui.shopTab = 'emeralds'; go('shop'); }); await p.waitForTimeout(500);
+    ok((await p.$$('.em-pack')).length === 8 && (await p.$$('.em-badge')).length === 8 && (await p.$eval('.em-big', el => el.textContent)).includes('0'), 'the Emeralds tab: eight packs, every bonus, balance 0');
+    const inv0 = tg.calls.filter(c => c.method === 'createInvoiceLink').length;
+    await p.click('[data-a="em-buy"][data-id="em_s"]'); await p.waitForTimeout(800);
+    const inv = tg.calls.filter(c => c.method === 'createInvoiceLink').pop(); ok(tg.calls.filter(c => c.method === 'createInvoiceLink').length === inv0 + 1 && inv.params.prices[0].amount === 50 && inv.params.title.includes('150'), 'the pack invoice: 50 Stars, «150 💎» in the title');
+    await hook({ update_id: 9001, message: { message_id: 1, from: { id: 100, first_name: 'Ведущий', language_code: 'ru' }, chat: { id: 100, type: 'private' }, successful_payment: { currency: 'XTR', total_amount: 50, invoice_payload: inv.params.payload, telegram_payment_charge_id: 'ch_qa' } } });
+    ok(tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 100).pop().params.text.includes('+300'), 'the bot: +300 (150 + the first-purchase bonus 150)');
+    await S(() => cloudSync()); await p.waitForTimeout(1500); await S(() => { EMR.at = 0; render(); }); await p.waitForTimeout(600);
+    ok((await p.$eval('.em-big', el => el.textContent)).includes('300') && (await p.$$('.em-badge')).length === 7 && (await p.$eval('#app', el => el.textContent)).includes(await S(() => U().emKind.bonus)), 'balance 300, the bought pack lost its badge, the ledger shows the bonus');
+    await S(() => go('home')); await p.waitForTimeout(200); ok((await p.$eval('.em-chip', el => el.textContent)).includes('300') && !!(await p.$('[data-to="tournament"]')), 'the home: the balance chip and the tournament item');
+    // the skin for emeralds: Нина has nothing → «top up»; the admin gives her 7 500 → «Buy for 7 500» → owned and worn
+    await Q(() => { S.ui.sheet = { type: 'skin', id: 'velvet_cat' }; render(); }); await q.waitForTimeout(300);
+    ok(!!(await q.$('[data-a="em-topup"]')) && !(await q.$('[data-a="em-skin-buy"]')) && (await q.$eval('.sheet', el => el.textContent)).includes('7 500'), 'no emeralds: the sheet offers to top up');
+    await hook({ update_id: 9002, message: { message_id: 2, from: { id: 100, first_name: 'Ведущий', language_code: 'ru' }, chat: { id: 100, type: 'private' }, text: '/emeralds 601 +7500' } });
+    await Q(() => cloudSync()); await q.waitForTimeout(1500); await Q(() => { S.ui.sheet = { type: 'skin', id: 'velvet_cat' }; render(); }); await q.waitForTimeout(300);
+    ok(await Q(() => S.em.balance === 7500) && !!(await q.$('[data-a="em-skin-buy"]')), '7 500 on the account → the buy button');
+    await q.click('[data-a="em-skin-buy"]'); await q.waitForTimeout(900);
+    ok(await Q(() => S.em.balance === 0 && S.skins.owned.includes('velvet_cat') && S.skins.equipped.thief === 'velvet_cat') && !!(await q.$('[data-a="skin-wear"]')), 'bought: balance 0, the skin is owned and worn, the sheet shows «take off»');
+    await Q(() => { S.ui.sheet = null; render(); });
+    // the tournament: the admin opens this week's, Нина joins, the admin sets the format, a draw with one player is refused, the admin closes it
+    await S(() => go('tournament')); await p.waitForTimeout(900);
+    ok(!!(await p.$('[data-a="trn-open"]')) && (await p.$eval('#app', el => el.textContent)).includes(await S(() => U().trnNone.split('{')[0].trim())), 'no tournament yet: the admin sees «open now»');
+    await p.click('[data-a="trn-open"]'); await p.waitForTimeout(1200);
+    ok(await S(() => TRN.d && TRN.d.t && TRN.d.t.status === 'reg' && TRN.d.t.scenario === 'classic' && TRN.d.t.fund === 10000) && !!(await p.$('[data-a="trn-draw"]')), 'opened: registration, classic, fund 10 000, the draw button');
+    await Q(() => go('tournament')); await q.waitForTimeout(900); ok(!!(await q.$('[data-a="trn-join"][data-host="0"]')) && !(await q.$('[data-a="trn-open"]')), 'Нина sees «count me in», no admin panel');
+    await q.click('[data-a="trn-join"][data-host="0"]'); await q.waitForTimeout(900);
+    ok(await Q(() => TRN.d.me && TRN.d.me.in && TRN.d.me.role === 'player' && TRN.d.t.players === 1) && (await q.$eval('#app', el => el.textContent)).includes(await Q(() => U().trnYouPlayer)), 'joined as a player');
+    await Q(() => go('home')); await q.waitForTimeout(300); ok((await q.$eval('[data-to="tournament"] .d', el => el.textContent)).includes(await Q(() => U().trnMenuIn.trim())), 'the home item says she is in');
+    await p.click('[data-a="trn-f"][data-k="scenario"][data-v="intro:first"]'); await p.click('[data-a="trn-fn"][data-v="12"]'); await p.click('[data-a="trn-ff"][data-v="15000"]'); await p.click('[data-a="trn-save"]'); await p.waitForTimeout(900);
+    ok(await S(() => TRN.d.t.scenario === 'intro:first' && TRN.d.t.n === 12 && TRN.d.t.fund === 15000) && (await p.$eval('#app', el => el.textContent)).includes('15 000'), 'the format saved: First Evening, 12 at a table, fund 15 000');
+    await p.click('[data-a="trn-draw"][data-final="0"]'); await p.waitForTimeout(900); ok(await S(() => TRN.d.t.round === 0) && (await p.$eval('.toast', el => el.textContent).catch(() => '')).includes('7'), 'one player: no draw, «at least 7» said');
+    await p.click('[data-a="trn-close"]'); await p.waitForTimeout(200); await p.click('[data-a="trn-close"]'); await p.waitForTimeout(1200);
+    ok(await S(() => TRN.d.t.status === 'cancelled'), 'closed with no games → cancelled');
+    await S(() => go('home')); await Q(() => go('home')); }
   ok(errs2.length === 0, 'no page errors on the player’s phone: ' + errs2.join(' | ').slice(0, 300));
   await ctx2.close();
 

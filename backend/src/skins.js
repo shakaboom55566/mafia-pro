@@ -73,11 +73,19 @@ export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_N
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;
 export const isSkin = id => typeof id === 'string' && SKIN_RE.test(id) && Object.prototype.hasOwnProperty.call(SKINS, id);
 
-/* the skins a player owns (ids) */
-export async function ownedSkins(env, tgId, admin) {
+/* the skins a player owns (ids); extra — skins lent for a while (v63: every Epic skin during the weekend tournament) */
+export async function ownedSkins(env, tgId, admin, extra) {
   if (admin) return Object.keys(SKINS);
   const rows = (await env.DB.prepare("SELECT item FROM purchases WHERE tg_id = ?1 AND kind = 'skin' AND status IN ('paid', 'reward')").bind(tgId).all()).results || [];
-  return [...new Set(rows.map(r => r.item).filter(isSkin))];
+  return [...new Set(rows.map(r => r.item).filter(isSkin).concat((extra || []).filter(isSkin)))];
+}
+/* v63: buy a skin for emeralds — the statements of one transaction (the caller checks the balance and runs them with the debit) */
+export function buySkinStmts(env, tgId, skin, payload, ts) {
+  const role = SKINS[skin].role;
+  return [
+    env.DB.prepare("INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (?1, 'skin', ?2, 0, ?3, 'paid', ?4, ?4)").bind(tgId, skin, payload, ts),
+    env.DB.prepare('INSERT OR IGNORE INTO user_skins (tg_id, role, skin, updated_at) VALUES (?1, ?2, ?3, ?4)').bind(tgId, role, skin, ts) // worn at once unless the role has a skin on
+  ];
 }
 /* what a player wears: { role: skin } (only skins that still exist and still match their role) */
 export async function equippedSkins(env, tgId) {
@@ -92,11 +100,11 @@ export async function equippedOf(env, ids) {
   return out;
 }
 /* put a skin on (skin = id) or take the role's skin off (skin = null); the player must own it */
-export async function equipSkin(env, tgId, role, skin, admin, ts) {
+export async function equipSkin(env, tgId, role, skin, admin, ts, extra) {
   if (typeof role !== 'string' || !/^[a-z_]{2,32}$/.test(role)) return { ok: false, error: 'bad_role' };
   if (skin == null || skin === '') { await env.DB.prepare('DELETE FROM user_skins WHERE tg_id = ?1 AND role = ?2').bind(tgId, role).run(); return { ok: true }; }
   if (!isSkin(skin) || SKINS[skin].role !== role) return { ok: false, error: 'bad_skin' };
-  if (!(await ownedSkins(env, tgId, admin)).includes(skin)) return { ok: false, error: 'not_owned' };
+  if (!(await ownedSkins(env, tgId, admin, extra)).includes(skin)) return { ok: false, error: 'not_owned' };
   await env.DB.prepare('INSERT INTO user_skins (tg_id, role, skin, updated_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(tg_id, role) DO UPDATE SET skin = ?3, updated_at = ?4').bind(tgId, role, skin, ts).run();
   return { ok: true };
 }

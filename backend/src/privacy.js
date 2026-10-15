@@ -95,6 +95,9 @@ export async function exportUser(env, id) {
     rewards: { credits: await all('SELECT kind, count FROM credits WHERE tg_id = ?1', id), milestones: await all('SELECT level, created_at FROM milestones WHERE tg_id = ?1', id), access: await one('SELECT until, created_at FROM grants WHERE tg_id = ?1', id) },
     purchases: await all('SELECT kind, item, stars, status, charge_id, created_at, paid_at FROM purchases WHERE tg_id = ?1', id),
     skinsWorn: await all('SELECT role, skin, updated_at FROM user_skins WHERE tg_id = ?1', id), // v56: the card skins put on
+    emeralds: await one('SELECT balance, updated_at FROM emeralds WHERE tg_id = ?1', id), // v63: the in-game currency and every change to it
+    emeraldLedger: await all('SELECT delta, kind, ref, created_at FROM emerald_ledger WHERE tg_id = ?1 ORDER BY id DESC LIMIT 1000', id),
+    tournaments: await all('SELECT t.week, p.role, p.status, p.points, p.games, p.wins, p.place, p.prize, p.registered_at FROM tournament_players p JOIN tournaments t ON t.id = p.tid WHERE p.tg_id = ?1 ORDER BY t.opens_at', id), // v63: weekly tournaments
     partner: await one('SELECT status, name, channel, audience, share, created_at, approved_at FROM partners WHERE tg_id = ?1', id),
     payouts: await all('SELECT stars, note, created_at FROM payouts WHERE tg_id = ?1', id),
     clubsOwned: await all('SELECT id, name, city, about, link, status, created_at FROM clubs WHERE owner_id = ?1', id),
@@ -141,7 +144,9 @@ export async function deleteUser(env, id) {
     st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'), st('DELETE FROM ad_clicks WHERE tg_id = ?1'),
     st('DELETE FROM broadcast_queue WHERE tg_id = ?1'), st('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_members SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE discord_invites SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_events SET inviter_tg = NULL WHERE inviter_tg = ?1'),
-    st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM user_skins WHERE tg_id = ?1'), st('DELETE FROM users WHERE tg_id = ?1')
+    st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM user_skins WHERE tg_id = ?1'),
+    st('DELETE FROM emeralds WHERE tg_id = ?1'), st('DELETE FROM emerald_ledger WHERE tg_id = ?1'), st('DELETE FROM tournament_players WHERE tg_id = ?1'), st('UPDATE tournament_tables SET host_id = NULL WHERE host_id = ?1'), // v63
+    st('DELETE FROM users WHERE tg_id = ?1')
   ];
   if (env.DB.batch) { for (let i = 0; i < list.length; i += 50) await env.DB.batch(list.slice(i, i + 50)); } else for (const s of list) await s.run();
   return { games: games.length, clubs: clubs.length };

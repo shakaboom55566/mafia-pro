@@ -544,3 +544,70 @@ CREATE TABLE IF NOT EXISTS user_skins (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (tg_id, role)
 );
+
+-- v63 emeralds: the in-game currency (emeralds.js) — the balance and every change to it
+CREATE TABLE IF NOT EXISTS emeralds (
+  tg_id      INTEGER PRIMARY KEY,
+  balance    INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS emerald_ledger (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  tg_id      INTEGER NOT NULL,
+  delta      INTEGER NOT NULL,
+  kind       TEXT NOT NULL,          -- pack | bonus | skin | prize | admin | refund
+  ref        TEXT,                   -- the pack / skin / tournament (trn:<week>) / admin id
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS emerald_ledger_user ON emerald_ledger (tg_id, id);
+
+-- v63 the weekly tournament (tournament.js): one row per week (the Monday's date in Kyiv)
+CREATE TABLE IF NOT EXISTS tournaments (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  week       TEXT NOT NULL UNIQUE,   -- YYYY-MM-DD of the Monday
+  status     TEXT NOT NULL,          -- reg | live | done | cancelled
+  mode       TEXT NOT NULL,          -- online | offline
+  scenario   TEXT NOT NULL,          -- classic | preset | intro:<theme>
+  n          INTEGER NOT NULL,       -- the table size (classic: 10)
+  fund       INTEGER NOT NULL,       -- the prize fund in emeralds
+  round      INTEGER NOT NULL DEFAULT 0,
+  round_info TEXT,                   -- JSON: who sits this round out, final draw or not
+  opens_at   INTEGER NOT NULL,       -- Monday 12:00 Kyiv
+  games_at   INTEGER NOT NULL,       -- Saturday 00:00 Kyiv
+  closes_at  INTEGER NOT NULL,       -- next Monday 00:00 Kyiv
+  started_at INTEGER,                -- when the players were told the games begin
+  created_at INTEGER NOT NULL,
+  closed_at  INTEGER,
+  updated_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS tournament_players (
+  tid        INTEGER NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  role       TEXT NOT NULL,          -- player | host
+  status     TEXT NOT NULL,          -- in | out
+  name       TEXT,
+  username   TEXT,
+  lang       TEXT,
+  points     INTEGER NOT NULL DEFAULT 0,
+  games      INTEGER NOT NULL DEFAULT 0,
+  wins       INTEGER NOT NULL DEFAULT 0,
+  place      INTEGER,
+  prize      INTEGER,
+  registered_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (tid, tg_id)
+);
+CREATE TABLE IF NOT EXISTS tournament_tables (
+  tid        INTEGER NOT NULL,
+  round      INTEGER NOT NULL,
+  idx        INTEGER NOT NULL,
+  code       TEXT,                   -- the lobby of the app once a host is set
+  host_id    INTEGER,
+  size       INTEGER NOT NULL,
+  seats      TEXT NOT NULL,          -- JSON: tg ids in seat order
+  status     TEXT NOT NULL,          -- open | played | skipped
+  created_at INTEGER NOT NULL,
+  played_at  INTEGER,
+  PRIMARY KEY (tid, round, idx)
+);
+CREATE INDEX IF NOT EXISTS tournament_tables_code ON tournament_tables (code);

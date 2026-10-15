@@ -26,6 +26,7 @@ const env = {
   SEC_RESULT_GAP: '0', APP_URL: 'https://shakaboom55566.github.io/mafia-pro/', ALLOWED_ORIGIN: 'https://shakaboom55566.github.io',
   TELEGRAM_API: tg.base, STARS_ROLE: '100', STARS_SCENARIO: '500', STARS_PACK: '1750', ADMIN_IDS: '777'
 };
+env.TRN_NOW_MS = String(Date.parse('2026-10-15T18:00:00Z')); // v63: a Thursday — the tournament cron of earlier sections opens nothing; the tournament section sets its own clock
 const pending = []; const ctx = { waitUntil(p) { pending.push(p); }, passThroughOnException() {} };
 const settle = async () => { while (pending.length) await Promise.all(pending.splice(0)); };
 let fails = 0, n = 0;
@@ -1594,6 +1595,142 @@ console.log('skins (v56): the same catalog in the app and the server');
   ok(Object.entries(SK.SEASON_SKIN).every(([n, id]) => SK.SKINS[id] && SK.SKINS[id].season === Number(n)), 'a season reward is a skin of that season');
   const files = c.SKINS.flatMap(x => [x.file + '.webp', x.file + '-depth.png', x.file + '-seal.webp']); ok(files.every(f => fs.existsSync(path.join(here, '..', '..', 'skins', f))), 'every skin has its face, depth map and portrait in skins/');
   ok(Object.keys(SK.SKINS).every(id => ['ru', 'uk', 'en', 'pl', 'hy'].every(l => SK.skinName(id, l) && SK.skinName(id, l) !== id)), 'every skin is named in five languages'); }
+
+
+console.log('emeralds (v63): packs for Stars, the first-purchase bonus, an Epic skin for emeralds, /emeralds');
+{ const EM = await import('../src/emeralds.js'); const fs = await import('node:fs'); const vm = await import('node:vm');
+  // the same catalog and the same prize arithmetic in the app
+  const app = fs.readFileSync(path.join(here, '..', '..', 'src', '15-emeralds.js'), 'utf8'); const blk = app.slice(app.indexOf('/* packs:begin'), app.indexOf('/* packs:end */'));
+  const c = vm.createContext({}); vm.runInContext(blk + '; this.EM_PACKS = EM_PACKS; this.prizeTable = prizeTable; this.firstBonusPct = firstBonusPct; this.EM_EPIC = EM_EPIC;', c);
+  eq(c.EM_PACKS, EM.PACKS, 'the packs are the same in the app and on the server'); eq(c.EM_EPIC, EM.EPIC_PRICE, 'the Epic price is the same');
+  for (const n of [1, 3, 5, 10, 12, 15, 30]) eq(c.prizeTable(n, 10000), EM.prizeTable(n, 10000), 'prizes for ' + n + ' players agree');
+  eq(EM.prizeTable(10, 10000), [2250, 2150, 2100, 500, 500, 500, 500, 500, 500, 500], 'ten players: top three ≥ 2000, 4–10 — 500, all 10 000 given');
+  eq(EM.prizeTable(20, 10000).length, 15, 'at most 15 prizes'); eq(EM.prizeTable(20, 10000).reduce((a, b) => a + b, 0), 10000, 'the whole fund is paid');
+  eq(EM.prizeTable(3, 10000), [4000, 3200, 2800], 'three players share everything 50 / 30 / 20 over the floors');
+  eq([EM.firstBonusPct(0.99), EM.firstBonusPct(4.99), EM.firstBonusPct(9.99), EM.firstBonusPct(39.99), EM.firstBonusPct(99.99)], [100, 100, 40, 40, 20], 'bonus tiers');
+  eq(EM.packGrant(EM.PACK.em_3xl, true), { emeralds: 7500, bonus: 3000, total: 10500 }, '7 500 for $39.99, the first time +40 %');
+  // the balance in /api/me, a pack for Stars
+  const id = await initData(user(1500)); let me = await (await post('/api/me', { initData: id })).json(); eq(me.emeralds, { balance: 0, bought: [], epic: 7500 }, 'no emeralds yet');
+  let d = await (await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_3xl' })).json(); ok(d.ok && d.stars === 2000 && d.emeralds === 7500 && d.bonus === 3000 && d.first === true && d.link, 'invoice: 2 000 Stars, 7 500 + 3 000 bonus the first time');
+  eq((await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_none' })).status, 400, 'unknown pack');
+  await hook({ update_id: 500, pre_checkout_query: { id: 'q50', from: user(1500), currency: 'XTR', total_amount: 2000, invoice_payload: d.payload } }); ok(lastCall('answerPreCheckoutQuery').params.ok === true, 'pre-checkout ok');
+  await hook({ update_id: 501, message: { message_id: 1, from: user(1500), chat: { id: 1500, type: 'private' }, successful_payment: { currency: 'XTR', total_amount: 2000, invoice_payload: d.payload, telegram_payment_charge_id: 'ch_em1' } } });
+  ok(lastTo(1500).params.text.includes('+10500') && lastTo(1500).params.text.includes('3000'), 'the bot says +10 500 with the bonus');
+  me = await (await post('/api/me', { initData: id })).json(); ok(me.emeralds.balance === 10500 && me.emeralds.bought.includes('em_3xl'), 'balance 10 500, the pack is marked bought');
+  await hook({ update_id: 502, message: { message_id: 2, from: user(1500), chat: { id: 1500, type: 'private' }, successful_payment: { currency: 'XTR', total_amount: 2000, invoice_payload: d.payload, telegram_payment_charge_id: 'ch_em1' } } });
+  eq((await (await post('/api/me', { initData: id })).json()).emeralds.balance, 10500, 'a repeated payment update does not credit twice');
+  d = await (await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_3xl' })).json(); ok(d.first === false && d.bonus === 0, 'the second purchase of the pack: no bonus');
+  await hook({ update_id: 503, message: { message_id: 3, from: user(1500), chat: { id: 1500, type: 'private' }, successful_payment: { currency: 'XTR', total_amount: 2000, invoice_payload: d.payload, telegram_payment_charge_id: 'ch_em2' } } });
+  eq((await (await post('/api/me', { initData: id })).json()).emeralds.balance, 18000, '18 000 after the second pack');
+  d = await (await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_s' })).json(); ok(d.first === true && d.bonus === 150, 'another pack still has its first-purchase bonus (+100 %)');
+  // an Epic skin for emeralds
+  let b = await (await post('/api/skin/buy', { initData: id, skin: 'lilac_doctor' })).json(); ok(b.ok && b.bought === 'lilac_doctor' && b.price === 7500 && b.balance === 10500, 'the skin costs 7 500');
+  ok(b.skins.owned.includes('lilac_doctor') && b.skins.equipped.doctor === 'lilac_doctor', 'owned and put on at once');
+  b = await (await post('/api/skin/buy', { initData: id, skin: 'lilac_doctor' })).json(); ok(b.ok && b.owned === true && b.balance === 10500, 'buying it again changes nothing');
+  eq((await post('/api/skin/buy', { initData: id, skin: 'amethyst_don' })).status, 400, 'the season reward is not for sale');
+  eq((await post('/api/skin/buy', { initData: id, skin: 'nope' })).status, 400, 'unknown skin');
+  const poor = await initData(user(1501)); const r = await post('/api/skin/buy', { initData: poor, skin: 'velvet_cat' }); const pd = await r.json(); ok(r.status === 402 && pd.error === 'not_enough' && pd.short === 7500, 'no emeralds → 402 with the shortfall');
+  const led = await (await post('/api/emeralds', { initData: id })).json(); eq(led.ledger.map(x => x.kind), ['skin', 'pack', 'bonus', 'pack'], 'the ledger: pack, bonus, pack, skin'); ok(led.packs.length === 8 && led.balance === 10500, 'the packs come with the ledger');
+  ok(me.skins.owned.includes('lilac_doctor') === false, '(before the purchase the skin was not owned)');
+  // /emeralds in the bot (admins only)
+  await hook(msg(user(777), '/emeralds @user1500')); ok(lastTo(777).params.text.includes('10500'), '/emeralds @user → the balance');
+  await hook(msg(user(777), '/emeralds @user1500 +500')); ok(lastTo(777).params.text.includes('11000') && lastTo(1500).params.text.includes('+500'), '+500 credited, the player is told');
+  await hook(msg(user(777), '/emeralds 1500 -999999')); ok(lastTo(777).params.text.includes('11000'), 'cannot take more than the balance');
+  await hook(msg(user(777), '/emeralds @user1500 -1000')); eq(await EM.balanceOf(env, 1500), 10000, '−1 000 taken');
+  await hook(msg(user(1500), '/emeralds @user1500 +99999')); eq(await EM.balanceOf(env, 1500), 10000, 'a player cannot use /emeralds');
+  const ex = await exportUser(env, 1500); ok(ex.emeralds.balance === 10000 && ex.emeraldLedger.length === 6, '/mydata includes the emeralds and the ledger'); }
+
+console.log('tournament (v63): the week, registration, the draw, points, prizes, borrowed Epic skins');
+{ const TR = await import('../src/tournament.js'); const EM = await import('../src/emeralds.js');
+  const at = iso => { env.TRN_NOW_MS = String(Date.parse(iso)); };
+  const cron5 = async () => { const w = []; await worker.scheduled({ cron: '*/5 * * * *' }, env, { waitUntil: p => w.push(p) }); await Promise.all(w); };
+  const w = TR.weekOf(Date.parse('2026-10-15T18:00:00Z')); // Thursday → the week of Monday 12.10
+  eq([w.week, new Date(w.opensAt).toISOString(), new Date(w.gamesAt).toISOString(), new Date(w.closesAt).toISOString()], ['2026-10-12', '2026-10-12T09:00:00.000Z', '2026-10-16T21:00:00.000Z', '2026-10-18T21:00:00.000Z'], 'the week in Kyiv: Monday 12:00, Saturday 00:00, next Monday 00:00 (summer time)');
+  eq(TR.weekOf(Date.parse('2026-10-25T22:30:00Z')).week, '2026-10-26', 'Monday 00:30 Kyiv after the clocks went back belongs to the new week');
+  eq(TR.tableSizes(12, 10, true), { sizes: [10], byes: 2 }, 'classic: whole tables of ten, two sit out'); eq(TR.tableSizes(23, 10, false), { sizes: [12, 11], byes: 0 }, 'role play: two tables of about ten'); eq(TR.tableSizes(6, 10, false).sizes, [], 'fewer than seven: no table'); eq(TR.tableSizes(15, 7, false), { sizes: [8, 7], byes: 0 }, 'tables of seven');
+  const adminId = await initData(user(777));
+  at('2026-10-19T08:00:00Z'); await cron5(); ok(!(await TR.currentTournament(env)), 'Monday 11:00 Kyiv: nothing yet');
+  at('2026-10-19T09:30:00Z'); await cron5(); let tr = await TR.currentTournament(env); ok(tr && tr.week === '2026-10-19' && tr.status === 'reg' && tr.mode === 'online' && tr.scenario === 'classic' && tr.n === 10 && tr.fund === 10000, 'Monday 12:30: this week\'s tournament is open (online, classic, 10, fund 10 000)');
+  ok(lastTo(777).params.text.includes('регистрация') || lastTo(777).params.text.includes('Открыта'), 'the admin is told the registration is open');
+  await cron5(); eq(await env.DB.prepare('SELECT COUNT(*) AS n FROM tournaments').first('n'), 1, 'the cron does not open it twice');
+  // registration
+  const P = Array.from({ length: 12 }, (_, i) => 2001 + i); const ids = {}; for (const p of P) ids[p] = await initData(user(p, p % 2 ? 'uk' : 'en'));
+  let v = await (await post('/api/tournament', { initData: ids[2001] })).json(); ok(v.ok && v.t && v.t.phase === 'reg' && v.me === null && v.t.players === 0, 'the view before joining');
+  for (const p of P) { const j = await (await post('/api/tournament/join', { initData: ids[p], in: true })).json(); ok(j.ok && j.in && j.me && j.me.in && j.me.role === 'player', 'player ' + p + ' joined'); }
+  const H = 2101; const hid = await initData(user(H)); const jh = await (await post('/api/tournament/join', { initData: hid, in: true, host: true })).json(); ok(jh.ok && jh.me.role === 'host', 'a host volunteers');
+  const pOut = await (await post('/api/tournament/join', { initData: ids[2012], in: false })).json(); ok(pOut.ok && pOut.in === false && pOut.me.in === false, 'leaving'); await post('/api/tournament/join', { initData: ids[2012], in: true });
+  v = await (await post('/api/tournament', { initData: ids[2001] })).json(); ok(v.t.players === 12 && v.t.hosts === 1 && v.prizes.length === 12 && v.prizes[0] === 2150 && v.prizes[11] === 100, 'twelve players, one host; the prizes for twelve');
+  eq(v.admin, undefined, 'no admin block for a player');
+  // the me line in /api/me and the admin's settings
+  const me = await (await post('/api/me', { initData: ids[2001] })).json(); ok(me.tournament && me.tournament.week === '2026-10-19' && me.tournament.players === 12 && me.tournament.me.in === true, '/api/me carries the tournament brief');
+  eq((await post('/api/tournament/admin', { initData: ids[2001], action: 'settings', mode: 'offline' })).status, 403, 'a player cannot change the format');
+  let a = await (await post('/api/tournament/admin', { initData: adminId, action: 'settings', mode: 'offline', n: 12 })).json(); ok(a.ok && a.t.mode === 'offline' && a.t.n === 10 && a.admin && a.admin.hosts.length === 1, 'offline; classic keeps 10 at a table; the admin sees the hosts');
+  a = await (await post('/api/tournament/admin', { initData: adminId, action: 'settings', scenario: 'intro:first', n: 12, fund: 12000 })).json(); ok(a.ok && a.t.scenario === 'intro:first' && a.t.n === 12 && a.t.fund === 12000, 'an intro theme with 12 at a table, the fund raised');
+  a = await (await post('/api/tournament/admin', { initData: adminId, action: 'settings', scenario: 'classic', mode: 'online', fund: 10000 })).json(); ok(a.ok && a.t.scenario === 'classic' && a.t.n === 10, 'back to classic online');
+  // Epic skins are lent while the games are on
+  at('2026-10-23T12:00:00Z'); let m1 = await (await post('/api/me', { initData: ids[2001] })).json(); ok(!m1.skins.owned.includes('velvet_cat') && !m1.skins.borrowed, 'Friday: nothing borrowed yet');
+  at('2026-10-24T08:00:00Z'); await cron5(); ok(lastTo(2001).params.text.includes('Турнір') && lastTo(2002).params.text.includes('tournament') && lastTo(H).params.text.includes('ведущим'), 'Saturday: the players and the host are told the games begin (in their languages)');
+  m1 = await (await post('/api/me', { initData: ids[2001] })).json(); ok(m1.skins.owned.includes('velvet_cat') && m1.skins.owned.includes('lilac_doctor') && m1.skins.borrowed > 0, 'a participant may wear every Epic skin on the weekend');
+  const stranger = await initData(user(2200)); const m2 = await (await post('/api/me', { initData: stranger })).json(); ok(!m2.skins.owned.includes('velvet_cat'), 'a stranger gets nothing');
+  let e = await (await post('/api/skin/equip', { initData: ids[2001], role: 'thief', skin: 'velvet_cat' })).json(); ok(e.ok && e.equipped.thief === 'velvet_cat', 'the borrowed skin goes on');
+  eq((await post('/api/skin/equip', { initData: stranger, role: 'thief', skin: 'velvet_cat' })).status, 400, 'not for the stranger');
+  // the draw: 12 players, classic → one table of ten, two sit out; the host gets the table
+  eq((await post('/api/tournament/admin', { initData: adminId, action: 'draw' })).status, 200, 'draw ok');
+  v = await (await post('/api/tournament', { initData: adminId })).json(); ok(v.t.status === 'live' && v.t.round === 1 && v.tables.length === 1 && v.tables[0].size === 10 && v.tables[0].hostId === H && /^[A-Z0-9]{6}$/.test(v.tables[0].code) && v.admin.byes === 2, 'round 1: one table of ten with the host and a code, two on the bench');
+  const code = v.tables[0].code; const seated = v.tables[0].seats.map(s => s.tgId);
+  eq((await env.DB.prepare('SELECT COUNT(*) AS n FROM lobby_players WHERE code = ?1').bind(code).first('n')), 10, 'the ten are seated at the lobby');
+  const lob = await env.DB.prepare('SELECT host_id, status FROM lobbies WHERE code = ?1').bind(code).first(); ok(lob.host_id === H && lob.status === 'open', 'the lobby belongs to the host and is open');
+  ok((await env.DB.prepare('SELECT online FROM lobby_opts WHERE code = ?1').bind(code).first('online')) === 1, 'an online table');
+  const seatMsg = lastTo(seated[0]); ok(seatMsg.params.text.includes('место 1') || seatMsg.params.text.includes('місце 1') || seatMsg.params.text.includes('seat 1'), 'seat 1 is told its seat') ; ok(seatMsg.params.reply_markup.inline_keyboard[0][0].web_app.url.includes('table_' + code), 'with a button to the table');
+  const bench = P.filter(p => !seated.includes(p)); ok(bench.length === 2 && bench.every(p => /пропуск|пропускаєте|sit this round out/.test(lastTo(p).params.text)), 'the bench is told');
+  ok(lastTo(H).params.text.includes(code) && lastTo(H).params.text.includes('10'), 'the host gets the code and the size');
+  const hostLobby = await (await post('/api/lobby', { initData: hid })).json(); ok(hostLobby.ok && hostLobby.code === code && hostLobby.players.length === 10 && hostLobby.players[0].tgId === seated[0], 'the host\'s app opens the same table with the players in the drawn order');
+  await post('/api/lobby', { initData: hid, fresh: true }); const stray = await (await post('/api/lobby', { initData: hid })).json(); ok(stray.code !== code, 'the host opened another table meanwhile');
+  await post('/api/lobby/kick', { initData: hid, code, tgId: seated[2] }); const tk = await (await post('/api/tournament/table', { initData: hid })).json(); ok(tk.ok && tk.code === code && tk.size === 10, '«Open the table»: the tournament table comes back');
+  const back = await (await post('/api/lobby', { initData: hid })).json(); ok(back.code === code && back.players.length === 10 && back.players[2].tgId === seated[2], 'it is the host\'s newest open table again, the drawn seats restored');
+  eq((await post('/api/tournament/table', { initData: ids[2001] })).status, 409, 'a player has no table to open');
+  const pv = await (await post('/api/tournament', { initData: ids[seated[0]] })).json(); ok(pv.myTable && pv.myTable.seat === 1 && pv.myTable.code === code && pv.myTable.host === 'User' + H && pv.tables[0].code === null, 'a player sees his seat and host; other tables\' codes are hidden');
+  const hv = await (await post('/api/tournament', { initData: hid })).json(); ok(hv.hosting && hv.hosting.code === code && hv.hosting.size === 10, 'the host sees his table');
+  // the game: the host reports the result with the table's code → points (not below 0), once per table
+  const rows = seated.map((tgId, i) => ({ seat: i + 1, name: 'P' + i, tgId, roleId: i < 3 ? 'mafia' : 'citizen', won: i >= 3, points: i >= 3 ? 24 + i : -10, side: i < 3 ? 'mafia' : 'city' }));
+  let r = await (await post('/api/game/result', { initData: hid, game: { id: 'trn-1', code, mode: 'classic', winner: 'city', players: rows } })).json();
+  ok(r.ok && r.recorded && r.tournament && r.tournament.round === 1 && r.tournament.credited[seated[3]] === 27 && r.tournament.credited[seated[0]] === 0, 'credited: winners their points, losers 0');
+  v = await (await post('/api/tournament', { initData: ids[2001] })).json(); ok(v.standings[0].points === 33 && v.standings[0].place === 1 && v.standings[0].tgId === seated[9] && v.standings.find(s => s.tgId === seated[0]).games === 1 && v.t.played === 10, 'the standings: 33 points first, the losers played too');
+  r = await (await post('/api/game/result', { initData: hid, game: { id: 'trn-1b', code, mode: 'classic', winner: 'city', players: rows } })).json(); ok(r.ok && r.tournament === null, 'a second game at the same table does not count');
+  eq((await (await post('/api/tournament', { initData: ids[2001] })).json()).standings[0].points, 33, 'points unchanged');
+  const other = await (await post('/api/lobby', { initData: ids[2200], fresh: true })).json(); r = await (await post('/api/game/result', { initData: stranger, game: { id: 'trn-x', code: other.code, mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'x', tgId: 2200, roleId: 'sheriff', won: true, points: 50, side: 'city' }] } })).json(); ok(r.tournament === null, 'an ordinary table is not a tournament table');
+  // round 2: the bench sits first; a second table without a host gets one from the admin
+  for (const p of [2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308]) await post('/api/tournament/join', { initData: await initData(user(p)), in: true }); // 20 players now
+  a = await (await post('/api/tournament/admin', { initData: adminId, action: 'draw' })).json(); ok(a.ok && a.t.round === 2 && a.tables.length === 2 && a.admin.byes === 0, 'round 2: twenty players → two tables of ten');
+  ok(bench.every(p => a.tables.some(tb => tb.seats.some(s => s.tgId === p))), 'the bench of round 1 is seated');
+  const noHost = a.tables.find(tb => !tb.hostId); ok(noHost && noHost.code === null && a.tables.find(tb => tb.hostId === H), 'one table has the host, the other waits for one');
+  eq((await env.DB.prepare("SELECT status FROM tournament_tables WHERE tid = ?1 AND round = 1 AND idx = 1").bind(a.t.id).first('status')), 'played', 'round 1 table stays played');
+  a = await (await post('/api/tournament/admin', { initData: adminId, action: 'host', round: 2, idx: noHost.idx, tgId: 777 })).json(); ok(a.ok && a.tables.find(tb => tb.idx === noHost.idx).hostId === 777 && /^[A-Z0-9]{6}$/.test(a.tables.find(tb => tb.idx === noHost.idx).code), 'the admin hosts the second table himself');
+  const seatedP = a.tables.find(tb => tb.idx === noHost.idx).seats[0].tgId; const badHost = await (await post('/api/tournament/admin', { initData: adminId, action: 'host', round: 2, idx: noHost.idx, tgId: seatedP })).json(); ok(!badHost.ok && badHost.error === 'seated', 'a player of the table cannot host it');
+  // a final draw seats by the standings: the leaders at table 1
+  a = await (await post('/api/tournament/admin', { initData: adminId, action: 'draw', final: true })).json(); ok(a.ok && a.t.round === 3 && a.t.final === true && a.tables[0].seats[0].tgId === seated[9], 'the final: the leader sits at table 1');
+  // the close: Monday 00:05 Kyiv (the clocks went back: UTC+2)
+  const balBefore = await EM.balanceOf(env, seated[9]);
+  at('2026-10-25T22:05:00Z'); await cron5(); tr = await env.DB.prepare('SELECT * FROM tournaments WHERE week = ?1').bind('2026-10-19').first(); ok(tr.status === 'done' && tr.closed_at, 'closed by the cron');
+  const prizes = EM.prizeTable(10, 10000); eq(await EM.balanceOf(env, seated[9]), balBefore + prizes[0], 'the winner gets 2 250'); eq(await EM.balanceOf(env, seated[3]), prizes[6], 'the seventh (24 points) gets 500');
+  ok(lastTo(seated[9]).params.text.includes('2250') && lastTo(seated[9]).params.text.includes('1'), 'the winner is told'); ok(lastTo(777).params.text.includes('завершён') && lastTo(777).params.text.includes('2250'), 'the admin gets the summary');
+  const pl = await env.DB.prepare('SELECT place, prize FROM tournament_players WHERE tid = ?1 AND tg_id = ?2').bind(tr.id, seated[0]).first(); ok(pl.place >= 8 && pl.prize === 500, 'a loser who played is placed and paid');
+  ok((await env.DB.prepare('SELECT place FROM tournament_players WHERE tid = ?1 AND tg_id = 2301').bind(tr.id).first('place')) === null, 'who never played has no place');
+  ok(!(await env.DB.prepare("SELECT 1 FROM user_skins WHERE tg_id = 2001 AND skin = 'velvet_cat'").first()), 'the borrowed skin came off');
+  ok(!!(await env.DB.prepare("SELECT 1 FROM user_skins WHERE tg_id = 1500 AND skin = 'lilac_doctor'").first()), 'a bought skin stays');
+  m1 = await (await post('/api/me', { initData: ids[2001] })).json(); ok(!m1.skins.owned.includes('velvet_cat') && m1.tournament === null, 'after the close: no borrowed skins, no live tournament');
+  v = await (await post('/api/tournament', { initData: ids[2001] })).json(); ok(v.t.status === 'done' && v.standings[0].prize === 2250 && v.next.week === '2026-10-26', 'the results stay on view; the next week is announced');
+  await cron5(); eq(await env.DB.prepare("SELECT COUNT(*) AS n FROM emerald_ledger WHERE kind = 'prize'").first('n'), 10, 'the close is not repeated');
+  const ex = await exportUser(env, seated[9]); ok(ex.tournaments.length === 1 && ex.tournaments[0].prize === prizes[0], '/mydata includes the tournament');
+  // the next Monday: a new tournament with the same format; «open now» by the admin; a tournament without games is cancelled
+  at('2026-10-26T10:30:00Z'); await cron5(); tr = await TR.currentTournament(env); ok(tr.week === '2026-10-26' && tr.status === 'reg' && tr.mode === 'online' && tr.scenario === 'classic', 'the next week opens with the same format');
+  at('2026-11-02T10:30:00Z'); await cron5(); tr = await env.DB.prepare('SELECT status FROM tournaments WHERE week = ?1').bind('2026-10-26').first(); eq(tr.status, 'cancelled', 'a week with no games is cancelled, no prizes');
+  at('2026-11-03T10:00:00Z'); a = await (await post('/api/tournament/admin', { initData: adminId, action: 'close' })).json(); ok(a.ok && a.status === 'cancelled', 'the admin may close early');
+  a = await (await post('/api/tournament/admin', { initData: adminId, action: 'open' })).json(); ok(a.ok && a.t && a.t.week === '2026-11-02', '«open now» gives this week\'s tournament again');
+  eq((await post('/api/tournament/admin', { initData: adminId, action: 'draw' })).status, 409, 'no draw without players');
+  await hook(msg(user(777), '/tournament')); ok(lastTo(777).params.text.includes('2026-11-02'), '/tournament shows the status');
+  delete env.TRN_NOW_MS;
+  await env.DB.prepare("DELETE FROM lobbies WHERE code IN (SELECT code FROM tournament_tables)").run(); }
 
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
