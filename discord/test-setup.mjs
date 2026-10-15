@@ -7,7 +7,7 @@ import path from 'node:path';
 import { startMockDiscord } from '../backend/test/mock-discord.js';
 import { run, LAYOUT, ROLES_LAYOUT, loadApp, buildContent, buildShared, LK, LANG_CHANNELS, effective } from './setup.mjs';
 import { PERM, createVoice } from '../backend/src/discord.js';
-import { T, LANG_ORDER } from './texts.mjs';
+import { T, LANG_ORDER, SOCIALS } from './texts.mjs';
 
 let fails = 0, n = 0; const ok = (c, m) => { n++; if (!c) { fails++; console.log('  FAIL', m); } };
 const dc = await startMockDiscord(8795);
@@ -102,6 +102,13 @@ ok(msgs('rules_en')[0].embeds[0].description.includes('**1. Respect.**') && msgs
 ok(msgs('howto_pl')[0].embeds[0].fields[0].value.includes(`<#${s1.channels.rules_pl}>`) && msgs('howto_pl')[0].embeds[0].fields[2].value.includes(`<#${s1.channels.language}>`), 'links go to the same language’s channels and to 🌐');
 ok(msgs('cardsMafia_uk').some(m => m.embeds.some(e => /Дон мафії/.test(e.title) && /cards\/uk\/don\.png/.test(e.image.url))), 'Ukrainian cards with Ukrainian pictures');
 ok(LANG_ORDER.every(l => msgs(LK('scenarios', l)).length >= 3 && msgs(LK('gameRules', l)).length >= 1 && msgs(LK('lfg', l)).length === 1), 'library and #lfg filled in every language');
+{ // 🔗 social media in every language: banner + a card per link, the card's name and «→» are links; TikTok hidden while its link is empty
+  const want = l => ['https://t.me/mafiaprof', 'https://t.me/+3kRZICcUMyBjZDdi', 'https://www.instagram.com/mafiaproapp/', SOCIALS.facebook, `${env.APP_URL.replace(/\/?$/, '/')}${l}/`, 'https://t.me/mafiapro_test_bot?start=dc'];
+  ok(LANG_ORDER.every(l => { const m = msgs(LK('socials', l)); const e = m.length === 1 ? m[0].embeds : []; return e.length === 7 && e[0].title === T[l].social.title && /og\/[a-z]{2}\.png$/.test(e[0].image.url) && e.slice(1).map(x => x.url).join() === want(l).join() && e.slice(1).every(x => x.description.includes(`](${x.url})**`) && x.color) && e[6].footer.text === T[l].social.footer; }), '🔗 in every language: banner, six cards with links in words (site in its language, bot start=dc), footer');
+  ok(!SOCIALS.tiktok && !JSON.stringify(msgs('socials')).includes('TikTok'), 'no TikTok card while its link is empty');
+  ok(C('socials').parent_id === s1.channels.catLib && C('socials_hy').parent_id === s1.channels.catLib_hy && C('socials_uk').name === '🔗・наші-соцмережі', '🔗 sits in the library of its language');
+  ok(msgs('howto_en')[0].embeds[0].fields[1].value.includes(`<#${s1.channels.socials_en}>`), 'how-to links to 🔗');
+  const inv = dc.invites.get(s1.invite); ok(inv && inv.channel.id === s1.channels.language && inv.max_age === 0 && inv.inviter.id === dc.botUser.id && logs.some(l => l.includes('+ invite https://discord.gg/' + s1.invite)), 'a permanent invite to 🌐 made by the bot, saved in the state'); }
 ok(dc.app.interactions_endpoint_url === 'https://mafia-pro-api.test/discord/interactions' && logs.some(l => l.includes('~ interactions endpoint')) && s1.publicKey === dc.app.verify_key, 'buttons and slash commands go to the backend, public key saved');
 const an = C('analytics'); ok(an && an.parent_id === s1.channels.catAdmin && ow('analytics', G) && BigInt(ow('analytics', G).deny) & VIEW && !LANG_ORDER.some(l => ow('analytics', s1.roles['lang_' + l])) && hooks.some(w => w.name === 'Mafia Pro · Аналитика' && w.channel_id === an.id), '#аналитика: admins only (no language opens it), with its webhook');
 ok(JSON.stringify(dc.commands().map(c => c.name)) === '["stats","link","invites"]' && dc.commands()[0].options[0].type === 6 && dc.commands()[2].default_member_permissions === '32', 'slash commands /stats (member option), /link, /invites (admins)');
@@ -119,6 +126,7 @@ const logs2 = []; await run(env, x => logs2.push(x));
 ok(dc.channels.size === before.ch && dc.webhooks.size === before.hooks && dc.roles.size === before.roles && [...dc.messages.values()].reduce((a, l) => a + l.length, 0) === before.msgs, 'same channels, webhooks, roles and messages');
 ok(!dc.calls.slice(calls0).some(c => c.method !== 'GET'), 'only reads on an unchanged server: ' + dc.calls.slice(calls0).filter(c => c.method !== 'GET').map(c => c.method + ' ' + c.url).join(', '));
 ok(logs2.some(l => l.includes('0 posted, 0 edited, 0 removed')), 'messages unchanged');
+ok([...dc.invites.values()].filter(x => x.channel.id === s1.channels.language).length === 1, 'the invite to 🌐 is not made again');
 
 console.log('hand changes: renamed channel, extra overwrite, extra bot message, a role re-created');
 C('chat').name = 'болталка'; C('chat_en').permission_overwrites.push({ id: '777', type: 1, allow: String(SEND), deny: '0' }); await run(env, () => {});

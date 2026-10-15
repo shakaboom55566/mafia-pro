@@ -9,6 +9,8 @@
    - roles: 🎩 Ведущий, 🎲 Игрок, Русский, Українська, English, Polski, Հայերեն
    - categories / channels: info (welcome, server rules, news, how to play), library (mafia / city / neutral cards,
      scenarios, game rules), game (#ищу-игру, #результаты, chat, ideas, 🔊 Лобби), 🎧 ИГРОВЫЕ СТОЛЫ (voice rooms of tables)
+   - 🔗 social media in every language's library (15.10.2026): a card per link (SOCIALS in texts.mjs), and a permanent invite to 🌐
+     (state.invite) for links to the server from outside
    - read-only info / library / bot channels, the welcome channel as the system channel, notifications = mentions only
    - webhooks "Mafia Pro · Столы" (#ищу-игру), "Mafia Pro · Итоги" (#результаты), "Mafia Pro · Новости" (#новости)
    - messages: the bot's own messages in its channels are edited in place (content comes from the app's own data)
@@ -20,7 +22,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { T, LANG_ORDER, GAME_ROLES } from './texts.mjs';
+import { T, LANG_ORDER, GAME_ROLES, SOCIALS } from './texts.mjs';
 import { HOOKS, PERM } from '../backend/src/discord.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -61,6 +63,7 @@ function client(env, log) {
 
 /* ---------- content ---------- */
 const COLOR = { gold: 0xd4a24c, mafia: 0x8b1e2d, city: 0xc9a24c, neutral: 0x7a7f8c, ww: 0x6b4fa0, blurple: 0x5865f2, green: 0x3ba55d, lang: 0x99aab5 };
+const SOCIAL_COLOR = { channel: 0x2aabee, chat: 0x229ed9, instagram: 0xe1306c, facebook: 0x1877f2, tiktok: 0xfe2c55, site: COLOR.gold, play: COLOR.green }; // the stripe of each card in 🔗
 const TEAM_ICON = { black: '🖤', red: '❤️', neutral: '🤍', ww: '🐺' };
 const STARS = { role: 100, scenario: 500, pack: 1750 };
 const hash8 = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }; // FNV-1a: the card image URL changes when the card does
@@ -77,7 +80,7 @@ function packEmbeds(embeds, extra = {}) {
 const linkButtons = links => ({ components: [{ type: 1, components: links.filter(l => l.url).slice(0, 5).map(l => ({ type: 2, style: 5, label: l.label, url: l.url })) }] });
 /* the channel key of a language: Russian keeps the original keys (and channel ids) of v33, the others get a suffix */
 export const LK = (key, lang) => (lang === 'ru' ? key : `${key}_${lang}`);
-export const LANG_CHANNELS = { lib: ['rules', 'howto', 'cardsMafia', 'cardsCity', 'cardsNeutral', 'scenarios', 'gameRules'], game: ['lfg', 'results', 'chat', 'ideas'] };
+export const LANG_CHANNELS = { lib: ['rules', 'howto', 'socials', 'cardsMafia', 'cardsCity', 'cardsNeutral', 'scenarios', 'gameRules'], game: ['lfg', 'results', 'chat', 'ideas'] };
 
 /* the library and game channels of one language; keys are the base keys (rules, howto, cardsMafia…) */
 export function buildContent(app, ctx, lang = 'ru') {
@@ -133,9 +136,22 @@ export function buildContent(app, ctx, lang = 'ru') {
   const stars = { role: STARS.role, scenario: STARS.scenario, pack: STARS.pack, packName };
   const howto = { title: t.howto.title, color: COLOR.gold, description: t.howto.desc(ctx.botUsername), fields: t.howto.fields(ch).map(([name, v]) => ({ name, value: typeof v === 'function' ? v(stars) : v })) };
 
+  // ----- 🔗 social media: a banner, then one card per link in the network's colour — the card's name and its «→» are the links
+  const s = t.social; const site = ctx.appUrl ? ctx.appUrl.replace(/\/?$/, '/') + lang + '/' : null;
+  const links = [['channel', SOCIALS.channel], ['chat', SOCIALS.chat], ['instagram', SOCIALS.instagram], ['facebook', SOCIALS.facebook], ['tiktok', SOCIALS.tiktok], ['site', site], ['play', tgLink]].filter(([, url]) => url);
+  const head = { title: s.title, color: COLOR.gold, description: s.desc };
+  if (ctx.appUrl) head.image = { url: ctx.appUrl.replace(/\/?$/, '/') + `og/${lang}.png` }; // the site's cover in this language
+  const cards = links.map(([k, url], i) => {
+    const [name, text, cta] = s[k];
+    const e = { title: name, url, color: SOCIAL_COLOR[k], description: `${text}\n**[${cta} →](${url})**` };
+    if (i === links.length - 1) e.footer = { text: s.footer };
+    return e;
+  });
+
   return {
     rules: [{ embeds: [rulesEmbed] }],
     howto: [Object.assign({ embeds: [start, howto] }, buttons)],
+    socials: [{ embeds: [head].concat(cards) }],
     cardsMafia: [cardsIntro(t.intro.mafia, COLOR.mafia)].concat(packEmbeds(cardsOf(['black']))),
     cardsCity: [cardsIntro(t.intro.city, COLOR.city)].concat(packEmbeds(cardsOf(['red']))),
     cardsNeutral: [cardsIntro(t.intro.neutral, COLOR.neutral)].concat(packEmbeds(cardsOf(['neutral', 'ww']))),
@@ -233,7 +249,7 @@ function mergeOverwrites(cur, want, managed, ro, exempt = new Set()) {
   return key(cur || []) === key(next) ? null : next;
 }
 const compKey = comps => JSON.stringify((comps || []).map(row => (row.components || []).map(b => [b.type, b.style || null, b.label || null, b.url || null, b.custom_id || null, b.emoji && b.emoji.name ? b.emoji.name : null])));
-const embKey = embeds => JSON.stringify((embeds || []).map(e => [e.title, e.description, (e.fields || []).map(f => [f.name, f.value]), e.image ? e.image.url : null, e.footer ? e.footer.text : null]));
+const embKey = embeds => JSON.stringify((embeds || []).map(e => [e.title, e.url || null, e.description, (e.fields || []).map(f => [f.name, f.value]), e.image ? e.image.url : null, e.footer ? e.footer.text : null]));
 
 export async function run(env, log = console.log) {
   const api = client(env, log); const guildId = String(env.DISCORD_GUILD_ID || '').trim();
@@ -341,6 +357,16 @@ export async function run(env, log = console.log) {
     let w = list.find(x => x.name === c.hook);
     if (!w) { w = await api('POST', `/channels/${state.channels[c.key]}/webhooks`, { name: c.hook }); log(`+ webhook ${c.hook}`); }
     state.webhooks[c.key] = { id: w.id, name: c.hook, channel: state.channels[c.key] };
+  }
+
+  // a permanent invite to 🌐 (15.10.2026) — the server link for the Telegram channel and the socials: a newcomer lands on the language
+  // choice first. Made by the bot, so the analytics names it «ссылка бота (#🌐・language)», apart from the personal links of the app.
+  {
+    let invs = null; try { invs = await api('GET', `/guilds/${guildId}/invites`) || []; } catch (e) { log('! cannot list invites: ' + e.message); } // not listed → no new one (no duplicates)
+    const ours = inv => inv && inv.inviter && String(inv.inviter.id) === String(me.id) && inv.channel && inv.channel.id === state.channels.language && !inv.max_age && !inv.max_uses;
+    let inv = (invs || []).find(x => ours(x) && x.code === state.invite) || (invs || []).find(ours);
+    if (!inv && invs) { try { inv = await api('POST', `/channels/${state.channels.language}/invites`, { max_age: 0, max_uses: 0, unique: true }); log(`+ invite https://discord.gg/${inv.code} → 🌐`); } catch (e) { log('! cannot create the invite: ' + e.message); } }
+    if (inv) { if (state.invite !== inv.code) log(`invite: https://discord.gg/${inv.code} (permanent, → 🌐)`); state.invite = inv.code; }
   }
 
   // guild settings: the welcome channel greets newcomers, notifications only for mentions

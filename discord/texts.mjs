@@ -8,12 +8,24 @@ const plPl = (n, a, b, c) => { if (n === 1) return a; const d = n % 10, h = n % 
 
 export const LANG_ORDER = ['ru', 'uk', 'en', 'pl', 'hy'];
 
+/* Mafia Pro on social media (15.10.2026): the 🔗 channel of every language shows a card per link, in this order.
+   An empty link hides its card — put the TikTok profile here once the account exists and it appears in all five languages.
+   The site and the Telegram app links are added by setup.mjs (the site in the channel's language, the bot with start=dc). */
+export const SOCIALS = {
+  channel: 'https://t.me/mafiaprof',
+  chat: 'https://t.me/+3kRZICcUMyBjZDdi',
+  instagram: 'https://www.instagram.com/mafiaproapp/',
+  facebook: 'https://www.facebook.com/1385178954679198',
+  tiktok: ''
+};
+
 export const T = {
   ru: {
     code: 'RU', name: 'Русский', emoji: '',
     cat: { lib: '📚 БИБЛИОТЕКА · RU', game: '🎲 ИГРА · RU' }, catPrev: { lib: ['📚 БИБЛИОТЕКА'], game: ['🎲 ИГРА'] },
     ch: {
       rules: ['📜・правила-сервера', 'Правила сервера'], howto: ['📱・как-играть', 'С чего начать и как устроено приложение Mafia Pro'],
+      socials: ['🔗・наши-соцсети', 'Все соцсети и ссылки Mafia Pro в одном месте'],
       cardsMafia: ['🖤・карты-мафии', 'Все карты мафии: способности, порядок, советы'], cardsCity: ['❤️・карты-города', 'Все карты мирного города'], cardsNeutral: ['🤍・нейтралы', 'Нейтралы и Оборотень'],
       scenarios: ['📚・сценарии', 'Бесплатные составы, премиум-сценарии и пак'], gameRules: ['⚖️・правила-игры', 'Как идёт партия, классика, онлайн-формат, очки'],
       lfg: ['🔎・ищу-игру', 'Открытые онлайн-столы — бот публикует сам'], results: ['🏆・результаты', 'Итоги онлайн-партий'], chat: ['💬・общий-чат', 'Общение об игре и не только'], ideas: ['💡・идеи-и-баги', 'Предложения и ошибки приложения']
@@ -57,7 +69,7 @@ export const T = {
     start: {
       title: '🎩 Добро пожаловать в Mafia Pro', desc: 'Сервер для онлайн-мафии с голосом. Сама игра — в Telegram-приложении **Mafia Pro**: карты, ночные ходы, голосование и рейтинг. Здесь — голосовые каналы столов, библиотека карт и сценариев и итоги партий.',
       steps: ['С чего начать', (ch, bot) => [`1. Прочитайте ${ch('rules')}.`, `2. Откройте Mafia Pro в Telegram${bot ? ` — @${bot}` : ''} → «Играть».`, `3. «Поиск стола» → садитесь за онлайн-стол (столы на русском появляются и в ${ch('lfg')}).`, '4. Ведущий включил Discord — в приложении жмите «Войти в голосовой», затем «Я на связи».'].join('\n')],
-      chans: ['Каналы', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — все карты ролей`, `${ch('scenarios')} — сценарии и составы`, `${ch('gameRules')} — правила игры`, `${ch('results')} — итоги партий`, `${ch('chat')} — общение`].join('\n')],
+      chans: ['Каналы', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — все карты ролей`, `${ch('scenarios')} — сценарии и составы`, `${ch('gameRules')} — правила игры`, `${ch('results')} — итоги партий`, `${ch('chat')} — общение`, `${ch('socials')} — наши соцсети`].join('\n')],
       langs: ['Языки', l => `Флаг у стола — язык ведущего: 🇺🇦 русский / украинский, 🇦🇲 армянский, 🇵🇱 польский, 🇬🇧 английский. Другие языки и роли 🎩 Ведущий / 🎲 Игрок — в ${l}.`]
     },
     howto: { title: '📱 Как играть в Mafia Pro', desc: bot => `Приложение открывается в Telegram${bot ? ` у бота @${bot}` : ''}. Есть два формата.`, fields: ch => [
@@ -73,7 +85,18 @@ export const T = {
     ideas: ['💡 Идеи и баги', 'Нашли ошибку или есть идея? Напишите: что делали, что ожидали, что получилось, скриншот. Укажите телефон и язык приложения.'],
     hello: 'Сервер онлайн-мафии с голосом. Игра — в Telegram-приложении Mafia Pro, здесь — голосовые столы, карты и итоги.',
     pick: 'Нажмите свой язык — откроются каналы на нём. Можно выбрать несколько, повторное нажатие скрывает язык. 🎩 / 🎲 — роль на сервере.',
-    news: 'Обновления приложения, турниры и вечера игры.'
+    news: 'Обновления приложения, турниры и вечера игры.',
+    social: {
+      title: '🔗 Mafia Pro в соцсетях', footer: 'Подписывайтесь и зовите друзей за стол 🎩',
+      desc: 'Мафия, в которую играют с телефонов: за живым столом и онлайн.\nНажмите на название — откроется нужная соцсеть 👇',
+      channel: ['📣 Telegram-канал', 'Новости, роль дня, игровые ситуации и обновления приложения.', 'Подписаться'],
+      chat: ['💬 Чат игроков', 'Ищем стол, обсуждаем партии и правила, зовём друзей.', 'Вступить в чат'],
+      instagram: ['📸 Instagram', 'Короткие ролики о мафии и её ролях.', 'Смотреть'],
+      facebook: ['📘 Facebook', 'Ролики и новости Mafia Pro.', 'Открыть страницу'],
+      tiktok: ['🎵 TikTok', 'Короткие ролики о мафии.', 'Смотреть'],
+      site: ['🌐 mafiapro.app', 'Правила, все роли и составы от 7 до 24 игроков.', 'Открыть сайт'],
+      play: ['🎲 Играть в Telegram', 'Само приложение: карты, ночь и голосование прямо на телефонах.', 'Открыть приложение']
+    }
   },
 
   uk: {
@@ -81,6 +104,7 @@ export const T = {
     cat: { lib: '📚 БІБЛІОТЕКА · UA', game: '🎲 ГРА · UA' },
     ch: {
       rules: ['📜・правила-сервера', 'Правила сервера'], howto: ['📱・як-грати', 'З чого почати і як влаштований застосунок Mafia Pro'],
+      socials: ['🔗・наші-соцмережі', 'Усі соцмережі та посилання Mafia Pro в одному місці'],
       cardsMafia: ['🖤・карти-мафії', 'Усі карти мафії: здібності, порядок, поради'], cardsCity: ['❤️・карти-міста', 'Усі карти мирного міста'], cardsNeutral: ['🤍・нейтрали', 'Нейтрали та Перевертень'],
       scenarios: ['📚・сценарії', 'Безкоштовні склади, преміум-сценарії та пак'], gameRules: ['⚖️・правила-гри', 'Як іде партія, класика, онлайн-формат, бали'],
       lfg: ['🔎・шукаю-гру', 'Відкриті онлайн-столи — бот публікує сам'], results: ['🏆・результати', 'Підсумки онлайн-партій'], chat: ['💬・загальний-чат', 'Спілкування про гру й не тільки'], ideas: ['💡・ідеї-та-баги', 'Пропозиції та помилки застосунку']
@@ -124,7 +148,7 @@ export const T = {
     start: {
       title: '🎩 Ласкаво просимо до Mafia Pro', desc: 'Сервер для онлайн-мафії з голосом. Сама гра — у Telegram-застосунку **Mafia Pro**: карти, нічні ходи, голосування й рейтинг. Тут — голосові канали столів, бібліотека карт і сценаріїв та підсумки партій.',
       steps: ['З чого почати', (ch, bot) => [`1. Прочитайте ${ch('rules')}.`, `2. Відкрийте Mafia Pro в Telegram${bot ? ` — @${bot}` : ''} → «Грати».`, `3. «Пошук столу» → сідайте за онлайн-стіл (столи українською з’являються й у ${ch('lfg')}).`, '4. Ведучий увімкнув Discord — у застосунку тисніть «Увійти в голосовий», потім «Я на зв’язку».'].join('\n')],
-      chans: ['Канали', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — усі карти ролей`, `${ch('scenarios')} — сценарії та склади`, `${ch('gameRules')} — правила гри`, `${ch('results')} — підсумки партій`, `${ch('chat')} — спілкування`].join('\n')],
+      chans: ['Канали', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — усі карти ролей`, `${ch('scenarios')} — сценарії та склади`, `${ch('gameRules')} — правила гри`, `${ch('results')} — підсумки партій`, `${ch('chat')} — спілкування`, `${ch('socials')} — наші соцмережі`].join('\n')],
       langs: ['Мови', l => `Прапор біля столу — мова ведучого: 🇺🇦 українська / російська, 🇦🇲 вірменська, 🇵🇱 польська, 🇬🇧 англійська. Інші мови й ролі 🎩 Ведучий / 🎲 Гравець — у ${l}.`]
     },
     howto: { title: '📱 Як грати в Mafia Pro', desc: bot => `Застосунок відкривається в Telegram${bot ? ` у бота @${bot}` : ''}. Є два формати.`, fields: ch => [
@@ -140,7 +164,18 @@ export const T = {
     ideas: ['💡 Ідеї та баги', 'Знайшли помилку чи маєте ідею? Напишіть: що робили, що очікували, що вийшло, скриншот. Вкажіть телефон і мову застосунку.'],
     hello: 'Сервер онлайн-мафії з голосом. Гра — у Telegram-застосунку Mafia Pro, тут — голосові столи, карти й підсумки.',
     pick: 'Натисніть свою мову — відкриються канали нею. Можна обрати кілька, повторне натискання ховає мову. 🎩 / 🎲 — роль на сервері.',
-    news: 'Оновлення застосунку, турніри й ігрові вечори.'
+    news: 'Оновлення застосунку, турніри й ігрові вечори.',
+    social: {
+      title: '🔗 Mafia Pro у соцмережах', footer: 'Підписуйтеся та кличте друзів за стіл 🎩',
+      desc: 'Мафія, у яку грають із телефонів: за живим столом і онлайн.\nНатисніть на назву — відкриється потрібна соцмережа 👇',
+      channel: ['📣 Telegram-канал', 'Новини, роль дня, ігрові ситуації та оновлення застосунку.', 'Підписатися'],
+      chat: ['💬 Чат гравців', 'Шукаємо стіл, обговорюємо партії й правила, кличемо друзів.', 'Приєднатися до чату'],
+      instagram: ['📸 Instagram', 'Короткі ролики про мафію та її ролі.', 'Дивитися'],
+      facebook: ['📘 Facebook', 'Ролики й новини Mafia Pro.', 'Відкрити сторінку'],
+      tiktok: ['🎵 TikTok', 'Короткі ролики про мафію.', 'Дивитися'],
+      site: ['🌐 mafiapro.app', 'Правила, усі ролі та склади від 7 до 24 гравців.', 'Відкрити сайт'],
+      play: ['🎲 Грати в Telegram', 'Сам застосунок: карти, ніч і голосування просто на телефонах.', 'Відкрити застосунок']
+    }
   },
 
   en: {
@@ -148,6 +183,7 @@ export const T = {
     cat: { lib: '📚 LIBRARY · EN', game: '🎲 GAME · EN' },
     ch: {
       rules: ['📜・server-rules', 'Server rules'], howto: ['📱・how-to-play', 'Getting started and how the Mafia Pro app works'],
+      socials: ['🔗・our-socials', 'All Mafia Pro social media and links in one place'],
       cardsMafia: ['🖤・mafia-cards', 'All mafia cards: abilities, night order, tips'], cardsCity: ['❤️・town-cards', 'All town cards'], cardsNeutral: ['🤍・neutrals', 'Neutrals and the Werewolf'],
       scenarios: ['📚・scenarios', 'Free line-ups, premium scenarios and the pack'], gameRules: ['⚖️・game-rules', 'How a game goes, classic, online format, points'],
       lfg: ['🔎・looking-for-game', 'Open online tables — posted by the bot'], results: ['🏆・results', 'Results of online games'], chat: ['💬・general-chat', 'Talk about the game and more'], ideas: ['💡・ideas-and-bugs', 'Suggestions and bug reports']
@@ -191,7 +227,7 @@ export const T = {
     start: {
       title: '🎩 Welcome to Mafia Pro', desc: 'A server for online mafia with voice. The game itself runs in the **Mafia Pro** Telegram app: cards, night moves, voting and rating. Here you find the tables’ voice channels, the card and scenario library and game results.',
       steps: ['Getting started', (ch, bot) => [`1. Read ${ch('rules')}.`, `2. Open Mafia Pro in Telegram${bot ? ` — @${bot}` : ''} → “Play”.`, `3. “Find a table” → sit at an online table (English tables also appear in ${ch('lfg')}).`, '4. The host turned on Discord — tap “Join voice” in the app, then “I’m connected”.'].join('\n')],
-      chans: ['Channels', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — every role card`, `${ch('scenarios')} — scenarios and line-ups`, `${ch('gameRules')} — game rules`, `${ch('results')} — game results`, `${ch('chat')} — chat`].join('\n')],
+      chans: ['Channels', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — every role card`, `${ch('scenarios')} — scenarios and line-ups`, `${ch('gameRules')} — game rules`, `${ch('results')} — game results`, `${ch('chat')} — chat`, `${ch('socials')} — our social media`].join('\n')],
       langs: ['Languages', l => `A table’s flag is its host’s language: 🇺🇦 Ukrainian / Russian, 🇦🇲 Armenian, 🇵🇱 Polish, 🇬🇧 English. Other languages and the 🎩 Host / 🎲 Player roles — in ${l}.`]
     },
     howto: { title: '📱 How to play Mafia Pro', desc: bot => `The app opens in Telegram${bot ? ` via @${bot}` : ''}. There are two formats.`, fields: ch => [
@@ -207,7 +243,18 @@ export const T = {
     ideas: ['💡 Ideas and bugs', 'Found a bug or have an idea? Write what you did, what you expected, what happened, and add a screenshot. Mention your phone and app language.'],
     hello: 'A server for online mafia with voice. The game runs in the Mafia Pro Telegram app; here are voice tables, cards and results.',
     pick: 'Tap your language to open its channels. You can pick several; tap again to hide a language. 🎩 / 🎲 — your server role.',
-    news: 'App updates, tournaments and game nights.'
+    news: 'App updates, tournaments and game nights.',
+    social: {
+      title: '🔗 Mafia Pro on social media', footer: 'Follow us and bring your friends to the table 🎩',
+      desc: 'Mafia you play on your phones — at a real table or online.\nTap a name to open it 👇',
+      channel: ['📣 Telegram channel', 'News, role of the day, game situations and app updates (posts in Ukrainian and Russian).', 'Subscribe'],
+      chat: ['💬 Players’ chat', 'Find a table, talk about games and rules, invite friends.', 'Join the chat'],
+      instagram: ['📸 Instagram', 'Short videos about mafia and its roles.', 'Watch'],
+      facebook: ['📘 Facebook', 'Videos and Mafia Pro news.', 'Open the page'],
+      tiktok: ['🎵 TikTok', 'Short videos about mafia.', 'Watch'],
+      site: ['🌐 mafiapro.app', 'Rules, every role and line-ups for 7 to 24 players.', 'Open the website'],
+      play: ['🎲 Play in Telegram', 'The app itself: cards, night and voting right on your phones.', 'Open the app']
+    }
   },
 
   pl: {
@@ -215,6 +262,7 @@ export const T = {
     cat: { lib: '📚 BIBLIOTEKA · PL', game: '🎲 GRA · PL' },
     ch: {
       rules: ['📜・zasady-serwera', 'Zasady serwera'], howto: ['📱・jak-grać', 'Jak zacząć i jak działa aplikacja Mafia Pro'],
+      socials: ['🔗・nasze-media-społecznościowe', 'Wszystkie media społecznościowe i linki Mafia Pro w jednym miejscu'],
       cardsMafia: ['🖤・karty-mafii', 'Wszystkie karty mafii: zdolności, kolejność, porady'], cardsCity: ['❤️・karty-miasta', 'Wszystkie karty miasta'], cardsNeutral: ['🤍・neutralni', 'Neutralni i Wilkołak'],
       scenarios: ['📚・scenariusze', 'Darmowe składy, scenariusze premium i pakiet'], gameRules: ['⚖️・zasady-gry', 'Przebieg gry, klasyka, tryb online, punkty'],
       lfg: ['🔎・szukam-gry', 'Otwarte stoły online — publikuje je bot'], results: ['🏆・wyniki', 'Wyniki gier online'], chat: ['💬・czat-ogólny', 'Rozmowy o grze i nie tylko'], ideas: ['💡・pomysły-i-błędy', 'Propozycje i błędy aplikacji']
@@ -258,7 +306,7 @@ export const T = {
     start: {
       title: '🎩 Witaj w Mafia Pro', desc: 'Serwer do mafii online z głosem. Sama gra toczy się w aplikacji **Mafia Pro** w Telegramie: karty, ruchy nocne, głosowanie i ranking. Tutaj — kanały głosowe stołów, biblioteka kart i scenariuszy oraz wyniki gier.',
       steps: ['Jak zacząć', (ch, bot) => [`1. Przeczytaj ${ch('rules')}.`, `2. Otwórz Mafia Pro w Telegramie${bot ? ` — @${bot}` : ''} → „Graj”.`, `3. „Szukaj stołu” → usiądź przy stole online (polskie stoły pojawiają się też na ${ch('lfg')}).`, '4. Prowadzący włączył Discorda — w aplikacji kliknij „Wejdź na kanał głosowy”, potem „Jestem na łączach”.'].join('\n')],
-      chans: ['Kanały', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — wszystkie karty ról`, `${ch('scenarios')} — scenariusze i składy`, `${ch('gameRules')} — zasady gry`, `${ch('results')} — wyniki gier`, `${ch('chat')} — rozmowy`].join('\n')],
+      chans: ['Kanały', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — wszystkie karty ról`, `${ch('scenarios')} — scenariusze i składy`, `${ch('gameRules')} — zasady gry`, `${ch('results')} — wyniki gier`, `${ch('chat')} — rozmowy`, `${ch('socials')} — nasze media społecznościowe`].join('\n')],
       langs: ['Języki', l => `Flaga stołu to język prowadzącego: 🇺🇦 ukraiński / rosyjski, 🇦🇲 ormiański, 🇵🇱 polski, 🇬🇧 angielski. Inne języki i role 🎩 Prowadzący / 🎲 Gracz — na ${l}.`]
     },
     howto: { title: '📱 Jak grać w Mafia Pro', desc: bot => `Aplikacja otwiera się w Telegramie${bot ? ` u bota @${bot}` : ''}. Są dwa tryby.`, fields: ch => [
@@ -274,7 +322,18 @@ export const T = {
     ideas: ['💡 Pomysły i błędy', 'Znalazłeś błąd albo masz pomysł? Napisz: co robiłeś, czego oczekiwałeś, co się stało, dodaj zrzut ekranu. Podaj telefon i język aplikacji.'],
     hello: 'Serwer mafii online z głosem. Gra działa w aplikacji Mafia Pro w Telegramie, tutaj — stoły głosowe, karty i wyniki.',
     pick: 'Kliknij swój język — otworzą się kanały w tym języku. Możesz wybrać kilka, ponowne kliknięcie ukrywa język. 🎩 / 🎲 — rola na serwerze.',
-    news: 'Aktualizacje aplikacji, turnieje i wieczory gier.'
+    news: 'Aktualizacje aplikacji, turnieje i wieczory gier.',
+    social: {
+      title: '🔗 Mafia Pro w mediach społecznościowych', footer: 'Obserwuj nas i zaproś znajomych do stołu 🎩',
+      desc: 'Mafia, w którą gra się na telefonach — przy prawdziwym stole i online.\nKliknij nazwę, żeby ją otworzyć 👇',
+      channel: ['📣 Kanał na Telegramie', 'Nowości, rola dnia, sytuacje z gry i aktualizacje aplikacji (posty po ukraińsku i rosyjsku).', 'Subskrybuj'],
+      chat: ['💬 Czat graczy', 'Szukamy stołu, rozmawiamy o grach i zasadach, zapraszamy znajomych.', 'Dołącz do czatu'],
+      instagram: ['📸 Instagram', 'Krótkie filmy o mafii i jej rolach.', 'Oglądaj'],
+      facebook: ['📘 Facebook', 'Filmy i nowości Mafia Pro.', 'Otwórz stronę'],
+      tiktok: ['🎵 TikTok', 'Krótkie filmy o mafii.', 'Oglądaj'],
+      site: ['🌐 mafiapro.app', 'Zasady, wszystkie role i składy od 7 do 24 graczy.', 'Wejdź na stronę'],
+      play: ['🎲 Graj w Telegramie', 'Sama aplikacja: karty, noc i głosowanie prosto na telefonach.', 'Otwórz aplikację']
+    }
   },
 
   hy: {
@@ -282,6 +341,7 @@ export const T = {
     cat: { lib: '📚 ԳՐԱԴԱՐԱՆ · HY', game: '🎲 ԽԱՂ · HY' },
     ch: {
       rules: ['📜・սերվերի-կանոններ', 'Սերվերի կանոններ'], howto: ['📱・ինչպես-խաղալ', 'Ինչից սկսել և ինչպես է աշխատում Mafia Pro հավելվածը'],
+      socials: ['🔗・մեր-սոցցանցերը', 'Mafia Pro-ի բոլոր սոցցանցերն ու հղումները մեկ տեղում'],
       cardsMafia: ['🖤・մաֆիայի-քարտեր', 'Մաֆիայի բոլոր քարտերը՝ ունակություններ, հերթականություն, խորհուրդներ'], cardsCity: ['❤️・քաղաքի-քարտեր', 'Խաղաղ քաղաքի բոլոր քարտերը'], cardsNeutral: ['🤍・չեզոքներ', 'Չեզոքներ և Գայլամարդ'],
       scenarios: ['📚・սցենարներ', 'Անվճար կազմեր, պրեմիում սցենարներ և փաթեթ'], gameRules: ['⚖️・խաղի-կանոններ', 'Խաղի ընթացքը, դասական, առցանց ձևաչափ, միավորներ'],
       lfg: ['🔎・փնտրում-եմ-խաղ', 'Բաց առցանց սեղաններ — հրապարակում է բոտը'], results: ['🏆・արդյունքներ', 'Առցանց խաղերի արդյունքները'], chat: ['💬・ընդհանուր-զրույց', 'Զրույց խաղի և ոչ միայն մասին'], ideas: ['💡・գաղափարներ-և-սխալներ', 'Առաջարկներ և հավելվածի սխալներ']
@@ -325,7 +385,7 @@ export const T = {
     start: {
       title: '🎩 Բարի գալուստ Mafia Pro', desc: 'Սերվեր առցանց մաֆիայի համար՝ ձայնով։ Խաղն ինքնին ընթանում է **Mafia Pro** Telegram հավելվածում՝ քարտեր, գիշերային քայլեր, քվեարկություն և վարկանիշ։ Այստեղ են սեղանների ձայնային ալիքները, քարտերի և սցենարների գրադարանը և խաղերի արդյունքները։',
       steps: ['Ինչից սկսել', (ch, bot) => [`1. Կարդացեք ${ch('rules')}-ը։`, `2. Բացեք Mafia Pro-ն Telegram-ում${bot ? ` — @${bot}` : ''} → «Խաղալ»։`, `3. «Սեղանի որոնում» → նստեք առցանց սեղանի շուրջ (հայերեն սեղանները հայտնվում են նաև ${ch('lfg')}-ում)։`, '4. Վարողը միացրել է Discord-ը՝ հավելվածում սեղմեք «Մտնել ձայնային ալիք», հետո՝ «Կապի մեջ եմ»։'].join('\n')],
-      chans: ['Ալիքներ', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — դերերի բոլոր քարտերը`, `${ch('scenarios')} — սցենարներ և կազմեր`, `${ch('gameRules')} — խաղի կանոններ`, `${ch('results')} — խաղերի արդյունքներ`, `${ch('chat')} — զրույց`].join('\n')],
+      chans: ['Ալիքներ', ch => [`${ch('cardsMafia')} ${ch('cardsCity')} ${ch('cardsNeutral')} — դերերի բոլոր քարտերը`, `${ch('scenarios')} — սցենարներ և կազմեր`, `${ch('gameRules')} — խաղի կանոններ`, `${ch('results')} — խաղերի արդյունքներ`, `${ch('chat')} — զրույց`, `${ch('socials')} — մեր սոցցանցերը`].join('\n')],
       langs: ['Լեզուներ', l => `Սեղանի դրոշը վարողի լեզուն է՝ 🇺🇦 ուկրաիներեն / ռուսերեն, 🇦🇲 հայերեն, 🇵🇱 լեհերեն, 🇬🇧 անգլերեն։ Այլ լեզուներ և 🎩 Վարող / 🎲 Խաղացող դերերը՝ ${l}-ում։`]
     },
     howto: { title: '📱 Ինչպես խաղալ Mafia Pro', desc: bot => `Հավելվածը բացվում է Telegram-ում${bot ? `՝ @${bot} բոտի մոտ` : ''}։ Կա երկու ձևաչափ։`, fields: ch => [
@@ -341,7 +401,18 @@ export const T = {
     ideas: ['💡 Գաղափարներ և սխալներ', 'Գտե՞լ եք սխալ կամ ունե՞ք գաղափար։ Գրեք՝ ինչ էիք անում, ինչ էիք սպասում, ինչ ստացվեց, կցեք սքրինշոթ։ Նշեք հեռախոսը և հավելվածի լեզուն։'],
     hello: 'Առցանց մաֆիայի սերվեր՝ ձայնով։ Խաղը Mafia Pro Telegram հավելվածում է, այստեղ՝ ձայնային սեղաններ, քարտեր և արդյունքներ։',
     pick: 'Սեղմեք ձեր լեզուն՝ կբացվեն այդ լեզվով ալիքները։ Կարելի է ընտրել մի քանիսը, կրկնակի սեղմումը թաքցնում է լեզուն։ 🎩 / 🎲՝ դերը սերվերում։',
-    news: 'Հավելվածի թարմացումներ, մրցաշարեր և խաղային երեկոներ։'
+    news: 'Հավելվածի թարմացումներ, մրցաշարեր և խաղային երեկոներ։',
+    social: {
+      title: '🔗 Mafia Pro-ն սոցցանցերում', footer: 'Հետևեք մեզ և հրավիրեք ընկերներին խաղի 🎩',
+      desc: 'Մաֆիա, որը խաղում են հեռախոսներով՝ իրական սեղանի շուրջ և առցանց։\nՍեղմեք անվան վրա՝ այն բացելու համար 👇',
+      channel: ['📣 Telegram ալիք', 'Նորություններ, օրվա դերը, խաղային իրավիճակներ և հավելվածի թարմացումներ (գրառումները ուկրաիներեն և ռուսերեն են)։', 'Բաժանորդագրվել'],
+      chat: ['💬 Խաղացողների չատ', 'Սեղան ենք փնտրում, քննարկում ենք խաղերն ու կանոնները, հրավիրում ենք ընկերներին։', 'Միանալ չատին'],
+      instagram: ['📸 Instagram', 'Կարճ տեսանյութեր մաֆիայի և նրա դերերի մասին։', 'Դիտել'],
+      facebook: ['📘 Facebook', 'Mafia Pro-ի տեսանյութեր և նորություններ։', 'Բացել էջը'],
+      tiktok: ['🎵 TikTok', 'Կարճ տեսանյութեր մաֆիայի մասին։', 'Դիտել'],
+      site: ['🌐 mafiapro.app', 'Կանոններ, բոլոր դերերը և կազմեր 7-ից 24 խաղացողի համար։', 'Բացել կայքը'],
+      play: ['🎲 Խաղալ Telegram-ում', 'Հավելվածը՝ քարտեր, գիշեր և քվեարկություն հենց հեռախոսներում։', 'Բացել հավելվածը']
+    }
   }
 };
 
