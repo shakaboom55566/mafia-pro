@@ -13,6 +13,8 @@ import { binary, http, log, short } from '../../social/lib/util.mjs';
 export const AD_CARD = Object.assign({}, CARD, { lines: ['Грай у Telegram', 'Безкоштовно · mafiapro.app', '@mafiaprof_bot'] });
 export const SAFE = ' Keep it family-friendly: no weapons, no violence, no blood, no alcohol, no real people or brands, no text, letters or logos anywhere in the frame.';
 const NO_SPEECH = ' No spoken words or dialogue in the clip: ambient sound and music only.';
+/* always in the frame rules: Veo / Imagen like to put wine on a cozy table by themselves (dnp-001 preview 15.10) — our rules and Meta's ban it */
+export const CLEAN = ' No alcohol anywhere in the frame: no wine or beer glasses, no bottles, no cocktails — the drinks on the table are tea, coffee or lemonade. No cigarettes.';
 export const MODELS = { video: 'veo-3.1-fast-generate-preview', image: 'imagen-4.0-fast-generate-001' };
 export const COST = { video: 0.12 * 8 + 0.02, image: 0.02 };   // USD: Veo 3.1 Fast 1080p $0.12/s + TTS; Imagen 4 Fast $0.02 a picture
 
@@ -25,7 +27,7 @@ export async function makeVideo(b, { apiKey, base, appBase = 'https://mafiapro.a
   if (b.voice) { try { voice = await ttsWav({ apiKey, base, text: b.voice }); } catch (e) { log(`::warning::voice-over: ${e.message} — the video goes without the voice`); } }
   const variant = take > 1 ? ` A fresh take: a different camera angle and staging than before (take ${take}).` : '';
   let raw = null, tries = 0;
-  for (const prompt of [b.prompt + variant + NO_SPEECH, b.prompt + variant + NO_SPEECH + SAFE]) {
+  for (const prompt of [b.prompt + variant + CLEAN + NO_SPEECH, b.prompt + variant + CLEAN + NO_SPEECH + SAFE]) {
     tries++;
     try { raw = await veoGenerate({ apiKey, base, model: MODELS.video, prompt, refs, resolution, pollMs }); break; }
     catch (e) { if (e instanceof VeoBlocked && tries === 1) { log(`  ${e.message} — retrying with a softer prompt (a blocked video is not charged)`); continue; } if (e instanceof VeoBlocked) throw new Blocked(e.message); throw e; }
@@ -49,8 +51,8 @@ async function imagen({ apiKey, base = 'https://generativelanguage.googleapis.co
 export async function makeImage(b, { apiKey, base, take = 1 }) {
   const variant = take > 1 ? ` A fresh composition, different from the previous one (take ${take}).` : '';
   let raw = null;
-  try { raw = await imagen({ apiKey, base, prompt: b.prompt + variant }); }
-  catch (e) { if (!(e instanceof Blocked)) throw e; log(`  ${e.message} — retrying with a softer prompt`); raw = await imagen({ apiKey, base, prompt: b.prompt + variant + SAFE }); }
+  try { raw = await imagen({ apiKey, base, prompt: b.prompt + variant + CLEAN }); }
+  catch (e) { if (!(e instanceof Blocked)) throw e; log(`  ${e.message} — retrying with a softer prompt`); raw = await imagen({ apiKey, base, prompt: b.prompt + variant + CLEAN + SAFE }); }
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ads-img-')); const inF = path.join(dir, 'in.png'), out = path.join(dir, 'ad.jpg'); fs.writeFileSync(inF, raw);
   const font = fontFile(); const esc = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, '’');
   const tf = (n, s) => { const f = path.join(dir, n); fs.writeFileSync(f, s); return f.replace(/\\/g, '/').replace(/:/g, '\\:'); };

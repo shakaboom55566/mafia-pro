@@ -262,6 +262,7 @@ console.log('stats for the agent, status, preview, launch by hand, a hryvnia acc
   ok(tgTexts().filter(t => /условия пользовательских аудиторий/.test(t)).length === 1 && calls(/act_123\/ads$/, 'POST').length >= 1, 'audience terms not accepted: the admin told once, the ads still go');
   const as = calls(/act_123\/adsets$/, 'POST'); ok(as.length === 2 && as[1].body.lifetime_budget === String(Math.round(100 / 1.2 * 15 / 7 * 41.5 * 100)) && JSON.parse(as[1].body.targeting).targeting_automation.advantage_audience === 1, 'UAH: budget by the NBU rate; Advantage+ audience when required');
   const pr = calls(/predictLongRunning/).map(x => x.body.instances[0].prompt); ok(pr.length >= 2 && !/family-friendly/.test(pr[0]) && /family-friendly/.test(pr[1]), 'Veo blocked → softer prompt');
+  ok(pr.every(x => /No alcohol anywhere/.test(x)) && calls(/imagen-4\.0-fast/).every(x => /No alcohol anywhere/.test(x.body.instances[0].prompt)), 'every video and picture prompt: no alcohol in the frame');
   S.block = false; S.adsetError = null; S.audTerms = false; }
 
 server.close(); fs.rmSync(tmp, { recursive: true, force: true });
