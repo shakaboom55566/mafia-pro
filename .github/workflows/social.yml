@@ -73,7 +73,7 @@ jobs:
           : > "$LOG"; tests=0; files=""
           if [ "$EVENT" = "push" ]; then
             if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
-              changed=$(git diff --name-only --diff-filter=AM "$BEFORE" "$GITHUB_SHA")
+              changed=$(git diff --name-only --diff-filter=AMR "$BEFORE" "$GITHUB_SHA")
             else changed=$(git show --name-only --pretty=format: "$GITHUB_SHA"); fi
             files=$(echo "$changed" | grep -E '^social/posts/[^/]+\.md$' || true)
             echo "$changed" | grep -qE '^(social/lib/|social/run\.mjs|social/test\.mjs|\.github/workflows/social\.yml)' && tests=1
