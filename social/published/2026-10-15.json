@@ -1,0 +1,36 @@
+{
+  "id": "2026-10-15",
+  "date": "2026-10-15",
+  "rubric": "Роль дня",
+  "hook": "таємниця",
+  "model": "veo-3.1-fast-generate-preview",
+  "resolution": "1080p",
+  "image": null,
+  "refs": [
+    "sheriff"
+  ],
+  "title": "Шериф не спить",
+  "voice": {
+    "seconds": 6.2,
+    "tempo": 1
+  },
+  "costUsd": 0.98,
+  "seconds": 10.2,
+  "bytes": 7611673,
+  "at": "2026-10-15T16:17:47.380Z",
+  "results": {
+    "instagram": {
+      "id": "18096277262650442",
+      "url": "https://www.instagram.com/reel/DehXd3yguO5/",
+      "status": "published"
+    },
+    "facebook": {
+      "id": "1471420518218161",
+      "url": "https://www.facebook.com/reel/1471420518218161/",
+      "status": "published"
+    },
+    "tiktok": {
+      "status": "telegram"
+    }
+  }
+}
