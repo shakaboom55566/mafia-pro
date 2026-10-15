@@ -605,6 +605,12 @@ console.log('live table: publish → players read public + private → act → h
   await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: false, stage: 'vote' }), priv });
   eq((await post('/api/table/chat/send', { initData: await id(pl[1]), code, text: 'late' })).status, 403, 'chat closed once the vote starts');
   const hc = await (await post('/api/table/chat/send', { initData: hi, code, text: 'Голосуем' })).json(); ok(hc.ok, 'the host can always write');
+  // v65: the host reads the chat with his actions poll; his lines are marked for the players
+  { const a0 = await (await post('/api/table/actions', { initData: hi, code, since: 0 })).json(); ok(a0.ok && a0.chat === undefined, 'no chatSince — no chat in the answer');
+    const a1 = await (await post('/api/table/actions', { initData: hi, code, since: 0, chatSince: 0 })).json();
+    ok(a1.ok && a1.chat.length === 3 && a1.chat[0].text === 'Я мирный, честно' && a1.chat[0].host === false && !a1.chat[0].me && a1.chat[2].text === 'Голосуем' && a1.chat[2].me && a1.chat[2].host, 'the host reads the whole chat: the players\' lines and his own, marked');
+    const a2 = await (await post('/api/table/actions', { initData: hi, code, since: 0, chatSince: a1.chat[2].id })).json(); ok(a2.ok && Array.isArray(a2.chat) && a2.chat.length === 0, 'incremental chat read');
+    const ps = await (await post('/api/table/state', { initData: await id(pl[2]), code, since: 0 })).json(); ok(ps.chat.length === 3 && ps.chat[2].host === true && ps.chat[2].name === 'Ведущий' && ps.chat[0].host === false, 'players see the host\'s line marked as the host\'s'); }
   // v62: last words — the seat leaving the table (already out of the game) writes while its 30 seconds run; nobody else
   { const privLw = JSON.parse(JSON.stringify(priv)); privLw[1101].alive = false;
     await post('/api/table/publish', { initData: hi, code, pub: Object.assign({}, dayPub, { chat: 'last', lastSeat: 1, lastWord: { seat: 1, i: 0, n: 1 }, stage: 'result', timer: { key: 'lw', total: 30, left: 30, running: true, at: Date.now() } }), priv: privLw });

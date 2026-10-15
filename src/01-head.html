@@ -1098,4 +1098,20 @@ html.lite .gd-img { box-shadow: none; }
 .trn-prize.top b { font-size: 15px; }
 .trn-admin { border-color: rgba(240, 205, 122, .5); }
 .fr-row.me { border-color: var(--gold-dim); }
+/* v66 the host's view: the round table under the online strip, the table chat at the bottom — both fold by their header */
+.hv-panel { padding: 10px 12px 12px; }
+.hv-panel.folded { padding: 8px 12px; }
+.hv-head { cursor: pointer; user-select: none; gap: 8px; min-height: 28px; }
+.hv-head .eyebrow { margin: 0; }
+.hv-chev { color: var(--muted); display: flex; flex: none; transition: transform .2s; }
+.hv-chev.open { transform: rotate(90deg); }
+.hv-sub { margin: 0; font-size: 11px; text-align: right; }
+.hv-badge { font-size: 11px; font-weight: 800; color: #0b0a0e; background: var(--gold); border-radius: 9px; padding: 1px 7px; flex: none; }
+.hv-legend { margin: 6px 0 0; font-size: 11px; text-align: center; line-height: 1.4; }
+.hv-panel .rtable { max-width: 330px; margin-top: 6px; }
+.hv-panel .rt-phase { font-size: 15px; }
+.rt-seat .rt-wait { background: var(--warn); color: #1a1208; letter-spacing: 1px; }
+.rt-seat.wait .rt-av { border-color: var(--warn); border-style: dashed; }
+.msg.host { border-color: rgba(240, 205, 122, .45); }
+.msg.host .who { color: var(--gold); }
 </style>

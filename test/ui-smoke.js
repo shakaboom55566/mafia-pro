@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -943,7 +943,7 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   A.go(el('go', { to: 'tournament' })); check('v63 tournament (web)'); h = app.innerHTML; if (!h.includes(u.trnTitle) || !h.includes(u.trnNeedTg) || h.includes(u.trnRulesTitle) || u.trnRules.some(r => h.includes(X.tt(r, { fund: '10 000' })))) F('v63: the tournament screen outside Telegram: the hint, no rules list (owner, 16.10)');
   A.back(el('back')); if (S.screen !== 'home') F('v63: Back from the tournament goes home');
   S.ui.shopTab = 'cards'; X.render(); console.log('v63 ok');
-}).catch(e => { fails++; console.log('FAIL v59 crashed', e && e.stack || e); }).then(() => {
+}).catch(e => { fails++; console.log('FAIL v59 crashed', e && e.stack || e); }).then(async () => {
   // v62: fouls in every mode and stage, 3 → no speech and no vote, 4 → removed (no last words, no Azazel / Morpheus, no blast), undo; last words 30 s
 { const u = X.U(); const F = m => { fails++; console.log('FAIL v62 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
   const by = (g, r) => g.players.find(p => p.roleId === r);
@@ -1016,6 +1016,57 @@ v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v5
   const rt = E('roundTableHTML')([{ seat: 1, name: 'A', fouls: 2, alive: true }, { seat: 2, name: 'B', fouls: 0, alive: true }], {}, ''); if (!rt.includes('rt-foul f2') || (rt.match(/rt-foul/g) || []).length !== 1) F('online: fouls at the seats');
   S.game = null; S.screen = 'home'; S.ui.sheet = null; S.ui.kamikaze = null; S.ui.pick = []; X.render(); console.log('v63 ok');
 }
+// v66: the host sees the round table (the marks of the moment, whom the app waits for) and, online, the table chat — read with the actions poll, written at any moment
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v66 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__chat = []; globalThis.__calls = []', ctx);
+  vm.runInContext('api = async (p, b) => { __calls.push([p, b]); if (p === "/api/table/actions") return { ok: true, actions: [], watching: [601], chat: __chat.splice(0) }; return { ok: true, delivered: [] }; }', ctx);
+  const calls = E('__calls'), chatQ = E('__chat'); const HC = E('HC');
+  S.cloud = { user: { id: 500, name: 'Me' } }; S.game = null; S.ui.sheet = null;
+  A.go(el('go', { to: 'setup' })); S.setup.scenario = null; S.setup.n = 7; S.setup.comp = E('presetFor')(7); S.setup.seatProfiles = []; S.setup.names = ['Нина', 'Борис', 'Аня', 'Гена', 'Дима', 'Ева', 'Женя']; S.setup.online = true; S.setup.hostRole = 'host';
+  S.lobby = { code: 'HV7A', link: '', players: [{ tgId: 601, name: 'Нина', photo: 'https://x.test/a.jpg', points: 1024 }, { tgId: 602, name: 'Борис' }], map: {}, sent: [], seats: { 601: 0, 602: 1 }, flag: '' };
+  A.deal(); const g = S.game; if (!g || !g.online || !g.tg || g.tg.code !== 'HV7A' || g.tg.map[601] !== 1) F('an online game with its Telegram table');
+  g.dealIdx = g.players.length; A.start(); check('v66 host night0'); let h = app.innerHTML;
+  const iStrip = h.indexOf('class="onl-strip"'), iTable = h.indexOf('id="hv-table"'), iChat = h.indexOf('id="hc-panel"'), iRow = h.indexOf('data-a="sheet" data-id="players"');
+  if (iStrip < 0 || iTable < 0 || iChat < 0 || !(iStrip < iTable && iTable < iRow && iRow < iChat)) F('the table under the online strip, the chat under the buttons: ' + [iStrip, iTable, iRow, iChat].join());
+  if (!h.includes('class="rtable md"') || (h.match(/class="rt-seat/g) || []).length !== 7 || !h.includes('https://x.test/a.jpg') || !h.includes(u.hvLegend) || !h.includes(X.tt(u.tbAtTable, { n: 7 }))) F('seven seats one size smaller, the avatar from the lobby, the legend, the count');
+  const st0 = g.steps[g.stepIdx]; const awake = (st0.members || [st0.actorId && X.P(g, st0.actorId)].filter(Boolean)).map(p => p.seat);
+  awake.forEach(seat => { if (!new RegExp('class="rt-seat[^"]*\\bspk\\b[^"]*"[^>]*><div class="rt-av">(?:(?!rt-seat).)*?<span class="rt-num">' + seat + '<').test(h)) F('night 0: the awake seat ' + seat + ' is ringed'); });
+  if (!h.includes('id="hc-msg"') || !h.includes('data-a="hc-send"') || !h.includes(u.hvClosed) || !h.includes(u.hvYou) || !h.includes(u.tbChatEmpty)) F('the chat panel: closed for the players at night, the host writes, empty so far');
+  // folding: the table and the chat fold by their headers, the choice is kept in the settings
+  A['hv-toggle'](el('hv-toggle', { id: 'hvTable' })); check('v66 table folded'); h = app.innerHTML;
+  if (S.settings.hvTable !== false || h.includes('class="rtable') || !h.includes('hv-panel folded') || !h.includes(u.hvUnfold)) F('the table folds and the setting remembers it');
+  A['hv-toggle'](el('hv-toggle', { id: 'hvTable' })); if (S.settings.hvTable !== true || !app.innerHTML.includes('class="rtable md"')) F('the table unfolds');
+  // the chat: the history comes with the first poll and is not «new»; a later line while folded counts as new and shows on the header
+  chatQ.push({ id: 1, tgId: 601, name: '1 · Нина', text: 'привет всем', at: Date.now(), me: false, host: false });
+  await E('pollActions')(); const q1 = calls.find(c => c[0] === '/api/table/actions'); if (!q1 || q1[1].code !== 'HV7A' || q1[1].chatSince !== 0) F('the poll asks for the chat since 0: ' + JSON.stringify(q1 && q1[1]));
+  if (HC.chat.length !== 1 || HC.last !== 1 || HC.unread !== 0) F('the first lines are history, not new: ' + JSON.stringify([HC.chat.length, HC.last, HC.unread]));
+  X.render(); if (!app.innerHTML.includes('привет всем') || !app.innerHTML.includes('1 · Нина')) F('the line shows in the host\'s chat');
+  A['hv-toggle'](el('hv-toggle', { id: 'hvChat' })); chatQ.push({ id: 2, tgId: 602, name: '2 · Борис', text: 'я мирный', at: Date.now(), me: false, host: false }); await E('pollActions')();
+  const q2 = calls.filter(c => c[0] === '/api/table/actions').pop(); if (q2[1].chatSince !== 1) F('the next poll continues from the last line');
+  if (HC.unread !== 1 || HC.chat.length !== 2) F('a line while the chat is folded is new: ' + HC.unread); X.render(); check('v66 chat folded'); h = app.innerHTML;
+  if (!h.includes(X.tt(u.hvNew, { n: 1 })) || h.includes('id="hc-msg"')) F('the folded chat header shows the new count');
+  A['hv-toggle'](el('hv-toggle', { id: 'hvChat' })); if (HC.unread !== 0 || !app.innerHTML.includes('я мирный')) F('unfolding reads the lines');
+  // the host writes: the request goes to the table chat, the input clears, the poll runs again
+  calls.length = 0; A['hc-msg'](el('hc-msg', { value: 'Город засыпает' })); await A['hc-send']();
+  const sent = calls.find(c => c[0] === '/api/table/chat/send'); if (!sent || sent[1].code !== 'HV7A' || sent[1].text !== 'Город засыпает' || HC.msg !== '' || !calls.some(c => c[0] === '/api/table/actions')) F('sending: ' + JSON.stringify(calls.map(c => c[0])));
+  // the day: the speaker ringed, candidates red, votes as arrows, the seats the app waits for dashed; the chat rule follows the stage
+  let guard = 40; while (g.steps[g.stepIdx] && guard--) A.next(); A.day0(); check('v66 day0'); h = app.innerHTML;
+  const sp0 = X.alive(g)[g.speechIdx]; if (!new RegExp('class="rt-seat spk"[^>]*><div class="rt-av">(?:(?!rt-seat).)*?<span class="rt-num">' + sp0.seat + '<').test(h) || !h.includes(X.tt(u.hvSpeaker, { seat: sp0.seat }))) F('day 0: the introducing seat is ringed and may write');
+  guard = 40; while (X.alive(g)[g.speechIdx] && guard--) A.speech(el('speech', { d: '1' })); A.night(); g.stepIdx = g.steps.length; g.actions = []; E('startDay')(g); g.lastWords = null;
+  g.dayStage = 'balagan'; X.render(); if (!app.innerHTML.includes(u.hvAll)) F('the free discussion: everyone writes');
+  const ids = s => g.players.find(p => p.seat === s).id;
+  g.dayStage = 'vote'; g.ballot = { candidates: [ids(3), ids(4)], votes: { [ids(5)]: ids(3) }, round: 1, nominatedBy: {} }; X.render(); check('v66 vote table'); h = app.innerHTML;
+  if (!h.includes('rt-vote">→3<') || (h.match(/class="rt-seat cand/g) || []).length !== 2 || !h.includes(u.hvClosed)) F('the vote: candidates red, the vote as an arrow, the chat closed');
+  if ((h.match(/class="rt-seat wait"/g) || []).length !== 2 || !h.includes('rt-wait')) F('the two seats in the app have not voted yet — dashed, with the mark');
+  g.ballot.votes[ids(1)] = ids(4); X.render(); if ((app.innerHTML.match(/class="rt-seat wait"/g) || []).length !== 1) F('a vote from the app clears the mark');
+  // the players' chat marks the host's lines
+  vm.runInContext('TB.chat = [{ id: 9, name: "Ведущий", text: "Голосуем", at: Date.now(), me: false, host: true }]', ctx);
+  const pc = E('tbChatHTML')({ chat: 'all' }, { seat: 1, alive: true }); if (!pc.includes('msg  host') || !pc.includes('Ведущий · ' + u.hvHostTag)) F('the host\'s line is marked for the players');
+  // an offline game shows the table but no chat
+  g.online = false; X.render(); check('v66 offline'); if (!app.innerHTML.includes('id="hv-table"') || app.innerHTML.includes('id="hc-panel"')) F('offline: the table, no chat'); g.online = true;
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null; TB.chat = []', ctx);
+  S.game = null; S.lobby = null; S.screen = 'home'; S.ui.sheet = null; X.render(); console.log('v66 ok');
+} catch (e) { fails++; console.log('FAIL v66 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

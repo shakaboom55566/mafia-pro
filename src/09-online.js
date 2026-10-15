@@ -155,10 +155,13 @@ function actionsPoll() {
 async function pollActions() {
   const g = S.game; if (!onlineActive(g) || ONL.pollBusy) return; ONL.pollBusy = true;
   try {
-    const onl = onlState(g); const d = await api('/api/table/actions', { code: g.tg.code, since: onl.since || 0 }); if (!d.ok) return;
+    const onl = onlState(g); const body = { code: g.tg.code, since: onl.since || 0 };
+    if (typeof hostPollExtra === 'function') Object.assign(body, hostPollExtra(g) || {}); // v66: the host's chat rides on the same poll (16-host-view.js)
+    const d = await api('/api/table/actions', body); if (!d.ok) return;
     ONL.watching = d.watching || []; let changed = false;
     for (const a of d.actions || []) { onl.since = Math.max(onl.since || 0, a.id); try { if (applyTableAction(a)) changed = true; } catch (e) {} }
-    if (changed) { save(); render(); }
+    let extra = false; if (typeof hostPollTake === 'function') { try { extra = !!hostPollTake(d, g); } catch (e) { extra = false; } }
+    if (changed) { save(); render(); } else if (extra && S.screen === 'game') render();
   } finally { ONL.pollBusy = false; }
 }
 /* host: strip above the game field — who is in the app, whom we wait for, the family's proposals */
@@ -238,16 +241,16 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
     const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
     const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${free ? '·' : esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
     const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
-    const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : ''].filter(Boolean).join(' ');
+    const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : '', m.wait ? 'wait' : ''].filter(Boolean).join(' ');
     const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
-    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
+    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
 }
 /* the mods of the table I sit at: the bomb hunt and the classic game change what the cards say */
 const tbMods = () => { const pub = TB.data && TB.data.pub; return { bombHunt: !!(pub && pub.bh), classic: !!(pub && pub.mode === 'classic') }; };
 function tbRoleRow(roleId, big) {
-  const u = U(); const r = roleFor(tbMods(), roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia; v65: classic cards
+  const u = U(); const r = roleFor(tbMods(), roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia; v66: classic cards
   if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dFor(r, 'tb', mySkin(r.id))}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
   return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealFor(r, mySkin(r.id))}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
 }
@@ -289,7 +292,7 @@ function tbChatHTML(pub, me) {
   const u = U(); const open = tbCanChat(pub, me);
   const why = pub.chat === 'last' ? (open ? u.tbLastMe : tt(u.tbLastWord, { seat: pub.lastSeat })) : open ? (pub.chat === 'speaker' ? u.tbChatYourSpeech : u.tbChatMorning) : pub.chat === 'speaker' ? u.tbChatSpeaker : u.tbChatClosed; // v62: last words
   const fmtT = ms => { try { return new Date(ms).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
-  const msgs = TB.chat.length ? TB.chat.map(m => `<div class="msg ${m.me ? 'me' : ''}">${m.me ? '' : `<div class="who">${esc(m.name)}</div>`}${esc(m.text)}<div class="when">${fmtT(m.at)}</div></div>`).join('') : `<div class="msg sys">${open ? u.tbChatEmpty : why}</div>`;
+  const msgs = TB.chat.length ? TB.chat.map(m => `<div class="msg ${m.me ? 'me' : ''} ${m.host ? 'host' : ''}">${m.me ? '' : `<div class="who">${esc(m.name)}${m.host ? ` · ${u.hvHostTag}` : ''}</div>`}${esc(m.text)}<div class="when">${fmtT(m.at)}</div></div>`).join('') : `<div class="msg sys">${open ? u.tbChatEmpty : why}</div>`; // v66: the host's lines are marked
   return `<div class="panel"><div class="row"><div class="eyebrow grow">${u.tbChat}</div><span class="hint" style="margin:0;font-size:11px;text-align:right">${why}</span></div><div class="chat" id="tb-chat" style="max-height:220px">${msgs}</div>
     <div class="row" style="margin-top:8px"><input class="input grow" id="tb-msg" data-a="tb-msg" placeholder="${open ? u.tbChatPh : why}" value="${esc(TB.msg)}" autocomplete="off" maxlength="300" ${open ? '' : 'disabled'}><button class="btn sm primary" data-a="tb-send" style="flex:0 0 auto" ${open ? '' : 'disabled'}>${u.tbSend}</button></div></div>`;
 }

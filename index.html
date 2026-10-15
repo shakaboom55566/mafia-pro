@@ -1166,6 +1166,22 @@ html.lite .gd-img { box-shadow: none; }
 .trn-prize.top b { font-size: 15px; }
 .trn-admin { border-color: rgba(240, 205, 122, .5); }
 .fr-row.me { border-color: var(--gold-dim); }
+/* v66 the host's view: the round table under the online strip, the table chat at the bottom — both fold by their header */
+.hv-panel { padding: 10px 12px 12px; }
+.hv-panel.folded { padding: 8px 12px; }
+.hv-head { cursor: pointer; user-select: none; gap: 8px; min-height: 28px; }
+.hv-head .eyebrow { margin: 0; }
+.hv-chev { color: var(--muted); display: flex; flex: none; transition: transform .2s; }
+.hv-chev.open { transform: rotate(90deg); }
+.hv-sub { margin: 0; font-size: 11px; text-align: right; }
+.hv-badge { font-size: 11px; font-weight: 800; color: #0b0a0e; background: var(--gold); border-radius: 9px; padding: 1px 7px; flex: none; }
+.hv-legend { margin: 6px 0 0; font-size: 11px; text-align: center; line-height: 1.4; }
+.hv-panel .rtable { max-width: 330px; margin-top: 6px; }
+.hv-panel .rt-phase { font-size: 15px; }
+.rt-seat .rt-wait { background: var(--warn); color: #1a1208; letter-spacing: 1px; }
+.rt-seat.wait .rt-av { border-color: var(--warn); border-style: dashed; }
+.msg.host { border-color: rgba(240, 205, 122, .45); }
+.msg.host .who { color: var(--gold); }
 </style>
 </head><body>
 <div id="app"></div>
@@ -5281,11 +5297,12 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['fouls-strip', 'Полоса «Фолы»: точки у каждого номера, «удалён» — 4 фола'], ['fouls', 'Карточка фолов игрока: +1…+4, снять, отменить'], ['morning', 'Утро: последняя речь убитого — 30 секунд']],
         r: ['Первый фол давайте с причиной и одинаково для всех — стол быстро успокаивается.', '«Отменить последний» — для ошибки, а не для торга: снятый фол объявляйте вслух.'] },
       { t: 'Управление партией',
-        p: ['Внизу экрана игры три кнопки. {btnPlayers} — список игроков с ролями (видно только вам); нажмите игрока → {removePlayer} или {returnPlayer}, если кто-то ушёл или нарушил правила. {btnLog} — журнал всех событий партии, записи «только для ведущего» помечены. {btnEnd} — прервать партию.',
+        p: ['**{hvTable}** — вверху экрана игры, под строкой онлайна: тот же круглый стол, что видят игроки. Зелёная рамка — кто говорит (ночью — кто проснулся), красная — выставлен, стрелка →3 — голос за третьего, «…» — игрок ещё не ответил в приложении; выбывшие гаснут, фолы — жёлтым у номера. Нажмите на заголовок — стол свернётся и не будет мешать; приложение запомнит выбор. В онлайн-игре внизу экрана — **{tbChat}**: вы читаете всё, что пишут игроки, и можете написать им в любой момент, даже ночью; ваша строка помечена «ведущий».',
+          'Внизу экрана игры три кнопки. {btnPlayers} — список игроков с ролями (видно только вам); нажмите игрока → {removePlayer} или {returnPlayer}, если кто-то ушёл или нарушил правила. {btnLog} — журнал всех событий партии, записи «только для ведущего» помечены. {btnEnd} — прервать партию.',
           '**Назад.** После каждого большого перехода (итоги ночи, утро, конец голосования) на экране есть кнопка ↩: {undoToNight}, {undoToDay}, {undoToVote} — она возвращает игру ровно на шаг назад.',
           '**Настройки** (вкладка {tabSettings}): длина минутки, знакомства, балагана и оправдательной речи; {sReveal}; звук таймера; облегчённая графика для старых телефонов.',
           'Партия сохраняется на телефоне: если приложение закрылось, на главном экране будет {continueGame}.'],
-        i: [['sheet-players', '«Игроки»: роли и ручное удаление или возврат игрока'], ['sheet-log', '«Журнал»: все события партии'], ['settings', 'Настройки: таймеры, открытие карт, звук']],
+        i: [['host-table', 'Стол на экране ведущего: кто говорит, кто выставлен, чьи голоса'], ['host-chat', 'Чат стола: ведущий читает всё и пишет в любой момент'], ['sheet-players', '«Игроки»: роли и ручное удаление или возврат игрока'], ['sheet-log', '«Журнал»: все события партии'], ['settings', 'Настройки: таймеры, открытие карт, звук']],
         r: ['Таймеры для новичков: минутка 60 с, балаган 2–3 минуты; опытному столу — 45 с.', 'Выбывшего игрока убирайте через {btnPlayers}, а не «на словах» — иначе приложение будет ждать его хода.'] },
       { t: 'Конец партии',
         p: ['Как только одна из сторон победила, на экране появляется кнопка {gameOver}. Экран итогов: победитель, пьедестал, {reviewTitle} — каждый ход каждого игрока с оценкой и очками, стол с картами и {gameLog}. {newGame} начинает следующую партию.',
@@ -5613,11 +5630,12 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['fouls-strip', 'Смуга «Фоли»: крапки біля кожного номера, «вилучений» — 4 фоли'], ['fouls', 'Картка фолів гравця: +1…+4, зняти, скасувати'], ['morning', 'Ранок: остання промова вбитого — 30 секунд']],
         r: ['Перший фол давайте з причиною й однаково для всіх — стіл швидко заспокоюється.', '«Скасувати останній» — для помилки, а не для торгу: знятий фол оголошуйте вголос.'] },
       { t: 'Керування партією',
-        p: ['Унизу екрана гри три кнопки. {btnPlayers} — список гравців з ролями (бачите лише ви); натисніть гравця → {removePlayer} або {returnPlayer}, якщо хтось пішов чи порушив правила. {btnLog} — журнал усіх подій партії, записи «лише для ведучого» позначено. {btnEnd} — перервати партію.',
+        p: ['**{hvTable}** — угорі екрана гри, під рядком онлайну: той самий круглий стіл, який бачать гравці. Зелена рамка — хто говорить (уночі — хто прокинувся), червона — виставлений, стрілка →3 — голос за третього, «…» — гравець ще не відповів у застосунку; вибулі гаснуть, фоли — жовтим біля номера. Натисніть на заголовок — стіл згорнеться й не заважатиме; застосунок запам’ятає вибір. В онлайн-грі внизу екрана — **{tbChat}**: ви читаєте все, що пишуть гравці, і можете написати їм будь-якої миті, навіть уночі; ваш рядок позначено «ведучий».',
+          'Унизу екрана гри три кнопки. {btnPlayers} — список гравців з ролями (бачите лише ви); натисніть гравця → {removePlayer} або {returnPlayer}, якщо хтось пішов чи порушив правила. {btnLog} — журнал усіх подій партії, записи «лише для ведучого» позначено. {btnEnd} — перервати партію.',
           '**Назад.** Після кожного великого переходу (підсумки ночі, ранок, кінець голосування) на екрані є кнопка ↩: {undoToNight}, {undoToDay}, {undoToVote} — вона повертає гру рівно на крок назад.',
           '**Налаштування** (вкладка {tabSettings}): довжина хвилинки, знайомства, балагану та виправдальної промови; {sReveal}; звук таймера; полегшена графіка для старих телефонів.',
           'Партія зберігається на телефоні: якщо застосунок закрився, на головному екрані буде {continueGame}.'],
-        i: [['sheet-players', '«Гравці»: ролі та ручне вилучення чи повернення гравця'], ['sheet-log', '«Журнал»: усі події партії'], ['settings', 'Налаштування: таймери, відкриття карт, звук']],
+        i: [['host-table', 'Стіл на екрані ведучого: хто говорить, хто виставлений, чиї голоси'], ['host-chat', 'Чат столу: ведучий читає все й пише будь-якої миті'], ['sheet-players', '«Гравці»: ролі та ручне вилучення чи повернення гравця'], ['sheet-log', '«Журнал»: усі події партії'], ['settings', 'Налаштування: таймери, відкриття карт, звук']],
         r: ['Таймери для новачків: хвилинка 60 с, балаган 2–3 хвилини; досвідченому столу — 45 с.', 'Гравця, що вибув, прибирайте через {btnPlayers}, а не «на словах» — інакше застосунок чекатиме на його хід.'] },
       { t: 'Кінець партії',
         p: ['Щойно одна зі сторін перемогла, на екрані з’являється кнопка {gameOver}. Екран підсумків: переможець, п’єдестал, {reviewTitle} — кожен хід кожного гравця з оцінкою та балами, стіл із картами й {gameLog}. {newGame} починає наступну партію.',
@@ -5944,11 +5962,12 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['fouls-strip', 'The fouls strip: dots at every number, “removed” — 4 fouls'], ['fouls', 'A player’s fouls: +1…+4, take back, undo'], ['morning', 'Morning: the victim’s last words — 30 seconds']],
         r: ['Give the first foul with the reason and the same way for everyone — the table calms down quickly.', '“Undo the last” is for a mistake, not a bargain: announce a foul taken back aloud.'] },
       { t: 'Managing the game',
-        p: ['Three buttons at the bottom of the game screen. {btnPlayers} — the players with their roles (visible to you only); tap a player → {removePlayer} or {returnPlayer} if somebody left or broke the rules. {btnLog} — the log of every event, “host only” entries marked. {btnEnd} — abort the game.',
+        p: ['**{hvTable}** — at the top of the game screen, under the online line: the same round table the players see. A green ring — who speaks (at night — who is awake), red — nominated, an arrow →3 — a vote for seat 3, “…” — the player has not answered in the app yet; the dead fade out, fouls show in yellow by the number. Tap the header to fold the table out of the way; the app remembers the choice. In an online game the bottom of the screen holds the **{tbChat}**: you read everything the players write and may write to them at any moment, even at night; your lines are marked “host”.',
+          'Three buttons at the bottom of the game screen. {btnPlayers} — the players with their roles (visible to you only); tap a player → {removePlayer} or {returnPlayer} if somebody left or broke the rules. {btnLog} — the log of every event, “host only” entries marked. {btnEnd} — abort the game.',
           '**Back.** After every big transition (night results, morning, the end of a vote) the screen has an ↩ button: {undoToNight}, {undoToDay}, {undoToVote} — it returns the game exactly one step.',
           '**Settings** (the {tabSettings} tab): the length of a minute, of introductions, of free talk and of a defence speech; {sReveal}; the timer sound; lighter graphics for old phones.',
           'The game is saved on the phone: if the app closed, the home screen offers {continueGame}.'],
-        i: [['sheet-players', '“Players”: roles and removing or returning a player by hand'], ['sheet-log', '“Log”: every event of the game'], ['settings', 'Settings: timers, open cards, sound']],
+        i: [['host-table', 'The table on the host’s screen: who speaks, who is nominated, whose votes'], ['host-chat', 'The table chat: the host reads everything and writes at any moment'], ['sheet-players', '“Players”: roles and removing or returning a player by hand'], ['sheet-log', '“Log”: every event of the game'], ['settings', 'Settings: timers, open cards, sound']],
         r: ['Timers for beginners: a 60-second minute, 2–3 minutes of free talk; an experienced table — 45 seconds.', 'Remove a player who left through {btnPlayers}, not “by word” — otherwise the app waits for their move.'] },
       { t: 'The end of the game',
         p: ['As soon as one side wins, the {gameOver} button appears. The results screen: the winner, the podium, the {reviewTitle} — every move of every player with a verdict and points, the table with the cards and the {gameLog}. {newGame} starts the next one.',
@@ -6275,11 +6294,12 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['fouls-strip', 'Pasek fauli: kropki przy każdym numerze, „usunięty” — 4 faule'], ['fouls', 'Karta fauli gracza: +1…+4, cofnij, anuluj'], ['morning', 'Ranek: ostatnia mowa zabitego — 30 sekund']],
         r: ['Pierwszy faul dawaj z powodem i jednakowo dla wszystkich — stół szybko się uspokaja.', '„Cofnij ostatni” jest na pomyłkę, nie na targowanie się: cofnięty faul ogłaszaj na głos.'] },
       { t: 'Zarządzanie partią',
-        p: ['Na dole ekranu gry są trzy przyciski. {btnPlayers} — lista graczy z rolami (widzisz tylko ty); dotknij gracza → {removePlayer} albo {returnPlayer}, jeśli ktoś wyszedł lub złamał zasady. {btnLog} — dziennik wszystkich zdarzeń partii, wpisy „tylko dla prowadzącego” są oznaczone. {btnEnd} — przerwać partię.',
+        p: ['**{hvTable}** — u góry ekranu gry, pod wierszem online: ten sam okrągły stół, który widzą gracze. Zielona ramka — kto mówi (w nocy — kto się obudził), czerwona — wystawiony, strzałka →3 — głos na trzeciego, „…” — gracz jeszcze nie odpowiedział w aplikacji; wyeliminowani gasną, faule — na żółto przy numerze. Dotknij nagłówka — stół się zwinie i nie będzie przeszkadzał; aplikacja zapamięta wybór. W grze online na dole ekranu jest **{tbChat}**: czytasz wszystko, co piszą gracze, i możesz napisać do nich w każdej chwili, nawet w nocy; Twoje wiersze są oznaczone „prowadzący”.',
+          'Na dole ekranu gry są trzy przyciski. {btnPlayers} — lista graczy z rolami (widzisz tylko ty); dotknij gracza → {removePlayer} albo {returnPlayer}, jeśli ktoś wyszedł lub złamał zasady. {btnLog} — dziennik wszystkich zdarzeń partii, wpisy „tylko dla prowadzącego” są oznaczone. {btnEnd} — przerwać partię.',
           '**Wstecz.** Po każdym dużym przejściu (wyniki nocy, ranek, koniec głosowania) na ekranie jest przycisk ↩: {undoToNight}, {undoToDay}, {undoToVote} — cofa grę dokładnie o krok.',
           '**Ustawienia** (zakładka {tabSettings}): długość minutki, przedstawiania, swobodnej dyskusji i mowy obronnej; {sReveal}; dźwięk timera; lżejsza grafika dla starych telefonów.',
           'Partia zapisuje się na telefonie: jeśli aplikacja się zamknęła, na ekranie głównym będzie {continueGame}.'],
-        i: [['sheet-players', '„Gracze”: role oraz ręczne usunięcie lub powrót gracza'], ['sheet-log', '„Dziennik”: wszystkie zdarzenia partii'], ['settings', 'Ustawienia: timery, odkrywanie kart, dźwięk']],
+        i: [['host-table', 'Stół na ekranie prowadzącego: kto mówi, kto wystawiony, czyje głosy'], ['host-chat', 'Czat stołu: prowadzący czyta wszystko i pisze w każdej chwili'], ['sheet-players', '„Gracze”: role oraz ręczne usunięcie lub powrót gracza'], ['sheet-log', '„Dziennik”: wszystkie zdarzenia partii'], ['settings', 'Ustawienia: timery, odkrywanie kart, dźwięk']],
         r: ['Timery dla początkujących: minutka 60 s, swobodna dyskusja 2–3 minuty; doświadczony stół — 45 s.', 'Gracza, który wyszedł, usuwaj przez {btnPlayers}, a nie „słownie” — inaczej aplikacja będzie czekać na jego ruch.'] },
       { t: 'Koniec partii',
         p: ['Gdy tylko jedna ze stron wygra, na ekranie pojawia się przycisk {gameOver}. Ekran wyników: zwycięzca, podium, {reviewTitle} — każdy ruch każdego gracza z oceną i punktami, stół z kartami i {gameLog}. {newGame} zaczyna następną partię.',
@@ -6606,11 +6626,12 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['fouls-strip', 'Ֆոլերի շերտը. կետեր յուրաքանչյուր համարի մոտ, «հեռացված»՝ 4 ֆոլ'], ['fouls', 'Խաղացողի ֆոլերի քարտը. +1…+4, հանել, չեղարկել'], ['morning', 'Առավոտ. սպանվածի վերջին խոսքը՝ 30 վայրկյան']],
         r: ['Առաջին ֆոլը տվեք պատճառով և բոլորի համար նույն կերպ. սեղանն արագ հանգստանում է։', '«Չեղարկել վերջինը»՝ սխալի համար է, ոչ թե սակարկության. հանված ֆոլը հայտարարեք բարձրաձայն։'] },
       { t: 'Խաղի կառավարում',
-        p: ['Խաղի էկրանի ներքևում երեք կոճակ է։ {btnPlayers}՝ խաղացողների ցուցակը դերերով (տեսնում եք միայն դուք). սեղմեք խաղացողին → {removePlayer} կամ {returnPlayer}, եթե ինչ-որ մեկը հեռացել է կամ խախտել կանոնները։ {btnLog}՝ խաղի բոլոր իրադարձությունների մատյանը, «միայն վարողի համար» գրառումները նշված են։ {btnEnd}՝ ընդհատել խաղը։',
+        p: ['**{hvTable}**՝ խաղի էկրանի վերևում, առցանց տողի տակ. նույն կլոր սեղանը, որը տեսնում են խաղացողները։ Կանաչ շրջանակ՝ ով է խոսում (գիշերը՝ ով է արթնացել), կարմիր՝ առաջադրված, սլաք →3՝ ձայն երրորդին, «…»՝ խաղացողը դեռ չի պատասխանել հավելվածում. դուրս մնացածները մարում են, ֆոլերը դեղին են՝ համարի կողքին։ Սեղմեք վերնագրին՝ սեղանը կծալվի և չի խանգարի. հավելվածը կհիշի ընտրությունը։ Առցանց խաղում էկրանի ներքևում **{tbChat}**-ն է. դուք կարդում եք այն ամենը, ինչ գրում են խաղացողները, և կարող եք գրել նրանց ցանկացած պահի, նույնիսկ գիշերը. ձեր տողերը նշված են «վարող»։',
+          'Խաղի էկրանի ներքևում երեք կոճակ է։ {btnPlayers}՝ խաղացողների ցուցակը դերերով (տեսնում եք միայն դուք). սեղմեք խաղացողին → {removePlayer} կամ {returnPlayer}, եթե ինչ-որ մեկը հեռացել է կամ խախտել կանոնները։ {btnLog}՝ խաղի բոլոր իրադարձությունների մատյանը, «միայն վարողի համար» գրառումները նշված են։ {btnEnd}՝ ընդհատել խաղը։',
           '**Հետ։** Ամեն մեծ անցումից հետո (գիշերվա արդյունքներ, առավոտ, քվեարկության ավարտ) էկրանին կա ↩ կոճակ. {undoToNight}, {undoToDay}, {undoToVote}՝ այն վերադարձնում է խաղը ճիշտ մեկ քայլ հետ։',
           '**Կարգավորումներ** ({tabSettings} ներդիր). րոպեի, ծանոթության, ազատ քննարկման և արդարացման խոսքի տևողությունը, {sReveal}, ժամաչափի ձայնը, թեթևացված գրաֆիկա հին հեռախոսների համար։',
           'Խաղը պահպանվում է հեռախոսում. եթե հավելվածը փակվել է, գլխավոր էկրանին կլինի {continueGame}։'],
-        i: [['sheet-players', '«Խաղացողներ». դերերը և խաղացողին ձեռքով հանելը կամ վերադարձնելը'], ['sheet-log', '«Մատյան». խաղի բոլոր իրադարձությունները'], ['settings', 'Կարգավորումներ. ժամաչափեր, քարտերի բացում, ձայն']],
+        i: [['host-table', 'Սեղանը վարողի էկրանին. ով է խոսում, ով է առաջադրված, ում ձայները'], ['host-chat', 'Սեղանի չատ. վարողը կարդում է ամեն ինչ և գրում ցանկացած պահի'], ['sheet-players', '«Խաղացողներ». դերերը և խաղացողին ձեռքով հանելը կամ վերադարձնելը'], ['sheet-log', '«Մատյան». խաղի բոլոր իրադարձությունները'], ['settings', 'Կարգավորումներ. ժամաչափեր, քարտերի բացում, ձայն']],
         r: ['Ժամաչափեր սկսնակների համար. րոպե՝ 60 վ, ազատ քննարկում՝ 2–3 րոպե. փորձառու սեղանին՝ 45 վ։', 'Հեռացած խաղացողին հանեք {btnPlayers}-ով, ոչ թե «խոսքով». այլապես հավելվածը կսպասի նրա քայլին։'] },
       { t: 'Խաղի ավարտ',
         p: ['Հենց որ կողմերից մեկը հաղթում է, էկրանին հայտնվում է {gameOver} կոճակը։ Արդյունքների էկրան. հաղթող, պատվանդան, {reviewTitle}՝ ամեն խաղացողի ամեն քայլը գնահատականով և միավորներով, սեղանը քարտերով և {gameLog}։ {newGame}-ը սկսում է հաջորդ խաղը։',
@@ -6952,6 +6973,39 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
     }
   };
   Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
+})();
+/* ============================================================
+   v66 the host sees the table and the chat — texts (screens: 16-host-view.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      hvTable: 'Стол', hvHostTag: 'ведущий', hvChatPh: 'Написать игрокам…', hvFold: 'Свернуть', hvUnfold: 'Развернуть', hvNew: 'новых: {n}', hvWait: 'ждём ответа',
+      hvAll: 'Сейчас пишут все', hvSpeaker: 'Пишет только №{seat} — пока идёт речь', hvLast: 'Последнее слово — пишет №{seat}', hvClosed: 'Игрокам чат сейчас закрыт', hvYou: 'ведущий пишет всегда',
+      hvLegend: 'Зелёная рамка — говорит · красная — выставлен · →3 — голос за 3 · … — ждём ответ в приложении', hvOffChat: 'Чат стола работает только в онлайн-игре'
+    },
+    uk: {
+      hvTable: 'Стіл', hvHostTag: 'ведучий', hvChatPh: 'Написати гравцям…', hvFold: 'Згорнути', hvUnfold: 'Розгорнути', hvNew: 'нових: {n}', hvWait: 'чекаємо відповіді',
+      hvAll: 'Зараз пишуть усі', hvSpeaker: 'Пише лише №{seat} — поки триває промова', hvLast: 'Останнє слово — пише №{seat}', hvClosed: 'Для гравців чат зараз закритий', hvYou: 'ведучий пише завжди',
+      hvLegend: 'Зелена рамка — говорить · червона — виставлений · →3 — голос за 3 · … — чекаємо відповідь у застосунку', hvOffChat: 'Чат столу працює лише в онлайн-грі'
+    },
+    en: {
+      hvTable: 'Table', hvHostTag: 'host', hvChatPh: 'Message the players…', hvFold: 'Fold', hvUnfold: 'Unfold', hvNew: '{n} new', hvWait: 'waiting for the answer',
+      hvAll: 'Everyone may write now', hvSpeaker: 'Only No. {seat} writes — during their speech', hvLast: 'Last words — No. {seat} writes', hvClosed: 'The chat is closed for the players now', hvYou: 'the host writes at any time',
+      hvLegend: 'Green ring — speaking · red — nominated · →3 — a vote for 3 · … — waiting for the answer in the app', hvOffChat: 'The table chat works in an online game only'
+    },
+    pl: {
+      hvTable: 'Stół', hvHostTag: 'prowadzący', hvChatPh: 'Napisz do graczy…', hvFold: 'Zwiń', hvUnfold: 'Rozwiń', hvNew: 'nowe: {n}', hvWait: 'czekamy na odpowiedź',
+      hvAll: 'Teraz piszą wszyscy', hvSpeaker: 'Pisze tylko nr {seat} — w czasie przemowy', hvLast: 'Ostatnie słowo — pisze nr {seat}', hvClosed: 'Czat jest teraz zamknięty dla graczy', hvYou: 'prowadzący pisze zawsze',
+      hvLegend: 'Zielona ramka — mówi · czerwona — wystawiony · →3 — głos na 3 · … — czekamy na odpowiedź w aplikacji', hvOffChat: 'Czat stołu działa tylko w grze online'
+    },
+    hy: {
+      hvTable: 'Սեղան', hvHostTag: 'վարող', hvChatPh: 'Գրել խաղացողներին…', hvFold: 'Ծալել', hvUnfold: 'Բացել', hvNew: 'նոր՝ {n}', hvWait: 'սպասում ենք պատասխանի',
+      hvAll: 'Հիմա գրում են բոլորը', hvSpeaker: 'Գրում է միայն №{seat}՝ ելույթի ընթացքում', hvLast: 'Վերջին խոսք՝ գրում է №{seat}', hvClosed: 'Չատը հիմա փակ է խաղացողների համար', hvYou: 'վարողը միշտ կարող է գրել',
+      hvLegend: 'Կանաչ շրջանակ՝ խոսում է · կարմիր՝ առաջադրված · →3՝ ձայն 3-ին · …՝ սպասում ենք պատասխանի հավելվածում', hvOffChat: 'Սեղանի չատն աշխատում է միայն առցանց խաղում'
+    }
+  };
+  Object.keys(R).forEach(l => { if (I18N[l] && I18N[l].ui) Object.assign(I18N[l].ui, R[l]); });
 })();
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
@@ -11130,10 +11184,13 @@ function actionsPoll() {
 async function pollActions() {
   const g = S.game; if (!onlineActive(g) || ONL.pollBusy) return; ONL.pollBusy = true;
   try {
-    const onl = onlState(g); const d = await api('/api/table/actions', { code: g.tg.code, since: onl.since || 0 }); if (!d.ok) return;
+    const onl = onlState(g); const body = { code: g.tg.code, since: onl.since || 0 };
+    if (typeof hostPollExtra === 'function') Object.assign(body, hostPollExtra(g) || {}); // v66: the host's chat rides on the same poll (16-host-view.js)
+    const d = await api('/api/table/actions', body); if (!d.ok) return;
     ONL.watching = d.watching || []; let changed = false;
     for (const a of d.actions || []) { onl.since = Math.max(onl.since || 0, a.id); try { if (applyTableAction(a)) changed = true; } catch (e) {} }
-    if (changed) { save(); render(); }
+    let extra = false; if (typeof hostPollTake === 'function') { try { extra = !!hostPollTake(d, g); } catch (e) { extra = false; } }
+    if (changed) { save(); render(); } else if (extra && S.screen === 'game') render();
   } finally { ONL.pollBusy = false; }
 }
 /* host: strip above the game field — who is in the app, whom we wait for, the family's proposals */
@@ -11213,16 +11270,16 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
     const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
     const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${free ? '·' : esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
     const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
-    const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : ''].filter(Boolean).join(' ');
+    const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : '', m.wait ? 'wait' : ''].filter(Boolean).join(' ');
     const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
-    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
+    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
   return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
 }
 /* the mods of the table I sit at: the bomb hunt and the classic game change what the cards say */
 const tbMods = () => { const pub = TB.data && TB.data.pub; return { bombHunt: !!(pub && pub.bh), classic: !!(pub && pub.mode === 'classic') }; };
 function tbRoleRow(roleId, big) {
-  const u = U(); const r = roleFor(tbMods(), roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia; v65: classic cards
+  const u = U(); const r = roleFor(tbMods(), roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia; v66: classic cards
   if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dFor(r, 'tb', mySkin(r.id))}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
   return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealFor(r, mySkin(r.id))}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
 }
@@ -11264,7 +11321,7 @@ function tbChatHTML(pub, me) {
   const u = U(); const open = tbCanChat(pub, me);
   const why = pub.chat === 'last' ? (open ? u.tbLastMe : tt(u.tbLastWord, { seat: pub.lastSeat })) : open ? (pub.chat === 'speaker' ? u.tbChatYourSpeech : u.tbChatMorning) : pub.chat === 'speaker' ? u.tbChatSpeaker : u.tbChatClosed; // v62: last words
   const fmtT = ms => { try { return new Date(ms).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
-  const msgs = TB.chat.length ? TB.chat.map(m => `<div class="msg ${m.me ? 'me' : ''}">${m.me ? '' : `<div class="who">${esc(m.name)}</div>`}${esc(m.text)}<div class="when">${fmtT(m.at)}</div></div>`).join('') : `<div class="msg sys">${open ? u.tbChatEmpty : why}</div>`;
+  const msgs = TB.chat.length ? TB.chat.map(m => `<div class="msg ${m.me ? 'me' : ''} ${m.host ? 'host' : ''}">${m.me ? '' : `<div class="who">${esc(m.name)}${m.host ? ` · ${u.hvHostTag}` : ''}</div>`}${esc(m.text)}<div class="when">${fmtT(m.at)}</div></div>`).join('') : `<div class="msg sys">${open ? u.tbChatEmpty : why}</div>`; // v66: the host's lines are marked
   return `<div class="panel"><div class="row"><div class="eyebrow grow">${u.tbChat}</div><span class="hint" style="margin:0;font-size:11px;text-align:right">${why}</span></div><div class="chat" id="tb-chat" style="max-height:220px">${msgs}</div>
     <div class="row" style="margin-top:8px"><input class="input grow" id="tb-msg" data-a="tb-msg" placeholder="${open ? u.tbChatPh : why}" value="${esc(TB.msg)}" autocomplete="off" maxlength="300" ${open ? '' : 'disabled'}><button class="btn sm primary" data-a="tb-send" style="flex:0 0 auto" ${open ? '' : 'disabled'}>${u.tbSend}</button></div></div>`;
 }
@@ -12927,6 +12984,116 @@ Object.assign(ACT, {
     TRN.closeAsk = 0; const d = await api('/api/tournament/admin', { action: 'close' }); if (d && d.ok) { TRN.d = d; TRN.at = Date.now(); cloudSync(); render(); toast(u.trnClosed); } else toast(u.trnErr);
   }
 });
+/* ============================================================
+   v66 THE HOST SEES THE TABLE AND THE CHAT
+   The round table the players look at — on the host's game screen too: who speaks, who is nominated, the votes,
+   fouls, the dead, whom the app still waits for. Under the controls of an online game — the table chat, read with
+   the same poll as the players' answers (/api/table/actions + chatSince); the host writes at any moment.
+   Both panels fold with a tap on their header; the choice is kept in the settings.
+   ============================================================ */
+const HC = { code: null, chat: [], last: 0, msg: '', unread: 0 };
+const hvOn = key => S.settings[key] !== false; // hvTable / hvChat: open unless the host folded them
+function hvHeaderHTML(key, title, right) {
+  const u = U(); const open = hvOn(key);
+  return `<div class="row hv-head" role="button" data-a="hv-toggle" data-id="${key}" aria-label="${open ? u.hvFold : u.hvUnfold}" title="${open ? u.hvFold : u.hvUnfold}"><div class="eyebrow grow" style="margin:0">${title}</div>${right || ''}<span class="hv-chev ${open ? 'open' : ''}">${I.chev}</span></div>`;
+}
+/* the host's round table: the seats as the players see them, with the marks of the current moment */
+function hostGameTableHTML(g) {
+  if (!g || !g.dealt || g.winner) return '';
+  const u = U(); const open = hvOn('hvTable'); const al = alive(g);
+  const head = hvHeaderHTML('hvTable', u.hvTable, `<span class="hint hv-sub">${tt(u.tbAtTable, { n: al.length })}</span>`);
+  if (!open) return `<div class="panel hv-panel folded">${head}</div>`;
+  const l = g.tg && g.tg.code ? g.tg : null; const profiles = {};
+  if (l) (l.players || []).forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
+  const seats = g.players.map(p => ({ seat: p.seat, name: p.name, tgId: l ? seatTg(g, p.seat) : null, alive: p.alive, fouls: p.fouls || 0 }));
+  const marks = {}; const mk = (seat, m) => { if (seat) marks[seat] = Object.assign(marks[seat] || {}, m); };
+  const seatOf = id => { const p = id ? P(g, id) : null; return p ? p.seat : 0; };
+  let phaseLbl = '', stage = '';
+  if (g.phase === 'night0' || g.phase === 'night') {
+    phaseLbl = g.phase === 'night0' ? u.tbNight0 : tt(u.tbNight, { n: g.night });
+    const step = g.steps[g.stepIdx];
+    if (step) { const r = ROLE[step.roleId]; stage = step.title || (r ? r.name : ''); mk(seatOf(step.actorId), { speaker: true }); (step.members || []).forEach(m => mk(m.seat, { speaker: true })); } else stage = g.phase === 'night0' ? u.allMet : u.allActed;
+  } else if (g.phase === 'day0') {
+    phaseLbl = u.tbDay0; const p = al[g.speechIdx]; if (p) { mk(p.seat, { speaker: true }); stage = tt(u.introOf, { i: g.speechIdx + 1, n: al.length }); } else stage = u.allIntroduced;
+  } else if (g.phase === 'day') {
+    phaseLbl = tt(u.tbDay, { n: g.day }); const b = g.ballot || {}; const st = g.dayStage;
+    stage = { morning: u.tbMorning, balagan: u.tbBalagan, speeches: u.tbSpeeches, vote: b.round === 2 ? u.tbRevote : u.tbVoteStage, tie: u.stTie, roulette: u.stRoulette, lift: u.stLift, result: u.tbResult }[st] || '';
+    if (st === 'speeches') { const p = speakOrder(g)[g.speechIdx]; if (p) mk(p.seat, { speaker: true }); }
+    if (st === 'tie') mk(seatOf((b.tiedIds || [])[g.speechIdx]), { speaker: true });
+    if (['speeches', 'vote', 'tie', 'roulette', 'lift', 'result'].includes(st)) (b.candidates || []).forEach(id => mk(seatOf(id), { cand: true }));
+    if (st === 'vote') Object.entries(b.votes || {}).forEach(([v, c]) => mk(seatOf(v), { vote: seatOf(c) }));
+    const lw = lastWordsNow(g); if (lw) mk(lw.p.seat, { speaker: true });
+  }
+  if (onlineActive(g)) { try { Object.entries(buildAsks(g)).forEach(([id, a]) => { if (!a.done && !a.blocked) mk(Number(g.tg.map[id]) || 0, { wait: true }); }); } catch (e) {} }
+  const center = `<div class="rt-phase">${phaseLbl}</div>${stage ? `<div class="rt-stage">${stage}</div>` : ''}<div class="rt-n">${tt(u.tbAtTable, { n: al.length })}</div>`;
+  const table = roundTableHTML(seats, profiles, center, marks).replace(/class="rtable (lg|md)"/, (m, sz) => `class="rtable ${sz === 'lg' ? 'md' : 'sm'}"`); // one size smaller than the players' — the controls stay close
+  return `<div class="panel hv-panel" id="hv-table">${head}${table}<div class="hint hv-legend">${u.hvLegend}</div></div>`;
+}
+/* who may write right now — the same rule the players see */
+function hvChatRule(g) {
+  let pub = null; try { pub = tablePub(g); } catch (e) { pub = null; }
+  const u = U(); if (!pub) return u.hvClosed;
+  if (pub.chat === 'last' && pub.lastSeat) return tt(u.hvLast, { seat: pub.lastSeat });
+  if (pub.chat === 'all' || pub.chat === true) return u.hvAll;
+  if (pub.chat === 'speaker' && pub.chatSeat) return tt(u.hvSpeaker, { seat: pub.chatSeat });
+  return u.hvClosed;
+}
+function hostChatHTML(g) {
+  if (!onlineActive(g) || !g.dealt || g.winner) return '';
+  const u = U(); const open = hvOn('hvChat');
+  const badge = !open && HC.unread ? `<span class="hv-badge">${tt(u.hvNew, { n: HC.unread })}</span>` : '';
+  const head = hvHeaderHTML('hvChat', u.tbChat, badge);
+  if (!open) return `<div class="panel hv-panel folded">${head}</div>`;
+  HC.unread = 0;
+  const fmtT = ms => { try { return new Date(ms).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const msgs = HC.chat.length ? HC.chat.map(m => `<div class="msg ${m.me ? 'me' : ''}">${m.me ? '' : `<div class="who">${esc(m.name)}</div>`}${esc(m.text)}<div class="when">${fmtT(m.at)}</div></div>`).join('') : `<div class="msg sys">${u.tbChatEmpty}</div>`;
+  return `<div class="panel hv-panel" id="hc-panel">${head}<div class="hint hv-sub" style="margin:4px 0 0">${hvChatRule(g)} · ${u.hvYou}</div><div class="chat" id="hc-chat" style="max-height:220px">${msgs}</div>
+    <div class="row" style="margin-top:8px"><input class="input grow" id="hc-msg" data-a="hc-msg" placeholder="${u.hvChatPh}" value="${esc(HC.msg)}" autocomplete="off" maxlength="300"><button class="btn sm primary" data-a="hc-send" style="flex:0 0 auto">${u.tbSend}</button></div></div>`;
+}
+function hcScroll() { try { const c = document.querySelector('#hc-chat'); if (c) c.scrollTop = c.scrollHeight; } catch (e) {} }
+/* new lines from the players: counted while the chat is folded or the host looks elsewhere, and shown as a toast */
+function hcArrived(fresh) {
+  const others = fresh.filter(m => !m.me); if (!others.length) return;
+  if (hvOn('hvChat') && S.screen === 'game') return;
+  HC.unread += others.length; const m = others[others.length - 1]; try { toast(`💬 ${m.name}: ${m.text.slice(0, 80)}`); } catch (e) {}
+}
+Object.assign(ACT, {
+  'hv-toggle'(el) { const key = el.dataset.id === 'hvChat' ? 'hvChat' : 'hvTable'; S.settings[key] = !hvOn(key); save(); tgHaptic('light'); render(); },
+  'hc-msg'(el) { HC.msg = el.value || ''; },
+  async 'hc-send'() {
+    const g = S.game; if (!onlineActive(g)) return; const text = HC.msg.trim(); if (!text) return;
+    HC.msg = ''; const inp = document.querySelector('#hc-msg'); if (inp) inp.value = '';
+    const d = await api('/api/table/chat/send', { code: g.tg.code, text });
+    if (!d.ok) { toast(U().tgOffline); HC.msg = text; const i2 = document.querySelector('#hc-msg'); if (i2) i2.value = text; return; }
+    tgHaptic('light'); pollActions();
+  }
+});
+/* the host's poll (09-online.js pollActions) asks for the chat since the last line he has and takes the new lines */
+function hostPollExtra(g) { if (HC.code !== g.tg.code) { HC.code = g.tg.code; HC.chat = []; HC.last = 0; HC.msg = ''; HC.unread = 0; } return { chatSince: HC.last }; }
+function hostPollTake(d, g) {
+  if (!d || !Array.isArray(d.chat) || HC.code !== g.tg.code) return false;
+  const first = !HC.last; const fresh = d.chat.filter(m => m && m.id > HC.last); if (!fresh.length) return false;
+  HC.chat = HC.chat.concat(fresh).slice(-300); HC.last = HC.chat[HC.chat.length - 1].id; if (!first) hcArrived(fresh); // the history of the chat is not «new»
+  return true;
+}
+(function () {
+  // the game screen: the table under the online strip, the chat at the very bottom
+  const origGame = gameScreen;
+  gameScreen = function () {
+    let html = origGame(); const g = S.game; if (!g) return html;
+    let table = '', chat = ''; try { table = hostGameTableHTML(g); chat = hostChatHTML(g); } catch (e) { table = ''; chat = ''; }
+    if (table) { const st = html.indexOf('<div class="stack">'); if (st >= 0) { const strip = html.indexOf('<div class="onl-strip">', st); const at = strip === st + 19 ? html.indexOf('</div>', strip) + 6 : st + 19; html = html.slice(0, at) + table + html.slice(at); } }
+    if (chat) { const k = html.lastIndexOf('</div>'); if (k >= 0) html = html.slice(0, k) + chat + html.slice(k); }
+    return html;
+  };
+  // a re-render while the host types keeps his keyboard; the chat stays scrolled to the last line
+  const origRender = render;
+  render = function () { let a = null; try { a = document.activeElement; } catch (e) { a = null; } if (a && a.id === 'hc-msg' && typeof keepFocus === 'function') keepFocus(origRender); else origRender(); hcScroll(); };
+  try {
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'hc-msg') { e.preventDefault(); ACT['hc-send'](); } });
+    document.addEventListener('input', e => { const el = e.target && e.target.closest && e.target.closest('[data-a="hc-msg"]'); if (el) ACT['hc-msg'](el); });
+  } catch (e) {}
+})();
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax
