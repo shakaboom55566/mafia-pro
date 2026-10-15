@@ -15,7 +15,7 @@ export async function veoGenerate({ apiKey, base = 'https://generativelanguage.g
     else if (image) instance.image = pic(image, fmt);
     const parameters = { aspectRatio: '9:16', resolution };
     if (image || (refs && refs.length)) parameters.personGeneration = 'allow_adult'; // the only value allowed with images
-    if (refs && refs.length) parameters.durationSeconds = '8';                      // required with reference images
+    if (refs && refs.length) parameters.durationSeconds = 8;                        // required with reference images
     return { instances: [instance], parameters };
   };
   const headers = { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' };

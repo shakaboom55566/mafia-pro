@@ -157,7 +157,7 @@ console.log('first frame from a picture on the site; our characters as reference
   fs.rmSync(path.join(pub, '2026-10-15.json'), { force: true }); write('2026-10-15.md', GOOD('2026-10-15', 'refs: don, doctor\n')); reset(); S.ttsFail = true;
   r = await run(['publish', path.join(posts, '2026-10-15.md')]); v = calls(/predictLongRunning/)[0];
   const refs = v && v.body.instances[0].referenceImages;
-  ok(refs && refs.length === 2 && refs.every(x => x.referenceType === 'asset' && x.image.mimeType === 'image/png' && x.image.bytesBase64Encoded.length > 1000) && !v.body.instances[0].image && v.body.parameters.durationSeconds === '8' && v.body.parameters.personGeneration === 'allow_adult', 'our characters: card art as reference images, 8 s, allow_adult');
+  ok(refs && refs.length === 2 && refs.every(x => x.referenceType === 'asset' && x.image.mimeType === 'image/png' && x.image.bytesBase64Encoded.length > 1000) && !v.body.instances[0].image && v.body.parameters.durationSeconds === 8 && v.body.parameters.personGeneration === 'allow_adult', 'our characters: card art as reference images, 8 s, allow_adult');
   ok(calls(/\/cards\/uk\/(don|doctor)\.png/).length === 2 && /references: don, doctor/.test(r.log), 'card pictures fetched from the site');
   ok(r.code === 0 && /voice-over: TTS/.test(r.log) && /no voice/.test(r.log) && calls(/sendVideo/).length === 1, 'TTS down → video still made and published, without the voice'); S.ttsFail = false;
   fs.rmSync(path.join(pub, '2026-10-15.json'), { force: true }); reset(); S.picInline = true; r = await run(['publish', path.join(posts, '2026-10-15.md')]);
