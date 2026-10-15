@@ -87,7 +87,11 @@ console.log('v54: rank roles — eight, colored, placed above 🎩 / 🎲 and th
   const P = k => fake.find(r => r.id === st.roles[k]).position; const mod = fake.find(r => r.id === 'mod').position;
   ok(ranks.every((r, i) => P(r.key) > P('host') && P(r.key) < mod && (i === 0 || P(r.key) > P('rank_' + (i - 1)))) && P('host') > P('player'), 'ranks right above 🎩, under a hand-made role that was above them');
   patched = null; await placeRankRoles(api, 'G', 'B', st, () => {}); ok(patched === null, 'already in place → no request');
-  fake.find(r => r.id === st.roles.rank_7).position = 20; const lg2 = []; ok(!(await placeRankRoles(api, 'G', 'B', st, x => lg2.push(x))) && lg2.some(x => x.includes('above the bot')), 'a rank role above the bot: nothing moved, the log says what to do'); }
+  fake.find(r => r.id === st.roles.rank_7).position = 20; const lg2 = []; ok(!(await placeRankRoles(api, 'G', 'B', st, x => lg2.push(x))) && lg2.some(x => x.includes('above the bot')), 'a rank role above the bot: nothing moved, the log says what to do');
+  // the live server: roles made through the API share position 1 with the bot's (older) role — they are below it (the bot can give them), but there is no room to order them
+  const ids = n => String(1000 + n); const flat = [{ id: '1', position: 0 }, { id: ids(0), position: 1, managed: true, tags: { bot_id: 'B' }, name: 'Mafia Pro' }].concat(bottomUp.map((k, i) => ({ id: ids(i + 1), position: 1 })));
+  const st2 = { roles: {} }; bottomUp.forEach((k, i) => { st2.roles[k] = ids(i + 1); }); let p2 = null; const api2 = async (m, p, body) => { if (m === 'GET') return flat.map(r => Object.assign({}, r)); p2 = body; return []; };
+  const lg3 = []; ok(!(await placeRankRoles(api2, '1', 'B', st2, x => lg3.push(x))) && p2 === null && lg3.some(x => x.includes('too low') && x.includes('Mafia Pro')) && !lg3.some(x => x.includes('above the bot')), 'same position as the bot: newer roles count as lower; no request, the log asks to lift the bot\'s role'); }
 const ow = (k, id) => (C(k).permission_overwrites || []).find(o => o.id === id);
 for (const l of LANG_ORDER) {
   const role = s1.roles['lang_' + l]; const keys = [LK('catLib', l), LK('catGame', l)].concat(LANG_CHANNELS.lib.map(k => LK(k, l)), LANG_CHANNELS.game.map(k => LK(k, l)));

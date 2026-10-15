@@ -220,16 +220,22 @@ export const ROLES_LAYOUT = [
    only roles below the bot's own role are moved, the others keep their order */
 export async function placeRankRoles(api, guildId, botId, state, log) {
   const all = await api('GET', `/guilds/${guildId}/roles`); const rankIds = RANK_IDS.map((_, i) => state.roles['rank_' + i]).filter(Boolean);
-  const own = all.filter(r => r.managed && r.tags && String(r.tags.bot_id) === String(botId)); const botTop = own.length ? Math.max(...own.map(r => r.position)) : Infinity;
-  const below = all.filter(r => r.id !== guildId && r.position < botTop).sort((a, b) => a.position - b.position || (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
+  // Discord's hierarchy: a higher position is higher; with the same position (roles made through the API often share one) the newer role is lower
+  const lower = (a, b) => a.position < b.position || (a.position === b.position && BigInt(a.id) > BigInt(b.id));
+  const ord = all.filter(r => r.id !== guildId).sort((a, b) => (lower(a, b) ? -1 : lower(b, a) ? 1 : 0));
+  const own = ord.filter(r => r.managed && r.tags && String(r.tags.bot_id) === String(botId)); const botRole = own.length ? own[own.length - 1] : null;
+  const below = botRole ? ord.slice(0, ord.indexOf(botRole)) : ord;
   const ranks = rankIds.map(id => below.find(r => r.id === id));
-  if (ranks.some(r => !r)) { log('rank roles: some are above the bot\'s role — move the bot\'s role to the top in Server Settings → Roles'); return false; }
+  if (ranks.some(r => !r)) { log(`rank roles: some are above the bot's role «${botRole ? botRole.name : '?'}» — drag it to the top in Server Settings → Roles`); return false; }
   const rest = below.filter(r => !rankIds.includes(r.id)); const anchors = ['host', 'player'].concat(LANG_ORDER.map(l => 'lang_' + l)).map(k => state.roles[k]);
   let at = -1; rest.forEach((r, i) => { if (anchors.includes(r.id)) at = i; });
-  const want = rest.slice(0, at + 1).concat(ranks, rest.slice(at + 1)); const base = below.length ? Math.min(...below.map(r => r.position)) : 1;
-  const pos = want.map((r, i) => ({ id: r.id, position: Math.max(1, base) + i }));
-  if (pos.every((p, i) => want[i].position === p.position)) return true;
-  await api('PATCH', `/guilds/${guildId}/roles`, pos); log(`rank roles: placed above 🎩 / 🎲 and the languages`);
+  const want = rest.slice(0, at + 1).concat(ranks, rest.slice(at + 1));
+  const inPlace = want.every((r, i) => r.id === below[i].id) && want.every((r, i) => i === 0 || r.position > want[i - 1].position);
+  if (inPlace) return true;
+  if (botRole && botRole.position <= want.length) { // no free positions under the bot: only the owner can lift its role
+    log(`rank roles: the bot can give them, but cannot put them above 🎩 / 🎲 — its role «${botRole.name}» sits too low (position ${botRole.position}); drag it to the top in Server Settings → Roles, the next run orders the ranks`); return false;
+  }
+  await api('PATCH', `/guilds/${guildId}/roles`, want.map((r, i) => ({ id: r.id, position: i + 1 }))); log(`rank roles: placed above 🎩 / 🎲 and the languages`);
   return true;
 }
 const norm = (s, type) => (type === 0 ? String(s).toLowerCase().replace(/\s+/g, '-') : String(s)).trim();
