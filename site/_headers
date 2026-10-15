@@ -13,5 +13,8 @@
 /og/*
   Cache-Control: public, max-age=86400
 
+/guide/*
+  Cache-Control: public, max-age=86400
+
 /favicon.png
   Cache-Control: public, max-age=86400

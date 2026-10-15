@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -874,7 +874,36 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   S.ui.skinFilter = 'all';
   S.profiles = S.profiles.filter(x => x !== me && x !== fr); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v56 ok');
 })().catch(e => { fails++; console.log('FAIL v56 crashed', e && e.stack || e); });
-v56.then(() => {
+// v59: the guide «Правила и инструкция» — the entry on the role-game setup, two parts, every chapter, labels resolved, pictures known
+v56.then(() => { const u = X.U(); const F = m => { fails++; console.log('FAIL v59 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  const G = E('window.GUIDE_TEXTS'); const g = G && G[E('L.code')]; if (!g) { F('texts for ' + E('L.code')); return; }
+  const { SHOTS } = require('./guide-shots.js');
+  const ids = new Set(); const bad = [];
+  ['player', 'host'].forEach(part => { if (!Array.isArray(g[part]) || g[part].length < 8) F(part + ': at least 8 chapters'); (g[part] || []).forEach((c, i) => {
+    if (!c.t || !((c.p || []).length || (c.r || []).length)) F(`${part} ${i}: title and some text`);
+    (c.i || []).forEach(([id, cap]) => { ids.add(id); if (!SHOTS.includes(id)) bad.push(id); if (!cap) F(`${part} ${i}: caption of ${id}`); });
+    [].concat(c.p || [], c.s || [], c.r || []).forEach(x => { const out = E('guideTxt')(x); const m = out.match(/\{\w+\}/); if (m) F(`${part} ${i}: unresolved ${m[0]} in: ${x.slice(0, 60)}`); if (/undefined/.test(out)) F(`${part} ${i}: undefined in text`); });
+  }); });
+  if (bad.length) F('pictures not made by test/guide-shots.js: ' + [...new Set(bad)].join(', '));
+  if (ids.size < 20) F('the guide shows at least 20 different pictures (' + ids.size + ')');
+  if (!g.btn || !g.btnPlayer || !g.tabPlayer || !g.tabHost || !g.leadHost || !g.chapterOf) F('meta texts');
+  // the entry: on the role game's setup (not on the classic / small table), the small button at the bottom of the host's game screen
+  S.game = null; S.ui.sheet = null; A.new(el('new')); check('v59 setup'); if (!app.innerHTML.includes('data-a="guide" data-id="host"') || !app.innerHTML.includes(g.btn)) F('the setup of the role game has the guide entry');
+  A['scen-use'](el('scen-use', { id: 'classic' })); check('v59 classic setup'); if (app.innerHTML.includes('data-a="guide"')) F('the classic setup has no guide entry'); A.new(el('new'));
+  A.guide(el('guide', { id: 'host' })); check('v59 guide host'); let h = app.innerHTML;
+  if (S.screen !== 'guide' || S.ui.guideTab !== 'host' || !h.includes(g.title) || !h.includes(g.leadHost) || !h.includes(g.host[0].t) || !h.includes('gd-ch open')) F('the guide opens on the host part with the first chapter open');
+  if ((h.match(/class="gd-ch( open)?"/g) || []).length !== g.host.length) F('every host chapter listed');
+  if (!h.includes('/guide/' + E('L.code') + '/' + g.host[0].i[0][0] + '.jpg')) F('the first chapter shows its pictures from guide/<lang>/');
+  A['guide-go'](el('guide-go', { i: '1' })); check('v59 chapter 2'); h = app.innerHTML; if (!h.includes(X.tt(g.chapterOf, { i: 2, n: g.host.length })) || h.includes(g.host[0].p[0].slice(0, 30).replace(/\*\*/g, ''))) F('"Next" opens chapter 2 and closes chapter 1');
+  A['guide-all'](el('guide-all', { v: 'open' })); check('v59 all open'); h = app.innerHTML; if ((h.match(/gd-ch open/g) || []).length !== g.host.length || !h.includes(g.closeAll)) F('"open all" opens every chapter');
+  g.host.forEach((c, i) => { if (!h.includes(c.t)) F('host chapter ' + i + ' rendered'); }); if (/\{\w+\}/.test(h.replace(/\{[a-z-]+\}/g, ''))) F('no unresolved placeholders on the host part');
+  A['guide-tab'](el('guide-tab', { id: 'player' })); check('v59 guide player'); h = app.innerHTML; if (S.ui.guideTab !== 'player' || !h.includes(g.leadPlayer) || !h.includes(g.player[0].t)) F('the Player part');
+  A['guide-all'](el('guide-all', { v: 'open' })); check('v59 player all'); h = app.innerHTML; g.player.forEach((c, i) => { if (!h.includes(c.t)) F('player chapter ' + i + ' rendered'); });
+  if (!h.includes('«' + u.dealCards + '»') || !h.includes('«' + u.confirm + '»')) F('button labels of the app appear in the text as «…»');
+  A['guide-img'](el('guide-img', { id: 'home' })); check('v59 zoom'); if (!S.ui.sheet || S.ui.sheet.type !== 'guideImg' || !app.innerHTML.includes('gd-zoom')) F('a picture opens in a sheet'); A['sheet-close']();
+  A.back(el('back')); check('v59 back'); if (S.screen !== 'setup') F('Back returns to the setup (' + S.screen + ')');
+  S.screen = 'home'; X.render(); console.log('v59 ok');
+}).catch(e => { fails++; console.log('FAIL v59 crashed', e && e.stack || e); }).then(() => {
   console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

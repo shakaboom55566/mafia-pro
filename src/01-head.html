@@ -985,4 +985,44 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .sk-sheet .card3d-wrap { width: min(250px, 70vw); }
 html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .skin-gl { display: none !important; } }
+/* ---------- v59 the guide: rules for players, the host's instruction ---------- */
+.gd-entry { border-color: rgba(240,205,122,.45); padding: 10px 14px; }
+.gd-entry .ico { font-size: 20px; width: 38px; height: 38px; }
+.gd-entry .t { font-size: 15px; }
+.gd-row .btn { min-width: 0; padding-inline: 8px; }
+.gd-row .btn.gd-small { flex: 0 0 40px; width: 40px; padding: 0; font-size: 17px; }
+.gd-lead { margin: 0; }
+.gd-list { display: grid; gap: 8px; }
+.gd-ch { border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; }
+.gd-ch.open { border-color: var(--gold-dim); }
+.gd-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; text-align: left; background: none; color: var(--fg); }
+.gd-head .gd-n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--bg-3); border: 1px solid var(--line-2); color: var(--gold-2); font-family: var(--font-display); font-weight: 800; font-size: 13px; }
+.gd-ch.open .gd-head .gd-n { background: var(--gold); color: #1a1206; border-color: transparent; }
+.gd-head .gd-t { flex: 1; font-weight: 800; font-size: 15px; line-height: 1.25; }
+.gd-head .gd-chev { color: var(--muted); transition: transform .2s; display: flex; }
+.gd-head .gd-chev.open { transform: rotate(90deg); }
+.gd-body { padding: 0 14px 14px; display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.gd-body p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--fg-2); }
+.gd-body p b, .gd-steps b, .gd-tips b { color: var(--fg); }
+.gd-of { margin: 0; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.gd-sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin-top: 2px; }
+.gd-steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 14px; line-height: 1.45; color: var(--fg-2); }
+.gd-steps li::marker { color: var(--gold-2); font-weight: 800; }
+.gd-figs { display: grid; gap: 12px; }
+.gd-fig { margin: 0; display: grid; gap: 6px; cursor: zoom-in; }
+.gd-img { position: relative; width: min(100%, 300px); margin: 0 auto; aspect-ratio: 390 / 844; border-radius: 18px; overflow: hidden; background: var(--bg-3); border: 1px solid var(--line-2); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.gd-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.gd-img .gd-nf { display: none; position: absolute; inset: 0; padding: 20px; place-items: center; text-align: center; font-size: 13px; color: var(--muted); }
+.gd-img.nf img { display: none; }
+.gd-img.nf .gd-nf { display: grid; }
+.gd-fig figcaption { text-align: center; font-size: 13px; line-height: 1.35; color: var(--fg-2); }
+.gd-fig figcaption small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.gd-tips { border-radius: 12px; background: rgba(216,169,76,.08); border: 1px solid rgba(240,205,122,.35); padding: 10px 12px; }
+.gd-tips ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.45; color: var(--fg-2); }
+.gd-tips li::marker { color: var(--gold-2); }
+.gd-nav { margin-top: 4px; }
+.gd-nav .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.gd-sheet { max-height: 92vh; overflow: auto; }
+.gd-zoom img { display: block; width: 100%; max-width: 390px; margin: 0 auto; border-radius: 18px; border: 1px solid var(--line-2); }
+html.lite .gd-img { box-shadow: none; }
 </style>

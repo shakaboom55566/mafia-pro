@@ -75,6 +75,10 @@ jobs:
           cp _site/cards/ru/*.png _site/cards/  # v33 addresses (cards/<role>.png) keep working
           du -sh _site/cards
 
+      - name: Screenshots for the in-app guide «Правила и инструкция» (_site/guide/<lang>/<id>.jpg — a real game against the worker, test/guide-shots.js)
+        continue-on-error: true
+        run: node --no-warnings test/guide-shots.js _site/guide && du -sh _site/guide
+
       - name: The move to the own domain in a browser (old player, new player, old links — seo/test-move.js)
         run: node -e "require('playwright')" 2>/dev/null && node seo/test-move.js || { node -e "require('playwright')" 2>/dev/null && exit 1; echo "::warning::playwright missing — move test skipped"; }
 

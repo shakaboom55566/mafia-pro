@@ -152,6 +152,7 @@ function render() {
     case 'table': html = typeof tableScreen === 'function' ? tableScreen() : ''; break;
     case 'tables': html = typeof tablesScreen === 'function' ? tablesScreen() : ''; break;
     case 'shop': html = shopScreen(); break;
+    case 'guide': html = typeof guideScreen === 'function' ? guideScreen() : homeScreen(); break; // v59: the rules and the host's instruction
   }
   // enter animations only when the screen / phase / sheet actually changes (not on every tap)
   const key = S.screen + '|' + (S.screen === 'game' && S.game ? (S.game.winner ? 'end' : S.game.phase) : '') + '|' + (S.screen === 'profile' ? S.ui.profileId : '');
