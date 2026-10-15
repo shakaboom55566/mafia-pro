@@ -14,7 +14,16 @@
       "hours": [9, 24],
       "landing": "https://mafiapro.app/uk/dnipro/",
       "active_ads": 3,
-      "max_gemini_usd_per_day": 4
+      "max_gemini_usd_per_day": 4,
+      "lookalike": {
+        "_": "mode: suggest (Meta starts from lookalikes, may go wider inside the radius) | only (lookalikes as a hard limit) | off. Seeds in order: leads = players from the ads (Lead), ig / fb = engaged with our Instagram / Page. ratio 0.01–0.20 of the country; Meta needs >= 100 people in a seed.",
+        "mode": "suggest",
+        "ratio": 0.05,
+        "country": "UA",
+        "seeds": ["leads", "ig", "fb"],
+        "min_days_left": 4,
+        "reapply_hours": 72
+      }
     }
   ],
   "rules": {

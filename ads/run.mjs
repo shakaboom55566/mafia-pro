@@ -250,22 +250,70 @@ async function checkCampaign(g, c, acc, creds, ident) {
       await tell(admins, `🆕 <b>Реклама · ${esc(c.city)}</b>: новое объявление «${esc(l.brief.title)}» (${esc(l.brief.id)}${l.take > 1 ? ' #' + l.take : ''}, ${l.brief.kind === 'video' ? 'видео' : 'картинка'}, приём: ${esc(l.brief.hook)}) — на проверке Meta. Gemini ≈ ${usd(l.costUsd)}.`, l.media);
     }
   }
-  // audiences to keep (pixel needed): after day 3
-  if (env.META_PIXEL_ID && s.start && now - Date.parse(s.start) > 3 * 86400000) await ensureAudiences(g, c, s);
+  // audiences: the seeds from the start (Meta fills them itself), lookalikes once a seed has ≥ 100 people, then into the ad set
+  await ensureAudiences(g, c, s, ident, admins);
+  await ensureLookalikes(g, c, s);
+  await applyLookalikes(g, c, s, admins, notices);
   // the Monday report
   const k = kyivParts(now); const rep = CFG.report || { weekday: 'Mon', hour: 10 };
   if (k.weekday === rep.weekday && k.hour >= rep.hour && s.reports.weekly !== k.date && s.start && now - Date.parse(s.start) > 86400000) { await sendReport(g, c, s, acc, admins, snap, false); s.reports.weekly = k.date; changed(); }
   saveState(s);
   return 0;
 }
-async function ensureAudiences(g, c, s) {
-  const want = { site: { kind: 'site', name: `${c.name} · заходили на страницу (30 дн.)`, days: 30, urlPart: new URL(c.landing).pathname }, leads: { kind: 'leads', name: `${c.name} · игроки из рекламы (180 дн.)`, days: 180 } };
-  for (const [k, w] of Object.entries(want)) {
-    if (s.audiences[k] || (s.audiences[k + 'Error'] && nowMs() - Date.parse(s.audiences[k + 'ErrorAt'] || 0) < 86400000)) continue;
-    const r = await M.createAudience(g, M.audienceSpec(Object.assign({ pixel: env.META_PIXEL_ID }, w)));
-    if (r.ok) { s.audiences[k] = r.data.id; log(`  audience "${w.name}": ${r.data.id}`); changed(); }
-    else { s.audiences[k + 'Error'] = r.error; s.audiences[k + 'ErrorAt'] = iso(nowMs()); log(`::warning::audience ${k}: ${r.error}`); }
+/* ---------- audiences and lookalikes ---------- */
+const AUD = { site: 'заходили на страницу', leads: 'игроки из рекламы', ig: 'Instagram: взаимодействовали', fb: 'страница Facebook: взаимодействовали' };
+const LAL_WHO = { leads: 'наших игроков из рекламы', ig: 'тех, кто смотрел и лайкал наш Instagram', fb: 'тех, кто взаимодействовал со страницей Facebook' };
+const LAL_SHORT = { leads: 'на игроков', ig: 'на Instagram', fb: 'на Facebook' };
+const lalCfg = c => Object.assign({ mode: 'off', ratio: 0.05, country: 'UA', seeds: ['leads', 'ig', 'fb'], min_days_left: 4, reapply_hours: 72, seed_age_hours: 6 }, c.lookalike || {});
+const retryLater = (s, k) => !!s.audiences[k + 'Error'] && nowMs() - Date.parse(s.audiences[k + 'ErrorAt'] || '') < 86400000;
+const audOk = (s, k, id) => { s.audiences[k] = id; s.audiences[k + 'At'] = iso(nowMs()); delete s.audiences[k + 'Error']; delete s.audiences[k + 'ErrorAt']; changed(); };
+const audFail = (s, k, err) => { s.audiences[k + 'Error'] = err; s.audiences[k + 'ErrorAt'] = iso(nowMs()); changed(); };
+async function ensureAudiences(g, c, s, ident, admins) {
+  s.audiences = s.audiences || {}; const want = {};
+  if (env.META_PIXEL_ID) {
+    want.site = M.audienceSpec({ pixel: env.META_PIXEL_ID, kind: 'site', name: `${c.name} · ${AUD.site} (30 дн.)`, days: 30, urlPart: new URL(c.landing).pathname });
+    want.leads = M.audienceSpec({ pixel: env.META_PIXEL_ID, kind: 'leads', name: `${c.name} · ${AUD.leads} (180 дн.)`, days: 180 });
   }
+  if (ident && ident.igId) want.ig = M.engagementSpec({ name: `${c.name} · ${AUD.ig} (365 дн.)`, kind: 'ig', id: ident.igId });
+  if (ident && ident.pageId) want.fb = M.engagementSpec({ name: `${c.name} · ${AUD.fb} (365 дн.)`, kind: 'fb', id: ident.pageId });
+  for (const [k, spec] of Object.entries(want)) {
+    if (s.audiences[k] || retryLater(s, k)) continue;
+    const r = await M.createAudience(g, spec);
+    if (r.ok) { audOk(s, k, r.data.id); log(`  audience "${spec.name}": ${r.data.id}`); continue; }
+    audFail(s, k, r.error); log(`::warning::audience ${k}: ${r.error}`);
+    if (/terms|услови|умов/i.test(r.error)) await alertOnce(s, admins, 'audience-terms', `⚠️ <b>Реклама · ${esc(c.city)}</b>: Meta не даёт создать аудитории, пока кабинет не принял условия пользовательских аудиторий.\nAds Manager → Аудитории → Создать аудиторию → Пользовательская → принять условия. Дальше аудитории и похожие создадутся сами.`, 24);
+  }
+}
+async function ensureLookalikes(g, c, s) {
+  const L = lalCfg(c); if (L.mode === 'off') return;
+  for (const k of L.seeds) {
+    const seed = s.audiences[k], key = 'lal_' + k; if (!seed || s.audiences[key] || retryLater(s, key)) continue;
+    const at = Date.parse(s.audiences[k + 'At'] || ''); if (at && nowMs() - at < L.seed_age_hours * 3600000) continue; // Meta is still filling a new seed
+    const r = await M.createAudience(g, M.lookalikeSpec({ name: `${c.name} · похожие ${Math.round(L.ratio * 100)}% · ${AUD[k]}`, origin: seed, ratio: L.ratio, country: L.country }));
+    if (r.ok) { audOk(s, key, r.data.id); log(`  lookalike of ${k}: ${r.data.id} (${Math.round(L.ratio * 100)}% ${L.country})`); }
+    else { audFail(s, key, r.error); log(`  lookalike of ${k}: not yet — ${r.error} (again in 24 h; Meta needs ≥ 100 people in the seed)`); }
+  }
+}
+async function applyLookalikes(g, c, s, admins, notices) {
+  const L = lalCfg(c); if (L.mode === 'off' || !s.adsetId || !s.end) return;
+  const have = (s.lalApplied || []).map(String); const fresh = [];
+  for (const k of L.seeds) {
+    const id = s.audiences['lal_' + k]; if (!id || have.includes(String(id))) continue;
+    const a = await M.audienceSize(g, id);
+    if (a.ok && M.audienceReady(a.data)) fresh.push({ k, id: String(id) });
+    else log(`  lookalike of ${k}: not ready yet${a.ok ? ` (${[(a.data.operation_status || {}).code, (a.data.delivery_status || {}).code].filter(Boolean).join('/')})` : ' — ' + a.error}`);
+  }
+  if (!fresh.length) return;
+  const now = nowMs();
+  if (Date.parse(s.end) - now < L.min_days_left * 86400000) { log(`  lookalike ready, but < ${L.min_days_left} days left — the ad set is not changed (a new learning period would eat the rest)`); return; }
+  if (s.lalAppliedAt && now - Date.parse(s.lalAppliedAt) < L.reapply_hours * 3600000) { log(`  lookalike ready — joins the ad set ${L.reapply_hours} h after the last change (${s.lalAppliedAt.slice(0, 16)})`); return; }
+  const ids = have.concat(fresh.map(x => x.id));
+  const r = await M.updateTargeting(g, s.adsetId, M.lookalikeTargeting({ geo: c.geo, ages: c.ages, ids, mode: L.mode }));
+  if (!r.ok) { log(`::warning::lookalike into the ad set: ${r.error}`); await alertOnce(s, admins, 'lal-apply', `⚠️ <b>Реклама · ${esc(c.city)}</b>: похожая аудитория готова, но Meta не дала добавить её в набор.\n${esc(short(r.error, 300))}`, 24); return; }
+  s.lalApplied = ids; s.lalAppliedAt = iso(now); s.lalMode = r.data.mode; changed();
+  const who = L.seeds.filter(k => ids.includes(String(s.audiences['lal_' + k]))).map(k => LAL_WHO[k]);
+  log(`  lookalikes in the ad set (${r.data.mode}): ${ids.join(', ')}`);
+  if (notices) await tell(admins, `🎯 <b>Реклама · ${esc(c.city)}</b>: подключена похожая аудитория — люди, похожие на ${esc(who.join(' и '))} (${Math.round(L.ratio * 100)} % Украины).\nПоказ по-прежнему только ${esc(c.city)} + ${c.geo.radius_km} км. ${r.data.mode === 'suggest' ? `Meta начинает с похожих, но может показывать и другим жителям, если так дешевле приходят игроки; возраст ${c.ages[0]}–${c.ages[1]} теперь подсказка.` : 'Показ только похожим.'}\n1–2 дня набор заново обучается — цены могут прыгать, замены идут как обычно.`);
 }
 
 /* ---------- report ---------- */
@@ -280,7 +328,9 @@ async function sendReport(g, c, s, acc, admins, snap, final) {
   const byCost = rows.slice().sort((x, y) => (x.m.cpp == null) - (y.m.cpp == null) || (x.m.cpp || 0) - (y.m.cpp || 0) || (x.m.cpl || 99) - (y.m.cpl || 99));
   const best = byCost[0], worst = byCost.length > 1 ? byCost[byCost.length - 1] : null;
   const aud = [];
-  for (const [k, label] of [['site', 'заходили на страницу'], ['leads', 'игроки из рекламы']]) if (s.audiences[k]) { const a = await M.audienceSize(g, s.audiences[k]); if (a.ok) aud.push(`${label} ~${num(a.data.approximate_count_lower_bound > 0 ? a.data.approximate_count_lower_bound : 0)}`); }
+  for (const k of ['site', 'leads', 'ig', 'fb']) if (s.audiences[k]) { const a = await M.audienceSize(g, s.audiences[k]); if (a.ok) aud.push(`${AUD[k]} ~${num(a.data.approximate_count_lower_bound > 0 ? a.data.approximate_count_lower_bound : 0)}`); }
+  const L = lalCfg(c); const lal = L.mode === 'off' ? [] : L.seeds.filter(k => s.audiences[k]).map(k => { const id = s.audiences['lal_' + k];
+    return `${LAL_SHORT[k]} — ${!id ? 'ждём ≥ 100 человек в источнике' : (s.lalApplied || []).includes(String(id)) ? 'в показе' : 'готовится'}`; });
   const running = Object.values(s.ads).filter(a => a.status === 'live').length, pend = Object.values(s.ads).filter(a => a.status === 'pending').length;
   const gem = s.launches.reduce((x, l) => x + (l.costUsd || 0), 0);
   const lines = [`📊 <b>Реклама · ${esc(c.city)} — ${final ? `итог ${c.days} дней` : `неделя, день ${days} из ${c.days}`}</b>`,
@@ -292,6 +342,7 @@ async function sendReport(g, c, s, acc, admins, snap, final) {
   if (worst && worst !== best) lines.push(`Слабее всех: «${esc(worst.st.title)}» (${esc(worst.st.brief)})${worst.st.reason ? ' — ' + esc(worst.st.reason) : ''}`);
   lines.push(`Замен: ${s.swaps.length} · идут ${running}${pend ? ` · на проверке ${pend}` : ''} · креативов сделано ${s.launches.filter(l => !l.blocked).length} (Gemini ≈ ${usd(gem)})`);
   if (aud.length) lines.push(`Аудитории в Meta: ${aud.join(' · ')}`);
+  if (lal.length) lines.push(`Похожие (${Math.round(L.ratio * 100)} %): ${lal.join(' · ')}`);
   if (final) {
     const cpp = newP && spent != null ? spent * (1 + (c.vat || 0)) / newP : null; const share = newP ? p.played / newP : 0;
     lines.push('', cpp == null ? 'Итог: игроков из рекламы нет — Meta для нас не работает в этом виде; смотрим Telegram Ads и клубы.'
@@ -349,6 +400,9 @@ async function status() {
   for (const c of CFG.campaigns) {
     const s = loadState(c.tag); const q = briefQueue(s, c.tag);
     log(`${c.tag} (${c.city}): ${c.enabled ? 'enabled' : 'off'} · ${s.adsetId ? `ad set ${s.adsetId}, ${s.start.slice(0, 10)} → ${s.end.slice(0, 10)}, ${Object.values(s.ads).filter(a => a.status === 'live').length} live` : 'not started'} · budget ${usd(spendUsd(c))} (+VAT) · queue ${q.length} briefs`);
+    const au = s.audiences || {}; const L = lalCfg(c); const mark = k => (au[k] ? 'ok' : au[k + 'Error'] ? `error (${short(au[k + 'Error'], 80)})` : '—');
+    log(`  audiences: ${['site', 'leads', 'ig', 'fb'].map(k => `${k} ${mark(k)}`).join(' · ')}`);
+    log(`  lookalike: ${L.mode}${L.mode === 'off' ? '' : ` ${Math.round(L.ratio * 100)}% ${L.country} — ` + L.seeds.map(k => `${k} ${au['lal_' + k] ? ((s.lalApplied || []).includes(String(au['lal_' + k])) ? 'in the ad set' : 'made, not in the ad set yet') : au[k] ? 'waiting for ≥ 100 people in the seed' : 'no seed yet'}`).join(', ')}${s.lalAppliedAt ? ` · last change ${s.lalAppliedAt.slice(0, 16)} (${s.lalMode})` : ''}`);
   }
   const ready = p.ok && !!env.GEMINI_API_KEY && !p.creds.locked;
   log(`ready: ${ready ? 'yes' : 'no'}`); return 0;

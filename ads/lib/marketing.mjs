@@ -45,11 +45,12 @@ export async function ensureCampaign(g, name) {
 }
 /* targeting: a radius around a point, ages, Facebook + Instagram; the ad set: lifetime budget, end time, delivery only in the given
    hours of the viewer's day (lifetime budget is what Meta requires for a schedule) */
+export const targetingOf = ({ geo, ages }) => ({
+  geo_locations: { custom_locations: [{ latitude: geo.lat, longitude: geo.lng, radius: geo.radius_km, distance_unit: 'kilometer' }], location_types: ['home', 'recent'] },
+  age_min: ages[0], age_max: ages[1], publisher_platforms: ['facebook', 'instagram'], targeting_automation: { advantage_audience: 0 }
+});
 export function adsetSpec({ campaignId, name, lifetimeMinor, startIso, endIso, geo, ages, hours, optimization, pixel }) {
-  const targeting = {
-    geo_locations: { custom_locations: [{ latitude: geo.lat, longitude: geo.lng, radius: geo.radius_km, distance_unit: 'kilometer' }], location_types: ['home', 'recent'] },
-    age_min: ages[0], age_max: ages[1], publisher_platforms: ['facebook', 'instagram'], targeting_automation: { advantage_audience: 0 }
-  };
+  const targeting = targetingOf({ geo, ages });
   const spec = { name, campaign_id: campaignId, status: 'ACTIVE', lifetime_budget: lifetimeMinor, start_time: startIso, end_time: endIso, billing_event: 'IMPRESSIONS',
     optimization_goal: optimization, bid_strategy: 'LOWEST_COST_WITHOUT_CAP', destination_type: 'WEBSITE', pacing_type: ['day_parting'],
     adset_schedule: [{ start_minute: hours[0] * 60, end_minute: hours[1] * 60, days: [0, 1, 2, 3, 4, 5, 6], timezone_type: 'USER' }], targeting };
@@ -125,5 +126,35 @@ export function audienceSpec({ name, pixel, kind, urlPart, days }) {
   const filter = kind === 'leads' ? { operator: 'and', filters: [{ field: 'event', operator: 'eq', value: 'Lead' }] } : { operator: 'and', filters: [{ field: 'url', operator: 'i_contains', value: urlPart }] };
   return { name, rule: { inclusions: { operator: 'or', rules: [{ event_sources: [{ id: pixel, type: 'pixel' }], retention_seconds: days * 86400, filter }] } }, prefill: true };
 }
+/* people who engaged with our Instagram (ig_business_profile_all: views, likes, comments, saves, profile visits, messages) or our
+   Facebook Page (page_engaged) — Meta knows them by itself, nothing of ours is uploaded; the daily Reels fill these */
+export function engagementSpec({ name, kind, id, days = 365 }) {
+  const src = kind === 'ig' ? { type: 'ig_business', event: 'ig_business_profile_all' } : { type: 'page', event: 'page_engaged' };
+  return { name, rule: { inclusions: { operator: 'or', rules: [{ event_sources: [{ id: String(id), type: src.type }], retention_seconds: days * 86400, filter: { operator: 'and', filters: [{ field: 'event', operator: 'eq', value: src.event }] } }] } }, prefill: true };
+}
+/* a lookalike: the top `ratio` (0.01–0.20) of the country most similar to the seed; Meta needs ≥ 100 people in the seed. From v26 the
+   country is ignored (a countryless lookalike) — where it is shown is decided by the ad set, here the city radius */
+export const lookalikeSpec = ({ name, origin, ratio, country }) => ({ name, subtype: 'LOOKALIKE', origin_audience_id: String(origin), lookalike_spec: { ratio: Math.min(0.2, Math.max(0.01, Math.round(ratio * 100) / 100)), country } });
 export const createAudience = (g, spec) => g.post(`${g.act}/customaudiences`, spec);
-export const audienceSize = (g, id) => g.get(String(id), { fields: 'name,approximate_count_lower_bound,approximate_count_upper_bound,operation_status' });
+export const audienceSize = (g, id) => g.get(String(id), { fields: 'name,approximate_count_lower_bound,approximate_count_upper_bound,operation_status,delivery_status' });
+/* usable in an ad set: 200 normal or 441 still filling (Meta allows ads), and delivery not "too small" (300) or blocked (400+) */
+export function audienceReady(d) {
+  const op = d && d.operation_status ? Number(d.operation_status.code) : 0; const del = d && d.delivery_status ? Number(d.delivery_status.code) : 200;
+  return (op === 200 || op === 441) && del === 200;
+}
+/* lookalikes in the ad set. suggest — Advantage+ audience: Meta starts from the lookalikes and the ages but may show to other people
+   when it brings players cheaper; the radius and the minimum age stay hard limits (Meta: age_min 18–25, age_max fixed at 65, the
+   ages go to age_range). only — the lookalikes are a hard limit too (a small city slice: can be too narrow) */
+export function lookalikeTargeting({ geo, ages, ids, mode }) {
+  const t = targetingOf({ geo, ages }); t.custom_audiences = ids.map(id => ({ id: String(id) }));
+  if (mode === 'suggest') Object.assign(t, { age_min: Math.min(25, Math.max(18, ages[0])), age_max: 65, age_range: [ages[0], ages[1]], targeting_automation: { advantage_audience: 1 } });
+  return t;
+}
+export async function updateTargeting(g, adsetId, targeting) {
+  let t = targeting; let r = await g.post(String(adsetId), { targeting: t });
+  if (!r.ok && t.age_range && /age_range/i.test(r.error || '')) { log(`  targeting: ${r.error} — retrying without the age suggestion`); t = Object.assign({}, t); delete t.age_range; r = await g.post(String(adsetId), { targeting: t }); }
+  if (!r.ok && t.targeting_automation.advantage_audience === 0 && /advantage|age_max|targeting_automation/i.test(r.error || '')) {
+    log(`  targeting: ${r.error} — retrying with Advantage+ audience`); t = Object.assign({}, t, { targeting_automation: { advantage_audience: 1 }, age_max: 65 }); r = await g.post(String(adsetId), { targeting: t });
+  }
+  return r.ok ? { ok: true, data: { targeting: t, mode: t.targeting_automation.advantage_audience ? 'suggest' : 'only' } } : r;
+}

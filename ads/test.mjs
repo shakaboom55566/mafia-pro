@@ -9,6 +9,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dayHours, zonedMs, kyivParts, decide, weaknesses, baseline, metricsOf, pickBrief, DEFAULT_RULES } from './lib/rules.mjs';
 import { parseBrief } from './lib/brief.mjs';
+import { lookalikeTargeting, lookalikeSpec, engagementSpec, audienceReady } from './lib/marketing.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ads-test-'));
@@ -65,7 +66,18 @@ execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi
 const CLIP = fs.readFileSync(clip);
 const png = path.join(tmp, 'img.png'); execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=0x334455:s=768x1408', '-frames:v', '1', png]); const PNG = fs.readFileSync(png);
 const wavF = path.join(tmp, 'v.wav'); execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=f=600:d=4:r=24000', '-ac', '1', '-c:a', 'pcm_s16le', wavF]); const WAV = fs.readFileSync(wavF);
-const S = { calls: [], account: null, campaigns: [], adsets: [], ads: [], insights: [], hourly: [], totals: {}, creds: null, stats: { ok: true, ads: {}, sources: {}, plain: {} }, n: 0, block: false, audiences: [], adsetError: null };
+console.log('lookalikes: spec, targeting, readiness');
+{ const geo = { lat: 48.4647, lng: 35.0462, radius_km: 15 };
+  const sg = lookalikeTargeting({ geo, ages: [18, 45], ids: ['a1', 'a2'], mode: 'suggest' });
+  ok(sg.targeting_automation.advantage_audience === 1 && sg.age_min === 18 && sg.age_max === 65 && sg.age_range.join() === '18,45' && sg.custom_audiences.map(x => x.id).join() === 'a1,a2' && sg.geo_locations.custom_locations[0].radius === 15, 'suggest: Advantage+ audience, ages as a suggestion, the radius stays');
+  const on = lookalikeTargeting({ geo, ages: [18, 45], ids: ['a1'], mode: 'only' });
+  ok(on.targeting_automation.advantage_audience === 0 && on.age_max === 45 && !on.age_range && on.custom_audiences[0].id === 'a1', 'only: the lookalike is a hard limit, ages as they are');
+  const ls = lookalikeSpec({ name: 'x', origin: 77, ratio: 0.051, country: 'UA' }); ok(ls.subtype === 'LOOKALIKE' && ls.origin_audience_id === '77' && ls.lookalike_spec.ratio === 0.05 && lookalikeSpec({ origin: 1, ratio: 0.5 }).lookalike_spec.ratio === 0.2, 'lookalike spec: ratio in whole percent, 1–20 %');
+  const ig = JSON.stringify(engagementSpec({ name: 'i', kind: 'ig', id: 1784 })), fb = JSON.stringify(engagementSpec({ name: 'f', kind: 'fb', id: 1001 }));
+  ok(/"id":"1784","type":"ig_business"/.test(ig) && /ig_business_profile_all/.test(ig) && /31536000/.test(ig) && /"id":"1001","type":"page"/.test(fb) && /page_engaged/.test(fb), 'engagement seeds: Instagram profile, Facebook Page, 365 days');
+  ok(audienceReady({ operation_status: { code: 200 }, delivery_status: { code: 200 } }) && audienceReady({ operation_status: { code: 441 } }) && !audienceReady({ operation_status: { code: 441 }, delivery_status: { code: 300 } }) && !audienceReady({ operation_status: { code: 471 } }), 'ready: normal or filling, not too small, not flagged'); }
+
+const S = { calls: [], account: null, campaigns: [], adsets: [], ads: [], insights: [], hourly: [], totals: {}, creds: null, stats: { ok: true, ads: {}, sources: {}, plain: {} }, n: 0, block: false, audiences: [], adsetError: null, small: new Set(), audStatus: {}, newLal: null, audTerms: false };
 const KEY = crypto.createHash('sha256').update('tg-token:mafia-pro-ads').digest('hex').slice(0, 48);
 const SKEY = crypto.createHash('sha256').update('tg-token:mafia-pro-social').digest('hex').slice(0, 48);
 const server = http.createServer((req, res) => {
@@ -105,11 +117,16 @@ const server = http.createServer((req, res) => {
     if (/^vid\d+$/.test(g)) return send(200, { id: g, status: { video_status: 'ready' } });
     if (g === 'act_123/adcreatives') return send(200, { id: 'cr' + (++S.n) });
     if (g === 'act_123/ads') { const a = { id: '9' + String(++S.n).padStart(5, '0'), name: body.name, effective_status: 'PENDING_REVIEW', status: 'ACTIVE', created_time: new Date(Date.parse(S.now)).toISOString() }; S.ads.push(a); return send(200, { id: a.id }); }
-    if (g === 'act_123/customaudiences') { const a = { id: 'aud' + (++S.n), body }; S.audiences.push(a); return send(200, { id: a.id }); }
-    if (/^aud\d+$/.test(g)) return send(200, { approximate_count_lower_bound: 1200 });
+    if (g === 'act_123/customaudiences') {
+      if (S.audTerms) return send(400, { error: { message: 'You must accept the Custom Audience terms before creating audiences', code: 2654 } });
+      if (body.subtype === 'LOOKALIKE' && S.small.has(body.origin_audience_id)) return send(400, { error: { message: 'The source audience is too small: at least 100 people are needed', code: 2654, error_subcode: 1713007 } });
+      const a = { id: 'aud' + (++S.n), body }; S.audiences.push(a); if (body.subtype === 'LOOKALIKE') S.audStatus[a.id] = S.newLal || { operation_status: { code: 441 }, delivery_status: { code: 300 } };
+      return send(200, { id: a.id }); }
+    if (/^aud\d+$/.test(g)) return send(200, Object.assign({ approximate_count_lower_bound: 1200, operation_status: { code: 200 }, delivery_status: { code: 200 } }, S.audStatus[g] || {}));
     if (g === '1001') return send(200, { name: 'Mafia Pro', instagram_business_account: { id: '1784' } });
     if ((m = /^(\d+)\/ads$/.exec(g))) return send(200, { data: S.ads });
     if ((m = /^(\d+)\/insights$/.exec(g))) { if (q.breakdowns) return send(200, { data: S.hourly }); if (q.level === 'ad') return send(200, { data: S.insights }); return send(200, { data: [S.totals] }); }
+    if (/^\d+$/.test(g) && req.method === 'POST' && body.targeting) { const as = S.adsets.find(a => a.id === g); if (!as) return send(400, { error: { message: 'no ad set ' + g } }); as.body.targeting = body.targeting; return send(200, { success: true }); }
     if (/^\d+$/.test(g) && req.method === 'POST') { const ad = S.ads.find(a => a.id === g); if (ad && body.status) ad.effective_status = body.status; const c = S.campaigns.find(c => c.id === g); if (c && body.status) c.status = body.status; return send(200, { success: true }); }
     send(404, { error: { message: 'mock: no route ' + p } });
   });
@@ -160,7 +177,12 @@ console.log('the start: campaign, ad set (budget, schedule, radius, ages), three
   const texts = tgTexts(); ok(/Реклама · Днепр запущена/.test(texts[0]) && /\$178,57 на 15 дн/.test(texts[0]) && texts.filter(t => /новое объявление/.test(t)).length === 3 && calls(/sendVideo/).length === 3, 'admin: the start + three new ads with their videos');
   const s = state(); ok(s.adsetId && Object.keys(s.ads).length === 3 && s.used.join() === 'dnp-001,dnp-002,dnp-003' && s.launches.length === 3, 'state saved');
   ok(calls(/\/ads\/creds/).some(x => x.body.campaigns && x.body.campaigns[0] === s.campaignId), 'the campaign id goes to the backend (/ads pause button)');
-  ok(r.changed && !/ads-token|gem-key|tg-token/.test(r.log + r.out), 'changed flag; no secrets in the log'); }
+  ok(r.changed && !/ads-token|gem-key|tg-token/.test(r.log + r.out), 'changed flag; no secrets in the log');
+  const au0 = calls(/customaudiences/, 'POST'); const rules = au0.map(x => x.body.rule || '').join(' ');
+  ok(au0.length === 4 && !au0.some(x => x.body.subtype) && /Lead/.test(rules) && /\/uk\/dnipro\//.test(rules) && /555666777888/.test(rules) && /"id":"1784","type":"ig_business"/.test(rules) && /"id":"1001","type":"page"/.test(rules), 'seeds from the start: page visitors, players (pixel), Instagram and Page engagers; no lookalike yet'); }
+const SEEDS = state().audiences; S.small = new Set([SEEDS.leads, SEEDS.ig, SEEDS.fb]);
+const lalCalls = () => calls(/customaudiences/, 'POST').filter(x => x.body.subtype === 'LOOKALIKE');
+const adsetEdits = () => calls(/^\/v25\.0\/230\d+$/, 'POST').filter(x => x.body.targeting);
 
 const ids = () => Object.keys(state().ads);
 const row = (id, o) => ({ ad_id: id, impressions: String(o.imp), reach: String(Math.round(o.imp * 0.7)), spend: String(o.spend), inline_link_clicks: String(o.clicks), actions: [{ action_type: 'video_view', value: String(o.v3) }, { action_type: 'landing_page_view', value: String(o.lpv) }, { action_type: 'post_reaction', value: String(o.eng || 0) }] });
@@ -172,11 +194,14 @@ console.log('6 daytime hours later: the weak one paused, a replacement chosen by
   S.stats = { ok: true, ads: { [a1]: { visits: 15, starts: 5, newPlayers: 4, played: 1 }, [a3]: { visits: 12, starts: 3, newPlayers: 3, played: 1 } }, sources: { dnp: { visits: 27, starts: 8, newPlayers: 7, played: 2, leads: 7 } }, plain: {} };
   reset(); let r = await run(['check'], '2026-10-16T14:00:00Z'); // 17:00 Kyiv: 5 daytime hours
   ok(!calls(/^\/v25\.0\/9\d+$/, 'POST').length && !calls(/act_123\/ads$/, 'POST').length, '5 hours: nothing changes');
+  ok(!lalCalls().length, 'seeds 5 h old: no lookalike yet (Meta is filling them)');
   reset(); r = await run(['check'], '2026-10-16T16:30:00Z'); // 19:30 Kyiv: 7.5 hours
   const p = calls(/^\/v25\.0\/9\d+$/, 'POST'); ok(p.length === 1 && p[0].p.endsWith(a2) && p[0].body.status === 'PAUSED', 'the weak one (dnp-002) paused');
   const na = calls(/act_123\/ads$/, 'POST'); ok(na.length === 1 && /dnp-004/.test(na[0].body.name), 'replacement: another opening, the winner\'s kind (dnp-004)');
   const sw = tgTexts().find(t => /На паузе/.test(t)) || ''; ok(/dnp-002/.test(sw) && /3 с только 7,0 %/.test(sw) && /Вместо него/.test(sw) && /dnp-004/.test(sw) && /Лучшее сейчас/.test(sw), 'swap note: what, why, instead of it, the best');
   ok(calls(/sendVideo/).length === 1, 'the new video comes with the note');
+  const la = lalCalls(); const sp = la.map(x => JSON.parse(x.body.lookalike_spec));
+  ok(la.length === 3 && sp.every(x => x.ratio === 0.05 && x.country === 'UA') && la.map(x => x.body.origin_audience_id).join() === [SEEDS.leads, SEEDS.ig, SEEDS.fb].join() && /Meta needs ≥ 100/.test(r.log) && !tgTexts().some(t => /похож/.test(t)), 'lookalikes tried: players, Instagram, Page — too small yet, quietly, again in 24 h');
   const s = state(); ok(s.ads[a2].status === 'paused' && s.ads[a2].codes.includes('hook') && s.swaps.length === 1 && s.ads[a1].status === 'live', 'state: paused with its reasons, the others live'); }
 
 console.log('night, muted notices, a rejected ad, the pause switch of /ads');
@@ -195,17 +220,30 @@ console.log('night, muted notices, a rejected ad, the pause switch of /ads');
   S.creds = CREDS(); reset(); r = await run(['check'], '2026-10-17T11:00:00Z');
   ok(calls(/^\/v25\.0\/120\d+$/, 'POST').some(x => x.body.status === 'ACTIVE') && state().pausedByUs === false, 'resume: the campaign active again'); }
 
-console.log('Monday report, audiences after day 3, the end of the test');
+console.log('Monday report, lookalikes into the ad set, the end of the test');
 { S.totals = { impressions: '16000', reach: '9100', frequency: '1.76', spend: '41.2', inline_link_clicks: '190', actions: [{ action_type: 'landing_page_view', value: '120' }] };
   for (const a of S.ads) if (a.effective_status === 'PENDING_REVIEW') a.effective_status = 'ACTIVE';
   reset(); let r = await run(['check'], '2026-10-19T07:30:00Z'); // Monday 10:30 Kyiv (UTC+3 until 25.10)
   const rep = tgTexts().find(t => /📊/.test(t)) || '';
   ok(/неделя, день 3 из 15/.test(rep) && /Потрачено: \$41,20 \+ НДС ≈ \$49,44 из \$178,57/.test(rep) && /новые игроки 7/.test(rep) && /Лучшее/.test(rep), 'weekly report: spend with VAT, players, the best ad');
   ok(fs.readdirSync(path.join(DIR, 'reports')).some(f => /2026-10-19-dnp\.md/.test(f)), 'report kept in ads/reports');
+  ok(/Аудитории в Meta: .*Instagram: взаимодействовали/.test(rep) && /Похожие \(5 %\): на игроков — ждём ≥ 100 человек/.test(rep), 'report: the seeds and the lookalikes waiting');
   reset(); r = await run(['check'], '2026-10-19T08:30:00Z'); ok(!tgTexts().some(t => /📊/.test(t)), 'once a week');
-  reset(); r = await run(['check'], '2026-10-20T09:00:00Z');
-  const au = calls(/customaudiences/, 'POST'); ok(au.length === 2 && /Lead/.test(au.map(x => x.body.rule).join()) && /\/uk\/dnipro\//.test(au.map(x => x.body.rule).join()) && /555666777888/.test(au[0].body.rule), 'audiences: landing page visitors and players (pixel)');
-  reset(); r = await run(['check'], '2026-10-21T09:00:00Z'); ok(!calls(/customaudiences/, 'POST').length, 'audiences made once');
+  S.small.delete(SEEDS.ig); reset(); r = await run(['check'], '2026-10-20T09:00:00Z');
+  const lalIg = state().audiences.lal_ig; ok(lalCalls().length === 3 && lalIg && !adsetEdits().length && /lookalike of ig: not ready yet \(441\/300\)/.test(r.log), 'Instagram seed ≥ 100: its lookalike made; still filling → the ad set untouched');
+  delete S.audStatus[lalIg]; reset(); r = await run(['check'], '2026-10-21T09:00:00Z');
+  ok(!calls(/customaudiences/, 'POST').some(x => !x.body.subtype), 'seeds made once');
+  const e1 = adsetEdits(); const t1 = e1[0] && JSON.parse(e1[0].body.targeting);
+  ok(e1.length === 1 && e1[0].p.endsWith(state().adsetId) && t1.custom_audiences.map(x => x.id).join() === lalIg && t1.targeting_automation.advantage_audience === 1 && t1.age_range.join() === '18,45' && t1.age_max === 65 && t1.geo_locations.custom_locations[0].radius === 15, 'ready → into the ad set as a suggestion: the radius stays, 18–45 as a suggestion');
+  ok(tgTexts().some(t => /похожая аудитория/.test(t) && /Instagram/.test(t) && /Днепр \+ 15 км/.test(t)) && state().lalMode === 'suggest', 'the admin told what changed');
+  reset(); r = await run(['check'], '2026-10-21T21:30:00Z'); ok(!adsetEdits().length, 'applied once');
+  S.small.delete(SEEDS.leads); S.newLal = { operation_status: { code: 200 }, delivery_status: { code: 200 } }; reset(); r = await run(['check'], '2026-10-22T21:30:00Z');
+  ok(state().audiences.lal_leads && !adsetEdits().length && /joins the ad set 72 h after/.test(r.log), 'players lookalike ready: waits 72 h after the last change (learning)');
+  reset(); r = await run(['check'], '2026-10-24T21:30:00Z'); const e2 = adsetEdits(); const t2 = e2[0] && JSON.parse(e2[0].body.targeting);
+  ok(e2.length === 1 && t2.custom_audiences.length === 2 && tgTexts().some(t => /игроков из рекламы и тех, кто смотрел/.test(t)), 'then both lookalikes in the ad set');
+  S.small.delete(SEEDS.fb); reset(); r = await run(['check'], '2026-10-26T23:30:00Z');
+  ok(state().audiences.lal_fb && !adsetEdits().length && /< 4 days left/.test(r.log), 'under 4 days left: the ad set is not changed any more');
+  reset(); r = await run(['status'], '2026-10-27T09:00:00Z'); ok(/lookalike: suggest 5% UA — leads in the ad set, ig in the ad set, fb made, not in the ad set yet/.test(r.log) && /audiences: site ok · leads ok · ig ok · fb ok/.test(r.log), 'status: seeds and lookalikes');
   reset(); r = await run(['check'], '2026-10-31T08:00:00Z');
   const fin = tgTexts().find(t => /итог 15 дней/.test(t)) || ''; ok(fin && /Итог: /.test(fin) && !calls(/act_123\/ads$/, 'POST').length, 'the end: final report with the verdict, nothing launched');
   reset(); r = await run(['check'], '2026-10-31T09:00:00Z'); ok(!tgTexts().length, 'final report once'); }
@@ -219,11 +257,12 @@ console.log('stats for the agent, status, preview, launch by hand, a hryvnia acc
   reset(); r = await run(['launch', 'dnp-007'], '2026-10-20T10:00:00Z'); const im = calls(/adcreatives/)[0]; const st = im && JSON.parse(im.body.object_story_spec);
   ok(r.code === 0 && calls(/adimages/).length === 1 && st && st.link_data && st.link_data.link === 'https://mafiapro.app/uk/dnipro/' && st.link_data.name === 'Мафія без карт і паперу', 'launch by hand: a picture ad with its headline');
   // a fresh account in hryvnias; Advantage+ audience forced; a video blocked once
-  fs.rmSync(path.join(DIR, 'state'), { recursive: true, force: true }); S.campaigns = []; S.adsets = []; S.ads = []; S.account = ACC({ currency: 'UAH', spend_cap: '900000' }); S.adsetError = true; S.block = true; reset();
+  fs.rmSync(path.join(DIR, 'state'), { recursive: true, force: true }); S.campaigns = []; S.adsets = []; S.ads = []; S.account = ACC({ currency: 'UAH', spend_cap: '900000' }); S.adsetError = true; S.block = true; S.audTerms = true; reset();
   r = await run(['check'], T1);
+  ok(tgTexts().filter(t => /условия пользовательских аудиторий/.test(t)).length === 1 && calls(/act_123\/ads$/, 'POST').length >= 1, 'audience terms not accepted: the admin told once, the ads still go');
   const as = calls(/act_123\/adsets$/, 'POST'); ok(as.length === 2 && as[1].body.lifetime_budget === String(Math.round(100 / 1.2 * 15 / 7 * 41.5 * 100)) && JSON.parse(as[1].body.targeting).targeting_automation.advantage_audience === 1, 'UAH: budget by the NBU rate; Advantage+ audience when required');
   const pr = calls(/predictLongRunning/).map(x => x.body.instances[0].prompt); ok(pr.length >= 2 && !/family-friendly/.test(pr[0]) && /family-friendly/.test(pr[1]), 'Veo blocked → softer prompt');
-  S.block = false; S.adsetError = null; }
+  S.block = false; S.adsetError = null; S.audTerms = false; }
 
 server.close(); fs.rmSync(tmp, { recursive: true, force: true });
 console.log(fails ? `\n${fails} of ${n} checks FAILED` : `\nALL OK (${n} checks)`);

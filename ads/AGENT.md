@@ -15,6 +15,7 @@ gh api repos/shakaboom55566/mafia-pro/commits/<head_sha>/comments -q '[.[] | sel
 - `ready: yes` → дальше.
 - `not ready` / `problem: …` → брифы всё равно держи в очереди (6–8 штук), итог владельцу — что именно осталось сделать (по строкам статуса: ключи `META_ADS_TOKEN`, `META_AD_ACCOUNT_ID`, `META_PAGE_ID` или /social, `META_PIXEL_ID`, `GEMINI_API_KEY`; лимит расходов кабинета; статус кабинета). Если секреты есть (`gh secret list -R shakaboom55566/mafia-pro`), а статус пишет `Conversions API off` — один раз перезапусти деплой бэкенда: `gh api -X POST repos/shakaboom55566/mafia-pro/actions/workflows/backend.yml/dispatches -f ref=main`.
 - `LOCKDOWN` или `PAUSED in /ads` → ничего не меняешь, итог одной строкой.
+- Строки `audiences:` и `lookalike:` — источники и похожие аудитории. `waiting for ≥ 100 people in the seed` — норма в первые дни; `error (… terms …)` у источников — владельцу: принять условия пользовательских аудиторий в Ads Manager (бот уже прислал ему инструкцию). Режим, долю и источники похожих меняешь в `ads/config.json` → `lookalike` только по слову владельца.
 
 ## 2. Цифры
 
