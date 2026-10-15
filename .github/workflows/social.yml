@@ -13,7 +13,8 @@ on:
     branches: [main]
     paths: ['social/posts/**.md', 'social/lib/**', 'social/run.mjs', 'social/test.mjs', '.github/workflows/social.yml']
   schedule:
-    - cron: '30 17 * * *'   # 20:30 Kyiv in summer, 19:30 in winter: today's post if the push run did not publish it
+    - cron: '50 15 * * *'   # 18:50 Kyiv in summer (17:50 in winter): today's post whose time: has come
+    - cron: '30 17 * * *'   # 20:30 Kyiv in summer (19:30 in winter): the safety run — today's post if nothing published it yet
   workflow_dispatch:
     inputs:
       mode:

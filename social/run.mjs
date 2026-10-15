@@ -31,6 +31,7 @@ const API = (env.API || (fs.existsSync(path.join(root, '.mafia-api-url')) ? fs.r
 const TG = (env.TELEGRAM_API || 'https://api.telegram.org').replace(/\/$/, '');
 const RES = env.VEO_RESOLUTION === '720p' ? '720p' : '1080p';
 const kyivDate = (t = Date.now()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Kiev', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
+const kyivTime = (t = Date.now()) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(t));
 const nowMs = () => (env.NOW ? Date.parse(env.NOW) : Date.now());
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const key = () => crypto.createHash('sha256').update(String(env.BOT_TOKEN) + ':mafia-pro-social').digest('hex').slice(0, 48);
@@ -80,6 +81,7 @@ async function publish(file, { force = false, preview = false } = {}) {
   if (!preview && !force) {
     if (fs.existsSync(out)) { log('already published — skipped (force: true to post again)'); return 0; }
     if (p.date !== today && p.date !== yesterday) { log(`date ${p.date} is not today (${today}) — skipped; the evening run publishes it on its day`); return 0; }
+    if (p.time && p.date === today && kyivTime(nowMs()) < p.time) { log(`time ${p.time} Kyiv has not come yet (now ${kyivTime(nowMs())}) — skipped; the scheduled run publishes it`); return 0; }
     const same = published().find(x => x.date === p.date && x.id !== p.id); if (same) { log(`one video a day: ${same.id} is already out for ${p.date} — skipped`); return 0; }
   }
   const c = await creds();

@@ -126,7 +126,11 @@ console.log('full run: Veo → end card → Instagram, Facebook, TikTok drafts �
 console.log('the same post twice, another post the same day, a date that is not today');
 { reset(); let r = await run(['publish', path.join(posts, '2026-10-15.md')]); ok(r.code === 0 && /already published/.test(r.log) && !calls(/predictLongRunning/).length, 'already published → skipped');
   write('2026-10-15-b.md', GOOD('2026-10-15')); r = await run(['publish', path.join(posts, '2026-10-15-b.md')]); ok(/one video a day/.test(r.log) && !calls(/predictLongRunning/).length, 'one video a day');
-  write('2026-10-20.md', GOOD('2026-10-20')); r = await run(['publish', path.join(posts, '2026-10-20.md')]); ok(/not today/.test(r.log) && !calls(/predictLongRunning/).length, 'future date → waits'); }
+  write('2026-10-20.md', GOOD('2026-10-20')); r = await run(['publish', path.join(posts, '2026-10-20.md')]); ok(/not today/.test(r.log) && !calls(/predictLongRunning/).length, 'future date → waits');
+  fs.rmSync(path.join(pub, '2026-10-15.json')); write('2026-10-15-c.md', GOOD('2026-10-15', 'time: 20:30\n')); reset(); r = await run(['publish', path.join(posts, '2026-10-15-c.md')]);
+  ok(/time 20:30 Kyiv has not come yet \(now 19:00\)/.test(r.log) && !calls(/predictLongRunning/).length, 'time: later today → waits for the scheduled run');
+  reset(); r = await run(['publish', path.join(posts, '2026-10-15-c.md')], { NOW: '2026-10-15T17:31:00Z' }); ok(calls(/predictLongRunning/).length === 1 && fs.existsSync(path.join(pub, '2026-10-15-c.json')), 'time: passed → published');
+  fs.rmSync(path.join(pub, '2026-10-15-c.json')); fs.unlinkSync(path.join(posts, '2026-10-15-c.md')); reset(); S.creds = CREDS(); r = await run(['publish', path.join(posts, '2026-10-15.md')]); ok(r.code === 0 && fs.existsSync(path.join(pub, '2026-10-15.json')), 'main post published again for the next checks'); }
 
 console.log('pause, lockdown, Veo safety block, Instagram refuses a field, upload failure, TikTok direct before audit, preview');
 { reset(); S.creds = CREDS({ paused: true }); let r = await run(['publish', '--force', path.join(posts, '2026-10-20.md')]);

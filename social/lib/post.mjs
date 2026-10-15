@@ -7,6 +7,7 @@
    refs: sheriff, don                 (our characters: up to 3 role ids — the art of their cards (uk) goes to Veo as reference images)
    title: Шериф не спить              (Ukrainian text on screen for the first seconds, ≤ 34 characters)
    voice: Шериф не спить. Одна перевірка за ніч. Кого перевіриш ти?   (Ukrainian voice-over, ≤ 85 characters; "none" = no voice)
+   time: 18:45                        (optional: not before this Kyiv time on its day; otherwise as soon as its day comes)
    image: og/uk.png                   (optional first frame instead of refs; not together with refs)
    model: fast                        (optional: fast | lite | standard; default fast)
    ---
@@ -47,9 +48,10 @@ export function parsePost(file) {
   const refs = String(meta.refs || meta.role || '').split(/[,\s]+/).map(x => x.trim()).filter(Boolean);
   const voiceRaw = String(meta.voice || '').trim();
   const p = { file, id, date: meta.date || id.slice(0, 10), rubric: meta.rubric || '', hook: meta.hook || '', image: meta.image || '', modelKey: (meta.model || 'fast').toLowerCase(),
-    refs, title: String(meta.title || '').trim(), voice: /^(none|no|-)$/i.test(voiceRaw) ? '' : voiceRaw, voiceName: String(meta.voice_name || '').trim(),
+    refs, time: String(meta.time || '').trim(), title: String(meta.title || '').trim(), voice: /^(none|no|-)$/i.test(voiceRaw) ? '' : voiceRaw, voiceName: String(meta.voice_name || '').trim(),
     prompt: get('prompt').replace(/\s+/g, ' '), uk: get('uk'), en: get('en'), tags: get('tags').split(/\s+/).filter(Boolean) };
   const CYR = /[А-Яа-яЁёІіЇїЄєҐґ]/;
+  if (p.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(p.time)) errors.push(`time: "${p.time}" — HH:MM (Kyiv)`);
   if (refs.length > MAX_REFS) errors.push(`refs: ${refs.length} characters — ${MAX_REFS} at most`);
   for (const r of refs) if (!/^[a-z][a-z0-9_]{1,31}$/.test(r)) errors.push(`refs: "${r}" is not a role id (like sheriff, mafia_doctor)`);
   if (refs.length && p.image) warnings.push('image is ignored when refs are given (Veo takes either reference images or a first frame)');
