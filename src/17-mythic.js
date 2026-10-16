@@ -22,7 +22,8 @@ const MYTH_ART = {
     flip: { w: 1.0513, h: 0.6417, ax: 0.4912, ay: 0.4755 },
     crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 },
     // v70: the Gemini cinematic (720×1280, 8.6 s; the card fills the first and the last frame); three generation bugs cut out (see skins/STYLE.md)
-    hero: null /*HERO: set when the black-background cut-out video is ready*/
+    // v70.3: her cut-out from the black-background Gemini clip (584×900, 7.958 s, 24 fps): her body centre and height in the first / last frame
+    hero: { file: 'hero', size: [584, 900], dur: 7.958, c0: [0.5581, 0.4558], c1: [0.5402, 0.4722], body0: 0.911, body1: 0.959, scale: 1.45, flash: -1 }
   }
 };
 const MYTH_POSES = ['stand', 'flip', 'crouch'];
@@ -214,7 +215,7 @@ function mythDrawC(R, t) {
   layer.style.setProperty('--mo', mo.toFixed(3)); layer.style.setProperty('--mg', mg.toFixed(3));
   R.scene.draw(t, mo);
   // the flash that covers the joint in the video (the cut generation bug) — the same burst, on screen
-  const fl = Math.exp(-Math.pow((t - T.play0 - a.flash * 1000) / 110, 2)); R.flash.style.opacity = (fl * 0.85).toFixed(3);
+  const fl = a.flash >= 0 ? Math.exp(-Math.pow((t - T.play0 - a.flash * 1000) / 110, 2)) : 0; R.flash.style.opacity = (fl * 0.85).toFixed(3);
   if (fl > 0.02) R.flash.style.transform = `translate3d(${(C1.x - R.W0 * 0.9).toFixed(0)}px, ${(C1.y - R.W0 * 0.9).toFixed(0)}px, 0)`;
   R.flash.style.width = R.flash.style.height = (R.W0 * 1.8) + 'px';
   const cx = r.left + W / 2, cy = r.top + H / 2;
