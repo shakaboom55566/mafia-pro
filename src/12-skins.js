@@ -47,6 +47,11 @@ const SKINS = [
   // v69: Mythic — 50 000 emeralds, every copy numbered (000001…), the card is animated: the ninja steps out and dodges kunai (src/17-mythic.js)
   { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge' }
 ];
+// v71: table backgrounds — the room around the round table (role «room» on the server; a reward or an admin's gift) — src/18-rooms.js
+const ROOMS = [
+  // rug: the round carpet's centre in the picture (0…1) and fit — the picture's size against the table, so the whole table with its seats stands on the carpet
+  { id: 'castelmar_club', role: 'room', rarity: 'legendary', file: 'room-castelmar-club', rug: { cx: 0.503, cy: 0.494, fit: 2.05 } }
+];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
 /* v60: nine rarities (the owner's list, 15.10.2026) in the filter's order; abbr — the short mark, plate — the word on the pill (as on the card's plaque) */
@@ -234,6 +239,7 @@ function skinsTabHTML() {
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
+    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}
     ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
@@ -308,12 +314,13 @@ function admSkinsSheetHTML() {
   const tile = s => { const own = owned.includes(s.id), gift = gifted.includes(s.id), on = worn.includes(s.id); const role = ROLE[s.role];
     return `<div class="sk-tile ${s.rarity} ${own ? 'own' : 'locked'} ${on ? 'worn' : ''}" role="button" tabindex="0" data-a="adm-skin" data-id="${s.id}">
       <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
-      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role)}</div></div>`; };
-  const all = SKINS.length; const missing = SKINS.filter(s => !owned.includes(s.id)).length;
+      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role)}</div></div>`; };
+  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : []); // v71: the table backgrounds are given the same way
+  const all = ALL.length; const missing = ALL.filter(s => !owned.includes(s.id)).length;
   return `<h2 style="margin:0">${u.askTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''} · ${tt(u.askCount, { n: owned.length, all })}</div>
     <p class="hint" style="margin:8px 0">${u.askHint}</p>
     ${missing ? `<button class="btn primary sm" data-a="adm-skin-all" style="margin-bottom:10px">🎁 ${u.askAll} · ${missing}</button>` : ''}
-    <div class="sk-grid adm">${SKINS.map(tile).join('')}</div>`;
+    <div class="sk-grid adm">${ALL.map(tile).join('')}</div>`;
 }
 function admSkinsPanelHTML() { // the admin panel in Settings: open any player's skins by @username or id
   if (!admSkinsOn()) return ''; const u = U();
@@ -325,7 +332,7 @@ Object.assign(ACT, {
   'adm-sk-q'(el) { ADMSK.q = el.value || ''; },
   'adm-sk-find'() { if (!admSkinsOn()) return; const q = ADMSK.q.trim(); if (!q) return; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
   async 'adm-skin'(el) {
-    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id]; if (!d || !d.user || !s || ADMSK.busy) return;
+    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
     const own = (d.owned || []).includes(s.id), gift = (d.gifted || []).includes(s.id);
     if (own && !gift) { toast(u.askKeep); return; }
     ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: s.id, give: !own }); ADMSK.busy = false;

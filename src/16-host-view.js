@@ -40,7 +40,7 @@ function hostGameTableHTML(g) {
   }
   if (onlineActive(g)) { try { Object.entries(buildAsks(g)).forEach(([id, a]) => { if (!a.done && !a.blocked) mk(Number(g.tg.map[id]) || 0, { wait: true }); }); } catch (e) {} }
   const center = `<div class="rt-phase">${phaseLbl}</div>${stage ? `<div class="rt-stage">${stage}</div>` : ''}<div class="rt-n">${tt(u.tbAtTable, { n: al.length })}</div>`;
-  const table = roundTableHTML(seats, profiles, center, marks).replace(/class="rtable (lg|md)"/, (m, sz) => `class="rtable ${sz === 'lg' ? 'md' : 'sm'}"`); // one size smaller than the players' — the controls stay close
+  const table = roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null).replace(/class="rtable (lg|md)( roomed)?"/, (m, sz, rm) => `class="rtable ${sz === 'lg' ? 'md' : 'sm'}${rm || ''}"`); // one size smaller than the players' — the controls stay close
   return `<div class="panel hv-panel" id="hv-table">${head}${table}<div class="hint hv-legend">${u.hvLegend}</div></div>`;
 }
 /* who may write right now — the same rule the players see */

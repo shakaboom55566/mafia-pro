@@ -61,7 +61,7 @@ import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, r
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
-import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered } from './skins.js';
+import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered, roomOf, isRoom } from './skins.js';
 import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, skinPrice, PACKS as EM_PACKS } from './emeralds.js';
 import { tournamentView, joinTournament, openTournament, drawRound, setTableHost, closeTournament, setTournament, creditGame, borrowsSkins, runTournamentCron, tournamentStatusText, currentTournament, takeTable } from './tournament.js';
 
@@ -825,7 +825,7 @@ async function giveSkins(env, bot, adminId, target, skins) {
   if (!add.length) return [];
   for (let i = 0; i < add.length; i += 40) await env.DB.batch(giftSkinStmts(env, target.tg_id, add.slice(i, i + 40), adminId, now(), randomId(4) + i));
   const lang = pickLang(target.lang);
-  const text = add.length === 1 ? t(lang, 'skinGift', { skin: esc(skinName(add[0], lang)) }) : t(lang, 'skinGiftMany', { n: add.length });
+  const text = add.length === 1 ? t(lang, isRoom(add[0]) ? 'roomGift' : 'skinGift', { skin: esc(skinName(add[0], lang)) }) : t(lang, 'skinGiftMany', { n: add.length }); // v71: a room has its own words
   try { await bot.send(target.tg_id, text, bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) {}
   return add;
 }
@@ -1448,7 +1448,7 @@ async function apiTableState(env, bot, body) {
   if (peerKeys.length && !dead) { const q = peerKeys.map((k, i) => '?' + (i + 2)).join(', '); peers = ((await env.DB.prepare(`SELECT tg_id, key, payload, created_at FROM table_actions WHERE code = ?1 AND key IN (${q}) ORDER BY id LIMIT 60`).bind(code, ...peerKeys).all()).results || []).map(r => ({ tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })); }
   const mySeat = me && me.seat ? me.seat : null; const opts = await lobbyOpts(env, code);
   const voice = await voiceInfo(env, code, v.user.id); const flag = flagOf(await lobbyLang(env, code));
-  return json({ ok: true, now: Date.now(), peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
+  return json({ ok: true, now: Date.now(), peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, room: await roomOf(env, lobby.host_id), host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
 }
 async function apiTableAct(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);

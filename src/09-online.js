@@ -192,7 +192,7 @@ function hostTableHTML(st) {
   const sel = S.ui.seatSel || 0; seats.forEach(sx => { const m = marks[sx.seat] = marks[sx.seat] || {}; m.act = `data-a="host-seat" data-seat="${sx.seat}"`; if (sx.seat === sel) m.picked = true; if (sel && sx.seat !== sel) m.pick = true; });
   const selPl = sel ? l.players.find(p => l.seats && l.seats[p.tgId] === sel - 1) : null;
   const rows = l.players.map(pl => { const seated = l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n; const watching = ONL.watching.includes(pl.tgId) || !!pl.online; return `<div class="fr-row" role="button" data-a="fr-open" data-id="${pl.tgId}" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(pl)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${rankIco(pl)}${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${seated ? tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 }) : u.tbNoSeat}${pl.points ? ` · ${pl.points}` : ''}${pl.club ? ` · ${esc(pl.club)}` : ''}${watching ? ` · <span class="fr-on">${u.tbInApp}</span>` : ''}</div></div>${seated ? '' : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`; }).join('');
-  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button></div>${roundTableHTML(seats, profiles, center, marks)}
+  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button>${typeof roomPickBtnHTML === 'function' ? roomPickBtnHTML() : ''}</div>${roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null)}
     <div class="hint" style="text-align:center;margin-top:6px">${selPl ? `${tt(u.seatMoveHint, { name: esc(selPl.name) })} <button class="btn xs ghost" data-a="host-seat" data-seat="${sel}">${u.seatMoveCancel}</button>` : l.players.length ? u.seatTapHint : ''}</div>
     <div class="eyebrow" style="margin-top:12px">${u.tbJoinedList} · ${l.players.length}</div>${rows ? `<div class="stack-s" style="margin-top:6px">${rows}</div>` : `<div class="hint" style="margin-top:6px">${u.tgWaiting}</div>`}</div>`;
 }
@@ -234,8 +234,9 @@ function tbTimerPaint() { const el = document.querySelector('#tb-timer'); const 
 function tbCanChat(pub, me) { if (pub && me && pub.chat === 'last') return !!(pub.lastSeat && me.seat === pub.lastSeat && tbTimerLeft(pub.timer) > 0); if (!pub || !me || me.alive === false) return false; if (pub.chat === true || pub.chat === 'all') return true; if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && tbTimerLeft(pub.timer) > 0); return false; }
 const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${esc(String(seat))} · ${esc(s.name)}` : esc(String(seat)); };
 /* the round table: seats around a ring, host and player count in the middle */
-function roundTableHTML(seats, profiles, center, marks = {}) {
-  const u = U(); const n = Math.max(1, seats.length); const size = n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm';
+function roundTableHTML(seats, profiles, center, marks = {}, room = null) { // v71: room — the table's background (the host's)
+  const u = U(); const n = Math.max(1, seats.length); const rl = room && typeof roomLayerHTML === 'function' ? roomLayerHTML(room) : '';
+  const size = rl ? (n <= 8 ? 'lg' : n <= 12 ? 'md' : 'sm') : n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm'; // v71: in a room the table is narrower (it stands on the carpet)
   const items = seats.map((s, i) => {
     const ang = -Math.PI / 2 + 2 * Math.PI * i / n; const x = 50 + 43 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
     const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
@@ -245,7 +246,8 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
     const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
     return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
-  return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
+  const table = `<div class="rtable ${size}${rl ? ' roomed' : ''}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
+  return rl ? `<div class="rt-stage">${rl}${table}</div>` : table;
 }
 /* the mods of the table I sit at: the bomb hunt and the classic game change what the cards say */
 const tbMods = () => { const pub = TB.data && TB.data.pub; return { bombHunt: !!(pub && pub.bh), classic: !!(pub && pub.mode === 'classic') }; };
@@ -335,7 +337,7 @@ function tableScreen() {
     return `${topbar(tt(u.tbTitle, { code: TB.code }), u.tbDead)}<div class="stack">
       <div class="panel" style="border-color:var(--crimson-2)"><div style="font-weight:800">${u.tbDead}</div><div class="hint" style="margin-top:4px">${u.tbDeadHint}</div></div>
       ${pub.lastWord && pub.lastWord.seat === mySeat ? `<div class="panel raised lw-panel"><div class="eyebrow gold">${u.lwTitle}</div><div style="font-weight:800;margin-top:4px">${u.tbLastMe}</div>${timerHTML}</div>${pub.online ? tbChatHTML(pub, me) : ''}` : ''}
-      ${roundTableHTML(seats.filter(s => s.alive !== false), profiles, center, marks)}
+      ${roundTableHTML(seats.filter(s => s.alive !== false), profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
       ${me.roleId ? tbRoleRow(me.roleId, false) : ''}
       <button class="btn ghost" data-a="go" data-to="home">${u.tbBackHome}</button></div>`;
   }
@@ -345,7 +347,7 @@ function tableScreen() {
     const mates = me && me.mates && me.mates.length ? `<div class="panel"><div class="eyebrow">${u.tbMates}</div><div class="stack-s" style="margin-top:6px">${me.mates.map(m => `<div class="row"><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${m.seat}</span>${ROLE[m.roleId] ? sealFor(ROLE[m.roleId], m.sk) : ''}<div class="grow"><b>${esc(m.name)}</b><div class="hint" style="margin:0">${ROLE[m.roleId] ? ROLE[m.roleId].name : ''}</div></div></div>`).join('')}</div></div>` : '';
     return `${topbar(tt(u.tbTitle, { code: TB.code }), `${d.flag ? d.flag + ' ' : ''}${pub.mode ? modeLine(pub.mode, pub.open) + ' · ' : ''}${pub.online ? `${u.tbLobby} · ${u.tbOnlineTag}` : u.tbLobby}`)}<div class="stack">
       ${hostChipHTML(d)}
-      ${roundTableHTML(seats, profiles, hostLine, marks)}
+      ${roundTableHTML(seats, profiles, hostLine, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
       <div class="hint" style="text-align:center">${mySeat ? tt(u.tgSeated, { seat: mySeat }) : u.tbNoSeat}</div>
       ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, false) : ''}
       ${card}${mates}
@@ -379,7 +381,7 @@ function tableScreen() {
   const mates = me && me.mates && me.mates.length ? `<div class="hint" style="text-align:center">${u.tbMates}: ${me.mates.map(m => `${m.seat} · ${esc(m.name)}${ROLE[m.roleId] ? ' (' + ROLE[m.roleId].name + ')' : ''}`).join(', ')}</div>` : '';
   const waiting = pub.waiting && pub.waiting.length && !isMine ? `<div class="hint" style="text-align:center">${tt(u.onWaiting, { list: pub.waiting.join(', ') })}</div>` : (!isMine && pub.phase !== 'day' ? `<div class="hint" style="text-align:center">${u.tbWaitHostNext}</div>` : '');
   return `${topbar(tt(u.tbTitle, { code: TB.code }), `${phaseLbl}${stageLbl ? ' · ' + stageLbl : ''}`)}<div class="stack">
-    ${roundTableHTML(seats, profiles, center, marks)}
+    ${roundTableHTML(seats, profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
     ${ask ? tbAskHTML(ask, seats) : ''}${waiting}
     ${body}
     ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}${recruitNoteHTML(me)}

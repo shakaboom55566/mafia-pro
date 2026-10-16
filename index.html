@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.47.0-e257c9b">
+<meta name="mafia-build" content="1.48.0-df386b1">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -721,6 +721,36 @@ html.lite .club-brand { background: var(--bg-2); }
 .tb-card { padding: 10px; border-color: rgba(240,205,122,.45); }
 .tb-ask .picker { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
 html.lite .rt-ring { box-shadow: none; background: var(--bg-2); }
+/* v71: the table's background — the room under the table (2.5D canvas over the still picture, a breathing haze, a vignette into the panel) */
+/* the stage: the room around, the table (narrower, --rt-w of the stage) in the middle on the carpet; the table with its seats never lies on the furniture */
+.rt-stage { --rt-w: 74%; position: relative; width: 100%; max-width: 520px; margin: 0 auto; aspect-ratio: 1 / 1.22; display: flex; align-items: center; justify-content: center; border-radius: 22px; overflow: hidden; isolation: isolate; }
+.rt-stage .rtable { width: var(--rt-w); padding-bottom: var(--rt-w); max-width: none; margin: 0; }
+.rt-room { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; background: #0d0b10; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(240,205,122,.14); }
+.rt-room-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.rt-room-img { position: absolute; left: 50%; top: 50%; height: auto; aspect-ratio: 1; max-width: none; display: block; }
+.rt-room-gl { opacity: 0; transition: opacity .35s; } .rt-room-gl.on { opacity: 1; }
+.rt-room-haze { position: absolute; inset: -25%; pointer-events: none; mix-blend-mode: screen; opacity: .9;
+  background: radial-gradient(28% 22% at 32% 38%, rgba(255,214,150,.13), transparent 70%), radial-gradient(26% 20% at 70% 62%, rgba(255,190,120,.10), transparent 70%), radial-gradient(30% 24% at 60% 26%, rgba(190,150,255,.07), transparent 70%);
+  animation: rtHaze 22s ease-in-out infinite alternate; }
+@keyframes rtHaze { 0% { transform: translate(-3%, 2%) rotate(0deg); opacity: .65; } 50% { opacity: 1; } 100% { transform: translate(3%, -2%) rotate(8deg); opacity: .75; } }
+.rt-room-vig { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, rgba(8,7,12,0) 55%, rgba(8,7,12,.25) 80%, rgba(8,7,12,.6) 100%); }
+.hv-panel .rt-stage { max-width: 400px; margin-top: 6px; } .hv-panel .rt-stage .rtable { max-width: none; margin-top: 0; }
+.rtable.roomed .rt-ring { background: radial-gradient(circle at 50% 40%, #3b2e22, #1d1414 60%, #0b0a0e 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.6), 0 18px 50px rgba(0,0,0,.75), 0 0 0 6px rgba(20,12,8,.45); } /* the table is the app's own and solid — the room is around it */
+.rtable.roomed .rt-seat.free { opacity: .82; } .rtable.roomed .rt-seat.free .rt-av { background: rgba(16,12,18,.82); color: rgba(240,205,122,.55); }
+.rtable.roomed .rt-nm, .rtable.roomed .rt-meta, .rtable.roomed .rt-club { text-shadow: 0 1px 2px #000, 0 0 8px rgba(0,0,0,.95); }
+.rtable.roomed .rt-meta, .rtable.roomed .rt-club { color: #d9cfbf; }
+html.lite .rt-room-haze { display: none; }
+@media (prefers-reduced-motion: reduce) { .rt-room-haze { animation: none; } }
+.rm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.rm-tile { display: flex; flex-direction: column; gap: 2px; padding: 6px 6px 8px; border-radius: 14px; border: 1px solid rgba(240,205,122,.3); background: linear-gradient(180deg, rgba(240,205,122,.10), var(--bg-2)); cursor: pointer; }
+.rm-tile.on { border-color: rgba(240,205,122,.95); box-shadow: 0 0 0 1px rgba(240,205,122,.45), 0 6px 22px -10px rgba(240,205,122,.8); }
+.rm-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #120d0a; }
+.rm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rm-tile.locked .rm-thumb img { filter: saturate(.7) brightness(.62); }
+.rm-lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; filter: drop-shadow(0 2px 6px #000); }
+.rm-plain { display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(240,205,122,.16), rgba(29,20,20,.9) 55%, #0b0a0e); color: var(--muted); font-size: 11px; text-align: center; padding: 8px; }
+.rm-preview { margin: 0 auto; max-width: 360px; }
+
 /* results podium: scaled 3D cards with avatar, club badge, medal; plaque with points and the win streak in gold */
 .pod-panel { overflow: hidden; }
 .podium { display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
@@ -7088,6 +7118,34 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   });
 })();
 /* ============================================================
+   v71 table backgrounds — texts (screens: 18-rooms.js; the catalog: ROOMS in 12-skins.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      skins: { castelmar_club: { name: 'Клуб «Кастельмар»', lore: 'Кастельмар, 1931. Подвал под портовой лавкой: бархат, латунь, рояль и бар, где не спрашивают имён. Здесь семьи делят город — за одним круглым столом.' } },
+      ui: { rmTitle: 'Фон стола', rmHint: 'Комната вокруг круглого стола. Когда вы ведёте онлайн-игру, её видят все игроки за вашим столом.', rmLabel: 'Фон стола', rmOn: 'на столе', rmSetBtn: 'Поставить на мой стол', rmOffBtn: 'Убрать со стола', rmNone: 'Без фона', rmNoneHint: 'обычный тёмный стол', rmHow: 'Этот фон — награда: его дарит администрация Mafia Pro.', rmSet: '«{name}» — теперь фон вашего стола', rmOff: 'Фон убран — стол снова обычный', rmBtn: 'Фон', rmPick: 'Фон вашего стола', rmPickHint: 'Его увидят все игроки за вашим столом.', rmTilt: 'Наклоните телефон — комната оживёт', rmWho: 'Так ваш стол увидят игроки' }
+    },
+    uk: {
+      skins: { castelmar_club: { name: 'Клуб «Кастельмар»', lore: 'Кастельмар, 1931. Підвал під портовою крамничкою: оксамит, латунь, рояль і бар, де не питають імен. Тут родини ділять місто — за одним круглим столом.' } },
+      ui: { rmTitle: 'Фон столу', rmHint: 'Кімната навколо круглого столу. Коли ви ведете онлайн-гру, її бачать усі гравці за вашим столом.', rmLabel: 'Фон столу', rmOn: 'на столі', rmSetBtn: 'Поставити на мій стіл', rmOffBtn: 'Прибрати зі столу', rmNone: 'Без фону', rmNoneHint: 'звичайний темний стіл', rmHow: 'Цей фон — нагорода: його дарує адміністрація Mafia Pro.', rmSet: '«{name}» — тепер фон вашого столу', rmOff: 'Фон прибрано — стіл знову звичайний', rmBtn: 'Фон', rmPick: 'Фон вашого столу', rmPickHint: 'Його побачать усі гравці за вашим столом.', rmTilt: 'Нахиліть телефон — кімната оживе', rmWho: 'Так ваш стіл побачать гравці' }
+    },
+    en: {
+      skins: { castelmar_club: { name: 'Castelmar Club', lore: 'Castelmar, 1931. A cellar under a harbor shop: velvet, brass, a grand piano and a bar where nobody asks for names. Here the families divide the city — at one round table.' } },
+      ui: { rmTitle: 'Table background', rmHint: 'The room around the round table. When you host an online game, every player at your table sees it.', rmLabel: 'Table background', rmOn: 'on the table', rmSetBtn: 'Put it on my table', rmOffBtn: 'Take it off the table', rmNone: 'No background', rmNoneHint: 'the plain dark table', rmHow: 'This background is a reward: Mafia Pro’s admins give it.', rmSet: '«{name}» is now your table’s background', rmOff: 'Background off — the plain table again', rmBtn: 'Background', rmPick: 'Your table’s background', rmPickHint: 'Every player at your table will see it.', rmTilt: 'Tilt the phone — the room comes alive', rmWho: 'This is how players will see your table' }
+    },
+    pl: {
+      skins: { castelmar_club: { name: 'Klub Castelmar', lore: 'Castelmar, 1931. Piwnica pod portowym sklepikiem: aksamit, mosiądz, fortepian i bar, w którym nikt nie pyta o imiona. Tu rodziny dzielą miasto — przy jednym okrągłym stole.' } },
+      ui: { rmTitle: 'Tło stołu', rmHint: 'Pokój wokół okrągłego stołu. Gdy prowadzisz grę online, widzą go wszyscy gracze przy Twoim stole.', rmLabel: 'Tło stołu', rmOn: 'na stole', rmSetBtn: 'Ustaw na moim stole', rmOffBtn: 'Zdejmij ze stołu', rmNone: 'Bez tła', rmNoneHint: 'zwykły ciemny stół', rmHow: 'To tło jest nagrodą: przyznaje je administracja Mafia Pro.', rmSet: '„{name}” — teraz tło Twojego stołu', rmOff: 'Tło zdjęte — stół znów zwykły', rmBtn: 'Tło', rmPick: 'Tło Twojego stołu', rmPickHint: 'Zobaczą je wszyscy gracze przy Twoim stole.', rmTilt: 'Przechyl telefon — pokój ożyje', rmWho: 'Tak gracze zobaczą Twój stół' }
+    },
+    hy: {
+      skins: { castelmar_club: { name: '«Կաստելմար» ակումբ', lore: 'Կաստելմար, 1931։ Նավահանգստի խանութի տակ գտնվող նկուղ՝ թավիշ, արույր, դաշնամուր և բար, որտեղ անուն չեն հարցնում։ Այստեղ ընտանիքները բաժանում են քաղաքը՝ մեկ կլոր սեղանի շուրջ։' } },
+      ui: { rmTitle: 'Սեղանի ֆոն', rmHint: 'Սենյակը կլոր սեղանի շուրջ։ Երբ վարում եք առցանց խաղ, այն տեսնում են ձեր սեղանի բոլոր խաղացողները։', rmLabel: 'Սեղանի ֆոն', rmOn: 'սեղանին', rmSetBtn: 'Դնել իմ սեղանին', rmOffBtn: 'Հանել սեղանից', rmNone: 'Առանց ֆոնի', rmNoneHint: 'սովորական մուգ սեղան', rmHow: 'Այս ֆոնը պարգև է՝ այն նվիրում է Mafia Pro-ի ադմինիստրացիան։', rmSet: '«{name}»՝ այժմ ձեր սեղանի ֆոնն է', rmOff: 'Ֆոնը հանվեց՝ սեղանը կրկին սովորական է', rmBtn: 'Ֆոն', rmPick: 'Ձեր սեղանի ֆոնը', rmPickHint: 'Այն կտեսնեն ձեր սեղանի բոլոր խաղացողները։', rmTilt: 'Թեքեք հեռախոսը՝ սենյակը կկենդանանա', rmWho: 'Այսպես խաղացողները կտեսնեն ձեր սեղանը' }
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (!p) return; p.skins = Object.assign(p.skins || {}, R[code].skins); Object.assign(p.ui, R[code].ui); });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -11318,7 +11376,7 @@ function hostTableHTML(st) {
   const sel = S.ui.seatSel || 0; seats.forEach(sx => { const m = marks[sx.seat] = marks[sx.seat] || {}; m.act = `data-a="host-seat" data-seat="${sx.seat}"`; if (sx.seat === sel) m.picked = true; if (sel && sx.seat !== sel) m.pick = true; });
   const selPl = sel ? l.players.find(p => l.seats && l.seats[p.tgId] === sel - 1) : null;
   const rows = l.players.map(pl => { const seated = l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n; const watching = ONL.watching.includes(pl.tgId) || !!pl.online; return `<div class="fr-row" role="button" data-a="fr-open" data-id="${pl.tgId}" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(pl)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${rankIco(pl)}${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${seated ? tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 }) : u.tbNoSeat}${pl.points ? ` · ${pl.points}` : ''}${pl.club ? ` · ${esc(pl.club)}` : ''}${watching ? ` · <span class="fr-on">${u.tbInApp}</span>` : ''}</div></div>${seated ? '' : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`; }).join('');
-  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button></div>${roundTableHTML(seats, profiles, center, marks)}
+  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button>${typeof roomPickBtnHTML === 'function' ? roomPickBtnHTML() : ''}</div>${roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null)}
     <div class="hint" style="text-align:center;margin-top:6px">${selPl ? `${tt(u.seatMoveHint, { name: esc(selPl.name) })} <button class="btn xs ghost" data-a="host-seat" data-seat="${sel}">${u.seatMoveCancel}</button>` : l.players.length ? u.seatTapHint : ''}</div>
     <div class="eyebrow" style="margin-top:12px">${u.tbJoinedList} · ${l.players.length}</div>${rows ? `<div class="stack-s" style="margin-top:6px">${rows}</div>` : `<div class="hint" style="margin-top:6px">${u.tgWaiting}</div>`}</div>`;
 }
@@ -11360,8 +11418,9 @@ function tbTimerPaint() { const el = document.querySelector('#tb-timer'); const 
 function tbCanChat(pub, me) { if (pub && me && pub.chat === 'last') return !!(pub.lastSeat && me.seat === pub.lastSeat && tbTimerLeft(pub.timer) > 0); if (!pub || !me || me.alive === false) return false; if (pub.chat === true || pub.chat === 'all') return true; if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && tbTimerLeft(pub.timer) > 0); return false; }
 const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${esc(String(seat))} · ${esc(s.name)}` : esc(String(seat)); };
 /* the round table: seats around a ring, host and player count in the middle */
-function roundTableHTML(seats, profiles, center, marks = {}) {
-  const u = U(); const n = Math.max(1, seats.length); const size = n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm';
+function roundTableHTML(seats, profiles, center, marks = {}, room = null) { // v71: room — the table's background (the host's)
+  const u = U(); const n = Math.max(1, seats.length); const rl = room && typeof roomLayerHTML === 'function' ? roomLayerHTML(room) : '';
+  const size = rl ? (n <= 8 ? 'lg' : n <= 12 ? 'md' : 'sm') : n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm'; // v71: in a room the table is narrower (it stands on the carpet)
   const items = seats.map((s, i) => {
     const ang = -Math.PI / 2 + 2 * Math.PI * i / n; const x = 50 + 43 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
     const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
@@ -11371,7 +11430,8 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
     const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
     return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
-  return `<div class="rtable ${size}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
+  const table = `<div class="rtable ${size}${rl ? ' roomed' : ''}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
+  return rl ? `<div class="rt-stage">${rl}${table}</div>` : table;
 }
 /* the mods of the table I sit at: the bomb hunt and the classic game change what the cards say */
 const tbMods = () => { const pub = TB.data && TB.data.pub; return { bombHunt: !!(pub && pub.bh), classic: !!(pub && pub.mode === 'classic') }; };
@@ -11461,7 +11521,7 @@ function tableScreen() {
     return `${topbar(tt(u.tbTitle, { code: TB.code }), u.tbDead)}<div class="stack">
       <div class="panel" style="border-color:var(--crimson-2)"><div style="font-weight:800">${u.tbDead}</div><div class="hint" style="margin-top:4px">${u.tbDeadHint}</div></div>
       ${pub.lastWord && pub.lastWord.seat === mySeat ? `<div class="panel raised lw-panel"><div class="eyebrow gold">${u.lwTitle}</div><div style="font-weight:800;margin-top:4px">${u.tbLastMe}</div>${timerHTML}</div>${pub.online ? tbChatHTML(pub, me) : ''}` : ''}
-      ${roundTableHTML(seats.filter(s => s.alive !== false), profiles, center, marks)}
+      ${roundTableHTML(seats.filter(s => s.alive !== false), profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
       ${me.roleId ? tbRoleRow(me.roleId, false) : ''}
       <button class="btn ghost" data-a="go" data-to="home">${u.tbBackHome}</button></div>`;
   }
@@ -11471,7 +11531,7 @@ function tableScreen() {
     const mates = me && me.mates && me.mates.length ? `<div class="panel"><div class="eyebrow">${u.tbMates}</div><div class="stack-s" style="margin-top:6px">${me.mates.map(m => `<div class="row"><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${m.seat}</span>${ROLE[m.roleId] ? sealFor(ROLE[m.roleId], m.sk) : ''}<div class="grow"><b>${esc(m.name)}</b><div class="hint" style="margin:0">${ROLE[m.roleId] ? ROLE[m.roleId].name : ''}</div></div></div>`).join('')}</div></div>` : '';
     return `${topbar(tt(u.tbTitle, { code: TB.code }), `${d.flag ? d.flag + ' ' : ''}${pub.mode ? modeLine(pub.mode, pub.open) + ' · ' : ''}${pub.online ? `${u.tbLobby} · ${u.tbOnlineTag}` : u.tbLobby}`)}<div class="stack">
       ${hostChipHTML(d)}
-      ${roundTableHTML(seats, profiles, hostLine, marks)}
+      ${roundTableHTML(seats, profiles, hostLine, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
       <div class="hint" style="text-align:center">${mySeat ? tt(u.tgSeated, { seat: mySeat }) : u.tbNoSeat}</div>
       ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, false) : ''}
       ${card}${mates}
@@ -11505,7 +11565,7 @@ function tableScreen() {
   const mates = me && me.mates && me.mates.length ? `<div class="hint" style="text-align:center">${u.tbMates}: ${me.mates.map(m => `${m.seat} · ${esc(m.name)}${ROLE[m.roleId] ? ' (' + ROLE[m.roleId].name + ')' : ''}`).join(', ')}</div>` : '';
   const waiting = pub.waiting && pub.waiting.length && !isMine ? `<div class="hint" style="text-align:center">${tt(u.onWaiting, { list: pub.waiting.join(', ') })}</div>` : (!isMine && pub.phase !== 'day' ? `<div class="hint" style="text-align:center">${u.tbWaitHostNext}</div>` : '');
   return `${topbar(tt(u.tbTitle, { code: TB.code }), `${phaseLbl}${stageLbl ? ' · ' + stageLbl : ''}`)}<div class="stack">
-    ${roundTableHTML(seats, profiles, center, marks)}
+    ${roundTableHTML(seats, profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
     ${ask ? tbAskHTML(ask, seats) : ''}${waiting}
     ${body}
     ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}${recruitNoteHTML(me)}
@@ -12411,6 +12471,11 @@ const SKINS = [
   // v69: Mythic — 50 000 emeralds, every copy numbered (000001…), the card is animated: the ninja steps out and dodges kunai (src/17-mythic.js)
   { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge' }
 ];
+// v71: table backgrounds — the room around the round table (role «room» on the server; a reward or an admin's gift) — src/18-rooms.js
+const ROOMS = [
+  // rug: the round carpet's centre in the picture (0…1) and fit — the picture's size against the table, so the whole table with its seats stands on the carpet
+  { id: 'castelmar_club', role: 'room', rarity: 'legendary', file: 'room-castelmar-club', rug: { cx: 0.503, cy: 0.494, fit: 2.05 } }
+];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
 /* v60: nine rarities (the owner's list, 15.10.2026) in the filter's order; abbr — the short mark, plate — the word on the pill (as on the card's plaque) */
@@ -12598,6 +12663,7 @@ function skinsTabHTML() {
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
+    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}
     ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
@@ -12672,12 +12738,13 @@ function admSkinsSheetHTML() {
   const tile = s => { const own = owned.includes(s.id), gift = gifted.includes(s.id), on = worn.includes(s.id); const role = ROLE[s.role];
     return `<div class="sk-tile ${s.rarity} ${own ? 'own' : 'locked'} ${on ? 'worn' : ''}" role="button" tabindex="0" data-a="adm-skin" data-id="${s.id}">
       <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
-      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role)}</div></div>`; };
-  const all = SKINS.length; const missing = SKINS.filter(s => !owned.includes(s.id)).length;
+      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role)}</div></div>`; };
+  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : []); // v71: the table backgrounds are given the same way
+  const all = ALL.length; const missing = ALL.filter(s => !owned.includes(s.id)).length;
   return `<h2 style="margin:0">${u.askTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''} · ${tt(u.askCount, { n: owned.length, all })}</div>
     <p class="hint" style="margin:8px 0">${u.askHint}</p>
     ${missing ? `<button class="btn primary sm" data-a="adm-skin-all" style="margin-bottom:10px">🎁 ${u.askAll} · ${missing}</button>` : ''}
-    <div class="sk-grid adm">${SKINS.map(tile).join('')}</div>`;
+    <div class="sk-grid adm">${ALL.map(tile).join('')}</div>`;
 }
 function admSkinsPanelHTML() { // the admin panel in Settings: open any player's skins by @username or id
   if (!admSkinsOn()) return ''; const u = U();
@@ -12689,7 +12756,7 @@ Object.assign(ACT, {
   'adm-sk-q'(el) { ADMSK.q = el.value || ''; },
   'adm-sk-find'() { if (!admSkinsOn()) return; const q = ADMSK.q.trim(); if (!q) return; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
   async 'adm-skin'(el) {
-    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id]; if (!d || !d.user || !s || ADMSK.busy) return;
+    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
     const own = (d.owned || []).includes(s.id), gift = (d.gifted || []).includes(s.id);
     if (own && !gift) { toast(u.askKeep); return; }
     ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: s.id, give: !own }); ADMSK.busy = false;
@@ -13223,7 +13290,7 @@ function hostGameTableHTML(g) {
   }
   if (onlineActive(g)) { try { Object.entries(buildAsks(g)).forEach(([id, a]) => { if (!a.done && !a.blocked) mk(Number(g.tg.map[id]) || 0, { wait: true }); }); } catch (e) {} }
   const center = `<div class="rt-phase">${phaseLbl}</div>${stage ? `<div class="rt-stage">${stage}</div>` : ''}<div class="rt-n">${tt(u.tbAtTable, { n: al.length })}</div>`;
-  const table = roundTableHTML(seats, profiles, center, marks).replace(/class="rtable (lg|md)"/, (m, sz) => `class="rtable ${sz === 'lg' ? 'md' : 'sm'}"`); // one size smaller than the players' — the controls stay close
+  const table = roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null).replace(/class="rtable (lg|md)( roomed)?"/, (m, sz, rm) => `class="rtable ${sz === 'lg' ? 'md' : 'sm'}${rm || ''}"`); // one size smaller than the players' — the controls stay close
   return `<div class="panel hv-panel" id="hv-table">${head}${table}<div class="hint hv-legend">${u.hvLegend}</div></div>`;
 }
 /* who may write right now — the same rule the players see */
@@ -13582,6 +13649,142 @@ document.addEventListener('pointerdown', e => { if (e.target && e.target.closest
 Object.assign(ACT, {
   'myth-play'(el) { const l = el.closest('.skin-layer'); if (!l) return; if (MYTH.run && MYTH.run.fx) mythStop(); setTimeout(() => mythPlay(l, true), MYTH.run ? 300 : 0); }
 });
+/* ============================================================
+   v71 TABLE BACKGROUNDS — the room around the round table (the table itself stays the app's own)
+   - owning: like a skin (role «room» on the server): a reward or an admin's gift; admins own all. Not sold.
+   - putting up: one room per player (/api/skin/equip { role: 'room' }); the host's room is what everyone at his table sees:
+     the host's lobby and game screens use his own (S.skins.equipped.room), the players get it with the table (/api/table/state → room).
+   - 2.5D: the picture and its depth map (Depth Anything) in one WebGL canvas that is moved from table to table (kept across renders);
+     the near things (lamps, palms, the bar) shift against the floor with the phone's tilt / the finger and a slow drift of the camera,
+     a warm haze breathes over it. Old phones (html.lite), reduced motion, no WebGL — the still picture.
+   ============================================================ */
+const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
+['name', 'lore'].forEach(k => ROOMS.forEach(r => Object.defineProperty(r, k, { get() { const p = (L.skins && L.skins[r.id]) || (I18N.ru.skins || {})[r.id] || {}; return p[k] || r.id; }, enumerable: true })));
+const roomOwned = id => !!ROOM[id] && (S.skins.owned || []).includes(id);
+const myRoom = () => { const id = S.skins && S.skins.equipped && S.skins.equipped.room; return roomOwned(id) ? id : null; };
+const tbRoom = () => { const id = typeof TB !== 'undefined' && TB.data && TB.data.room; return ROOM[id] ? id : null; };
+/* the stage: the room fills it, the table stands in the middle on the carpet (rug.fit — the picture against the table, rug.cx/cy — the carpet's centre).
+   The still picture is placed by CSS the same way the 2.5D canvas draws it, so the canvas fades in without a jump. */
+const roomRug = r => Object.assign({ cx: 0.5, cy: 0.5, fit: 2 }, r && r.rug);
+function roomLayerHTML(id) {
+  const r = ROOM[id]; if (!r) return ''; const g = roomRug(r);
+  const img = `width:calc(var(--rt-w) * ${g.fit});transform:translate(${(-g.cx * 100).toFixed(2)}%,${(-g.cy * 100).toFixed(2)}%)`;
+  return `<div class="rt-room" data-room="${r.id}" aria-hidden="true"><img class="rt-room-img" style="${img}" src="${skinUrl(r)}" alt="" decoding="async" draggable="false" onerror="this.remove()"><div class="rt-room-haze"></div><div class="rt-room-vig"></div></div>`;
+}
+
+/* ---------- 2.5D: one WebGL canvas, moved into whichever table is on screen ---------- */
+const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 };
+// b — the point of the picture under this pixel (ctr — the carpet's centre at the stage's centre, sc — the stage's size in pictures); then the parallax by depth
+const RMGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off,ctr,sc;varying vec2 v;void main(){vec2 b=ctr+(v-.5)*sc;vec2 uv=b;for(int i=0;i<8;i++){float d=texture2D(dep,uv).r;uv=b+off*(d-.03);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
+function rmglInit() {
+  if (RMGL.gl || RMGL.failed) return !!RMGL.gl;
+  try {
+    const cv = document.createElement('canvas'); cv.className = 'rt-room-gl'; const gl = cv.getContext('webgl', { premultipliedAlpha: false, alpha: false });
+    if (!gl) throw new Error('no webgl');
+    const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, SKGL_VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, RMGL_FS)); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
+    gl.useProgram(prog); const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1);
+    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc');
+    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); RMGL.failed = true; cv.remove(); }, false);
+    return true;
+  } catch (e) { RMGL.failed = true; return false; }
+}
+function rmglTexture(url) { // { ready, t, bad } — a room is 2 pictures; the last room's stay
+  const c = RMGL.tex[url]; if (c) return c; const gl = RMGL.gl; const rec = RMGL.tex[url] = { ready: false, t: null };
+  Object.keys(RMGL.tex).forEach(k => { if (k !== url && Object.keys(RMGL.tex).length > 4) { const o = RMGL.tex[k]; try { if (o.t) gl.deleteTexture(o.t); } catch (e) {} delete RMGL.tex[k]; } });
+  const im = new Image(); if (!/^\//.test(url)) im.crossOrigin = 'anonymous';
+  im.onload = () => { try { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v)); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); rec.t = t; rec.ready = true; } catch (e) { rec.bad = true; } };
+  im.onerror = () => { rec.bad = true; }; im.src = url; return rec;
+}
+function roomFrame(now) {
+  RMGL.raf = 0; const layer = document.querySelector('.rt-room'); if (!layer) { RMGL.last = ''; return; }
+  RMGL.raf = requestAnimationFrame(roomFrame);
+  if (skinsStill()) { if (RMGL.cv) RMGL.cv.remove(); return; } if (!rmglInit()) return;
+  const r = ROOM[layer.dataset.room]; if (!r) return;
+  if (RMGL.cur !== r.id) { RMGL.cur = r.id; RMGL.cv.classList.remove('on'); RMGL.last = ''; } // another room: the old picture must not show while the new one loads
+  const a = rmglTexture(skinUrl(r)), b = rmglTexture(skinUrl(r, 'depth'));
+  if (a.bad || b.bad) { RMGL.cv.remove(); return; } if (!a.ready || !b.ready) return;
+  const box = layer.getBoundingClientRect(); if (box.width < 40 || box.bottom < 0 || box.top > innerHeight) return;
+  if (now - RMGL.at < 30 && !RMGL.fixed) return; RMGL.at = now; // ~30 frames a second is plenty for a room
+  // the camera: the finger / the phone's tilt, plus a slow drift so the room breathes on its own
+  const t = now / 1000; const px = typeof PX !== 'undefined' ? PX : { x: 0, y: 0 };
+  const gx = Math.max(-1, Math.min(1, px.x * 0.9 + Math.sin(t * 0.29) * 0.32)), gy = Math.max(-1, Math.min(1, px.y * 0.9 + Math.cos(t * 0.21) * 0.26));
+  RMGL.tx += (gx - RMGL.tx) * 0.12; RMGL.ty += (gy - RMGL.ty) * 0.12; if (RMGL.fixed) [RMGL.tx, RMGL.ty] = RMGL.fixed; // fixed: a set camera (the channel video's frames)
+  const dpr = Math.min(1.75, window.devicePixelRatio || 1); const W = Math.round(layer.offsetWidth * dpr), H = Math.round(layer.offsetHeight * dpr);
+  const tb = layer.parentNode && layer.parentNode.querySelector('.rtable'); const g = roomRug(r); const D = (tb ? tb.offsetWidth : layer.offsetWidth * 0.74) * g.fit * dpr; if (!D) return; // the picture's size on screen
+  const cv = RMGL.cv; if (cv.parentNode !== layer) { layer.insertBefore(cv, layer.querySelector('.rt-room-haze')); RMGL.last = ''; }
+  const key = `${r.id}:${W}x${H}:${Math.round(D)}:${RMGL.tx.toFixed(3)},${RMGL.ty.toFixed(3)}`; if (RMGL.last === key) return; RMGL.last = key;
+  const gl = RMGL.gl; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; } gl.viewport(0, 0, W, H);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, a.t); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.t);
+  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D);
+  gl.uniform2f(RMGL.off, -RMGL.tx * 0.025, -RMGL.ty * 0.025); // the carpet (depth ≈ 0) stays under the table; the walls move up to ~2.5 % of the picture
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  cv.classList.add('on');
+}
+function roomsKick() { if (!RMGL.raf && document.querySelector('.rt-room')) RMGL.raf = requestAnimationFrame(roomFrame); }
+setInterval(() => { try { roomsKick(); } catch (e) {} }, 400); // tables are drawn by renders and by timers (online) — the loop finds them
+
+/* ---------- choosing: the Skins tab section, a room's sheet, the host's quick picker ---------- */
+function roomTileHTML(r) {
+  const u = U(); const own = roomOwned(r.id), on = myRoom() === r.id;
+  return `<div class="rm-tile ${own ? 'own' : 'locked'} ${on ? 'on' : ''}" role="button" tabindex="0" data-a="room-sheet" data-id="${r.id}">
+    <div class="rm-thumb"><img src="${skinUrl(r, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${on ? `<span class="sk-badge">${u.rmOn}</span>` : own ? '' : '<span class="rm-lock">🔒</span>'}</div>
+    <div class="sk-tn">${esc(r.name)}</div><div class="sk-tr">${rarPill(r)}</div></div>`;
+}
+function roomsSectionHTML(f, rf) {
+  if (f && !['all', 'mine'].includes(f)) return ''; // the team filters are about cards
+  const list = ROOMS.filter(r => (rf === 'all' || !rf || r.rarity === rf) && (f !== 'mine' || roomOwned(r.id))); if (!list.length) return '';
+  const u = U(); return `<div class="eyebrow gold">🏛 ${u.rmTitle}</div><p class="hint" style="margin:2px 0 8px">${u.rmHint}</p><div class="rm-grid">${list.map(roomTileHTML).join('')}</div>`;
+}
+/* a preview: the room with an empty table of 8 seats in the middle — exactly what the players will see */
+function roomPreviewHTML(id) {
+  const u = U(); const seats = Array.from({ length: 8 }, (_, i) => ({ seat: i + 1 }));
+  const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-n">${esc(ROOM[id] ? ROOM[id].name : u.rmNone)}</div>`;
+  return roundTableHTML(seats, {}, center, {}, id);
+}
+function roomSheetHTML(id) {
+  const u = U(); const r = ROOM[id]; if (!r) return '';
+  const own = roomOwned(id), on = myRoom() === id;
+  const btn = !own ? `<p class="hint" style="margin:10px 0 0">${u.rmHow}</p>` : on ? `<button class="btn ghost" data-a="room-set" data-id="">${u.rmOffBtn}</button>` : `<button class="btn primary" data-a="room-set" data-id="${r.id}">${u.rmSetBtn}</button>`;
+  return `<div class="row" style="gap:8px;align-items:center"><h2 class="grow" style="margin:0">${esc(r.name)}</h2>${rarPill(r)}</div>
+    <div class="hint" style="margin:2px 0 10px">${u.rmLabel}${on ? ' · ' + u.rmOn : ''}</div>
+    <div class="rm-preview">${roomPreviewHTML(id)}</div><div class="spin-hint">${skinsStill() ? u.rmWho : u.rmTilt}</div>
+    <p style="margin:10px 0 0;line-height:1.5">${esc(r.lore)}</p><p class="hint" style="margin:6px 0 0">${u.rmHint}</p>
+    <div class="btn-row" style="margin-top:12px">${btn}</div>`;
+}
+/* the host's picker (the lobby's «Background» button): his rooms and «no background» */
+function roomPickHTML() {
+  const u = U(); const mine = ROOMS.filter(r => roomOwned(r.id)); const cur = myRoom();
+  const none = `<div class="rm-tile own ${cur ? '' : 'on'}" role="button" tabindex="0" data-a="room-set" data-id=""><div class="rm-thumb rm-plain"><span>${u.rmNoneHint}</span>${cur ? '' : `<span class="sk-badge">${u.rmOn}</span>`}</div><div class="sk-tn">${u.rmNone}</div></div>`;
+  const tiles = mine.map(r => `<div class="rm-tile own ${cur === r.id ? 'on' : ''}" role="button" tabindex="0" data-a="room-set" data-id="${r.id}"><div class="rm-thumb"><img src="${skinUrl(r, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${cur === r.id ? `<span class="sk-badge">${u.rmOn}</span>` : ''}</div><div class="sk-tn">${esc(r.name)}</div></div>`).join('');
+  return `<h2 style="margin:0">${u.rmPick}</h2><p class="hint" style="margin:4px 0 10px">${u.rmPickHint}</p><div class="rm-grid">${none}${tiles}</div>`;
+}
+const roomsMine = () => ROOMS.some(r => roomOwned(r.id));
+function roomPickBtnHTML() { return roomsMine() ? `<button class="btn xs ghost" data-a="room-pick" aria-label="${U().rmPick}">🏛 ${U().rmBtn}</button>` : ''; }
+Object.assign(ACT, {
+  'room-sheet'(el) { if (!ROOM[el.dataset.id]) return; S.ui.sheet = { type: 'room', id: el.dataset.id }; render(); },
+  'room-pick'() { if (!roomsMine()) return; S.ui.sheet = { type: 'roomPick' }; render(); },
+  async 'room-set'(el) {
+    const u = U(); const id = el.dataset.id || null; if (id && !roomOwned(id)) return; if ((myRoom() || null) === id) { if (S.ui.sheet && S.ui.sheet.type === 'roomPick') { S.ui.sheet = null; render(); } return; }
+    if (typeof TG === 'undefined' || !TG.app || !apiBase()) { toast(u.skTgOnly); return; }
+    const prev = Object.assign({}, S.skins.equipped || {}); S.skins.equipped = Object.assign({}, prev); if (id) S.skins.equipped.room = id; else delete S.skins.equipped.room;
+    if (S.ui.sheet && S.ui.sheet.type === 'roomPick') S.ui.sheet = null; render();
+    const d = await api('/api/skin/equip', { role: 'room', skin: id });
+    if (!d || !d.ok) { S.skins.equipped = prev; render(); toast(u.skErr); return; }
+    S.skins.equipped = d.equipped || {}; save(); render(); toast(id ? tt(u.rmSet, { name: ROOM[id].name }) : u.rmOff); tgHaptic('success');
+  }
+});
+(function () {
+  const orig = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || (sh.type !== 'room' && sh.type !== 'roomPick')) return orig.apply(this, arguments);
+    const body = sh.type === 'room' ? roomSheetHTML(sh.id) : roomPickHTML(); if (!body) return orig.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
+  };
+})();
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

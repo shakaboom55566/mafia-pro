@@ -39,8 +39,13 @@ export const SKINS = {
   silent_petal: { role: 'ninja', rarity: 'epic' },
   velvet_envelope: { role: 'corrupter', rarity: 'epic' },
   // v69: Mythic — for emeralds (EMERALDS_MYTHIC, 50 000), every copy numbered 000001, 000002… in the order of purchase; the card is animated in the app
-  untouchable: { role: 'ninja', rarity: 'mythic', numbered: true }
+  untouchable: { role: 'ninja', rarity: 'mythic', numbered: true },
+  // v71: table backgrounds — the room around the round table (role 'room': one per player, the host's is what everyone at his table sees);
+  // a reward or an admin's gift only (Legendary is not sold), not lent in the tournament (only Epic is)
+  castelmar_club: { role: 'room', rarity: 'legendary' }
 };
+export const ROOM_ROLE = 'room';
+export const isRoom = id => isSkin(id) && SKINS[id].role === ROOM_ROLE;
 export const SEASON_SKIN = { 1: 'amethyst_don' };
 export const SKIN_NAMES = {
   amethyst_don: { ru: 'Аметистовый Дон', uk: 'Аметистовий Дон', en: 'Amethyst Don', pl: 'Ametystowy Don', hy: 'Ամեթիստե Դոն' },
@@ -76,7 +81,8 @@ export const SKIN_NAMES = {
   purple_knuckles: { ru: 'Фиолетовый кастет', uk: 'Фіолетовий кастет', en: 'Purple Knuckles', pl: 'Fioletowy Kastet', hy: 'Մանուշակագույն կաստետ' },
   silent_petal: { ru: 'Тихий лепесток', uk: 'Тиха пелюстка', en: 'Silent Petal', pl: 'Cichy Płatek', hy: 'Լուռ թերթիկ' },
   velvet_envelope: { ru: 'Бархатный конверт', uk: 'Оксамитовий конверт', en: 'Velvet Envelope', pl: 'Aksamitna Koperta', hy: 'Թավշյա ծրար' },
-  untouchable: { ru: 'Неуловимая', uk: 'Невловима', en: 'Untouchable', pl: 'Nieuchwytna', hy: 'Անհասանելին' }
+  untouchable: { ru: 'Неуловимая', uk: 'Невловима', en: 'Untouchable', pl: 'Nieuchwytna', hy: 'Անհասանելին' },
+  castelmar_club: { ru: 'Клуб «Кастельмар»', uk: 'Клуб «Кастельмар»', en: 'Castelmar Club', pl: 'Klub Castelmar', hy: '«Կաստելմար» ակումբ' }
 };
 export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_NAMES[id] || {}).ru) || id;
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;
@@ -133,6 +139,11 @@ export async function equippedOf(env, ids) {
   const rows = (await env.DB.prepare(`SELECT tg_id, role, skin FROM user_skins WHERE tg_id IN (${ids.map((_, i) => '?' + (i + 1)).join(',')})`).bind(...ids).all()).results || [];
   for (const r of rows) if (isSkin(r.skin) && SKINS[r.skin].role === r.role) (out[r.tg_id] = out[r.tg_id] || {})[r.role] = r.skin;
   return out;
+}
+/* v71: the room a player has put up (the background of his table when he hosts) — null if none or no longer his */
+export async function roomOf(env, tgId) {
+  const r = await env.DB.prepare('SELECT skin FROM user_skins WHERE tg_id = ?1 AND role = ?2').bind(tgId, ROOM_ROLE).first();
+  return r && isRoom(r.skin) ? r.skin : null;
 }
 /* put a skin on (skin = id) or take the role's skin off (skin = null); the player must own it */
 export async function equipSkin(env, tgId, role, skin, admin, ts, extra) {
