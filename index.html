@@ -13295,7 +13295,8 @@ const MYTH_ART = {
     stand: { x: 0.0562, y: 0.125, w: 0.88, h: 0.7817, ax: 0.5627, ay: 0.4086 },
     flip: { w: 1.0513, h: 0.6417, ax: 0.4912, ay: 0.4755 },
     crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 },
-    cine: null /*CINE*/
+    // v70: the Gemini cinematic (720×1280, 8.6 s; the card fills the first and the last frame); three generation bugs cut out (see skins/STYLE.md)
+    cine: { file: 'cinematic', size: [720, 1280], dur: 8.625, card: [0, 0, 1, 1] }
   }
 };
 const MYTH_POSES = ['stand', 'flip', 'crouch'];
@@ -13332,7 +13333,9 @@ function mythVideo(s) { // the loaded <video> of the skin's cinematic (muted, in
     let done = false; const v = document.createElement('video'); const fin = x => { if (done) return; done = true; if (!x) delete MYTH.vid[s.id]; ok(x); };
     v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto'; v.className = 'myth-cine';
     v.addEventListener('loadeddata', () => fin(v), { once: true }); v.addEventListener('error', () => fin(null), { once: true }); setTimeout(() => fin(v.readyState >= 2 ? v : null), 9000);
-    v.src = SKIN_BASE + s.file + '-' + a.file + '.mp4'; try { v.load(); } catch (e) { fin(null); }
+    // H.264 for phones, VP9 for the browsers without it (Linux / some desktop webviews); an error on the last source = nothing plays
+    ['mp4', 'webm'].forEach((ext, i, all) => { const so = document.createElement('source'); so.src = SKIN_BASE + s.file + '-' + a.file + '.' + ext; so.type = 'video/' + ext; if (i === all.length - 1) so.addEventListener('error', () => fin(null), { once: true }); v.appendChild(so); });
+    try { v.load(); } catch (e) { fin(null); }
   });
   return MYTH.vid[s.id];
 }
@@ -13416,14 +13419,14 @@ function mythDrawC(R, t) {
   if (R.wkey && typeof c3state === 'function') { const st = c3state(R.wkey); const tgt = Math.round(st.ry / 360) * 360; st.ry += (tgt - st.ry) * 0.35; st.rx += (0 - st.rx) * 0.35; st.idle = Date.now() + 2000; const w = layer.closest('.card3d-wrap'); if (w) card3dApply(w); }
   const r = layer.getBoundingClientRect(); if (r.width < 20) { mythStop(); return; }
   const a = R.a, T = R.T, vw = window.innerWidth, vh = window.innerHeight; const [VW, VH] = a.size; const cb = a.card; // the card in the video's first frame (fractions)
-  // on the card: the video's card covers the app's card
-  const sCard = r.width / ((cb[2] - cb[0]) * VW); const onCard = { x: r.left - cb[0] * VW * sCard, y: r.top - cb[1] * VH * sCard, s: sCard };
+  // on the card: the video's card covers the app's card exactly (Gemini drew the 2:3 card into a 9:16 frame — stretched back here)
+  const sx0 = r.width / ((cb[2] - cb[0]) * VW), sy0 = r.height / ((cb[3] - cb[1]) * VH); const onCard = { x: r.left - cb[0] * VW * sx0, y: r.top - cb[1] * VH * sy0, sx: sx0, sy: sy0 };
   // full screen: the whole video fits the screen (a little cropped at the sides on tall phones)
-  const sFull = Math.min(vw / VW * 1.08, vh / VH); const full = { x: (vw - VW * sFull) / 2, y: (vh - VH * sFull) / 2, s: sFull };
+  const sFull = Math.min(vw / VW * 1.08, vh / VH); const full = { x: (vw - VW * sFull) / 2, y: (vh - VH * sFull) / 2, sx: sFull, sy: sFull };
   const k = t < T.in1 ? mEaseIO(mSeg(t, T.in0 + 120, T.in1)) : t < T.out0 ? 1 : 1 - mEaseIO(mSeg(t, T.out0, T.play1 - 40));
-  const P = { x: mLerp(onCard.x, full.x, k), y: mLerp(onCard.y, full.y, k), s: mLerp(onCard.s, full.s, k) };
+  const P = { x: mLerp(onCard.x, full.x, k), y: mLerp(onCard.y, full.y, k), sx: mLerp(onCard.sx, full.sx, k), sy: mLerp(onCard.sy, full.sy, k) };
   R.box.style.width = VW + 'px'; R.box.style.height = VH + 'px';
-  R.box.style.transform = `translate3d(${P.x.toFixed(1)}px, ${P.y.toFixed(1)}px, 0) scale(${P.s.toFixed(5)})`;
+  R.box.style.transform = `translate3d(${P.x.toFixed(1)}px, ${P.y.toFixed(1)}px, 0) scale(${P.sx.toFixed(5)}, ${P.sy.toFixed(5)})`;
   R.box.style.setProperty('--edge', k.toFixed(3)); // the soft edge of the video grows with it
   R.box.style.opacity = (Math.min(mSeg(t, 0, 160), 1 - mSeg(t, T.play1 - 20, T.end - 60))).toFixed(3);
   R.dim.style.opacity = (Math.min(mSeg(t, 0, 300), 1 - mSeg(t, T.play1, T.end))).toFixed(3);

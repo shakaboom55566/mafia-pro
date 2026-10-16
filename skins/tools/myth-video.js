@@ -1,4 +1,5 @@
-// The channel video of a living (Mythic) skin: the app's own card and show (src/17-mythic.js), drawn frame by frame.
+// The channel video of a living (Mythic) skin: the app's own card and show (src/17-mythic.js), drawn frame by frame
+// (v70: the cinematic is seeked frame by frame; this Chromium has no H.264, so it plays the .webm twin).
 // usage: NODE_PATH=$(npm root -g) node skins/tools/myth-video.js <mafia-pro.html> <skins dir> <frames dir> [skin id] [copy number]
 // then:  ffmpeg -framerate 30 -i <frames>/f%04d.png -c:v libx264 -pix_fmt yuv420p -crf 21 -movflags +faststart -an skins/<id>.mp4
 const { chromium } = require('playwright'); const fs = require('fs'); const path = require('path');
@@ -8,7 +9,14 @@ const { chromium } = require('playwright'); const fs = require('fs'); const path
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: 480, height: 854 }, deviceScaleFactor: 2 });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.route('https://mafiapro.app/skins/*', r => { const f = path.join(skins, path.basename(new URL(r.request().url()).pathname)); if (!fs.existsSync(f)) return r.fulfill({ status: 404, body: '' }); r.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': f.endsWith('.png') ? 'image/png' : 'image/webp' }, body: fs.readFileSync(f) }); });
+  await p.route('https://mafiapro.app/skins/*', r => { // byte ranges too: a video is only seekable when the server answers them
+    const f = path.join(skins, path.basename(new URL(r.request().url()).pathname)); if (!fs.existsSync(f)) return r.fulfill({ status: 404, body: '' });
+    const type = f.endsWith('.png') ? 'image/png' : f.endsWith('.mp4') ? 'video/mp4' : f.endsWith('.webm') ? 'video/webm' : 'image/webp';
+    const body = fs.readFileSync(f); const m = /bytes=(\d+)-(\d*)/.exec(r.request().headers().range || '');
+    if (!m) return r.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': type, 'Accept-Ranges': 'bytes' }, body });
+    const a = +m[1], b = m[2] ? Math.min(+m[2], body.length - 1) : body.length - 1;
+    r.fulfill({ status: 206, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${a}-${b}/${body.length}` }, body: body.subarray(a, b + 1) });
+  });
   await p.goto('file://' + path.resolve(html)); await p.waitForTimeout(800);
   await p.evaluate(({ id, serial }) => {
     document.documentElement.classList.remove('lite'); MYTH.manual = true; MYTH.tabAt = 1; S.ui.sheet = null;

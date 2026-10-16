@@ -73,3 +73,9 @@ Now turn this exact card image into a depth map for a 3D parallax effect. Keep e
 - Тем же чатом Gemini: (1) карта; (2) та же карта **без персонажа** — пустая сцена; (3) персонаж в той же позе на чистом #00FF00, совпадающий с картой; (4, 5) позы для анимации на #00FF00 (сальто, низкий присед), тот же костюм и масштаб.
 - Обработка: карта — `prepare_skin.py <id> card.jpg auto …`; сцена — тот же кроп рамки и 800×1200 → `<id>-scene.webp`; поза «stand» — пиксели **самой карты** с маской из зелёного ключа (3), ноги на фоне тёмной крыши ключ не отделяет — контур ног обведён по точкам; позы (4, 5) — зелёный ключ с подавлением зелёной каймы, масштаб — по расстоянию между зрачками (у всех ≈ одинаковый). Где каждая вырезка стоит и где центр тела — `MYTH_ART` в `src/17-mythic.js`.
 - Ролик для поста: `NODE_PATH=$(npm root -g) node skins/tools/myth-video.js mafia-pro.html skins <кадры> <id> 1`, затем ffmpeg (команда в начале скрипта) → `skins/<id>.mp4`.
+
+## Кинематографичная сцена (v70) — Gemini «Видео»
+- gemini.google.com → «Видео», вертикальное 9:16, картинка-основа — **сама карта** (в поле «+» картинкой). Промпт: «Turn this collectible card into an epic cinematic 3D game-skin reveal, Unreal Engine 5 quality… Start exactly on this card… she leaps out of the card toward the camera… camera orbits… kunai… dodges each one… At the end she flips back into the card and the camera returns to the card exactly as in the first frame». Ролик 10 с, 720×1280, генерация ~15–20 минут.
+- Зелёный фон (персонаж отдельно) не годится: выходит «плоская картинка двигается» — владелец отказался. Нужна именно сцена с камерой.
+- Скачать ролик может только владелец (Chrome не даёт скачивать) — он присылает mp4 в чат.
+- Баги генерации (кунай сквозь лицо, попадание, «сломанное» тело) — вырезать кадры и закрыть стык вспышкой (3 кадра нарастания, 4 — спада, радиальное размытие к центру удара), см. коммит v70. Затем H.264 crf 27 и VP9 crf 36, без звука.
