@@ -24,7 +24,7 @@ const MYTH_ART = {
     crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 },
     // v70: her cut-out video (444×720, 5.3 s, 24 fps) and where her body centre is in its first / last frame; `scale` — how much
     // bigger she is than her picture in the card when she stands at the start (the video's first frame is already out of the card)
-    hero: { file: 'hero', size: [444, 720], dur: 5.292, c0: [0.412, 0.484], c1: [0.5703, 0.5326], body0: 0.98, body1: 0.746, scale: 1.12, flash: 0.37 }
+    hero: { file: 'hero', size: [582, 900], dur: 5.292, c0: [0.3954, 0.4802], c1: [0.5343, 0.5383], body0: 0.986, body1: 0.747, scale: 1.12, flash: 0.37 }
   }
 };
 const MYTH_POSES = ['stand', 'flip', 'crouch'];
