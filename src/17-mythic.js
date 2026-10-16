@@ -3,13 +3,10 @@
    The show: the card turns face up and freezes, she steps out of the frame (the card shows the empty rooftop),
    four kunai fly at her from the four corners of the screen and she dodges every one, time slows down at each miss,
    then she goes back into the card.
-   v70: she is a video — cut out of a 3D cinematic made with Gemini (Veo) from the card itself (skins/tools/cutout_video.py →
-   skins/untouchable-hero.mp4 / .webm, a «stacked alpha» video: top half colour, bottom half the matte; a WebGL shader joins them).
-   She steps out of the card and does it all over the card — a sidestep, a backflip, a slide, a fiery spin — while the card
-   itself keeps a living background (the empty rooftop with the moon, petals and embers drifting: a canvas in the card),
-   then she goes back into her picture. MYTH_ART.*.hero: the video's size, the length, where her picture's body centre is
-   in the first and the last frame (c0 / c1, fractions of the video) — those are matched to the figure in the card.
-   If the video cannot load or play — the v69 show from three cut-outs (stand / flip / crouch).
+   v70: the show is a 3D cinematic made with Gemini (Veo) from the card picture itself — skins/untouchable-cinematic.mp4:
+   the video grows out of the card to full screen, plays (she leaps out of the card in 3D, kunai from the four corners,
+   slow-motion dodges, sparks, fog) and shrinks back into the card (MYTH_ART.*.cine: the size, the length and where the card
+   is in the first frame). If the video cannot load or play — the v69 show from three cut-outs (stand / flip / crouch).
    It plays by itself: when the skin's sheet opens, when the card is dealt to its owner, on my card at an online table
    (once each) and once per visit of the Skins tab; ▶ on the card plays it again; a tap anywhere ends it.
    Not on html.lite / reduced motion. Art (skins/): untouchable-scene.webp (the card without her), -stand / -flip / -crouch.webp
@@ -22,9 +19,8 @@ const MYTH_ART = {
     stand: { x: 0.0562, y: 0.125, w: 0.88, h: 0.7817, ax: 0.5627, ay: 0.4086 },
     flip: { w: 1.0513, h: 0.6417, ax: 0.4912, ay: 0.4755 },
     crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 },
-    // v70: her cut-out video (444×720, 5.3 s, 24 fps) and where her body centre is in its first / last frame; `scale` — how much
-    // bigger she is than her picture in the card when she stands at the start (the video's first frame is already out of the card)
-    hero: { file: 'hero', size: [582, 900], dur: 5.292, c0: [0.3954, 0.4802], c1: [0.5343, 0.5383], body0: 0.986, body1: 0.747, scale: 1.12, flash: 0.37 }
+    // v70: the Gemini cinematic (720×1280, 8.6 s; the card fills the first and the last frame); three generation bugs cut out (see skins/STYLE.md)
+    cine: { file: 'cinematic', size: [720, 1280], dur: 8.625, card: [0, 0, 1, 1], grow: 1.32 }
   }
 };
 const MYTH_POSES = ['stand', 'flip', 'crouch'];
@@ -54,55 +50,21 @@ function mythClock() {
   return { dur: (tab.length - 1) * 4, at: r => { const i = mClamp(r / 4, 0, tab.length - 1); const i0 = Math.floor(i); return i0 + 1 < tab.length ? mLerp(tab[i0], tab[i0 + 1], i - i0) : tab[tab.length - 1]; } };
 }
 /* ---------- v70: the cinematic — a 3D video made with Gemini (Veo) from the card itself ---------- */
-function mythVideo(s) { // the loaded <video> of her cut-out (muted, inline), kept for the next shows; null when it cannot load
-  const a = MYTH_ART[s.id] && MYTH_ART[s.id].hero; if (!a || MYTH.noVideo) return Promise.resolve(null);
+function mythVideo(s) { // the loaded <video> of the skin's cinematic (muted, inline), kept for the next shows; null when it cannot load
+  const a = MYTH_ART[s.id] && MYTH_ART[s.id].cine; if (!a || MYTH.noVideo) return Promise.resolve(null);
   if (MYTH.vid[s.id]) return MYTH.vid[s.id];
   MYTH.vid[s.id] = new Promise(ok => {
     let done = false; const v = document.createElement('video'); const fin = x => { if (done) return; done = true; if (!x) delete MYTH.vid[s.id]; ok(x); };
-    v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto';
-    if (!/^\//.test(SKIN_BASE)) v.crossOrigin = 'anonymous'; // the frames go through WebGL: the video must be readable
+    v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto'; v.className = 'myth-cine';
     v.addEventListener('loadeddata', () => fin(v), { once: true }); v.addEventListener('error', () => fin(null), { once: true }); setTimeout(() => fin(v.readyState >= 2 ? v : null), 9000);
-    // H.264 for phones, VP9 for the browsers without it; an error on the last source = nothing plays
+    // H.264 for phones, VP9 for the browsers without it (Linux / some desktop webviews); an error on the last source = nothing plays
     ['mp4', 'webm'].forEach((ext, i, all) => { const so = document.createElement('source'); so.src = SKIN_BASE + s.file + '-' + a.file + '.' + ext; so.type = 'video/' + ext; if (i === all.length - 1) so.addEventListener('error', () => fin(null), { once: true }); v.appendChild(so); });
     try { v.load(); } catch (e) { fin(null); }
   });
   return MYTH.vid[s.id];
 }
-// the clock of the video show (ms): she steps out of her picture into the video's first frame, the video plays, she steps back
-const mythCT = a => { const T = { out0: 240, out1: 760, play0: 760 }; T.play1 = T.play0 + a.dur * 1000; T.back0 = T.play1; T.back1 = T.back0 + 520; T.end = T.back1 + 420; return T; };
-const MYTH_FS = 'precision mediump float;uniform sampler2D t;varying vec2 v;void main(){vec3 c=texture2D(t,vec2(v.x,v.y*.5)).rgb;float a=texture2D(t,vec2(v.x,.5+v.y*.5)).r;a=clamp((a-.04)*1.08,0.,1.);gl_FragColor=vec4(c*a,a);}';
-function mythGL(cv) { // a WebGL canvas that draws the stacked video as one picture with transparency
-  try {
-    const gl = cv.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false }); if (!gl) return null;
-    const sh = (t, src) => { const x = gl.createShader(t); gl.shaderSource(x, src); gl.compileShader(x); return x; };
-    const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SKGL_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, MYTH_FS)); gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return null; gl.useProgram(p);
-    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(p, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
-    [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
-    gl.uniform1i(gl.getUniformLocation(p, 't'), 0); gl.clearColor(0, 0, 0, 0); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-    return { draw(v) { try { gl.viewport(0, 0, cv.width, cv.height); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); return gl.getError() === 0; } catch (e) { return false; } } };
-  } catch (e) { return null; }
-}
-/* the living background of the card while she is out: the empty rooftop, embers rising, petals drifting, the moon breathing */
-function mythScene(layer, s) {
-  const cv = document.createElement('canvas'); cv.className = 'myth-scene'; const W0 = Math.max(1, Math.round(layer.offsetWidth * Math.min(2, devicePixelRatio || 1))), H0 = Math.round(W0 * 1.5); cv.width = W0; cv.height = H0;
-  layer.appendChild(cv); const g = cv.getContext('2d'); const img = layer.querySelector('.skin-scene'); const rnd = mRand(7);
-  const P = Array.from({ length: 26 }, (_, i) => ({ x: rnd(), y: rnd(), r: 0.012 + rnd() * 0.022, v: 0.00005 + rnd() * 0.00008, w: 0.3 + rnd() * 0.5, ph: rnd() * 6.28, rot: rnd() * 6.28, spin: (rnd() - 0.5) * 0.003 }));
-  const E = Array.from({ length: 40 }, () => ({ x: rnd(), y: rnd(), v: 0.00008 + rnd() * 0.00012, r: 0.003 + rnd() * 0.004, ph: rnd() * 6.28 }));
-  return { cv, draw(t, op) {
-    if (!img || !img.complete || !img.naturalWidth) return; g.globalAlpha = 1; g.clearRect(0, 0, W0, H0);
-    const z = 1.02 + 0.015 * Math.sin(t / 2600); g.save(); g.translate(W0 / 2, H0 / 2); g.scale(z, z); g.drawImage(img, -W0 / 2, -H0 / 2, W0, H0); g.restore();
-    // the moon breathes
-    const gr = g.createRadialGradient(W0 * 0.5, H0 * 0.33, 0, W0 * 0.5, H0 * 0.33, W0 * 0.55); gr.addColorStop(0, `rgba(255,110,120,${(0.12 + 0.07 * Math.sin(t / 900)).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,60,80,0)');
-    g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.fillRect(0, 0, W0, H0);
-    E.forEach(e => { const y = ((e.y - t * e.v) % 1 + 1) % 1, x = e.x + 0.02 * Math.sin(t / 700 + e.ph); const a = 0.35 + 0.35 * Math.sin(t / 300 + e.ph); g.fillStyle = `rgba(255,${160 + Math.round(60 * a)},90,${a.toFixed(3)})`; g.beginPath(); g.arc(x * W0, y * H0, e.r * W0, 0, 6.28); g.fill(); });
-    g.globalCompositeOperation = 'source-over';
-    P.forEach(p => { const y = ((p.y + t * p.v) % 1 + 1) % 1, x = ((p.x + 0.04 * Math.sin(t / 1300 + p.ph) + t * 0.00002) % 1 + 1) % 1; g.save(); g.translate(x * W0, y * H0); g.rotate(p.rot + t * p.spin); g.scale(1, p.w); g.fillStyle = 'rgba(214,30,56,.9)'; g.beginPath(); g.ellipse(0, 0, p.r * W0, p.r * W0 * 0.62, 0, 0, 6.28); g.fill(); g.fillStyle = 'rgba(255,120,130,.45)'; g.beginPath(); g.ellipse(-p.r * W0 * 0.25, -p.r * W0 * 0.15, p.r * W0 * 0.45, p.r * W0 * 0.3, 0, 0, 6.28); g.fill(); g.restore(); });
-    cv.style.opacity = op.toFixed(3);
-  } };
-}
+// the cinematic's clock (ms): the video grows out of the card, plays, and shrinks back into it
+const mythCT = a => { const T = { in0: 0, in1: 520, play0: 260 }; T.play1 = T.play0 + a.dur * 1000; T.out0 = T.play1 - 520; T.end = T.play1 + 380; return T; };
 const KUNAI_SVG = '<svg viewBox="0 0 120 30" aria-hidden="true"><defs><linearGradient id="mkb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#c7ccd6"/><stop offset="1" stop-color="#7d8390"/></linearGradient></defs><circle cx="8" cy="15" r="6" fill="none" stroke="#c9ccd6" stroke-width="3"/><rect x="14" y="11.5" width="33" height="7" rx="2" fill="#2a0b12"/><path d="M19 11.5v7M25 11.5v7M31 11.5v7M37 11.5v7M43 11.5v7" stroke="#b3122b" stroke-width="2"/><rect x="46" y="9.5" width="4" height="11" rx="1" fill="#9aa0ab"/><polygon points="50,15 66,4 120,15 66,26" fill="url(#mkb)"/><path d="M52 15H117" stroke="#fff" stroke-width="1.2" opacity=".75"/><polygon points="60,15 66,11.5 72,15 66,18.5" fill="#d4142e"/></svg>';
 
 /* ---------- the show ---------- */
@@ -113,7 +75,7 @@ async function mythPlay(layer, force) {
   const imgs = await Promise.race([mythPreload(s), new Promise(ok => setTimeout(() => ok(null), 3000))]);
   if (!imgs || !layer.isConnected) { MYTH.run = null; return; }
   // v70: the Gemini cinematic when it loads and plays; otherwise the cut-outs below
-  if (art.hero && !MYTH.noVideo) {
+  if (art.cine && !MYTH.noVideo) {
     const v = await Promise.race([mythVideo(s), new Promise(ok => setTimeout(() => ok(null), 4000))]);
     if (v && layer.isConnected && await mythPlayCine(layer, s, art, v)) return;
   }
@@ -145,27 +107,18 @@ async function mythPlay(layer, force) {
   if (!MYTH.manual) { const loop = () => { if (MYTH.run !== R) return; const t = performance.now() - R.t0; if (t >= clock.dur) { mythStop(); return; } mythDraw(R, clock.at(t)); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
   else mythDraw(R, 0);
 }
-/* ---------- the video show: her cut-out does the dodges over the card, the card keeps its living background ---------- */
 async function mythPlayCine(layer, s, art, v) {
-  const a = art.hero, st = art.stand; const wrap = layer.closest('.card3d-wrap'); const wkey = wrap && wrap.dataset.key; const inSheet = !!layer.closest('.sheet');
+  const a = art.cine; const wrap = layer.closest('.card3d-wrap'); const wkey = wrap && wrap.dataset.key; const inSheet = !!layer.closest('.sheet');
   const find = () => (layer.isConnected ? layer : (layer = (wkey ? document.querySelector(`${inSheet ? '.sheet ' : ''}.card3d-wrap[data-key="${wkey}"] .skin-layer.anim[data-skin="${s.id}"]`) : document.querySelector(`.flip.open .skin-layer.anim[data-skin="${s.id}"]`)) || layer));
-  const W0 = layer.offsetWidth, H0 = layer.offsetHeight; if (W0 < 20) return false;
-  const fx = document.createElement('div'); fx.className = 'myth-fx hero';
+  const fx = document.createElement('div'); fx.className = 'myth-fx cine';
   const dim = document.createElement('div'); dim.className = 'myth-dim'; fx.appendChild(dim);
-  const ring = document.createElement('div'); ring.className = 'myth-ring'; ring.style.width = ring.style.height = (W0 * 0.95) + 'px'; fx.appendChild(ring);
-  const cv = document.createElement('canvas'); cv.className = 'myth-hero-vid'; cv.width = a.size[0]; cv.height = a.size[1]; fx.appendChild(cv);
-  const flash = document.createElement('div'); flash.className = 'myth-flash'; fx.appendChild(flash);
-  const g = mythGL(cv); if (!g) { MYTH.noVideo = true; return false; }
+  const box = document.createElement('div'); box.className = 'myth-cbox'; fx.appendChild(box);
   try { v.pause(); v.playbackRate = 1; if (v.currentTime > 0.001) v.currentTime = 0; } catch (e) {}
   await new Promise(ok => { if (!v.seeking && v.readyState >= 2) return ok(); v.addEventListener('seeked', ok, { once: true }); setTimeout(ok, 900); });
-  if (v.readyState < 2 || !g.draw(v)) { MYTH.noVideo = true; return false; }
-  const scene = mythScene(layer, s);
-  // her size on screen: her picture in the card is `st.h · H0` tall and the video's figure fills `a.body` of the video's height
-  const vh = window.innerHeight, vw = window.innerWidth; let S1 = (st.h * H0 / a.body1) * a.scale; S1 = Math.min(S1, vh * 0.9, vw * 1.25 * a.size[1] / a.size[0]); // the video's height on screen: at the end she is a little bigger than her picture
-  cv.style.height = S1 + 'px'; cv.style.width = (S1 * a.size[0] / a.size[1]) + 'px';
-  document.body.appendChild(fx);
+  if (v.readyState < 2) return false;
+  box.appendChild(v); document.body.appendChild(fx);
   const T = mythCT(a);
-  const R = { mode: 'cine', s, art, a, v, g, cv, fx, dim, ring, flash, scene, S1, find, wkey, T, W0, H0, t0: performance.now(), playing: false, clock: { dur: T.end } };
+  const R = { mode: 'cine', s, art, a, v, fx, dim, box, find, wkey, T, t0: performance.now(), playing: false, clock: { dur: T.end } };
   MYTH.run = R;
   fx.addEventListener('pointerdown', e => { e.preventDefault(); mythStop(); });
   if (MYTH.manual) { mythDrawC(R, 0); return true; }
@@ -177,7 +130,6 @@ async function mythPlayCine(layer, s, art, v) {
       else if (!v.paused && v.currentTime > 0) { t = T.play0 + v.currentTime * 1000; R.t0 = now - t; } // the video is the clock
       else if (t - T.play0 > 1500) R.seek = true;
       if (v.ended || v.currentTime >= a.dur - 0.04) { t = Math.max(t, T.play1); R.t0 = now - t; }
-      if (v.readyState >= 2) g.draw(v);
     }
     if (t >= T.end) { mythStop(); return; }
     mythDrawC(R, t); requestAnimationFrame(loop);
@@ -185,59 +137,39 @@ async function mythPlayCine(layer, s, art, v) {
   requestAnimationFrame(loop);
   return true;
 }
-/* one moment of the video show (ms from its start) */
+/* one moment of the cinematic (ms from its start): where the video box is — on the card at the start and the end, full screen between */
 function mythDrawC(R, t) {
   const layer = R.find(); if (!layer || !layer.isConnected) { mythStop(); return; }
   if (R.wkey && typeof c3state === 'function') { const st = c3state(R.wkey); const tgt = Math.round(st.ry / 360) * 360; st.ry += (tgt - st.ry) * 0.35; st.rx += (0 - st.rx) * 0.35; st.idle = Date.now() + 2000; const w = layer.closest('.card3d-wrap'); if (w) card3dApply(w); }
-  const r = layer.getBoundingClientRect(); const W = r.width, H = r.height; if (W < 20) { mythStop(); return; }
-  const a = R.a, st = R.art.stand, T = R.T; const vw = window.innerWidth, vh = window.innerHeight;
-  const cw = R.S1 * a.size[0] / a.size[1], ch = R.S1; // the video on screen
-  // where her body centre is: in the card (her picture) and out of it (above the card's centre, but on screen)
-  const C0 = { x: r.left + (st.x + st.ax * st.w) * W, y: r.top + (st.y + st.ay * st.h) * H };
-  const C1 = { x: mClamp(r.left + W / 2, cw * 0.45, vw - cw * 0.45), y: mClamp(C0.y - H * 0.02, ch * a.c0[1] + 4, vh - ch * (1 - a.c0[1]) - 4) };
-  // the video frame's own centre of her moves (she dodges across the frame): pin the frame so that her centre at the
-  // start sits at C1 — the frame stays put, she moves inside it, exactly as in the cinematic
-  const F = { x: C1.x - a.c0[0] * cw, y: C1.y - a.c0[1] * ch };
-  let op = 0, k = 0; // k: 0 — in the card, 1 — out
-  if (t >= T.out0 && t < T.out1) { k = mEaseIO(mSeg(t, T.out0, T.out1)); op = 1; }
-  else if (t >= T.out1 && t < T.back0) { k = 1; op = 1; }
-  else if (t >= T.back0 && t < T.back1) { k = 1 - mEaseIO(mSeg(t, T.back0, T.back1)); op = 1; }
-  // while she steps out / back, her body centre slides between her picture (C0) and her place on screen, and she grows from
-  // the picture's size to full size; the video's own figure centre (c0 at the start, c1 at the end) is the anchor
-  const back = t >= T.back0; const cEnd = back ? a.c1 : a.c0; const sPic = st.h * H / ((back ? a.body1 : a.body0) * ch); // the scale at which the video's figure is her picture's size
-  const sc = mLerp(sPic, 1, k); const anchor = { x: F.x + cEnd[0] * cw, y: F.y + cEnd[1] * ch }; // where that centre is at full size
-  const Cx = mLerp(C0.x, anchor.x, k), Cy = mLerp(C0.y, anchor.y, k) - Math.sin(k * Math.PI) * H * 0.05;
-  R.cv.style.opacity = op.toFixed(3);
-  if (op) R.cv.style.transform = `translate3d(${(Cx - cEnd[0] * cw * sc).toFixed(1)}px, ${(Cy - cEnd[1] * ch * sc).toFixed(1)}px, 0) scale(${sc.toFixed(4)})`;
-  // the card: her picture fades out as she steps out, the living background takes over; back in at the end
-  const mo = t < T.out0 ? 0 : t < T.back1 - 160 ? mSeg(t, T.out0, T.out0 + 140) : 1 - mSeg(t, T.back1 - 160, T.back1);
-  const mg = Math.max(Math.exp(-Math.pow((t - T.out0 - 80) / 160, 2)), Math.exp(-Math.pow((t - T.back1 + 40) / 180, 2)));
+  const r = layer.getBoundingClientRect(); if (r.width < 20) { mythStop(); return; }
+  const a = R.a, T = R.T, vw = window.innerWidth, vh = window.innerHeight; const [VW, VH] = a.size; const cb = a.card; // the card in the video's first frame (fractions)
+  // on the card: the video's card covers the app's card exactly (Gemini drew the 2:3 card into a 9:16 frame — stretched back here)
+  const sx0 = r.width / ((cb[2] - cb[0]) * VW), sy0 = r.height / ((cb[3] - cb[1]) * VH); const onCard = { x: r.left - cb[0] * VW * sx0, y: r.top - cb[1] * VH * sy0, sx: sx0, sy: sy0 };
+  // v70.1 (the owner): the show stays over the card — the video grows only a little past the frame (by `a.grow`), never to the whole screen
+  const g = a.grow || 1.3; let sG = Math.min(r.height * g / VH, vw / VW, vh / VH); const Wg = VW * sG, Hg = VH * sG;
+  const full = { x: mClamp(r.left + r.width / 2 - Wg / 2, 0, Math.max(0, vw - Wg)), y: mClamp(r.top + r.height / 2 - Hg / 2, 0, Math.max(0, vh - Hg)), sx: sG, sy: sG };
+  const k = t < T.in1 ? mEaseIO(mSeg(t, T.in0 + 120, T.in1)) : t < T.out0 ? 1 : 1 - mEaseIO(mSeg(t, T.out0, T.play1 - 40));
+  const P = { x: mLerp(onCard.x, full.x, k), y: mLerp(onCard.y, full.y, k), sx: mLerp(onCard.sx, full.sx, k), sy: mLerp(onCard.sy, full.sy, k) };
+  R.box.style.width = VW + 'px'; R.box.style.height = VH + 'px';
+  R.box.style.transform = `translate3d(${P.x.toFixed(1)}px, ${P.y.toFixed(1)}px, 0) scale(${P.sx.toFixed(5)}, ${P.sy.toFixed(5)})`;
+  R.box.style.setProperty('--edge', k.toFixed(3)); // the soft edge of the video grows with it
+  R.box.style.opacity = (Math.min(mSeg(t, 0, 160), 1 - mSeg(t, T.play1 - 20, T.end - 60))).toFixed(3);
+  R.dim.style.opacity = (Math.min(mSeg(t, 0, 300), 1 - mSeg(t, T.play1, T.end))).toFixed(3);
+  const mg = Math.max(Math.exp(-Math.pow((t - 120) / 140, 2)), Math.exp(-Math.pow((t - T.play1) / 180, 2)));
   if (!layer.classList.contains('myth-on')) layer.classList.add('myth-on');
-  layer.style.setProperty('--mo', mo.toFixed(3)); layer.style.setProperty('--mg', mg.toFixed(3));
-  R.scene.draw(t, mo);
-  // the flash that covers the joint in the video (the cut generation bug) — the same burst, on screen
-  const fl = Math.exp(-Math.pow((t - T.play0 - a.flash * 1000) / 110, 2)); R.flash.style.opacity = (fl * 0.85).toFixed(3);
-  if (fl > 0.02) R.flash.style.transform = `translate3d(${(C1.x - R.W0 * 0.9).toFixed(0)}px, ${(C1.y - R.W0 * 0.9).toFixed(0)}px, 0)`;
-  R.flash.style.width = R.flash.style.height = (R.W0 * 1.8) + 'px';
-  const cx = r.left + W / 2, cy = r.top + H / 2;
-  R.dim.style.opacity = (Math.min(mSeg(t, 0, 300), 1 - mSeg(t, T.back1, T.end))).toFixed(3);
-  const ringAt = t0 => { const p = mSeg(t, t0, t0 + 560); return p > 0 && p < 1 ? p : 0; };
-  const rp = ringAt(T.out0 - 40) || ringAt(T.back1 - 200);
-  R.ring.style.opacity = rp ? (0.95 * (1 - rp)).toFixed(3) : 0;
-  if (rp) R.ring.style.transform = `translate3d(${cx - R.W0 * 0.475}px, ${cy - R.W0 * 0.475}px, 0) scale(${(0.25 + rp * 1.6).toFixed(3)})`;
+  layer.style.setProperty('--mo', '0'); layer.style.setProperty('--mg', mg.toFixed(3));
 }
-/* the channel video: any moment of the show (the video show seeks its video first) */
+/* the channel video: any moment of the show (the cinematic seeks its video first) */
 async function mythSeek(realMs) {
   const R = MYTH.run; if (!R || !R.clock) return 0;
   if (R.mode !== 'cine') { mythDraw(R, R.clock.at(realMs)); return R.clock.dur; }
   const T = R.T; const tv = mClamp((realMs - T.play0) / 1000, 0, R.a.dur - 0.001);
   if (Math.abs(R.v.currentTime - tv) > 0.0005) await new Promise(ok => { R.v.addEventListener('seeked', ok, { once: true }); R.v.currentTime = tv; setTimeout(ok, 1500); });
-  R.g.draw(R.v); mythDrawC(R, realMs); return T.end;
+  mythDrawC(R, realMs); return T.end;
 }
 function mythStop() {
   const R = MYTH.run; MYTH.run = null; if (!R || !R.fx) return;
-  if (R.v) try { R.v.pause(); R.v.playbackRate = 1; } catch (e) {}
-  if (R.scene) try { R.scene.cv.remove(); } catch (e) {}
+  if (R.v) try { R.v.pause(); R.v.playbackRate = 1; if (R.v.parentNode) R.v.parentNode.removeChild(R.v); } catch (e) {}
   const l = R.find && R.find(); if (l) { l.classList.remove('myth-on'); l.style.removeProperty('--mo'); l.style.removeProperty('--mg'); }
   if (R.wkey && typeof c3state === 'function') c3state(R.wkey).idle = Date.now();
   R.fx.style.transition = 'opacity .25s'; R.fx.style.opacity = 0; R.fx.style.pointerEvents = 'none'; setTimeout(() => R.fx.remove(), 280);
