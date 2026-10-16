@@ -1062,10 +1062,11 @@ html.lite .myth-play { display: none; }
 .myth-dim { width: 100%; height: 100%; opacity: 0; will-change: opacity; }
 .myth-hero, .myth-ghost { max-width: none; transform-origin: var(--ox, 50%) var(--oy, 50%); -webkit-user-drag: none; }
 .myth-hero { filter: drop-shadow(0 12px 18px rgba(0,0,0,.55)) drop-shadow(0 0 10px rgba(255,40,60,.5)); }
-.myth-fx.cine .myth-dim { background: rgba(8,0,4,.72); }
-.myth-cbox { transform-origin: 0 0; overflow: hidden; border-radius: 10px; background: #0d0306; box-shadow: 0 0 calc(10px + var(--edge, 0) * 50px) rgba(255,40,60,calc(.25 + var(--edge, 0) * .4)), 0 24px 60px -20px rgba(0,0,0,.9);
-  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 calc(78% - var(--edge, 0) * 14%), transparent 100%); mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 calc(78% - var(--edge, 0) * 14%), transparent 100%); }
-.myth-cbox video { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.myth-fx.hero .myth-dim { background: rgba(8,0,4,.5); }
+.skin-layer.myth-on.hero-out .skin-foil, .skin-layer.myth-on.hero-out .skin-glare { opacity: 0; }
+.myth-hero-vid { transform-origin: 0 0; filter: drop-shadow(0 14px 18px rgba(0,0,0,.6)) drop-shadow(0 0 12px rgba(255,40,60,.55)); }
+.myth-flash { border-radius: 50%; opacity: 0; background: radial-gradient(circle, rgba(255,240,225,.95) 0, rgba(255,120,95,.7) 22%, rgba(255,40,60,0) 60%); mix-blend-mode: screen; }
+.skin-layer .myth-scene { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; z-index: 1; }
 .myth-ghost { filter: sepia(1) saturate(7) hue-rotate(-30deg) brightness(.95); mix-blend-mode: screen; }
 .myth-kunai { transform-origin: 100% 50%; }
 .myth-kunai svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgba(255,80,90,.95)); }
