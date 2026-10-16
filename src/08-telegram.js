@@ -111,6 +111,22 @@ async function cloudSync() {
 }
 /* presence: a ping every minute while the app is open keeps "online" accurate for friends */
 let heartbeatTimer = null;
+/* v70.1: Telegram's webview keeps an old copy of the app for days — on every open compare the build id with version.json
+   on the site and reload past the cache when it is newer (once per build, so a failed deploy cannot loop) */
+function checkAppUpdate() {
+  try {
+    const me = (document.querySelector('meta[name="mafia-build"]') || {}).content || ''; if (!me || me.includes('$')) return;
+    if (!/^https:/.test(location.protocol)) return;
+    fetch(new URL('version.json', location.href).href + '?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+      const b = d && String(d.build || ''); if (!b || b === me) return;
+      const k = 'mp_reloaded_to'; if (localStorage.getItem(k) === b) return; localStorage.setItem(k, b);
+      try { save(); } catch (e) {}
+      const u = new URL(location.href); u.searchParams.set('v', b.replace(/[^\w.-]/g, '')); location.replace(u.href);
+    }).catch(() => {});
+  } catch (e) {}
+}
+setTimeout(checkAppUpdate, 1500);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkAppUpdate(); });
 function startHeartbeat() {
   if (heartbeatTimer || !TG.app || !apiBase()) return;
   heartbeatTimer = setInterval(() => { try { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') api('/api/ping', {}); } catch (e) {} }, 60000);

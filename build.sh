@@ -14,6 +14,8 @@ node --check /tmp/mp-check.js && echo "syntax ok"
 wc -c mafia-pro.html
 # deploy build: a complete HTML document with the Telegram Mini App SDK, for static hosting (GitHub/Cloudflare Pages)
 mkdir -p deploy
+BUILD_ID="$(node -p "require('./package.json').version")-$(git rev-parse --short HEAD 2>/dev/null || date +%s)"
+echo "{\"build\":\"$BUILD_ID\"}" > deploy/version.json
 {
   echo '<!doctype html>'
   echo '<html lang="ru">'
@@ -24,6 +26,8 @@ mkdir -p deploy
   echo '<script>'; cat seo/app-migrate.js; echo '</script>'
   # backend address: the Pages workflow replaces the placeholder with the MAFIA_API_URL repository variable (empty = no backend)
   echo '<meta name="mafia-api" content="__MAFIA_API__">'
+  # v70.1: the build id — the app compares it with version.json on the site and reloads itself past the Telegram webview cache
+  echo "<meta name=\"mafia-build\" content=\"$BUILD_ID\">"
   # search engines and link previews (v38): the app page renders by script, the crawlable site lives in <lang>/ (seo/build-site.mjs)
   SITE_URL=$(tr -d '[:space:]' < seo/site-url.txt 2>/dev/null); SITE_URL=${SITE_URL:-https://shakaboom55566.github.io/mafia-pro/}
   sed "s#__SITE__#${SITE_URL%/}/#g" seo/app-head.html
@@ -33,7 +37,7 @@ mkdir -p deploy
 } > deploy/index.html
 wc -c deploy/index.html
 # GitHub Pages serves the repository root: index.html + a 404 page that returns to the app keeping ?startapp= deep links
-cp deploy/index.html index.html
+cp deploy/index.html index.html; cp deploy/version.json version.json
 cat > 404.html <<'EOF'
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><title>Mafia Pro</title>
