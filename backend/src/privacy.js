@@ -80,6 +80,7 @@ export async function exportUser(env, id) {
     exportedAt: new Date().toISOString(), telegramId: id,
     profile: await one('SELECT username, first_name, last_name, lang, photo_url, created_at, seen_at FROM users WHERE tg_id = ?1', id),
     city: await one('SELECT city, updated_at FROM user_cities WHERE tg_id = ?1', id),
+    country: await one('SELECT country, updated_at FROM user_countries WHERE tg_id = ?1', id), // v75: the profile's country (pre-filled from the network at the first open)
     settings: await one('SELECT no_news, updated_at FROM user_prefs WHERE tg_id = ?1', id),
     rating: await one('SELECT points, games, wins, hosted, updated_at FROM ratings WHERE tg_id = ?1', id),
     rankAnnounced: await one('SELECT best, host, updated_at FROM rank_best WHERE tg_id = ?1', id), // v54: the highest rank / host badge the bot congratulated on
@@ -142,7 +143,7 @@ export async function deleteUser(env, id) {
     st('DELETE FROM ratings WHERE tg_id = ?1'), st('DELETE FROM rank_best WHERE tg_id = ?1'), st('DELETE FROM season_peak WHERE tg_id = ?1'), st('DELETE FROM season_results WHERE tg_id = ?1'), st('DELETE FROM partners WHERE tg_id = ?1'),
     env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:top'"), // the cached leaderboard is rebuilt without this player
     st('DELETE FROM club_members WHERE tg_id = ?1'), st('DELETE FROM club_requests WHERE tg_id = ?1'), st('DELETE FROM club_messages WHERE tg_id = ?1'),
-    st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'), st('DELETE FROM ad_clicks WHERE tg_id = ?1'),
+    st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM user_countries WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'), st('DELETE FROM ad_clicks WHERE tg_id = ?1'),
     st('DELETE FROM broadcast_queue WHERE tg_id = ?1'), st('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_members SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE discord_invites SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_events SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM user_skins WHERE tg_id = ?1'), st('DELETE FROM skin_serials WHERE tg_id = ?1'),

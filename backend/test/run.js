@@ -76,6 +76,22 @@ console.log('initData verification');
   const pre = await call('/api/me', { method: 'OPTIONS', headers: { Origin: 'https://shakaboom55566.github.io' } }); eq(pre.status, 204, 'preflight');
   const evil = await call('/api/me', { method: 'OPTIONS', headers: { Origin: 'https://evil.example' } }); ok(!evil.headers.get('Access-Control-Allow-Origin'), 'foreign origin gets no CORS'); }
 
+console.log('geo (v75): the request\'s country and city come back as a hint, the profile\'s country is stored, shown at the seats and in the profile');
+{ const u1 = user(4401, 'uk', { first_name: 'Geo' }); const hi = await initData(u1); await hook(msg(u1, '/start'));
+  const postCf = (p, body, cf) => { const req = new Request('https://api.test' + p, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Origin': 'https://shakaboom55566.github.io' }, body: JSON.stringify(body) }); Object.defineProperty(req, 'cf', { value: cf }); return worker.fetch(req, env, ctx); };
+  const d1 = await (await postCf('/api/me', { initData: hi }, { country: 'UA', city: 'Dnipro', asn: 1 })).json(); ok(d1.ok && d1.geo && d1.geo.country === 'UA' && d1.geo.city === 'Dnipro', 'the hint from the request: ' + JSON.stringify(d1.geo));
+  const d2 = await (await post('/api/me', { initData: hi }, { 'CF-IPCountry': 'pl' })).json(); ok(d2.ok && d2.geo.country === 'PL' && d2.geo.city === '', 'the country from the header when cf is absent, no city');
+  const d3 = await (await post('/api/me', { initData: hi }, { 'CF-IPCountry': 'T1' })).json(); ok(d3.ok && d3.geo.country === '', 'Tor / unknown → no country');
+  ok(!(await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = 4401').first()), 'the hint alone stores nothing');
+  await post('/api/me', { initData: hi, city: 'Дніпро', country: 'ua' }); eq((await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = 4401').first()).country, 'UA', 'the profile country is stored upper-case');
+  await post('/api/me', { initData: hi, country: 'Ukraine' }); eq((await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = 4401').first()).country, 'UA', 'a bad code is ignored');
+  const pr = await (await post('/api/profile', { initData: hi, tgId: 4401 })).json(); ok(pr.ok && pr.user.country === 'UA' && pr.user.city === 'Дніпро', 'the public profile carries the city and the country');
+  const host = user(4400, 'ru'); const hh = await initData(host); await hook(msg(host, '/start')); const lob = await (await post('/api/lobby', { initData: hh, fresh: true })).json();
+  await hook(msg(u1, `/start join_${lob.code}`)); const st = await (await post('/api/lobby/status', { initData: hh, code: lob.code })).json();
+  const seat = (st.players || []).find(x => x.tgId === 4401); ok(seat && seat.country === 'UA' && seat.city === 'Дніпро', 'the seat at the table carries the country: ' + JSON.stringify(seat && [seat.city, seat.country]));
+  await post('/api/me', { initData: hi, country: '' }); eq((await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = 4401').first()).country, '', 'the player may clear the country');
+}
+
 console.log('Stars purchase flow');
 let payload;
 { const id = await initData(user(42)); const r = await post('/api/invoice', { initData: id, kind: 'role', id: 'arsonist', title: 'Поджигатель', description: 'Премиум-карта' }); const d = await r.json();
@@ -1495,9 +1511,9 @@ console.log('privacy: /privacy, /mydata, /unsubscribe, /support, /deletedata');
 { const p = user(41, 'uk'); await hook(msg(p, '/start'));
   await hook(msg(p, '/privacy')); ok(lastTo(41).params.text.includes('https://shakaboom55566.github.io/uk/privacy/') || lastTo(41).params.text.includes('/uk/privacy/'), 'policy link in the player language: ' + lastTo(41).params.text.slice(-60));
   await hook(msg(p, '/help')); ok(lastTo(41).params.text.includes('/privacy'), '/help mentions /privacy');
-  await post('/api/me', { initData: await initData(p), city: 'Київ' });
+  await post('/api/me', { initData: await initData(p), city: 'Київ', country: 'UA' });
   await hook(msg(p, '/mydata')); const doc = lastCall('sendDocument'); ok(doc && doc.params.chat_id === 41 && /my-data-41\.json$/.test(doc.params.document.name), 'data file sent');
-  const data = JSON.parse(doc.params.document.bytes.toString('utf8')); ok(data.telegramId === 41 && data.profile.username === 'user41' && data.city.city === 'Київ', 'file has the profile and city');
+  const data = JSON.parse(doc.params.document.bytes.toString('utf8')); ok(data.telegramId === 41 && data.profile.username === 'user41' && data.city.city === 'Київ' && data.country && data.country.country === 'UA', 'file has the profile, city and country');
   await hook(msg(p, '/mydata')); ok(/годину/.test(lastTo(41).params.text), 'second export within an hour → wait');
   await hook(msg(p, '/unsubscribe')); ok(await env.DB.prepare('SELECT no_news FROM user_prefs WHERE tg_id = 41').first('no_news') === 1, 'unsubscribed');
   await hook(msg({ id: 777, first_name: 'Admin', language_code: 'ru' }, '/broadcast')); const card = lastTo(777).params.text; ok(/Получат/.test(card), 'broadcast preview');
@@ -1518,8 +1534,8 @@ console.log('privacy: /privacy, /mydata, /unsubscribe, /support, /deletedata');
   await hook(msg(p, '/deletedata')); const ask = lastTo(41); ok(ask.params.reply_markup.inline_keyboard[0][0].callback_data === 'pv_del_yes', 'deletion asks first');
   ok(await env.DB.prepare('SELECT 1 FROM users WHERE tg_id = 41').first(), 'nothing deleted before the button');
   await hook({ update_id: 8, callback_query: { id: 'q4', from: p, data: 'pv_del_yes', message: { message_id: 9, chat: { id: 41 } } } });
-  const gone = await Promise.all(['users', 'ratings', 'user_cities', 'user_prefs', 'player_track'].map(tb => env.DB.prepare(`SELECT COUNT(*) AS n FROM ${tb} WHERE tg_id = 41`).first('n')));
-  eq(gone, [0, 0, 0, 0, 0], 'profile, rating, city, settings, source deleted');
+  const gone = await Promise.all(['users', 'ratings', 'user_cities', 'user_countries', 'user_prefs', 'player_track'].map(tb => env.DB.prepare(`SELECT COUNT(*) AS n FROM ${tb} WHERE tg_id = 41`).first('n')));
+  eq(gone, [0, 0, 0, 0, 0, 0], 'profile, rating, city, country, settings, source deleted');
   eq(await env.DB.prepare('SELECT COUNT(*) AS n FROM friends WHERE tg_id = 41 OR friend_id = 41').first('n'), 0, 'friendships deleted');
   const sm = JSON.parse(await env.DB.prepare("SELECT summary FROM games WHERE game_id = 'pv-1'").first('summary')); ok(sm[0].tgId === null && sm[0].name === 'Игрок' && sm[1].tgId === 42, 'game kept for the other player, this seat anonymised');
   eq(await env.DB.prepare("SELECT host_id FROM games WHERE game_id = 'pv-1'").first('host_id'), 0, 'hosted game no longer points to the player');

@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -1188,6 +1188,44 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v74 ' + m); }
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
   S.lobby = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v74 ok');
 } catch (e) { fails++; console.log('FAIL v74 crashed', e && e.stack || e); }
+// v75: the country from the network — /api/me answers with geo; my profile takes the country, the form suggests the city, the pair goes to the server; flags at seats and in the player sheet
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v75 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []; globalThis.__geo = { country: "UA", city: "Дніпро" }', ctx);
+  vm.runInContext('api = async (p, b) => { __calls.push([p, b]); if (p === "/api/me") return { ok: true, user: { id: 500, name: "Me", username: "", lang: "ru", photo: "" }, rating: { points: 0, games: 0, wins: 0, hosted: 0 }, geo: __geo, invites: [], table: null }; return { ok: true }; }', ctx);
+  const calls = E('__calls'); const GEO = E('GEO'); GEO.sent = '';
+  const me = E('newProfile')({ name: 'Гео', tgId: 500 }); S.profiles.push(me); S.meId = me.id; S.cloud = null; S.screen = 'home'; S.ui.sheet = null;
+  await E('cloudSync')();
+  if (!S.cloud || !S.cloud.geo || S.cloud.geo.country !== 'UA' || S.cloud.geo.city !== 'Дніпро') F('the hint arrives with /api/me: ' + JSON.stringify(S.cloud && S.cloud.geo));
+  if (me.country !== 'UA' || me.city) F('my profile takes the country at once, the city is not written by itself: ' + JSON.stringify([me.country, me.city]));
+  const sent = calls.filter(c => c[0] === '/api/me' && c[1] && typeof c[1].country === 'string'); if (sent.length !== 1 || sent[0][1].country !== 'UA' || sent[0][1].city !== '') F('the server is told the pair once: ' + JSON.stringify(sent.map(c => c[1])));
+  calls.length = 0; await E('cloudSync')(); if (calls.some(c => c[0] === '/api/me' && c[1] && typeof c[1].country === 'string')) F('unchanged city/country are not sent again');
+  // my profile form: the city is suggested with a hint, the country already there is selected
+  A['prof-edit'](el('prof-edit', { id: me.id })); check('v75 edit me'); let h = app.innerHTML;
+  if (!S.ui.pf || S.ui.pf.city !== 'Дніпро' || S.ui.pf.country !== 'UA' || S.ui.pf.geo !== 'city') F('the form suggests the city: ' + JSON.stringify(S.ui.pf));
+  if (!h.includes(u.geoHintCity) || !h.includes('value="UA" selected') || !h.includes('value="Дніпро"')) F('the hint and the values in the form');
+  A.pf(el('pf', { k: 'city', value: 'Київ' })); if (S.ui.pf.geo) F('a hand edit drops the hint');
+  calls.length = 0; A['prof-save'](el('prof-save', { id: me.id })); if (me.city !== 'Київ' || me.country !== 'UA') F('saved');
+  const s2 = calls.find(c => c[0] === '/api/me'); if (!s2 || s2[1].city !== 'Київ' || s2[1].country !== 'UA') F('the saved pair goes to the server: ' + JSON.stringify(calls));
+  // «no country» chosen on purpose stays: the next sync does not refill it
+  A['prof-edit'](el('prof-edit', { id: me.id })); A.pf(el('pf', { k: 'country', value: '' })); A['prof-save'](el('prof-save', { id: me.id }));
+  if (me.country || !me.noCountry) F('no country on purpose'); await E('cloudSync')(); if (me.country) F('the network does not refill a country removed on purpose');
+  A['prof-edit'](el('prof-edit', { id: me.id })); if (S.ui.pf.country) F('the form does not suggest a country removed on purpose'); A.pf(el('pf', { k: 'country', value: 'PL' })); A['prof-save'](el('prof-save', { id: me.id })); if (me.country !== 'PL' || me.noCountry) F('a country chosen again clears the mark');
+  // a country outside the short list keeps its place in the picker; a new profile for someone else gets nothing
+  E('__geo').country = 'BY'; E('__geo').city = ''; me.country = ''; delete me.noCountry; await E('cloudSync')(); if (me.country !== 'BY') F('a country outside the list is taken too');
+  A['prof-edit'](el('prof-edit', { id: me.id })); h = app.innerHTML; if (!h.includes('<option value="BY" selected>')) F('the picker shows the country outside the list'); S.ui.sheet = null; S.ui.pf = null;
+  A['prof-new'](el('prof-new', {})); if (S.ui.pf.country || S.ui.pf.city || S.ui.pf.geo) F('another person\'s new profile is not pre-filled'); S.ui.sheet = null;
+  E('__geo').country = 'UA'; E('__geo').city = 'Львів'; await E('cloudSync')(); A['prof-new'](el('prof-new', { me: '1' })); check('v75 new me'); h = app.innerHTML;
+  if (S.ui.pf.country !== 'UA' || S.ui.pf.city !== 'Львів' || S.ui.pf.geo !== 'both' || !h.includes(u.geoHint)) F('my new profile is pre-filled with both: ' + JSON.stringify(S.ui.pf)); S.ui.sheet = null; S.ui.pf = null;
+  // Tor / unknown: nothing
+  const me2 = E('newProfile')({ name: 'Гео2', tgId: 500 }); S.profiles.push(me2); S.meId = me2.id; E('__geo').country = 'T1'; E('__geo').city = ''; await E('cloudSync')(); if (me2.country) F('T1 is not a country');
+  // flags: at the seat of the round table, in the host\'s list, in the player sheet, on the local profile
+  const rt = E('roundTableHTML')([{ seat: 1, name: 'A', tgId: 601, alive: true }], { 601: { tgId: 601, name: 'A', points: 1000, city: 'Київ', country: 'UA' } }, ''); if (!rt.includes('1000 · 🇺🇦 Київ')) F('the flag by the city at the seat');
+  const rt2 = E('roundTableHTML')([{ seat: 1, name: 'A', tgId: 601, alive: true }], { 601: { tgId: 601, name: 'A', points: 1000, city: '', country: 'PL' } }, ''); if (!rt2.includes('1000 · 🇵🇱<')) F('the flag alone without a city');
+  vm.runInContext('FRP[777] = { ok: true, user: { tgId: 777, name: "Х", username: "x", photo: "", city: "Львів", country: "UA", online: false, since: 0 }, rating: { points: 1000, games: 0, wins: 0, hosted: 0 }, roles: [], recent: [], streaks: {}, skins: {}, isFriend: false }', ctx);
+  S.ui.sheet = { type: 'friend', id: 777 }; X.render(); check('v75 friend sheet'); if (!app.innerHTML.includes('🇺🇦 Львів · ' + E('countryName')('UA'))) F('the player sheet shows the flag, the city and the country'); S.ui.sheet = null;
+  me.city = 'Дніпро'; me.country = 'UA'; S.meId = me.id; S.ui.profileId = me.id; S.screen = 'myprofile'; X.render(); check('v75 my profile'); if (!app.innerHTML.includes('🇺🇦 Дніпро · ' + E('countryName')('UA'))) F('my profile shows the flag first');
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx); S.profiles = S.profiles.filter(p => p !== me && p !== me2); S.meId = null; S.cloud = null; S.screen = 'home'; X.render(); console.log('v75 ok');
+} catch (e) { fails++; console.log('FAIL v75 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

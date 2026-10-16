@@ -129,7 +129,7 @@ function profileScreen() {
   const bestRole = best ? ROLE[best.id] : (pr.history.length ? ROLE[pr.history[pr.history.length - 1].roleId] : ROLE.sheriff);
   const favs = favoritesOf(pr, S.ui.allRoles ? 99 : 3);
   const tile = (v, k, c = '') => `<div class="st"><div class="v num" style="${c}">${v}</div><div class="k">${k}</div></div>`;
-  const loc = [flagOf(pr.country), esc(pr.city), pr.country ? esc(countryName(pr.country)) : ''].filter(Boolean).join(' · ');
+  const loc = (pr.country ? flagOf(pr.country) + ' ' : '') + [esc(pr.city), pr.country ? esc(countryName(pr.country)) : ''].filter(Boolean).join(' · ');
   const hist = pr.history.slice().reverse().slice(0, 25);
   const sideRow = (k, lbl) => { const b = st.bySide[k]; return `<div class="fav">${sealHTML(k === 'city' ? ROLE.sheriff : k === 'mafia' ? ROLE.don : ROLE.maniac)}<div><div class="n">${lbl}</div><div class="s">${tt(u.rtGW, { g: b.g, w: b.w })}</div></div><span class="w">${b.g ? Math.round(100 * b.w / b.g) : 0}%</span></div>`; };
   const isMe = pr.id === S.meId;

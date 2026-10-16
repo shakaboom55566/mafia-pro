@@ -234,6 +234,12 @@ CREATE TABLE IF NOT EXISTS user_cities (
   city       TEXT,
   updated_at INTEGER NOT NULL
 );
+-- country from the player's own profile (v75: pre-filled from the network when the app is first opened; the player may change it)
+CREATE TABLE IF NOT EXISTS user_countries (
+  tg_id      INTEGER PRIMARY KEY,
+  country    TEXT,                    -- ISO 3166-1 alpha-2
+  updated_at INTEGER NOT NULL
+);
 
 -- per-table options (v31): the creator may sit as a player and invite someone else to host; the format chosen for the table
 CREATE TABLE IF NOT EXISTS lobby_opts (

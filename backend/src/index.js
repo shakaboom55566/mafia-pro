@@ -654,7 +654,13 @@ async function auth(env, body) {
   await touchUser(env, v.user);
   return v;
 }
-async function apiMe(env, bot, body) {
+/* v75: where the player opens the app from — Cloudflare's geolocation of the request (country code, city). A hint for the profile only; nothing is stored from it by itself */
+const CC_RE = /^[A-Z]{2}$/;
+function geoOf(req, g) {
+  const cf = (req && req.cf) || {}; const cc = String((g && g.country) || cf.country || '').toUpperCase();
+  return { country: CC_RE.test(cc) && cc !== 'T1' && cc !== 'XX' ? cc : '', city: cleanStr(String(cf.city || '')).slice(0, 48) };
+}
+async function apiMe(env, bot, body, geo) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const [owned, rating, code, username] = await Promise.all([ownedFor(env, v.user.id), ratingFor(env, v.user.id), inviteCodeFor(env, v.user.id), botUsername(env, bot)]);
   const u = v.user;
@@ -663,6 +669,7 @@ async function apiMe(env, bot, body) {
   const credits = await creditsFor(env, u.id); const club = await membershipOf(env, u.id);
   const partner = club && club.owner_id ? await env.DB.prepare('SELECT 1 FROM partners WHERE tg_id = ?1 AND status = ?2').bind(club.owner_id, 'active').first() : null;
   if (typeof body.city === 'string') { const city = body.city.trim().slice(0, 48); await env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2, updated_at = ?3').bind(u.id, city, now()).run(); }
+  if (typeof body.country === 'string') { const cc = body.country.trim().toUpperCase(); if (cc === '' || CC_RE.test(cc)) await env.DB.prepare('INSERT INTO user_countries (tg_id, country, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET country = ?2, updated_at = ?3').bind(u.id, cc, now()).run(); } // v75: the profile's country (the app fills it from geo at the first open)
   const table = await tableOf(env, u.id); const invites = await pendingInvites(env, u.id);
   const sz = seasonNow(env); const peak = await peakOf(env, v.user.id, sz, rating);
   const borrow = await borrowsSkins(env, u.id); // v63: a tournament participant wears any Epic skin while the games are on
@@ -670,7 +677,7 @@ async function apiMe(env, bot, body) {
   Object.assign(skins, await mySerialsInfo(env, u.id)); // v69: the numbers of my numbered copies, how many are sold
   const emeralds = await emeraldsInfo(env, u.id); // v63
   const tournament = await tournamentBrief(env, u.id);
-  return json({ ok: true, season: seasonInfo(sz), peak, skins, emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  return json({ ok: true, geo: geo || { country: '', city: '' }, season: seasonInfo(sz), peak, skins, emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -775,7 +782,8 @@ async function profileData(env, id) {
   const roles = Object.values(byRole).sort((a, b) => b.wins - a.wins || b.games - a.games || b.points - a.points);
   const ts = now();
   const club = await membershipOf(env, id);
-  return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '' },
+  const loc = await env.DB.prepare('SELECT (SELECT city FROM user_cities WHERE tg_id = ?1) AS city, (SELECT country FROM user_countries WHERE tg_id = ?1) AS country').bind(id).first(); // v75
+  return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '', city: (loc && loc.city) || '', country: (loc && loc.country) || '' },
     rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id), serials: await wornSerials(env, id) };
 }
 /* ---------- v56 card skins (skins.js) ---------- */
@@ -1162,7 +1170,7 @@ async function apiLobbyStatus(env, bot, body) {
   const hostInvite = await env.DB.prepare('SELECT i.tg_id, i.status, u.first_name, u.last_name, u.username FROM table_invites i LEFT JOIN users u ON u.tg_id = i.tg_id WHERE i.code = ?1 AND i.kind = ?2 ORDER BY i.created_at DESC LIMIT 1').bind(lobby.code, 'host').first();
   const voice = await voiceInfo(env, lobby.code, v.user.id); const flag = flagOf(await lobbyLang(env, lobby.code));
   if (opts.online) bg(env, announceTable(env, bot, lobby.code, { seats: Math.round(Number(body.seats)) || null }));
-  return json({ ok: true, code: lobby.code, status: lobby.status, hostPlays: opts.hostPlays, online: opts.online, flag, voice, hostInvite: hostInvite ? { tgId: hostInvite.tg_id, name: rowName(hostInvite) || String(hostInvite.tg_id), status: hostInvite.status } : null, players: players.map(p => Object.assign({}, p, profiles[p.tgId] ? { photo: profiles[p.tgId].photo, points: profiles[p.tgId].points, games: profiles[p.tgId].games, hosted: profiles[p.tgId].hosted, city: profiles[p.tgId].city, club: profiles[p.tgId].club, online: profiles[p.tgId].online, frame: profiles[p.tgId].frame || '' } : {})) });
+  return json({ ok: true, code: lobby.code, status: lobby.status, hostPlays: opts.hostPlays, online: opts.online, flag, voice, hostInvite: hostInvite ? { tgId: hostInvite.tg_id, name: rowName(hostInvite) || String(hostInvite.tg_id), status: hostInvite.status } : null, players: players.map(p => Object.assign({}, p, profiles[p.tgId] ? { photo: profiles[p.tgId].photo, points: profiles[p.tgId].points, games: profiles[p.tgId].games, hosted: profiles[p.tgId].hosted, city: profiles[p.tgId].city, country: profiles[p.tgId].country, club: profiles[p.tgId].club, online: profiles[p.tgId].online, frame: profiles[p.tgId].frame || '' } : {})) });
 }
 /* cards go to the app: each player's role is stored in their private table state; a short DM (no role text) pings those not looking at the table */
 async function apiLobbyDeal(env, bot, body) {
@@ -1203,9 +1211,9 @@ function tableButton(env, lang, code) { return { reply_markup: { inline_keyboard
 async function seatProfiles(env, ids) {
   ids = [...new Set(ids.map(Number).filter(Boolean))].slice(0, 40); if (!ids.length) return {};
   const q = ids.map((_, i) => '?' + (i + 1)).join(',');
-  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, r.hosted, uc.city, c.name AS club, c.logo AS clubLogo FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities uc ON uc.tg_id = u.tg_id LEFT JOIN club_members m ON m.tg_id = u.tg_id LEFT JOIN clubs c ON c.id = m.club_id AND c.status = 'active' WHERE u.tg_id IN (${q})`).bind(...ids).all()).results || [];
+  const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, r.hosted, uc.city, uco.country, c.name AS club, c.logo AS clubLogo FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities uc ON uc.tg_id = u.tg_id LEFT JOIN user_countries uco ON uco.tg_id = u.tg_id LEFT JOIN club_members m ON m.tg_id = u.tg_id LEFT JOIN clubs c ON c.id = m.club_id AND c.status = 'active' WHERE u.tg_id IN (${q})`).bind(...ids).all()).results || [];
   const ts = now(); const out = {};
-  for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, wins: r.wins || 0, city: r.city || '', club: r.club || '', clubLogo: r.clubLogo || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
+  for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, wins: r.wins || 0, city: r.city || '', country: r.country || '', club: r.club || '', clubLogo: r.clubLogo || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
   const fr = await framesOf(env, ids); for (const id of Object.keys(fr)) if (out[id]) out[id].frame = fr[id]; // v74: the avatar frame everyone at the table sees
   return out;
 }
@@ -2012,7 +2020,7 @@ export default {
           else if (c.reason === 'bad_hash' || c.reason === 'too_long') authForged(env, g);
         }
         switch (path) {
-          case '/api/me': return wrap(apiMe(env, bot, body));
+          case '/api/me': return wrap(apiMe(env, bot, body, geoOf(req, g)));
           case '/api/friends': return wrap(apiFriends(env, bot, body));
           case '/api/friends/accept': return wrap(apiFriendAccept(env, bot, body));
           case '/api/friends/remove': return wrap(apiFriendRemove(env, body));

@@ -2,7 +2,7 @@
    Every statement here must stay true to the code: what backend/src stores, backend/src/privacy.js (/mydata, /deletedata,
    /unsubscribe, /support) and backend/src/security.js (IP hashes, 30 / 14 / 90 days). Change the code → change this text.
    Paragraphs use the site's markdown: **bold**, [text](https://link). */
-export const UPDATED = { ru: '16 октября 2026 г.', uk: '16 жовтня 2026 р.', en: '16 October 2026', pl: '16 października 2026 r.', hy: '2026 թ. հոկտեմբերի 16' };
+export const UPDATED = { ru: '17 октября 2026 г.', uk: '17 жовтня 2026 р.', en: '17 October 2026', pl: '17 października 2026 r.', hy: '2026 թ. հոկտեմբերի 17' };
 
 export const PRIVACY = {
   ru: {
@@ -17,7 +17,7 @@ export const PRIVACY = {
       { h: '2. Какие данные мы собираем', p: ['**Данные Telegram.** Когда вы пишете боту или открываете приложение, Telegram передаёт нам ваш Telegram id, имя и фамилию, @ник, язык интерфейса и ссылку на фото профиля. Номер телефона, контакты и переписку Telegram нам не передаёт.'], ul: [
         '**Игра:** столы, которые вы открываете или за которые садитесь, место, роль, ходы и ответы в онлайн-партии, сообщения в чате стола, итоги партий, очки, рейтинг, ранг, лучший рейтинг и итог каждого сезона, статистика и серии побед, имя, под которым вы играли.',
         '**Друзья и клубы:** список друзей и заявки, ваш код приглашения и кого вы пригласили, клубы (название, город, описание, ссылка, логотип), членство и сообщения в чате клуба, заявка партнёра (имя, канал, аудитория).',
-        '**Профиль:** город, если вы укажете его в профиле приложения.',
+        '**Профиль:** страна и город из вашего профиля в приложении. При первом открытии приложения страну мы подставляем сами — по стране сети, из которой пришёл запрос (её определяет Cloudflare по IP-адресу; сам адрес мы не храним), а город лишь предлагаем в форме профиля. И страну, и город вы можете изменить или убрать в любой момент; сохраняется только то, что стоит в профиле. Страна и город видны игрокам за вашим столом и в вашей публичной карточке игрока.',
         '**Покупки:** что куплено за Telegram Stars, сумма, номер платежа Telegram. Данных карты мы не получаем — оплату проводит Telegram.',
         '**Изумруды и турниры:** баланс игровой валюты (изумруды) и история его изменений (покупка пака, приз турнира, покупка скина), участие в еженедельных турнирах — роль, стол, очки, место и приз.',
         '**Скины карт:** какие скины у вас есть (награды сезонов) и какой скин вы надели на какую карту, а у номерных скинов — номер вашего экземпляра; скин и номер видят игроки за вашим столом и в вашем профиле.',
@@ -53,7 +53,7 @@ export const PRIVACY = {
       { h: '6. Ваши права', p: ['Всё делается в боте [@mafiaprof_bot](https://t.me/mafiaprof_bot):'], ul: [
         '**/mydata** — файл со всеми данными о вас (раз в час).',
         '**/deletedata** — удалить ваши данные. Удаляются профиль, рейтинг и статистика, друзья, членство в клубах и сообщения, места и чат за столами, приглашения, источник прихода, привязка Discord, настройки. В итогах прошлых партий ваше место остаётся как «Игрок» без Telegram id. Записи об оплатах сохраняются для учёта, купленное и выданный доступ после удаления пропадают.',
-        '**Исправление:** имя, @ник и фото обновляются из Telegram сами; город меняется в профиле приложения.',
+        '**Исправление:** имя, @ник и фото обновляются из Telegram сами; страна и город меняются в профиле приложения.',
         '**/unsubscribe** — не получать рассылки; **/subscribe** — вернуть.',
         '**Возражение, ограничение обработки, другие вопросы** — **/support** с текстом.',
         '**Жалоба в надзорный орган:** в Украине — Уполномоченный Верховной Рады по правам человека; в Польше — Prezes UODO; в других странах ЕС — местный орган по защите данных; в Армении — Агентство по защите персональных данных Министерства юстиции.'
@@ -84,7 +84,7 @@ export const PRIVACY = {
       { h: '2. Які дані ми збираємо', p: ['**Дані Telegram.** Коли ви пишете боту або відкриваєте застосунок, Telegram передає нам ваш Telegram id, ім’я та прізвище, @нік, мову інтерфейсу й посилання на фото профілю. Номер телефону, контакти й листування Telegram нам не передає.'], ul: [
         '**Гра:** столи, які ви відкриваєте або за які сідаєте, місце, роль, ходи й відповіді в онлайн-партії, повідомлення в чаті столу, підсумки партій, очки, рейтинг, ранг, найкращий рейтинг і підсумок кожного сезону, статистика й серії перемог, ім’я, під яким ви грали.',
         '**Друзі й клуби:** список друзів і заявки, ваш код запрошення і кого ви запросили, клуби (назва, місто, опис, посилання, логотип), членство й повідомлення в чаті клубу, заявка партнера (ім’я, канал, аудиторія).',
-        '**Профіль:** місто, якщо ви вкажете його в профілі застосунку.',
+        '**Профіль:** країна й місто з вашого профілю в застосунку. Під час першого відкриття застосунку країну ми підставляємо самі — за країною мережі, з якої прийшов запит (її визначає Cloudflare за IP-адресою; саму адресу ми не зберігаємо), а місто лише пропонуємо у формі профілю. І країну, і місто ви можете змінити або прибрати будь-коли; зберігається лише те, що стоїть у профілі. Країну й місто бачать гравці за вашим столом і у вашій публічній картці гравця.',
         '**Покупки:** що придбано за Telegram Stars, сума, номер платежу Telegram. Даних картки ми не отримуємо — оплату проводить Telegram.',
         '**Смарагди і турніри:** баланс ігрової валюти (смарагди) та історія його змін (покупка паку, приз турніру, покупка скіна), участь у щотижневих турнірах — роль, стіл, очки, місце і приз.',
         '**Скіни карт:** які скіни у вас є (нагороди сезонів) і який скін ви вдягли на яку карту, а в номерних скінів — номер вашого примірника; скін і номер бачать гравці за вашим столом і у вашому профілі.',
@@ -120,7 +120,7 @@ export const PRIVACY = {
       { h: '6. Ваші права', p: ['Усе робиться в боті [@mafiaprof_bot](https://t.me/mafiaprof_bot):'], ul: [
         '**/mydata** — файл з усіма даними про вас (раз на годину).',
         '**/deletedata** — видалити ваші дані. Видаляються профіль, рейтинг і статистика, друзі, членство в клубах і повідомлення, місця й чат за столами, запрошення, джерело приходу, прив’язка Discord, налаштування. У підсумках минулих партій ваше місце залишається як «Гравець» без Telegram id. Записи про оплати зберігаються для обліку, придбане й наданий доступ після видалення зникають.',
-        '**Виправлення:** ім’я, @нік і фото оновлюються з Telegram самі; місто змінюється в профілі застосунку.',
+        '**Виправлення:** ім’я, @нік і фото оновлюються з Telegram самі; країна й місто змінюються в профілі застосунку.',
         '**/unsubscribe** — не отримувати розсилки; **/subscribe** — повернути.',
         '**Заперечення, обмеження обробки, інші питання** — **/support** з текстом.',
         '**Скарга до наглядового органу:** в Україні — Уповноважений Верховної Ради України з прав людини; у Польщі — Prezes UODO; в інших країнах ЄС — місцевий орган із захисту даних; у Вірменії — Агентство із захисту персональних даних Міністерства юстиції.'
@@ -151,7 +151,7 @@ export const PRIVACY = {
       { h: '2. What data we collect', p: ['**Telegram data.** When you message the bot or open the app, Telegram gives us your Telegram id, first and last name, @username, interface language and a link to your profile photo. Telegram does not give us your phone number, contacts or chats.'], ul: [
         '**The game:** tables you open or join, your seat, role, moves and answers in online games, table chat messages, game results, points, rating, rank, the best rating and the final standing of each season, statistics and win streaks, the name you played under.',
         '**Friends and clubs:** your friends and friend requests, your invite code and whom you invited, clubs (name, city, description, link, logo), club memberships and club chat messages, partner applications (name, channel, audience).',
-        '**Profile:** your city, if you add it to your profile in the app.',
+        '**Profile:** the country and city from your profile in the app. When you first open the app we fill in the country ourselves — from the country of the network your request came from (Cloudflare determines it from the IP address; we do not store the address itself) — and only suggest the city in the profile form. You can change or remove both at any time; only what stands in your profile is stored. The country and city are visible to the players at your table and in your public player card.',
         '**Purchases:** what you bought with Telegram Stars, the amount and the Telegram payment id. We never get card details — Telegram handles the payment.',
         '**Emeralds and tournaments:** the balance of the in-game currency (emeralds) and its history (pack purchases, tournament prizes, skin purchases), your part in the weekly tournaments — role, table, points, place and prize.',
         '**Card skins:** which skins you have (season rewards) and which skin you put on which card and, for numbered skins, the number of your copy; the players at your table and on your profile see the skin and the number.',
@@ -187,7 +187,7 @@ export const PRIVACY = {
       { h: '6. Your rights', p: ['Everything is done in the bot [@mafiaprof_bot](https://t.me/mafiaprof_bot):'], ul: [
         '**/mydata** — a file with all the data we hold about you (once an hour).',
         '**/deletedata** — delete your data. We delete your profile, rating and statistics, friends, club memberships and messages, table seats and table chat, invitations, where you came from, your Discord link and settings. In past game results your seat stays as “Player” without a Telegram id. Payment records are kept for accounting; purchased items and granted access are gone after deletion.',
-        '**Correction:** your name, @username and photo update from Telegram automatically; your city is changed in your profile in the app.',
+        '**Correction:** your name, @username and photo update from Telegram automatically; your country and city are changed in your profile in the app.',
         '**/unsubscribe** — no broadcast messages; **/subscribe** — turn them back on.',
         '**Objection, restriction of processing, other questions** — **/support** with your message.',
         '**Complaints to a supervisory authority:** in Ukraine — the Ukrainian Parliament Commissioner for Human Rights; in Poland — the President of UODO; elsewhere in the EU — your national data protection authority; in Armenia — the Personal Data Protection Agency of the Ministry of Justice.'
@@ -218,7 +218,7 @@ export const PRIVACY = {
       { h: '2. Jakie dane zbieramy', p: ['**Dane z Telegrama.** Gdy piszesz do bota lub otwierasz aplikację, Telegram przekazuje nam Twój Telegram id, imię i nazwisko, @nazwę użytkownika, język interfejsu i link do zdjęcia profilowego. Telegram nie przekazuje nam numeru telefonu, kontaktów ani rozmów.'], ul: [
         '**Gra:** stoły, które otwierasz lub do których dołączasz, miejsce, rola, ruchy i odpowiedzi w grach online, wiadomości na czacie stołu, wyniki gier, punkty, ranking, ranga, najlepszy ranking i wynik każdego sezonu, statystyki i serie zwycięstw, imię, pod którym grałeś.',
         '**Znajomi i kluby:** lista znajomych i zaproszenia, Twój kod zaproszenia i kogo zaprosiłeś, kluby (nazwa, miasto, opis, link, logo), członkostwo i wiadomości na czacie klubu, zgłoszenie partnera (imię, kanał, odbiorcy).',
-        '**Profil:** miasto, jeśli podasz je w profilu aplikacji.',
+        '**Profil:** kraj i miasto z Twojego profilu w aplikacji. Przy pierwszym otwarciu aplikacji kraj wpisujemy sami — według kraju sieci, z której przyszło żądanie (ustala go Cloudflare po adresie IP; samego adresu nie przechowujemy), a miasto tylko proponujemy w formularzu profilu. Kraj i miasto możesz w każdej chwili zmienić lub usunąć; zapisujemy tylko to, co jest w profilu. Kraj i miasto widzą gracze przy Twoim stole i w Twojej publicznej karcie gracza.',
         '**Zakupy:** co kupiłeś za Telegram Stars, kwota i numer płatności Telegrama. Danych karty nie otrzymujemy — płatność obsługuje Telegram.',
         '**Szmaragdy i turnieje:** saldo waluty w grze (szmaragdy) i historia jego zmian (zakup pakietu, nagroda turniejowa, zakup skórki), udział w cotygodniowych turniejach — rola, stół, punkty, miejsce i nagroda.',
         '**Skórki kart:** jakie skórki masz (nagrody sezonów) i którą skórkę założyłeś na którą kartę, a przy skórkach numerowanych — numer twojego egzemplarza; skórkę i numer widzą gracze przy twoim stole i w twoim profilu.',
@@ -254,7 +254,7 @@ export const PRIVACY = {
       { h: '6. Twoje prawa', p: ['Wszystko robisz w bocie [@mafiaprof_bot](https://t.me/mafiaprof_bot):'], ul: [
         '**/mydata** — plik ze wszystkimi danymi o Tobie (raz na godzinę).',
         '**/deletedata** — usunięcie Twoich danych. Usuwamy profil, ranking i statystyki, znajomych, członkostwo w klubach i wiadomości, miejsca i czat przy stołach, zaproszenia, źródło wejścia, powiązanie z Discordem i ustawienia. W wynikach dawnych gier Twoje miejsce zostaje jako „Gracz” bez Telegram id. Zapisy płatności przechowujemy do celów księgowych; zakupione rzeczy i przyznany dostęp po usunięciu znikają.',
-        '**Sprostowanie:** imię, @nazwa i zdjęcie aktualizują się z Telegrama automatycznie; miasto zmienisz w profilu aplikacji.',
+        '**Sprostowanie:** imię, @nazwa i zdjęcie aktualizują się z Telegrama automatycznie; kraj i miasto zmienisz w profilu aplikacji.',
         '**/unsubscribe** — bez wiadomości masowych; **/subscribe** — włącz ponownie.',
         '**Sprzeciw, ograniczenie przetwarzania, inne pytania** — **/support** z wiadomością.',
         '**Skarga do organu nadzorczego:** w Polsce — Prezes Urzędu Ochrony Danych Osobowych (UODO); w innych krajach UE — krajowy organ ochrony danych; w Ukrainie — Rzecznik Praw Człowieka Rady Najwyższej; w Armenii — Agencja Ochrony Danych Osobowych Ministerstwa Sprawiedliwości.'
@@ -285,7 +285,7 @@ export const PRIVACY = {
       { h: '2. Ինչ տվյալներ ենք հավաքում', p: ['**Telegram-ի տվյալներ.** Երբ գրում եք բոտին կամ բացում եք հավելվածը, Telegram-ը մեզ է փոխանցում ձեր Telegram id-ն, անունն ու ազգանունը, @օգտանունը, ինտերֆեյսի լեզուն և պրոֆիլի լուսանկարի հղումը։ Հեռախոսահամարը, կոնտակտները և նամակագրությունը Telegram-ը մեզ չի փոխանցում։'], ul: [
         '**Խաղ.** սեղանները, որոնք բացում եք կամ որոնց շուրջ նստում եք, տեղը, դերը, քայլերն ու պատասխանները առցանց խաղում, սեղանի չաթի հաղորդագրությունները, խաղերի արդյունքները, միավորները, վարկանիշը, կոչումը, յուրաքանչյուր սեզոնի լավագույն վարկանիշն ու արդյունքը, վիճակագրությունը և հաղթանակների շարքերը, այն անունը, որով խաղացել եք։',
         '**Ընկերներ և ակումբներ.** ընկերների ցանկն ու հայտերը, ձեր հրավերի կոդը և ում եք հրավիրել, ակումբները (անուն, քաղաք, նկարագրություն, հղում, լոգո), անդամակցությունն ու ակումբի չաթի հաղորդագրությունները, գործընկերոջ հայտը (անուն, ալիք, լսարան)։',
-        '**Պրոֆիլ.** քաղաքը, եթե այն նշեք հավելվածի պրոֆիլում։',
+        '**Պրոֆիլ.** երկիրն ու քաղաքը ձեր հավելվածի պրոֆիլից։ Հավելվածն առաջին անգամ բացելիս երկիրը մենք ինքներս ենք լրացնում՝ ըստ այն ցանցի երկրի, որից եկել է հարցումը (այն որոշում է Cloudflare-ը IP հասցեով. հասցեն ինքնին չենք պահում), իսկ քաղաքը միայն առաջարկում ենք պրոֆիլի ձևում։ Երկիրն էլ, քաղաքն էլ կարող եք ցանկացած պահի փոխել կամ հեռացնել. պահվում է միայն այն, ինչ կա պրոֆիլում։ Երկիրն ու քաղաքը տեսնում են ձեր սեղանի խաղացողները և ձեր հանրային խաղացողի քարտում։',
         '**Գնումներ.** ինչ եք գնել Telegram Stars-ով, գումարը և Telegram-ի վճարման համարը։ Քարտի տվյալներ մենք չենք ստանում. վճարումն իրականացնում է Telegram-ը։',
         '**Զմրուխտներ և մրցաշարեր.** խաղային արժույթի (զմրուխտների) հաշվեկշիռը և դրա փոփոխությունների պատմությունը (փաթեթի գնում, մրցաշարի մրցանակ, սքինի գնում), մասնակցությունը շաբաթական մրցաշարերին՝ դեր, սեղան, միավորներ, տեղ և մրցանակ։',
         '**Քարտերի սքիններ.** ինչ սքիններ ունեք (սեզոնների պարգևներ) և որ սքինն եք հագցրել որ քարտին, իսկ համարակալված սքինների դեպքում՝ ձեր օրինակի համարը․ սքինն ու համարը տեսնում են ձեր սեղանի խաղացողները և ձեր պրոֆիլում։',
@@ -321,7 +321,7 @@ export const PRIVACY = {
       { h: '6. Ձեր իրավունքները', p: ['Ամեն ինչ արվում է [@mafiaprof_bot](https://t.me/mafiaprof_bot) բոտում.'], ul: [
         '**/mydata** — ֆայլ ձեր մասին բոլոր տվյալներով (ժամը մեկ անգամ)։',
         '**/deletedata** — ջնջել ձեր տվյալները։ Ջնջվում են պրոֆիլը, վարկանիշն ու վիճակագրությունը, ընկերները, ակումբների անդամակցությունն ու հաղորդագրությունները, սեղանների տեղերն ու չաթը, հրավերները, թե որտեղից եք եկել, Discord-ի կապը, կարգավորումները։ Նախկին խաղերի արդյունքներում ձեր տեղը մնում է որպես «Խաղացող»՝ առանց Telegram id-ի։ Վճարումների գրառումները պահվում են հաշվառման համար. գնվածը և տրված հասանելիությունը ջնջումից հետո վերանում են։',
-        '**Ուղղում.** անունը, @օգտանունը և լուսանկարը ինքնաբերաբար թարմացվում են Telegram-ից. քաղաքը փոխվում է հավելվածի պրոֆիլում։',
+        '**Ուղղում.** անունը, @օգտանունը և լուսանկարը ինքնաբերաբար թարմացվում են Telegram-ից. երկիրն ու քաղաքը փոխվում են հավելվածի պրոֆիլում։',
         '**/unsubscribe** — չստանալ զանգվածային հաղորդագրություններ. **/subscribe** — վերադարձնել։',
         '**Առարկություն, մշակման սահմանափակում, այլ հարցեր** — **/support** և ձեր տեքստը։',
         '**Բողոք վերահսկող մարմնին.** Հայաստանում՝ Արդարադատության նախարարության Անձնական տվյալների պաշտպանության գործակալություն. Ուկրաինայում՝ Գերագույն Ռադայի մարդու իրավունքների հանձնակատար. Լեհաստանում՝ Prezes UODO. ԵՄ այլ երկրներում՝ տվյալների պաշտպանության ազգային մարմինը։'

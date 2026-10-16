@@ -92,8 +92,8 @@ export async function trackGameNames(env, players) {
 async function playerRows(env, from, to, limit) {
   return (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.lang, u.created_at, u.seen_at, t.source, t.detail, t.param, t.game_name,
       (SELECT lp.name FROM lobby_players lp WHERE lp.tg_id = u.tg_id ORDER BY lp.joined_at DESC LIMIT 1) AS table_name,
-      r.games, r.wins, r.hosted, c.city
-    FROM users u LEFT JOIN player_track t ON t.tg_id = u.tg_id LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities c ON c.tg_id = u.tg_id
+      r.games, r.wins, r.hosted, c.city, co.country
+    FROM users u LEFT JOIN player_track t ON t.tg_id = u.tg_id LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities c ON c.tg_id = u.tg_id LEFT JOIN user_countries co ON co.tg_id = u.tg_id
     WHERE u.created_at >= ?1 AND u.created_at < ?2 ORDER BY u.created_at DESC, u.tg_id DESC LIMIT ?3`).bind(from, to, limit).all()).results || [];
 }
 const countUsers = (env, from, to) => env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE created_at >= ?1 AND created_at < ?2').bind(from, to).first('n');
@@ -147,10 +147,10 @@ async function postsByParams(env, params) {
 
 const PLAYER_COLS = [
   { title: 'Пришёл (Киев)', width: 17 }, { title: 'Telegram ID', width: 14 }, { title: 'Тег', width: 18 }, { title: 'Имя в Telegram', width: 22 }, { title: 'Ник в игре', width: 18 },
-  { title: 'Язык', width: 7 }, { title: 'Город', width: 14 }, { title: 'Откуда пришёл', width: 24 }, { title: 'Подробности', width: 36 }, { title: 'Метка ссылки', width: 20 },
+  { title: 'Язык', width: 7 }, { title: 'Страна', width: 8 }, { title: 'Город', width: 14 }, { title: 'Откуда пришёл', width: 24 }, { title: 'Подробности', width: 36 }, { title: 'Метка ссылки', width: 20 },
   { title: 'Партий', width: 8 }, { title: 'Побед', width: 8 }, { title: 'Вёл игр', width: 8 }, { title: 'Последний визит', width: 17 }, { title: 'Профиль', width: 20 }
 ];
-const playerCells = (r, s) => [fmtTs(r.created_at), r.tg_id, r.username ? '@' + r.username : '', fullName(r), nickOf(r), r.lang || '', r.city || '', s.kind, s.detail, r.param || '',
+const playerCells = (r, s) => [fmtTs(r.created_at), r.tg_id, r.username ? '@' + r.username : '', fullName(r), nickOf(r), r.lang || '', r.country || '', r.city || '', s.kind, s.detail, r.param || '',
   r.games || 0, r.wins || 0, r.hosted || 0, fmtTs(r.seen_at), r.username ? { link: 'https://t.me/' + r.username, text: 't.me/' + r.username } : ''];
 
 /* the workbook: new players of the period, everyone, sources, posts and links */
