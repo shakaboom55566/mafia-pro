@@ -29,22 +29,22 @@ def main():
     for f in frames:
         x = f.astype(np.float32)
         lum = x.max(axis=2)  # the brightest channel: dark red cloth still counts
-        a = np.clip((lum - 10) / 42.0, 0, 1)  # 10 → 0, 52+ → 1
-        # her body: a filled, closed silhouette — nearly-black folds inside her stay hers
-        hard = (a > 0.6).astype(np.uint8)
+        a = np.clip((lum - 8) / 30.0, 0, 1)  # 8 → 0, 38+ → 1: a low threshold — black folds of the cape and hair stay hers
+        # her body: a filled, closed silhouette — the dark interior (black cloth, hair, the mask) is fully hers, whatever its brightness
+        hard = (a > 0.5).astype(np.uint8)
         n, lab, st, _ = cv2.connectedComponentsWithStats(hard, 8)
         if n > 1:
             areas = st[1:, cv2.CC_STAT_AREA]; big = 1 + int(np.argmax(areas)); keep = lab == big
             for k in range(1, n):
                 if k != big and areas[k - 1] > areas[big - 1] * 0.01: keep |= lab == k
             hard = keep.astype(np.uint8)
-        body = cv2.morphologyEx(hard, cv2.MORPH_CLOSE, np.ones((21, 21), np.uint8))
+        body = cv2.morphologyEx(hard, cv2.MORPH_CLOSE, np.ones((31, 31), np.uint8))  # bridge the dark gaps between bright parts
         inv = (1 - body).astype(np.uint8); n2, lab2, st2, _ = cv2.connectedComponentsWithStats(inv, 4)
-        for k in range(1, n2):  # holes fully inside her → hers
+        for k in range(1, n2):  # every hole that does not reach the frame edge is inside her → hers (the biggest outside one is the background)
             xk, yk, wk, hk, ak = st2[k]
-            if xk > 0 and yk > 0 and xk + wk < W and yk + hk < H and ak < 0.02 * W * H: body[lab2 == k] = 1
-        near = cv2.dilate(body, np.ones((9, 9), np.uint8)) > 0
-        a = np.where(body > 0, np.maximum(a, 0.92), a); a = a * near  # soft edge only right at the body; stray glow far away goes
+            if xk > 0 and yk > 0 and xk + wk < W and yk + hk < H: body[lab2 == k] = 1
+        core = cv2.erode(body, np.ones((7, 7), np.uint8))  # fully opaque inside; the soft key only in the 3-px rim
+        a = np.where(core > 0, 1.0, a); a = a * (cv2.dilate(body, np.ones((5, 5), np.uint8)) > 0)
         a = cv2.GaussianBlur(a, (0, 0), 0.6)
         alphas.append(np.clip(a, 0, 1).astype(np.float32)); colors.append(x)
     uni = np.max(np.stack([a > 0.08 for a in alphas]), axis=0); ys, xs = np.where(uni)
