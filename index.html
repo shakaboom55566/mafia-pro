@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.49.0-57d6fc3">
+<meta name="mafia-build" content="1.50.0-16869ef">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -723,12 +723,12 @@ html.lite .club-brand { background: var(--bg-2); }
 html.lite .rt-ring { box-shadow: none; background: var(--bg-2); }
 /* v71: the table's background — the room under the table (2.5D canvas over the still picture, a breathing haze, a vignette into the panel) */
 /* the stage: the room around, the table (narrower, --rt-w of the stage) in the middle on the carpet; the table with its seats never lies on the furniture */
-.rt-stage { --rt-w: 74%; position: relative; width: 100%; max-width: 520px; margin: 0 auto; aspect-ratio: 1 / 1.22; display: flex; align-items: center; justify-content: center; border-radius: 22px; overflow: hidden; isolation: isolate; }
-.rt-stage .rtable { width: var(--rt-w); padding-bottom: var(--rt-w); max-width: none; margin: 0; }
+.rt-stage { --rt-w: 74%; --rt-y: 50%; position: relative; width: 100%; max-width: 520px; margin: 0 auto; aspect-ratio: 1 / 1.22; border-radius: 22px; overflow: hidden; isolation: isolate; }
+.rt-stage .rtable { position: absolute; left: 50%; top: var(--rt-y); transform: translate(-50%, -50%); width: var(--rt-w); padding-bottom: var(--rt-w); max-width: none; margin: 0; }
 .rt-stage .rt-center { width: 56%; } .rt-stage .rt-brand { font-size: 17px; white-space: nowrap; } .rt-stage .rtable.sm .rt-brand { font-size: 13px; } /* the table is narrower in a room: the title stays on one line */
 .rt-room { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; background: #0d0b10; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(240,205,122,.14); }
 .rt-room-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.rt-room-img { position: absolute; left: 50%; top: 50%; height: auto; aspect-ratio: 1; max-width: none; display: block; }
+.rt-room-img { position: absolute; left: 50%; top: var(--rt-y); height: auto; aspect-ratio: 1; max-width: none; display: block; }
 .rt-room-gl { opacity: 0; transition: opacity .35s; } .rt-room-gl.on { opacity: 1; }
 .rt-room-haze { position: absolute; inset: -25%; pointer-events: none; mix-blend-mode: screen; opacity: .9;
   background: radial-gradient(28% 22% at 32% 38%, rgba(255,214,150,.13), transparent 70%), radial-gradient(26% 20% at 70% 62%, rgba(255,190,120,.10), transparent 70%), radial-gradient(30% 24% at 60% 26%, rgba(190,150,255,.07), transparent 70%);
@@ -7124,23 +7124,23 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
 (function () {
   const R = {
     ru: {
-      skins: { castelmar_club: { name: 'Клуб «Кастельмар»', lore: 'Кастельмар, 1931. Подвал под портовой лавкой: бархат, латунь, рояль и бар, где не спрашивают имён. Здесь семьи делят город — за одним круглым столом.' }, khrushchevka_kitchen: { name: 'Кухня в хрущёвке', lore: '1990-е. Шесть квадратных метров, где помещается вся жизнь: дед с газетой, муж у холодильника в поисках рассола, очередь в ванную и рыжий кот, который всё видел. Самые жаркие споры — здесь, под оранжевым абажуром.' } },
+      skins: { castelmar_club: { name: 'Клуб «Кастельмар»', lore: 'Кастельмар, 1931. Подвал под портовой лавкой: бархат, латунь, рояль и бар, где не спрашивают имён. Здесь семьи делят город — за одним круглым столом.' }, khrushchevka_kitchen: { name: 'Кухня в хрущёвке', lore: '1990-е. Шесть квадратных метров, где помещается вся жизнь: дед с газетой, муж у холодильника в поисках рассола, очередь в ванную и рыжий кот, который всё видел. Самые жаркие споры — здесь, под оранжевым абажуром.' }, golden_palace: { name: 'Тронный зал', lore: 'Здесь всё из золота: трон с короной, рыцари в золотых латах, алтарь при свечах и сундуки, полные монет. Слева сквозь витраж светит ангел, справа — демон. Свет и тьма делят зал, как город и мафия.' } },
       ui: { rmTitle: 'Фон стола', rmHint: 'Комната вокруг круглого стола. Когда вы ведёте онлайн-игру, её видят все игроки за вашим столом.', rmLabel: 'Фон стола', rmOn: 'на столе', rmSetBtn: 'Поставить на мой стол', rmOffBtn: 'Убрать со стола', rmNone: 'Без фона', rmNoneHint: 'обычный тёмный стол', rmHow: 'Этот фон — награда: его дарит администрация Mafia Pro.', rmSet: '«{name}» — теперь фон вашего стола', rmOff: 'Фон убран — стол снова обычный', rmBtn: 'Фон', rmPick: 'Фон вашего стола', rmPickHint: 'Его увидят все игроки за вашим столом.', rmTilt: 'Наклоните телефон — комната оживёт', rmWho: 'Так ваш стол увидят игроки' }
     },
     uk: {
-      skins: { castelmar_club: { name: 'Клуб «Кастельмар»', lore: 'Кастельмар, 1931. Підвал під портовою крамничкою: оксамит, латунь, рояль і бар, де не питають імен. Тут родини ділять місто — за одним круглим столом.' }, khrushchevka_kitchen: { name: 'Кухня в хрущовці', lore: '1990-ті. Шість квадратних метрів, де вміщується все життя: дід із газетою, чоловік біля холодильника в пошуках розсолу, черга у ванну й рудий кіт, який усе бачив. Найгарячіші суперечки — тут, під помаранчевим абажуром.' } },
+      skins: { castelmar_club: { name: 'Клуб «Кастельмар»', lore: 'Кастельмар, 1931. Підвал під портовою крамничкою: оксамит, латунь, рояль і бар, де не питають імен. Тут родини ділять місто — за одним круглим столом.' }, khrushchevka_kitchen: { name: 'Кухня в хрущовці', lore: '1990-ті. Шість квадратних метрів, де вміщується все життя: дід із газетою, чоловік біля холодильника в пошуках розсолу, черга у ванну й рудий кіт, який усе бачив. Найгарячіші суперечки — тут, під помаранчевим абажуром.' }, golden_palace: { name: 'Тронна зала', lore: 'Тут усе із золота: трон із короною, лицарі в золотих обладунках, вівтар при свічках і скрині, повні монет. Ліворуч крізь вітраж світить ангел, праворуч — демон. Світло й темрява ділять залу, як місто й мафія.' } },
       ui: { rmTitle: 'Фон столу', rmHint: 'Кімната навколо круглого столу. Коли ви ведете онлайн-гру, її бачать усі гравці за вашим столом.', rmLabel: 'Фон столу', rmOn: 'на столі', rmSetBtn: 'Поставити на мій стіл', rmOffBtn: 'Прибрати зі столу', rmNone: 'Без фону', rmNoneHint: 'звичайний темний стіл', rmHow: 'Цей фон — нагорода: його дарує адміністрація Mafia Pro.', rmSet: '«{name}» — тепер фон вашого столу', rmOff: 'Фон прибрано — стіл знову звичайний', rmBtn: 'Фон', rmPick: 'Фон вашого столу', rmPickHint: 'Його побачать усі гравці за вашим столом.', rmTilt: 'Нахиліть телефон — кімната оживе', rmWho: 'Так ваш стіл побачать гравці' }
     },
     en: {
-      skins: { castelmar_club: { name: 'Castelmar Club', lore: 'Castelmar, 1931. A cellar under a harbor shop: velvet, brass, a grand piano and a bar where nobody asks for names. Here the families divide the city — at one round table.' }, khrushchevka_kitchen: { name: 'Khrushchyovka Kitchen', lore: 'The 1990s. Six square metres that hold a whole life: grandpa with his newspaper, a husband at the fridge hunting for pickle brine, a queue for the bathroom and a ginger cat who saw everything. The hottest arguments happen here, under the orange lampshade.' } },
+      skins: { castelmar_club: { name: 'Castelmar Club', lore: 'Castelmar, 1931. A cellar under a harbor shop: velvet, brass, a grand piano and a bar where nobody asks for names. Here the families divide the city — at one round table.' }, khrushchevka_kitchen: { name: 'Khrushchyovka Kitchen', lore: 'The 1990s. Six square metres that hold a whole life: grandpa with his newspaper, a husband at the fridge hunting for pickle brine, a queue for the bathroom and a ginger cat who saw everything. The hottest arguments happen here, under the orange lampshade.' }, golden_palace: { name: 'Throne Hall', lore: 'Everything here is gold: a throne with a crown, knights in golden armor, an altar by candlelight and chests full of coins. An angel shines through the stained glass on the left, a demon on the right. Light and darkness divide the hall, like the city and the mafia.' } },
       ui: { rmTitle: 'Table background', rmHint: 'The room around the round table. When you host an online game, every player at your table sees it.', rmLabel: 'Table background', rmOn: 'on the table', rmSetBtn: 'Put it on my table', rmOffBtn: 'Take it off the table', rmNone: 'No background', rmNoneHint: 'the plain dark table', rmHow: 'This background is a reward: Mafia Pro’s admins give it.', rmSet: '«{name}» is now your table’s background', rmOff: 'Background off — the plain table again', rmBtn: 'Background', rmPick: 'Your table’s background', rmPickHint: 'Every player at your table will see it.', rmTilt: 'Tilt the phone — the room comes alive', rmWho: 'This is how players will see your table' }
     },
     pl: {
-      skins: { castelmar_club: { name: 'Klub Castelmar', lore: 'Castelmar, 1931. Piwnica pod portowym sklepikiem: aksamit, mosiądz, fortepian i bar, w którym nikt nie pyta o imiona. Tu rodziny dzielą miasto — przy jednym okrągłym stole.' }, khrushchevka_kitchen: { name: 'Kuchnia w chruszczowce', lore: 'Lata 90. Sześć metrów kwadratowych, w których mieści się całe życie: dziadek z gazetą, mąż przy lodówce w poszukiwaniu solanki, kolejka do łazienki i rudy kot, który wszystko widział. Najgorętsze kłótnie toczą się tutaj, pod pomarańczowym abażurem.' } },
+      skins: { castelmar_club: { name: 'Klub Castelmar', lore: 'Castelmar, 1931. Piwnica pod portowym sklepikiem: aksamit, mosiądz, fortepian i bar, w którym nikt nie pyta o imiona. Tu rodziny dzielą miasto — przy jednym okrągłym stole.' }, khrushchevka_kitchen: { name: 'Kuchnia w chruszczowce', lore: 'Lata 90. Sześć metrów kwadratowych, w których mieści się całe życie: dziadek z gazetą, mąż przy lodówce w poszukiwaniu solanki, kolejka do łazienki i rudy kot, który wszystko widział. Najgorętsze kłótnie toczą się tutaj, pod pomarańczowym abażurem.' }, golden_palace: { name: 'Sala tronowa', lore: 'Tu wszystko jest ze złota: tron z koroną, rycerze w złotych zbrojach, ołtarz przy świecach i skrzynie pełne monet. Z lewej przez witraż świeci anioł, z prawej — demon. Światło i ciemność dzielą salę jak miasto i mafia.' } },
       ui: { rmTitle: 'Tło stołu', rmHint: 'Pokój wokół okrągłego stołu. Gdy prowadzisz grę online, widzą go wszyscy gracze przy Twoim stole.', rmLabel: 'Tło stołu', rmOn: 'na stole', rmSetBtn: 'Ustaw na moim stole', rmOffBtn: 'Zdejmij ze stołu', rmNone: 'Bez tła', rmNoneHint: 'zwykły ciemny stół', rmHow: 'To tło jest nagrodą: przyznaje je administracja Mafia Pro.', rmSet: '„{name}” — teraz tło Twojego stołu', rmOff: 'Tło zdjęte — stół znów zwykły', rmBtn: 'Tło', rmPick: 'Tło Twojego stołu', rmPickHint: 'Zobaczą je wszyscy gracze przy Twoim stole.', rmTilt: 'Przechyl telefon — pokój ożyje', rmWho: 'Tak gracze zobaczą Twój stół' }
     },
     hy: {
-      skins: { castelmar_club: { name: '«Կաստելմար» ակումբ', lore: 'Կաստելմար, 1931։ Նավահանգստի խանութի տակ գտնվող նկուղ՝ թավիշ, արույր, դաշնամուր և բար, որտեղ անուն չեն հարցնում։ Այստեղ ընտանիքները բաժանում են քաղաքը՝ մեկ կլոր սեղանի շուրջ։' }, khrushchevka_kitchen: { name: 'Խոհանոց խրուշչովկայում', lore: '1990-ականներ։ Վեց քառակուսի մետր, որտեղ տեղավորվում է ամբողջ կյանքը՝ պապիկը թերթով, ամուսինը սառնարանի մոտ՝ թթու ջուր փնտրելիս, հերթը լոգարանի առաջ և շիկահեր կատուն, որը ամեն ինչ տեսել է։ Ամենաթեժ վեճերը հենց այստեղ են՝ նարնջագույն լուսամփոփի տակ։' } },
+      skins: { castelmar_club: { name: '«Կաստելմար» ակումբ', lore: 'Կաստելմար, 1931։ Նավահանգստի խանութի տակ գտնվող նկուղ՝ թավիշ, արույր, դաշնամուր և բար, որտեղ անուն չեն հարցնում։ Այստեղ ընտանիքները բաժանում են քաղաքը՝ մեկ կլոր սեղանի շուրջ։' }, khrushchevka_kitchen: { name: 'Խոհանոց խրուշչովկայում', lore: '1990-ականներ։ Վեց քառակուսի մետր, որտեղ տեղավորվում է ամբողջ կյանքը՝ պապիկը թերթով, ամուսինը սառնարանի մոտ՝ թթու ջուր փնտրելիս, հերթը լոգարանի առաջ և շիկահեր կատուն, որը ամեն ինչ տեսել է։ Ամենաթեժ վեճերը հենց այստեղ են՝ նարնջագույն լուսամփոփի տակ։' }, golden_palace: { name: 'Գահի սրահ', lore: 'Այստեղ ամեն ինչ ոսկուց է՝ թագով գահ, ոսկե զրահներով ասպետներ, մոմերով զոհասեղան և մետաղադրամներով լի սնդուկներ։ Ձախից վիտրաժի միջով լուսավորում է հրեշտակը, աջից՝ դևը։ Լույսն ու խավարը կիսում են սրահը, ինչպես քաղաքն ու մաֆիան։' } },
       ui: { rmTitle: 'Սեղանի ֆոն', rmHint: 'Սենյակը կլոր սեղանի շուրջ։ Երբ վարում եք առցանց խաղ, այն տեսնում են ձեր սեղանի բոլոր խաղացողները։', rmLabel: 'Սեղանի ֆոն', rmOn: 'սեղանին', rmSetBtn: 'Դնել իմ սեղանին', rmOffBtn: 'Հանել սեղանից', rmNone: 'Առանց ֆոնի', rmNoneHint: 'սովորական մուգ սեղան', rmHow: 'Այս ֆոնը պարգև է՝ այն նվիրում է Mafia Pro-ի ադմինիստրացիան։', rmSet: '«{name}»՝ այժմ ձեր սեղանի ֆոնն է', rmOff: 'Ֆոնը հանվեց՝ սեղանը կրկին սովորական է', rmBtn: 'Ֆոն', rmPick: 'Ձեր սեղանի ֆոնը', rmPickHint: 'Այն կտեսնեն ձեր սեղանի բոլոր խաղացողները։', rmTilt: 'Թեքեք հեռախոսը՝ սենյակը կկենդանանա', rmWho: 'Այսպես խաղացողները կտեսնեն ձեր սեղանը' }
     }
   };
@@ -12475,9 +12475,11 @@ const SKINS = [
 // v71: table backgrounds — the room around the round table (role «room» on the server; a reward or an admin's gift) — src/18-rooms.js
 const ROOMS = [
   // rug — where the table stands: cx, cy — the point of the picture under the table's centre (0…1); fit — the picture's size against the table
-  // (so the table with all its seats stays on the carpet / the free floor, never on the furniture); tw — the table's width in the stage; ar — the stage's height / width
+  // (so the table with all its seats stays on the carpet / the free floor, never on the furniture); tw — the table's width in the stage; ar — the stage's height / width;
+  // ty — how far down the stage the table stands (0.5 — the middle; lower shows more of what is above it)
   { id: 'castelmar_club', role: 'room', rarity: 'legendary', file: 'room-castelmar-club', rug: { cx: 0.503, cy: 0.494, fit: 2.05, tw: 0.74, ar: 1.22 } },
-  { id: 'khrushchevka_kitchen', role: 'room', rarity: 'legendary', file: 'room-khrushchevka-kitchen', rug: { cx: 0.51, cy: 0.53, fit: 2.35, tw: 0.62, ar: 1.33 } }
+  { id: 'khrushchevka_kitchen', role: 'room', rarity: 'legendary', file: 'room-khrushchevka-kitchen', rug: { cx: 0.51, cy: 0.53, fit: 2.35, tw: 0.62, ar: 1.33 } },
+  { id: 'golden_palace', role: 'room', rarity: 'legendary', file: 'room-golden-palace', rug: { cx: 0.5, cy: 0.585, fit: 2.55, tw: 0.58, ar: 1.3, ty: 0.55 } }
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
@@ -13668,9 +13670,9 @@ const myRoom = () => { const id = S.skins && S.skins.equipped && S.skins.equippe
 const tbRoom = () => { const id = typeof TB !== 'undefined' && TB.data && TB.data.room; return ROOM[id] ? id : null; };
 /* the stage: the room fills it, the table stands in the middle on the carpet (rug.fit — the picture against the table, rug.cx/cy — the carpet's centre).
    The still picture is placed by CSS the same way the 2.5D canvas draws it, so the canvas fades in without a jump. */
-const roomRug = r => Object.assign({ cx: 0.5, cy: 0.5, fit: 2, tw: 0.74, ar: 1.22 }, r && r.rug);
+const roomRug = r => Object.assign({ cx: 0.5, cy: 0.5, fit: 2, tw: 0.74, ar: 1.22, ty: 0.5 }, r && r.rug);
 const roomTableSize = (id, n) => { const big = roomRug(ROOM[id]).tw >= 0.7 ? 8 : 6; return n <= big ? 'lg' : n <= 12 ? 'md' : 'sm'; }; // a narrower table — smaller seats sooner
-const roomStageAttr = id => { const g = roomRug(ROOM[id]); return `style="--rt-w:${(g.tw * 100).toFixed(1)}%;aspect-ratio:1 / ${g.ar}"`; }; // each room sets its table's width and the stage's shape
+const roomStageAttr = id => { const g = roomRug(ROOM[id]); return `style="--rt-w:${(g.tw * 100).toFixed(1)}%;--rt-y:${(g.ty * 100).toFixed(1)}%;aspect-ratio:1 / ${g.ar}"`; }; // each room sets its table's width and the stage's shape
 function roomLayerHTML(id) {
   const r = ROOM[id]; if (!r) return ''; const g = roomRug(r);
   const img = `width:calc(var(--rt-w) * ${g.fit});transform:translate(${(-g.cx * 100).toFixed(2)}%,${(-g.cy * 100).toFixed(2)}%)`;
@@ -13678,9 +13680,9 @@ function roomLayerHTML(id) {
 }
 
 /* ---------- 2.5D: one WebGL canvas, moved into whichever table is on screen ---------- */
-const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 };
+const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, ty: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 };
 // b — the point of the picture under this pixel (ctr — the carpet's centre at the stage's centre, sc — the stage's size in pictures); then the parallax by depth
-const RMGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off,ctr,sc;varying vec2 v;void main(){vec2 b=ctr+(v-.5)*sc;vec2 uv=b;for(int i=0;i<8;i++){float d=texture2D(dep,uv).r;uv=b+off*(d-.03);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
+const RMGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off,ctr,sc;uniform float ty;varying vec2 v;void main(){vec2 b=ctr+(v-vec2(.5,ty))*sc;vec2 uv=b;for(int i=0;i<8;i++){float d=texture2D(dep,uv).r;uv=b+off*(d-.03);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
 function rmglInit() {
   if (RMGL.gl || RMGL.failed) return !!RMGL.gl;
   try {
@@ -13692,7 +13694,7 @@ function rmglInit() {
     gl.useProgram(prog); const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1);
-    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc');
+    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc'); RMGL.ty = gl.getUniformLocation(prog, 'ty');
     cv.addEventListener('webglcontextlost', e => { e.preventDefault(); RMGL.failed = true; cv.remove(); }, false);
     return true;
   } catch (e) { RMGL.failed = true; return false; }
@@ -13724,7 +13726,7 @@ function roomFrame(now) {
   const key = `${r.id}:${W}x${H}:${Math.round(D)}:${RMGL.tx.toFixed(3)},${RMGL.ty.toFixed(3)}`; if (RMGL.last === key) return; RMGL.last = key;
   const gl = RMGL.gl; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; } gl.viewport(0, 0, W, H);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, a.t); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.t);
-  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D);
+  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D); gl.uniform1f(RMGL.ty, g.ty);
   gl.uniform2f(RMGL.off, -RMGL.tx * 0.025, -RMGL.ty * 0.025); // the carpet (depth ≈ 0) stays under the table; the walls move up to ~2.5 % of the picture
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   cv.classList.add('on');

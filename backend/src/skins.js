@@ -43,7 +43,8 @@ export const SKINS = {
   // v71: table backgrounds — the room around the round table (role 'room': one per player, the host's is what everyone at his table sees);
   // a reward or an admin's gift only (Legendary is not sold), not lent in the tournament (only Epic is)
   castelmar_club: { role: 'room', rarity: 'legendary' },
-  khrushchevka_kitchen: { role: 'room', rarity: 'legendary' }
+  khrushchevka_kitchen: { role: 'room', rarity: 'legendary' },
+  golden_palace: { role: 'room', rarity: 'legendary' }
 };
 export const ROOM_ROLE = 'room';
 export const isRoom = id => isSkin(id) && SKINS[id].role === ROOM_ROLE;
@@ -84,7 +85,8 @@ export const SKIN_NAMES = {
   velvet_envelope: { ru: 'Бархатный конверт', uk: 'Оксамитовий конверт', en: 'Velvet Envelope', pl: 'Aksamitna Koperta', hy: 'Թավշյա ծրար' },
   untouchable: { ru: 'Неуловимая', uk: 'Невловима', en: 'Untouchable', pl: 'Nieuchwytna', hy: 'Անհասանելին' },
   castelmar_club: { ru: 'Клуб «Кастельмар»', uk: 'Клуб «Кастельмар»', en: 'Castelmar Club', pl: 'Klub Castelmar', hy: '«Կաստելմար» ակումբ' },
-  khrushchevka_kitchen: { ru: 'Кухня в хрущёвке', uk: 'Кухня в хрущовці', en: 'Khrushchyovka Kitchen', pl: 'Kuchnia w chruszczowce', hy: 'Խոհանոց խրուշչովկայում' }
+  khrushchevka_kitchen: { ru: 'Кухня в хрущёвке', uk: 'Кухня в хрущовці', en: 'Khrushchyovka Kitchen', pl: 'Kuchnia w chruszczowce', hy: 'Խոհանոց խրուշչովկայում' },
+  golden_palace: { ru: 'Тронный зал', uk: 'Тронна зала', en: 'Throne Hall', pl: 'Sala tronowa', hy: 'Գահի սրահ' }
 };
 export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_NAMES[id] || {}).ru) || id;
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;

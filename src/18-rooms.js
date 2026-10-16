@@ -14,9 +14,9 @@ const myRoom = () => { const id = S.skins && S.skins.equipped && S.skins.equippe
 const tbRoom = () => { const id = typeof TB !== 'undefined' && TB.data && TB.data.room; return ROOM[id] ? id : null; };
 /* the stage: the room fills it, the table stands in the middle on the carpet (rug.fit — the picture against the table, rug.cx/cy — the carpet's centre).
    The still picture is placed by CSS the same way the 2.5D canvas draws it, so the canvas fades in without a jump. */
-const roomRug = r => Object.assign({ cx: 0.5, cy: 0.5, fit: 2, tw: 0.74, ar: 1.22 }, r && r.rug);
+const roomRug = r => Object.assign({ cx: 0.5, cy: 0.5, fit: 2, tw: 0.74, ar: 1.22, ty: 0.5 }, r && r.rug);
 const roomTableSize = (id, n) => { const big = roomRug(ROOM[id]).tw >= 0.7 ? 8 : 6; return n <= big ? 'lg' : n <= 12 ? 'md' : 'sm'; }; // a narrower table — smaller seats sooner
-const roomStageAttr = id => { const g = roomRug(ROOM[id]); return `style="--rt-w:${(g.tw * 100).toFixed(1)}%;aspect-ratio:1 / ${g.ar}"`; }; // each room sets its table's width and the stage's shape
+const roomStageAttr = id => { const g = roomRug(ROOM[id]); return `style="--rt-w:${(g.tw * 100).toFixed(1)}%;--rt-y:${(g.ty * 100).toFixed(1)}%;aspect-ratio:1 / ${g.ar}"`; }; // each room sets its table's width and the stage's shape
 function roomLayerHTML(id) {
   const r = ROOM[id]; if (!r) return ''; const g = roomRug(r);
   const img = `width:calc(var(--rt-w) * ${g.fit});transform:translate(${(-g.cx * 100).toFixed(2)}%,${(-g.cy * 100).toFixed(2)}%)`;
@@ -24,9 +24,9 @@ function roomLayerHTML(id) {
 }
 
 /* ---------- 2.5D: one WebGL canvas, moved into whichever table is on screen ---------- */
-const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 };
+const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, ty: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 };
 // b — the point of the picture under this pixel (ctr — the carpet's centre at the stage's centre, sc — the stage's size in pictures); then the parallax by depth
-const RMGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off,ctr,sc;varying vec2 v;void main(){vec2 b=ctr+(v-.5)*sc;vec2 uv=b;for(int i=0;i<8;i++){float d=texture2D(dep,uv).r;uv=b+off*(d-.03);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
+const RMGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off,ctr,sc;uniform float ty;varying vec2 v;void main(){vec2 b=ctr+(v-vec2(.5,ty))*sc;vec2 uv=b;for(int i=0;i<8;i++){float d=texture2D(dep,uv).r;uv=b+off*(d-.03);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
 function rmglInit() {
   if (RMGL.gl || RMGL.failed) return !!RMGL.gl;
   try {
@@ -38,7 +38,7 @@ function rmglInit() {
     gl.useProgram(prog); const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1);
-    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc');
+    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc'); RMGL.ty = gl.getUniformLocation(prog, 'ty');
     cv.addEventListener('webglcontextlost', e => { e.preventDefault(); RMGL.failed = true; cv.remove(); }, false);
     return true;
   } catch (e) { RMGL.failed = true; return false; }
@@ -70,7 +70,7 @@ function roomFrame(now) {
   const key = `${r.id}:${W}x${H}:${Math.round(D)}:${RMGL.tx.toFixed(3)},${RMGL.ty.toFixed(3)}`; if (RMGL.last === key) return; RMGL.last = key;
   const gl = RMGL.gl; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; } gl.viewport(0, 0, W, H);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, a.t); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.t);
-  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D);
+  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D); gl.uniform1f(RMGL.ty, g.ty);
   gl.uniform2f(RMGL.off, -RMGL.tx * 0.025, -RMGL.ty * 0.025); // the carpet (depth ≈ 0) stays under the table; the walls move up to ~2.5 % of the picture
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   cv.classList.add('on');
