@@ -36,6 +36,7 @@ def main():
         g = np.asarray(card.convert('L')).astype(float); edge = np.median(np.concatenate([g[:8].ravel(), g[-8:].ravel(), g[:, :8].ravel(), g[:, -8:].ravel()]))
         m = np.abs(g - edge) > 28
         cols = np.where(m.mean(axis=0) > 0.6)[0]; rows = np.where(m.mean(axis=1) > 0.6)[0]
+        if edge > 60: cols = np.array([6, card.width - 7]); rows = np.array([6, card.height - 7]) # the frame runs to the edge: the whole picture
     else:
         cols = np.where((d > 170).mean(axis=0) > 0.6)[0]; rows = np.where((d > 170).mean(axis=1) > 0.6)[0]
     pad = 6

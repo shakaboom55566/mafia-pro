@@ -5,7 +5,7 @@
    - season rewards: SEASON_SKIN[n] goes to everyone who ends season n as a Legend (runSeasonCron), and is put on at once */
 export const SKINS = {
   amethyst_don: { role: 'don', rarity: 'epic', season: 1 },
-  // v57–v58: the Epic series — a skin for every free card, added as their files are ready (how to get them is decided later; admins own them all)
+  // v57–v67: the Epic series — a skin for every free card (how to get them is decided later; admins own them all)
   lilac_doctor: { role: 'doctor', rarity: 'epic' },
   orchid_surgeon: { role: 'mafia_doctor', rarity: 'epic' },
   violet_armorer: { role: 'gunsmith', rarity: 'epic' },
@@ -31,7 +31,13 @@ export const SKINS = {
   tick_tock: { role: 'bomb', rarity: 'epic' },
   violet_shield: { role: 'bodyguard', rarity: 'epic' },
   violet_verdict: { role: 'judge', rarity: 'epic' },
-  lavender_baker: { role: 'citizen', rarity: 'epic' }
+  lavender_baker: { role: 'citizen', rarity: 'epic' },
+  steady_hands: { role: 'sapper', rarity: 'epic' },
+  final_stamp: { role: 'bailiff', rarity: 'epic' },
+  violet_ledger: { role: 'auditor', rarity: 'epic' },
+  purple_knuckles: { role: 'thug', rarity: 'epic' },
+  silent_petal: { role: 'ninja', rarity: 'epic' },
+  velvet_envelope: { role: 'corrupter', rarity: 'epic' }
 };
 export const SEASON_SKIN = { 1: 'amethyst_don' };
 export const SKIN_NAMES = {

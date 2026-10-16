@@ -11,7 +11,7 @@
 /* skins:begin — the same ids and roles as SKINS in backend/src/skins.js */
 const SKINS = [
   { id: 'amethyst_don', role: 'don', rarity: 'epic', season: 1, file: 'amethyst-don' },
-  // v57–v58: the Epic series — a skin for every free card; added as their files are ready (names and stories of all: src/02w-i18n-skins-epic.js)
+  // v57–v67: the Epic series — a skin for every free card (names and stories: src/02w-i18n-skins-epic.js)
   { id: 'lilac_doctor', role: 'doctor', rarity: 'epic', file: 'lilac-doctor' },
   { id: 'orchid_surgeon', role: 'mafia_doctor', rarity: 'epic', file: 'orchid-surgeon' },
   { id: 'violet_armorer', role: 'gunsmith', rarity: 'epic', file: 'violet-armorer' },
@@ -37,7 +37,13 @@ const SKINS = [
   { id: 'tick_tock', role: 'bomb', rarity: 'epic', file: 'tick-tock' },
   { id: 'violet_shield', role: 'bodyguard', rarity: 'epic', file: 'violet-shield' },
   { id: 'violet_verdict', role: 'judge', rarity: 'epic', file: 'violet-verdict' },
-  { id: 'lavender_baker', role: 'citizen', rarity: 'epic', file: 'lavender-baker' }
+  { id: 'lavender_baker', role: 'citizen', rarity: 'epic', file: 'lavender-baker' },
+  { id: 'steady_hands', role: 'sapper', rarity: 'epic', file: 'steady-hands' },
+  { id: 'final_stamp', role: 'bailiff', rarity: 'epic', file: 'final-stamp' },
+  { id: 'violet_ledger', role: 'auditor', rarity: 'epic', file: 'violet-ledger' },
+  { id: 'purple_knuckles', role: 'thug', rarity: 'epic', file: 'purple-knuckles' },
+  { id: 'silent_petal', role: 'ninja', rarity: 'epic', file: 'silent-petal' },
+  { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' }
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
