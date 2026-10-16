@@ -19,6 +19,7 @@ const EM_PACKS = [
 ];
 const firstBonusPct = usd => (usd <= 4.99 ? 100 : usd <= 40 ? 40 : 20);
 const EM_EPIC = 7500;
+const EM_MYTHIC = 50000; // v69: a Mythic skin, every copy numbered
 const PRIZE_FUND = 10000;
 function prizeTable(n, fund) {
   n = Math.max(0, Math.floor(Number(n) || 0)); fund = Math.max(0, Math.floor(Number(fund) || 0));
@@ -34,13 +35,15 @@ function prizeTable(n, fund) {
 }
 /* packs:end */
 const EM_PACK = Object.fromEntries(EM_PACKS.map(p => [p.id, p]));
-S.em = S.em && typeof S.em === 'object' ? S.em : { balance: 0, bought: [], epic: EM_EPIC };
+S.em = S.em && typeof S.em === 'object' ? S.em : { balance: 0, bought: [], epic: EM_EPIC, mythic: EM_MYTHIC };
 const EMR = { ledger: null, at: 0, busy: false };
 const TRN = { d: null, at: 0, busy: false, form: null, closeAsk: 0 };
 const fmtEm = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 const emUsd = usd => usd.toFixed(2).replace('.', L.code === 'en' ? '.' : ',');
 const emBalance = () => (S.em && Number(S.em.balance)) || 0;
 const emEpic = () => (S.em && Number(S.em.epic)) || EM_EPIC;
+const emMythic = () => (S.em && Number(S.em.mythic)) || EM_MYTHIC;
+const emSkinPrice = s => (s && s.rarity === 'mythic' ? emMythic() : emEpic());
 const trnFund = () => (S.cloud && S.cloud.trn && Number(S.cloud.trn.fund)) || PRIZE_FUND;
 const emDate = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
 const emDay = d => { try { return new Date(Date.UTC(d.y, d.m - 1, d.d)).toLocaleDateString(locale(), { day: 'numeric', month: 'long', timeZone: 'UTC' }); } catch (e) { return `${d.d}.${d.m}`; } };
@@ -74,7 +77,7 @@ function emeraldsTabHTML() {
 }
 function emLedgerLoad() {
   if (!emInTg() || EMR.busy || (EMR.at && Date.now() - EMR.at < 30000)) return;
-  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
+  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC, mythic: d.mythic || EM_MYTHIC }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
 }
 (function () {
   const orig = shopScreen;
@@ -102,7 +105,7 @@ function emLedgerLoad() {
   cloudSync = async function () {
     await origSync.apply(this, arguments);
     const d = CLOUD.me; if (!d || !d.ok) return;
-    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC };
+    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC, mythic: Number(d.emeralds.mythic) || EM_MYTHIC };
     if (d.skins && typeof d.skins === 'object') S.skins.borrowed = Number(d.skins.borrowed) || 0;
     S.cloud = S.cloud || {}; S.cloud.trn = d.tournament || null;
     save(); render();
@@ -110,13 +113,19 @@ function emLedgerLoad() {
 })();
 
 /* ---------- the skin sheet: the price, «Buy for 7 500», the weekend's free skins ---------- */
-function emSkinForSale(s) { return !!(s && s.rarity === 'epic' && !s.season); }
+function emSkinForSale(s) { return !!(s && (s.rarity === 'epic' || s.rarity === 'mythic') && !s.season); }
+/* v69: a numbered skin — «Copy № 000004 · 3 sold» / «You will get № 000004» */
+function emSerialLine(s) {
+  if (!s || !s.numbered) return ''; const u = U(); const sold = Number((S.skins.sold || {})[s.id]) || 0; const mine = mySerial(s.id);
+  return mine != null ? tt(u.myCopyMine, { n: fmtSerial(mine), sold: fmtEm(sold) }) : tt(u.myCopyNext, { n: fmtSerial(sold + 1), sold: fmtEm(sold) });
+}
 (function () {
   if (typeof skinHowText === 'function') {
     const origHow = skinHowText;
     skinHowText = function (s) {
       if (!emSkinForSale(s)) return origHow.apply(this, arguments);
       const u = U(); const st = skinStatus(s);
+      if (s.rarity === 'mythic') return st.own ? emSerialLine(s) : tt(u.myHow, { n: fmtEm(emMythic()) }) + ' ' + emSerialLine(s);
       if (st.own) return S.skins.borrowed && !(S.cloud && S.cloud.admin) ? tt(u.emBorrowed, { date: emDate(S.skins.borrowed) }) : '';
       return tt(u.emSkinHow, { n: fmtEm(emEpic()) });
     };
@@ -126,9 +135,9 @@ function emSkinForSale(s) { return !!(s && s.rarity === 'epic' && !s.season); }
     skinSheetHTML = function (id) {
       const html = origSheet.apply(this, arguments); const s = SKIN[id]; if (!s || !emSkinForSale(s)) return html;
       const u = U(); const st = skinStatus(s); if (st.own) return html;
-      const price = emEpic(); const short = price - emBalance();
+      const price = emSkinPrice(s); const short = price - emBalance();
       const btn = short > 0 ? `<button class="btn primary" data-a="em-topup">${tt(u.emSkinShort, { n: fmtEm(short) })}</button>` : `<button class="btn primary" data-a="em-skin-buy" data-id="${s.id}">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`;
-      const block = `<div class="em-price"><span class="em-tag">💎 ${fmtEm(price)}</span><span class="hint" style="margin:0">${u.emBalance}: <b class="num">${fmtEm(emBalance())}</b> 💎</span></div><div class="btn-row" style="margin-top:10px">${emInTg() ? btn : `<button class="btn primary" data-a="buy-confirm" data-kind="emeralds" data-id="em_3xl">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`}</div>`;
+      const block = `<div class="em-price"><span class="em-tag">💎 ${fmtEm(price)}</span><span class="hint" style="margin:0">${u.emBalance}: <b class="num">${fmtEm(emBalance())}</b> 💎</span></div><div class="btn-row" style="margin-top:10px">${emInTg() ? btn : s.rarity === 'mythic' ? `<button class="btn primary" data-a="em-topup">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>` : `<button class="btn primary" data-a="buy-confirm" data-kind="emeralds" data-id="em_3xl">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`}</div>`;
       const k = html.lastIndexOf('</div>'); return k < 0 ? html + block : html.slice(0, k) + block + html.slice(k);
     };
   }
@@ -245,7 +254,13 @@ Object.assign(ACT, {
   async 'em-skin-buy'(el) {
     const u = U(); const s = SKIN[el.dataset.id]; if (!s || !emInTg()) return;
     const d = await api('/api/skin/buy', { skin: s.id });
-    if (d && d.ok) { if (d.skins) { S.skins.owned = d.skins.owned || S.skins.owned; S.skins.equipped = d.skins.equipped || S.skins.equipped; } if (d.balance != null) S.em.balance = d.balance; EMR.at = 0; save(); render(); toast(tt(u.emSkinBought, { name: s.name })); tgHaptic('success'); return; }
+    if (d && d.ok) {
+      if (d.skins) { S.skins.owned = d.skins.owned || S.skins.owned; S.skins.equipped = d.skins.equipped || S.skins.equipped; if (d.skins.serials) S.skins.serials = d.skins.serials; if (d.skins.sold) S.skins.sold = d.skins.sold; }
+      if (d.balance != null) S.em.balance = d.balance; EMR.at = 0; save(); render();
+      toast(s.numbered && d.serial != null ? tt(u.myBought, { name: s.name, n: fmtSerial(d.serial) }) : tt(u.emSkinBought, { name: s.name })); tgHaptic('success');
+      if (s.anim && typeof mythPlaySheet === 'function') mythPlaySheet(s.id); // v69: the new owner sees the show at once, with the number on top
+      return;
+    }
     if (d && d.error === 'not_enough') { if (d.balance != null) S.em.balance = d.balance; toast(tt(u.emSkinShort, { n: fmtEm(d.short || 0) })); render(); return; }
     toast(d && d.error === 'network' ? u.tgOffline : u.trnErr);
   },

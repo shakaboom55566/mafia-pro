@@ -349,7 +349,7 @@ function dealScreen() {
     <div class="panel raised" style="text-align:center"><div class="eyebrow">${u.passPhone}</div><div style="font-family:var(--font-display);font-weight:900;font-size:22px;margin-top:4px">${esc(p.name)}</div><div class="hint">${tt(u.seatHint, { seat: p.seat })}</div></div>
     <div class="card-wrap"><div class="flip ${(S.ui.flipAnim ? !g.dealOpen : g.dealOpen) ? 'open' : ''}" data-a="flip">
       <div class="face cardback ${r.premium ? 'premium' : ''}">${cardBackHTML(!!r.premium, `${r.premium ? u.premium + ' · ' : ''}${u.tapToOpen}`)}</div>
-      <div class="face front">${skinCardHTML(r, { seat: p.seat, fam: p.family }, skinOfPlayer(g, p))}</div>
+      <div class="face front">${skinCardHTML(r, { seat: p.seat, fam: p.family, serial: serialOfPlayer(g, p) }, skinOfPlayer(g, p))}</div>
     </div></div>
     ${g.dealOpen ? `<button class="btn primary" data-a="hide">${u.hidePass}</button>` : `<button class="btn" data-a="flip">${u.openCard}</button>`}
     <button class="btn ghost sm" data-a="showall" style="align-self:center">${u.hostTable}</button>

@@ -2,7 +2,7 @@
    Every statement here must stay true to the code: what backend/src stores, backend/src/privacy.js (/mydata, /deletedata,
    /unsubscribe, /support) and backend/src/security.js (IP hashes, 30 / 14 / 90 days). Change the code → change this text.
    Paragraphs use the site's markdown: **bold**, [text](https://link). */
-export const UPDATED = { ru: '15 октября 2026 г.', uk: '15 жовтня 2026 р.', en: '15 October 2026', pl: '15 października 2026 r.', hy: '2026 թ. հոկտեմբերի 15' };
+export const UPDATED = { ru: '16 октября 2026 г.', uk: '16 жовтня 2026 р.', en: '16 October 2026', pl: '16 października 2026 r.', hy: '2026 թ. հոկտեմբերի 16' };
 
 export const PRIVACY = {
   ru: {
@@ -20,7 +20,7 @@ export const PRIVACY = {
         '**Профиль:** город, если вы укажете его в профиле приложения.',
         '**Покупки:** что куплено за Telegram Stars, сумма, номер платежа Telegram. Данных карты мы не получаем — оплату проводит Telegram.',
         '**Изумруды и турниры:** баланс игровой валюты (изумруды) и история его изменений (покупка пака, приз турнира, покупка скина), участие в еженедельных турнирах — роль, стол, очки, место и приз.',
-        '**Скины карт:** какие скины у вас есть (награды сезонов) и какой скин вы надели на какую карту — его видят игроки за вашим столом.',
+        '**Скины карт:** какие скины у вас есть (награды сезонов) и какой скин вы надели на какую карту, а у номерных скинов — номер вашего экземпляра; скин и номер видят игроки за вашим столом и в вашем профиле.',
         '**Откуда вы пришли:** метка ссылки, по которой вы впервые открыли бота (пост в канале, реклама, сайт, Discord, Instagram, Facebook, TikTok, приглашение), и время первого входа.',
         '**Реклама в Instagram и Facebook:** если вы пришли по нашей рекламе, страница [mafiapro.app/uk/dnipro/](https://mafiapro.app/uk/dnipro/) запоминает метку перехода Meta (fbclid), cookie пикселя Meta, IP-адрес и браузер. Если вы откроете с неё бота, мы свяжем переход с вашим Telegram id — так мы считаем, сколько игроков привела реклама. IP, браузер и метки Meta стираются через 7 дней.',
         '**Discord** (если вы на нашем сервере): id, имя пользователя и отображаемое имя, когда вошли и вышли, по какому приглашению пришли; привязка к Telegram — только если вы сами связали аккаунты командой /link или личным приглашением из приложения.',
@@ -87,7 +87,7 @@ export const PRIVACY = {
         '**Профіль:** місто, якщо ви вкажете його в профілі застосунку.',
         '**Покупки:** що придбано за Telegram Stars, сума, номер платежу Telegram. Даних картки ми не отримуємо — оплату проводить Telegram.',
         '**Смарагди і турніри:** баланс ігрової валюти (смарагди) та історія його змін (покупка паку, приз турніру, покупка скіна), участь у щотижневих турнірах — роль, стіл, очки, місце і приз.',
-        '**Скіни карт:** які скіни у вас є (нагороди сезонів) і який скін ви вдягли на яку карту — його бачать гравці за вашим столом.',
+        '**Скіни карт:** які скіни у вас є (нагороди сезонів) і який скін ви вдягли на яку карту, а в номерних скінів — номер вашого примірника; скін і номер бачать гравці за вашим столом і у вашому профілі.',
         '**Звідки ви прийшли:** мітка посилання, за яким ви вперше відкрили бота (пост у каналі, реклама, сайт, Discord, Instagram, Facebook, TikTok, запрошення), і час першого входу.',
         '**Реклама в Instagram і Facebook:** якщо ви прийшли за нашою рекламою, сторінка [mafiapro.app/uk/dnipro/](https://mafiapro.app/uk/dnipro/) запам’ятовує мітку переходу Meta (fbclid), cookie пікселя Meta, IP-адресу й браузер. Якщо ви відкриєте з неї бота, ми пов’яжемо перехід із вашим Telegram id — так ми рахуємо, скільки гравців привела реклама. IP, браузер і мітки Meta стираються через 7 днів.',
         '**Discord** (якщо ви на нашому сервері): id, ім’я користувача й відображуване ім’я, коли увійшли й вийшли, за яким запрошенням прийшли; прив’язка до Telegram — лише якщо ви самі пов’язали акаунти командою /link або особистим запрошенням із застосунку.',
@@ -154,7 +154,7 @@ export const PRIVACY = {
         '**Profile:** your city, if you add it to your profile in the app.',
         '**Purchases:** what you bought with Telegram Stars, the amount and the Telegram payment id. We never get card details — Telegram handles the payment.',
         '**Emeralds and tournaments:** the balance of the in-game currency (emeralds) and its history (pack purchases, tournament prizes, skin purchases), your part in the weekly tournaments — role, table, points, place and prize.',
-        '**Card skins:** which skins you have (season rewards) and which skin you put on which card — the players at your table see it.',
+        '**Card skins:** which skins you have (season rewards) and which skin you put on which card and, for numbered skins, the number of your copy; the players at your table and on your profile see the skin and the number.',
         '**Where you came from:** the tag of the link you first opened the bot with (a channel post, an ad, the website, Discord, Instagram, Facebook, TikTok, an invitation) and the time of your first visit.',
         '**Ads in Instagram and Facebook:** if you came through our ad, the page [mafiapro.app/uk/dnipro/](https://mafiapro.app/uk/dnipro/) keeps Meta’s click tag (fbclid), the Meta pixel cookie, your IP address and browser. If you open the bot from it, we link the click to your Telegram id — that is how we count how many players an ad brought. The IP, browser and Meta tags are erased after 7 days.',
         '**Discord** (if you are on our server): your id, username and display name, when you joined and left, which invitation brought you; a link to your Telegram account only if you connected them yourself with /link or a personal invitation from the app.',
@@ -221,7 +221,7 @@ export const PRIVACY = {
         '**Profil:** miasto, jeśli podasz je w profilu aplikacji.',
         '**Zakupy:** co kupiłeś za Telegram Stars, kwota i numer płatności Telegrama. Danych karty nie otrzymujemy — płatność obsługuje Telegram.',
         '**Szmaragdy i turnieje:** saldo waluty w grze (szmaragdy) i historia jego zmian (zakup pakietu, nagroda turniejowa, zakup skórki), udział w cotygodniowych turniejach — rola, stół, punkty, miejsce i nagroda.',
-        '**Skórki kart:** jakie skórki masz (nagrody sezonów) i którą skórkę założyłeś na którą kartę — widzą ją gracze przy twoim stole.',
+        '**Skórki kart:** jakie skórki masz (nagrody sezonów) i którą skórkę założyłeś na którą kartę, a przy skórkach numerowanych — numer twojego egzemplarza; skórkę i numer widzą gracze przy twoim stole i w twoim profilu.',
         '**Skąd przyszedłeś:** znacznik linku, przez który pierwszy raz otworzyłeś bota (post na kanale, reklama, strona, Discord, Instagram, Facebook, TikTok, zaproszenie), i czas pierwszej wizyty.',
         '**Reklama na Instagramie i Facebooku:** jeśli trafiłeś przez naszą reklamę, strona [mafiapro.app/uk/dnipro/](https://mafiapro.app/uk/dnipro/) zapamiętuje znacznik kliknięcia Meta (fbclid), plik cookie piksela Meta, adres IP i przeglądarkę. Jeśli otworzysz z niej bota, powiążemy kliknięcie z Twoim Telegram id — tak liczymy, ilu graczy przyprowadziła reklama. IP, przeglądarka i znaczniki Meta są usuwane po 7 dniach.',
         '**Discord** (jeśli jesteś na naszym serwerze): id, nazwa użytkownika i nazwa wyświetlana, kiedy dołączyłeś i wyszedłeś, przez jakie zaproszenie; powiązanie z Telegramem — tylko jeśli sam połączyłeś konta komendą /link lub osobistym zaproszeniem z aplikacji.',
@@ -288,7 +288,7 @@ export const PRIVACY = {
         '**Պրոֆիլ.** քաղաքը, եթե այն նշեք հավելվածի պրոֆիլում։',
         '**Գնումներ.** ինչ եք գնել Telegram Stars-ով, գումարը և Telegram-ի վճարման համարը։ Քարտի տվյալներ մենք չենք ստանում. վճարումն իրականացնում է Telegram-ը։',
         '**Զմրուխտներ և մրցաշարեր.** խաղային արժույթի (զմրուխտների) հաշվեկշիռը և դրա փոփոխությունների պատմությունը (փաթեթի գնում, մրցաշարի մրցանակ, սքինի գնում), մասնակցությունը շաբաթական մրցաշարերին՝ դեր, սեղան, միավորներ, տեղ և մրցանակ։',
-        '**Քարտերի սքիններ.** ինչ սքիններ ունեք (սեզոնների պարգևներ) և որ սքինն եք հագցրել որ քարտին․ այն տեսնում են ձեր սեղանի խաղացողները։',
+        '**Քարտերի սքիններ.** ինչ սքիններ ունեք (սեզոնների պարգևներ) և որ սքինն եք հագցրել որ քարտին, իսկ համարակալված սքինների դեպքում՝ ձեր օրինակի համարը․ սքինն ու համարը տեսնում են ձեր սեղանի խաղացողները և ձեր պրոֆիլում։',
         '**Որտեղից եք եկել.** այն հղման պիտակը, որով առաջին անգամ բացել եք բոտը (ալիքի գրառում, գովազդ, կայք, Discord, Instagram, Facebook, TikTok, հրավեր), և առաջին այցի ժամը։',
         '**Գովազդ Instagram-ում և Facebook-ում.** եթե եկել եք մեր գովազդով, [mafiapro.app/uk/dnipro/](https://mafiapro.app/uk/dnipro/) էջը պահում է Meta-ի անցման պիտակը (fbclid), Meta պիքսելի cookie-ն, IP հասցեն և դիտարկիչը։ Եթե այդ էջից բացեք բոտը, անցումը կկապենք ձեր Telegram id-ի հետ. այսպես ենք հաշվում, թե քանի խաղացող է բերել գովազդը։ IP-ն, դիտարկիչը և Meta-ի պիտակները ջնջվում են 7 օր հետո։',
         '**Discord** (եթե մեր սերվերում եք). id, օգտանուն և ցուցադրվող անուն, երբ եք մտել և դուրս եկել, որ հրավերով եք եկել. կապը Telegram-ի հետ՝ միայն եթե ինքներդ եք կապել հաշիվները /link հրամանով կամ հավելվածի անձնական հրավերով։',

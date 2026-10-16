@@ -13,7 +13,7 @@ import { writeFileSync } from 'node:fs';
 import { startMockSocial } from './mock-social.js';
 import { socialKey, seal, unseal } from '../src/social.js';
 import { adsKey, parseAdParam } from '../src/ads.js';
-import { exportUser } from '../src/privacy.js';
+import { exportUser, deleteUser } from '../src/privacy.js';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 
@@ -1597,7 +1597,7 @@ console.log('skins (v56): the same catalog in the app and the server');
 { const fs = await import('node:fs'); const vm = await import('node:vm'); const SK = await import('../src/skins.js');
   const app = fs.readFileSync(path.join(here, '..', '..', 'src', '12-skins.js'), 'utf8'); const block = app.slice(app.indexOf('/* skins:begin'), app.indexOf('/* skins:end */'));
   const c = vm.createContext({}); vm.runInContext(block + '; this.SKINS = SKINS;', c);
-  eq(c.SKINS.map(x => [x.id, x.role, x.rarity, x.season || 0]), Object.entries(SK.SKINS).map(([id, x]) => [id, x.role, x.rarity, x.season || 0]), 'every skin has the same id, card, rarity and season');
+  eq(c.SKINS.map(x => [x.id, x.role, x.rarity, x.season || 0, !!x.numbered]), Object.entries(SK.SKINS).map(([id, x]) => [id, x.role, x.rarity, x.season || 0, !!x.numbered]), 'every skin has the same id, card, rarity, season and numbering');
   ok(Object.entries(SK.SEASON_SKIN).every(([n, id]) => SK.SKINS[id] && SK.SKINS[id].season === Number(n)), 'a season reward is a skin of that season');
   const files = c.SKINS.flatMap(x => [x.file + '.webp', x.file + '-depth.png', x.file + '-seal.webp']); ok(files.every(f => fs.existsSync(path.join(here, '..', '..', 'skins', f))), 'every skin has its face, depth map and portrait in skins/');
   ok(Object.keys(SK.SKINS).every(id => ['ru', 'uk', 'en', 'pl', 'hy'].every(l => SK.skinName(id, l) && SK.skinName(id, l) !== id)), 'every skin is named in five languages'); }
@@ -1616,7 +1616,7 @@ console.log('emeralds (v63): packs for Stars, the first-purchase bonus, an Epic 
   eq([EM.firstBonusPct(0.99), EM.firstBonusPct(4.99), EM.firstBonusPct(9.99), EM.firstBonusPct(39.99), EM.firstBonusPct(99.99)], [100, 100, 40, 40, 20], 'bonus tiers');
   eq(EM.packGrant(EM.PACK.em_3xl, true), { emeralds: 7500, bonus: 3000, total: 10500 }, '7 500 for $39.99, the first time +40 %');
   // the balance in /api/me, a pack for Stars
-  const id = await initData(user(1500)); let me = await (await post('/api/me', { initData: id })).json(); eq(me.emeralds, { balance: 0, bought: [], epic: 7500 }, 'no emeralds yet');
+  const id = await initData(user(1500)); let me = await (await post('/api/me', { initData: id })).json(); eq(me.emeralds, { balance: 0, bought: [], epic: 7500, mythic: 50000 }, 'no emeralds yet');
   let d = await (await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_3xl' })).json(); ok(d.ok && d.stars === 2000 && d.emeralds === 7500 && d.bonus === 3000 && d.first === true && d.link, 'invoice: 2 000 Stars, 7 500 + 3 000 bonus the first time');
   eq((await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_none' })).status, 400, 'unknown pack');
   await hook({ update_id: 500, pre_checkout_query: { id: 'q50', from: user(1500), currency: 'XTR', total_amount: 2000, invoice_payload: d.payload } }); ok(lastCall('answerPreCheckoutQuery').params.ok === true, 'pre-checkout ok');
@@ -1644,7 +1644,27 @@ console.log('emeralds (v63): packs for Stars, the first-purchase bonus, an Epic 
   await hook(msg(user(777), '/emeralds 1500 -999999')); ok(lastTo(777).params.text.includes('11000'), 'cannot take more than the balance');
   await hook(msg(user(777), '/emeralds @user1500 -1000')); eq(await EM.balanceOf(env, 1500), 10000, '−1 000 taken');
   await hook(msg(user(1500), '/emeralds @user1500 +99999')); eq(await EM.balanceOf(env, 1500), 10000, 'a player cannot use /emeralds');
-  const ex = await exportUser(env, 1500); ok(ex.emeralds.balance === 10000 && ex.emeraldLedger.length === 6, '/mydata includes the emeralds and the ledger'); }
+  const ex = await exportUser(env, 1500); ok(ex.emeralds.balance === 10000 && ex.emeraldLedger.length === 6, '/mydata includes the emeralds and the ledger');
+  // v69: the Mythic skin — 50 000 emeralds, every copy numbered in the order of purchase; a number is never given twice
+  const credit = (tg, n) => env.DB.batch(EM.changeStmts(env, tg, n, 'admin', 'test', now()));
+  const m1 = await initData(user(1510)), m2 = await initData(user(1511)), m3 = await initData(user(1512)), adm = await initData(user(777));
+  let mr = await post('/api/skin/buy', { initData: m1, skin: 'untouchable' }); let md = await mr.json(); ok(mr.status === 402 && md.short === 50000 && md.price === 50000, 'the Mythic skin costs 50 000 ' + JSON.stringify(md));
+  await credit(1510, 50000); await credit(1511, 60000); await credit(1512, 50000);
+  md = await (await post('/api/skin/buy', { initData: m1, skin: 'untouchable' })).json(); ok(md.ok && md.price === 50000 && md.serial === 1 && md.balance === 0 && md.skins.equipped.ninja === 'untouchable' && md.skins.serials.untouchable === 1, 'the first copy is № 1, worn at once ' + JSON.stringify(md).slice(0, 300));
+  md = await (await post('/api/skin/buy', { initData: m2, skin: 'untouchable' })).json(); ok(md.ok && md.serial === 2 && md.balance === 10000, 'the second buyer gets № 2');
+  md = await (await post('/api/skin/buy', { initData: m2, skin: 'untouchable' })).json(); ok(md.owned && md.balance === 10000 && md.skins.serials.untouchable === 2, 'buying it again: nothing charged, the same number');
+  const me1 = await (await post('/api/me', { initData: m1 })).json(); ok(me1.skins.serials.untouchable === 1 && me1.skins.sold.untouchable === 2 && me1.emeralds.mythic === 50000, '/api/me: my number, copies sold, the price');
+  ok((await (await post('/api/me', { initData: m3 })).json()).skins.serials.untouchable === undefined, 'no copy → no number');
+  await post('/api/skin/equip', { initData: adm, role: 'ninja', skin: 'untouchable' });
+  const so = await (await post('/api/skins', { initData: m3, ids: [1510, 1511, 1512, 777] })).json();
+  ok(so.serials[1510].untouchable === 1 && so.serials[1511].untouchable === 2 && !so.serials[1512] && so.serials[777].untouchable === 0, 'the table sees the numbers worn; an admin\'s copy is № 0 ' + JSON.stringify(so.serials));
+  ok((await (await post('/api/me', { initData: adm })).json()).skins.serials.untouchable === 0, 'an admin owns № 0');
+  const pf = await (await post('/api/profile', { initData: m3, tgId: 1511 })).json(); ok(pf.skins.ninja === 'untouchable' && pf.serials.untouchable === 2, 'the public profile shows the number of the copy worn');
+  const ex2 = await exportUser(env, 1511); ok(ex2.skinSerials.length === 1 && ex2.skinSerials[0].serial === 2, '/mydata includes the number');
+  await deleteUser(env, 1511); eq(await env.DB.prepare('SELECT COUNT(*) AS n FROM skin_serials WHERE tg_id = 1511').first('n'), 0, '/deletedata removes the number');
+  md = await (await post('/api/skin/buy', { initData: m3, skin: 'untouchable' })).json(); ok(md.ok && md.serial === 3, 'the next buyer gets № 3 — a number is never reused');
+  eq((await post('/api/skin/buy', { initData: m3, skin: 'amethyst_don' })).status, 400, 'the season skin is still not for sale');
+  ok(!(await (await post('/api/me', { initData: m3 })).json()).skins.owned.includes('lilac_doctor'), '(the Mythic purchase gives nothing else)'); }
 
 console.log('admin gives skins (v68): API — list, give one / all, take a gift back; the player is told; /skin in the bot; the rest keep their skins');
 { const P = user(1600, 'uk', { username: 'skin_fan' }); await hook(msg(P, '/start')); const pid = await initData(P);
@@ -1664,6 +1684,11 @@ console.log('admin gives skins (v68): API — list, give one / all, take a gift 
   d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'all' })).json();
   ok(d.ok && d.owned.length === Object.keys((await import('../src/skins.js')).SKINS).length && !d.changed.includes('violet_badge') && !d.changed.includes('velvet_cat') && d.changed.includes('amethyst_don'), 'all: every skin, only the missing ones are added');
   ok(/:\s*\d+/.test(lastTo(1600).params.text) && lastTo(1600).params.text.includes('🎁'), 'one message for many skins');
+  // v69: a gifted Mythic copy gets the next number; taken back — its number goes (never reused); given again — a new one
+  ok((await (await post('/api/me', { initData: pid })).json()).skins.serials.untouchable === 4, 'v69: the gifted «Untouchable» is copy № 4 (after the three bought)');
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'untouchable', give: false })).json(); ok(d.ok && d.changed.join() === 'untouchable', 'v69: the Mythic gift taken back');
+  eq(await env.DB.prepare('SELECT COUNT(*) AS n FROM skin_serials WHERE tg_id = 1600').first('n'), 0, 'v69: its number is gone');
+  await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'untouchable' }); ok((await (await post('/api/me', { initData: pid })).json()).skins.serials.untouchable === 5, 'v69: given again — № 5, № 4 is not reused');
   d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'velvet_cat', give: false })).json(); ok(d.ok && d.changed.length === 0 && d.owned.includes('velvet_cat'), 'a bought skin stays');
   d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'violet_badge', give: false })).json(); ok(d.ok && d.changed.join() === 'violet_badge' && !d.owned.includes('violet_badge') && !d.equipped.sheriff, 'a gift taken back comes off the card');
   // the bot

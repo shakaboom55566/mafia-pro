@@ -61,8 +61,8 @@ import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, r
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
-import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins } from './skins.js';
-import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, PACKS as EM_PACKS } from './emeralds.js';
+import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered } from './skins.js';
+import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, skinPrice, PACKS as EM_PACKS } from './emeralds.js';
 import { tournamentView, joinTournament, openTournament, drawRound, setTableHost, closeTournament, setTournament, creditGame, borrowsSkins, runTournamentCron, tournamentStatusText, currentTournament, takeTable } from './tournament.js';
 
 const VERSION = '0.1.0';
@@ -667,6 +667,7 @@ async function apiMe(env, bot, body) {
   const sz = seasonNow(env); const peak = await peakOf(env, v.user.id, sz, rating);
   const borrow = await borrowsSkins(env, u.id); // v63: a tournament participant wears any Epic skin while the games are on
   const skins = { owned: await ownedSkins(env, u.id, isAdmin(env, u.id), borrow ? epicSkinIds() : []), equipped: await equippedSkins(env, u.id), borrowed: borrow ? borrow.until : 0 }; // v56
+  Object.assign(skins, await mySerialsInfo(env, u.id)); // v69: the numbers of my numbered copies, how many are sold
   const emeralds = await emeraldsInfo(env, u.id); // v63
   const tournament = await tournamentBrief(env, u.id);
   return json({ ok: true, season: seasonInfo(sz), peak, skins, emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
@@ -775,7 +776,7 @@ async function profileData(env, id) {
   const ts = now();
   const club = await membershipOf(env, id);
   return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '' },
-    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id) };
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id), serials: await wornSerials(env, id) };
 }
 /* ---------- v56 card skins (skins.js) ---------- */
 const epicSkinIds = () => Object.keys(SKINS).filter(id => SKINS[id].rarity === 'epic');
@@ -791,18 +792,28 @@ async function apiEmeralds(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   return json(Object.assign({ ok: true }, await emeraldsInfo(env, v.user.id), { ledger: await ledgerOf(env, v.user.id, 30), packs: EM_PACKS }));
 }
+/* v69: the numbers of the numbered copies a player wears (for his public profile) */
+async function wornSerials(env, id) { const worn = await equippedSkins(env, id); return (await serialsOf(env, [id], x => isAdmin(env, x), { [id]: worn }))[id] || {}; }
+/* v69: the numbers of a player's numbered copies (admins: 000000 for the ones they have no bought copy of) and how many are sold */
+async function mySerialsInfo(env, tgId) {
+  const admin = isAdmin(env, tgId); const mine = (await serialsOf(env, [tgId]))[tgId] || {};
+  if (admin) for (const id of Object.keys(SKINS)) if (isNumbered(id) && mine[id] == null) mine[id] = 0;
+  return { serials: mine, sold: await skinCounters(env) };
+}
 async function apiSkinBuy(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const skin = String(body.skin || ''); if (!isSkin(skin)) return json({ ok: false, error: 'bad_skin' }, 400);
-  if (SKINS[skin].rarity !== 'epic' || SKINS[skin].season) return json({ ok: false, error: 'not_for_sale' }, 400); // the season's reward is earned, not bought
+  if (skinPrice(env, SKINS[skin].rarity) == null || SKINS[skin].season) return json({ ok: false, error: 'not_for_sale' }, 400); // Epic and Mythic are sold; the season's reward is earned
   const admin = isAdmin(env, v.user.id);
-  const own = (await ownedSkins(env, v.user.id, false)).includes(skin); if (own || admin) return json({ ok: true, owned: true, balance: await balanceOf(env, v.user.id), skins: { owned: await ownedSkins(env, v.user.id, admin, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) } });
-  const price = epicPrice(env); const balance = await balanceOf(env, v.user.id);
+  const own = (await ownedSkins(env, v.user.id, false)).includes(skin); if (own || admin) return json({ ok: true, owned: true, balance: await balanceOf(env, v.user.id), skins: Object.assign({ owned: await ownedSkins(env, v.user.id, admin, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) }, await mySerialsInfo(env, v.user.id)) });
+  const price = skinPrice(env, SKINS[skin].rarity); const balance = await balanceOf(env, v.user.id);
   if (balance < price) return json({ ok: false, error: 'not_enough', price, balance, short: price - balance }, 402);
   const ts = now();
-  await env.DB.batch([...changeStmts(env, v.user.id, -price, 'skin', skin, ts), ...buySkinStmts(env, v.user.id, skin, 'em_' + randomId(10), ts)]);
+  try { await env.DB.batch([...changeStmts(env, v.user.id, -price, 'skin', skin, ts), ...buySkinStmts(env, v.user.id, skin, 'em_' + randomId(10), ts)]); }
+  catch (e) { return json({ ok: false, error: 'busy' }, 409); } // a numbered copy bought twice at once: the second transaction fails as a whole (nothing charged)
   secAudit(env, v.user.id, 'skin_buy', { detail: skin });
-  return json({ ok: true, bought: skin, price, balance: await balanceOf(env, v.user.id), skins: { owned: await ownedSkins(env, v.user.id, false, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) } });
+  const info = await mySerialsInfo(env, v.user.id);
+  return json({ ok: true, bought: skin, price, balance: await balanceOf(env, v.user.id), serial: info.serials[skin] != null ? info.serials[skin] : null, skins: Object.assign({ owned: await ownedSkins(env, v.user.id, false, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) }, info) });
 }
 /* ---------- v68: an admin gives a player skins (one, several or all) and can take his gifts back ---------- */
 async function playerSkinsView(env, target) {
@@ -908,7 +919,8 @@ async function onEmeraldsCommand(env, bot, msg) {
 async function apiSkinsOf(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   if (!Array.isArray(body.ids)) return json({ ok: false, error: 'bad_ids' }, 400);
-  return json({ ok: true, skins: await equippedOf(env, body.ids) });
+  const skins = await equippedOf(env, body.ids);
+  return json({ ok: true, skins, serials: await serialsOf(env, body.ids, id => isAdmin(env, id), skins) }); // v69: the numbers of the numbered copies they wear
 }
 async function apiPlayers(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);

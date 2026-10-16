@@ -43,7 +43,9 @@ const SKINS = [
   { id: 'violet_ledger', role: 'auditor', rarity: 'epic', file: 'violet-ledger' },
   { id: 'purple_knuckles', role: 'thug', rarity: 'epic', file: 'purple-knuckles' },
   { id: 'silent_petal', role: 'ninja', rarity: 'epic', file: 'silent-petal' },
-  { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' }
+  { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' },
+  // v69: Mythic — 50 000 emeralds, every copy numbered (000001…), the card is animated: the ninja steps out and dodges kunai (src/17-mythic.js)
+  { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge' }
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
@@ -58,7 +60,7 @@ const rarPill = (s, style = '') => `<span class="ss-epic rar-${s.rarity}"${style
 ['name', 'lore'].forEach(k => SKINS.forEach(s => Object.defineProperty(s, k, { get() { const p = (L.skins && L.skins[s.id]) || (I18N.ru.skins || {})[s.id] || {}; return p[k] || s.id; }, enumerable: true })));
 /* the pictures live on the app's site: the same origin in the app (WebGL may read them), the full address anywhere else */
 const SKIN_BASE = (() => { try { return /(^|\.)mafiapro\.app$/.test(location.hostname) ? '/skins/' : 'https://mafiapro.app/skins/'; } catch (e) { return 'https://mafiapro.app/skins/'; } })();
-const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : kind === 'thumb' ? '-thumb.webp' : '.webp');
+const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : kind === 'thumb' ? '-thumb.webp' : kind ? '-' + kind + '.webp' : '.webp'); // v69: 'scene', 'pose-stand'… for animated skins
 S.skins = S.skins && typeof S.skins === 'object' ? S.skins : { owned: [], equipped: {} };
 
 /* ---------- who wears what ---------- */
@@ -89,34 +91,50 @@ function skinOfProfile(pr, roleId) {
   return pr.id === S.meId && myTgId() ? mySkin(roleId) : null;
 }
 const skinFromMap = (map, roleId) => { const id = map && map[roleId]; return validSkin(id, roleId) ? id : null; };
+/* v69: numbered skins — whose copy has which number (mine: /api/me; others: /api/skins for the table, the public profile) */
+const SERIALS_OF = {}; // tgId → { skin: n }
+const fmtSerial = n => String(Math.max(0, Math.trunc(Number(n) || 0))).padStart(6, '0');
+function mySerial(skinId) { const m = S.skins && S.skins.serials; return m && m[skinId] != null ? Number(m[skinId]) : null; }
+function serialOfTg(tgId, skinId, g) {
+  if (!tgId || !SKIN[skinId] || !SKIN[skinId].numbered) return null; tgId = Number(tgId);
+  if (tgId === myTgId()) return mySerial(skinId);
+  const m = (g && g.serialsOf && g.serialsOf[tgId]) || SERIALS_OF[tgId] || (typeof FRP !== 'undefined' && FRP[tgId] && FRP[tgId].serials) || null;
+  return m && m[skinId] != null ? Number(m[skinId]) : null;
+}
+function serialOfPlayer(g, p) { const sk = skinOfPlayer(g, p); return sk ? serialOfTg(playerTg(g, p), sk, g) : null; }
+function serialOfProfile(pr, skinId) { if (!pr || !skinId) return null; if (pr.tgId) return serialOfTg(pr.tgId, skinId); return pr.id === S.meId && myTgId() ? mySerial(skinId) : null; }
 /* the skins worn by the players of a game (the host's phone asks once per game) */
 async function skinsLoad(g) {
   if (!g || g.skinsAt || typeof api !== 'function' || typeof TG === 'undefined' || !TG.app || !apiBase()) return;
   const me = myTgId(); const ids = [...new Set(g.players.map(p => playerTg(g, p)).filter(id => id && id !== me))];
   g.skinsAt = 1; if (!ids.length) { g.skinsOf = {}; return; }
   const d = await api('/api/skins', { ids }); if (!d || !d.ok) { g.skinsAt = 0; return; }
-  g.skinsOf = d.skins || {}; g.skinsAt = Date.now(); Object.assign(SKINS_OF, g.skinsOf);
+  g.skinsOf = d.skins || {}; g.serialsOf = d.serials || {}; g.skinsAt = Date.now(); Object.assign(SKINS_OF, g.skinsOf); Object.assign(SERIALS_OF, g.serialsOf);
   if (S.game === g) { save(); render(); }
 }
 
 /* ---------- drawing ---------- */
 /* the card face: the plain card stays underneath (a picture that does not load just disappears), the skin covers it */
-function skinLayerHTML(id, gl) {
+function skinLayerHTML(id, gl, serial) {
   const s = SKIN[id]; if (!s) return '';
-  return `<div class="skin-layer ${s.rarity}" data-skin="${s.id}"><img class="skin-img" src="${skinUrl(s)}" alt="${esc(s.name)}" draggable="false" onerror="this.parentNode.remove()">${gl ? `<canvas class="skin-gl" data-skin="${s.id}" hidden></canvas>` : ''}<div class="skin-foil"></div><div class="skin-glare"></div></div>`;
+  // v69: a numbered copy shows its number on top ('x' — a copy not bought yet: dots); an animated skin carries its empty scene for the show
+  const plate = s.numbered && serial != null ? `<div class="skin-serial">№ <b>${serial === 'x' ? '······' : fmtSerial(serial)}</b></div>` : '';
+  const scene = s.anim ? `<img class="skin-scene" src="${skinUrl(s, 'scene')}" alt="" draggable="false" loading="lazy" onerror="this.remove()">` : '';
+  const play = s.anim ? `<button class="myth-play" data-a="myth-play" aria-label="${esc(U().myPlay || 'Play')}" title="${esc(U().myPlay || 'Play')}"><svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="M9 6.5v11l9-5.5z" fill="currentColor"/></svg></button>` : '';
+  return `<div class="skin-layer ${s.rarity}${s.anim ? ' anim' : ''}" data-skin="${s.id}"><img class="skin-img" src="${skinUrl(s)}" alt="${esc(s.name)}" draggable="false" onerror="this.parentNode.remove()">${gl ? `<canvas class="skin-gl" data-skin="${s.id}" hidden></canvas>` : ''}${scene}<div class="skin-foil"></div><div class="skin-glare"></div>${plate}${play}</div>`;
 }
 const injectLast = (html, add) => { const k = html.lastIndexOf('</div>'); return k < 0 ? html : html.slice(0, k) + add + html.slice(k); };
 function skinCardHTML(role, opts, skinId, gl) {
   const html = cardHTML(role, opts || {}); if (!validSkin(skinId, role.id)) return html;
-  return injectLast(html.replace('class="card ', 'class="card skinned '), skinLayerHTML(skinId, gl !== false));
+  return injectLast(html.replace('class="card ', 'class="card skinned '), skinLayerHTML(skinId, gl !== false, opts && opts.serial));
 }
 function sealFor(role, skinId, cls = '') {
   const html = sealHTML(role, cls); if (!validSkin(skinId, role.id)) return html;
   return injectLast(html.replace('class="seal ', 'class="seal skinned '), `<img class="skin-seal" src="${skinUrl(SKIN[skinId], 'seal')}" alt="" draggable="false" onerror="this.remove()">`);
 }
-function card3dFor(role, key, skinId, gl) {
+function card3dFor(role, key, skinId, gl, serial) {
   if (!validSkin(skinId, role.id)) return card3dHTML(role, key);
-  return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${skinCardHTML(role, {}, skinId, gl)}</div><div class="face back cardback premium">${cardBackHTML(true, SKIN[skinId].name)}</div></div></div>`;
+  return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${skinCardHTML(role, { serial }, skinId, gl)}</div><div class="face back cardback premium">${cardBackHTML(true, SKIN[skinId].name)}</div></div></div>`;
 }
 
 /* ---------- 3D: one WebGL canvas renders every visible skin canvas (the frame stays, the scene behind it moves) ---------- */
@@ -171,7 +189,7 @@ function skglFrame() {
   });
   SKGL.raf = requestAnimationFrame(skglFrame);
 }
-function skinsAfterRender() { if (!SKGL.raf && document.querySelector('.skin-layer')) SKGL.raf = requestAnimationFrame(skglFrame); }
+function skinsAfterRender() { if (!SKGL.raf && document.querySelector('.skin-layer')) SKGL.raf = requestAnimationFrame(skglFrame); if (typeof mythAfterRender === 'function') mythAfterRender(); }
 setInterval(() => { try { skinsAfterRender(); } catch (e) {} }, 700); // screens drawn by a timer (online tables) start the loop too
 
 /* ---------- the Skins tab of the Cards screen ---------- */
@@ -184,11 +202,12 @@ function skinHowText(s) {
 function skinItemHTML(s) {
   const u = U(); const st = skinStatus(s); const role = ROLE[s.role];
   const me = typeof myRankObj === 'function' ? myRankObj() : null;
-  const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'} sm" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>` : '';
+  const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'} sm" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>`
+    : typeof emSkinForSale === 'function' && emSkinForSale(s) && s.rarity === 'mythic' ? `<button class="btn primary sm" data-a="skin-sheet" data-id="${s.id}">${tt(u.myBuyBtn, { n: fmtEm(emSkinPrice(s)) })}</button>` : ''; // v69: the Mythic item opens its sheet (price, number, buy)
   const pill = `<span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span>`;
   const rank = !st.own && me ? `<div class="sk-rank">${rankSVG(rankIdx(me.points, me.games), 18)} ${u.skYourRank}: <b>${rankName(rankIdx(me.points, me.games))}</b> · <span class="num">${esc(String(me.points))}</span></div>` : '';
   return `<div class="skin-item ${s.rarity}">
-    ${card3dFor(role, 'skin-' + s.id, s.id)}
+    ${card3dFor(role, 'skin-' + s.id, s.id, undefined, st.own ? mySerial(s.id) : 'x')}
     <div class="sk-info"><div class="row" style="gap:8px;flex-wrap:wrap">${rarPill(s)}${pill}</div>
       <div class="sk-name">${esc(s.name)}</div><div class="hint" style="margin:0">${tt(u.skFor, { role: role.name })}</div>
       <p class="sk-lore">${esc(s.lore)}</p><div class="hint" style="margin:0">${skinHowText(s)}</div>${rank}
@@ -207,17 +226,19 @@ function skinsTabHTML() {
   const own = id => (S.skins.owned || []).includes(id);
   const team = s => { const t = ROLE[s.role].team; return t === 'red' || t === 'ww' ? 'city' : t; };
   const rarOk = s => rf === 'all' || s.rarity === rf;
-  const season = SKINS.filter(s => s.season && rarOk(s)), series = SKINS.filter(s => !s.season);
+  const season = SKINS.filter(s => s.season && rarOk(s)), series = SKINS.filter(s => !s.season && s.rarity === 'epic');
+  const mythic = SKINS.filter(s => s.rarity === 'mythic' && rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f))); // v69: Mythic skins on top, each in full
   const list = series.filter(s => rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f)));
   const chip = (id, t) => `<button class="chip ${f === id ? 'active' : ''}" data-a="skin-filter" data-id="${id}">${t}</button>`;
   const rchip = r => `<button class="chip rar-chip ${rf === r.id ? 'active' : ''}" data-a="skin-rar" data-id="${r.id}"><i class="rar-dot rar-${r.id}"></i>${esc((u.skRar || {})[r.id] || r.id)} <b class="rar-ab">${r.abbr}</b></button>`;
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
+    ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
     <div class="filters">${chip('all', u.fAll)}${mine ? chip('mine', u.skMine + ' · ' + mine) : ''}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div>
-    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}`;
+    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : mythic.length ? '' : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}`;
 }
 /* the rarity row scrolls sideways: after each render the chosen rarity is brought into view */
 function skinRarScroll() {
@@ -228,9 +249,9 @@ function skinRarScroll() {
 function skinSheetHTML(id) {
   const u = U(); const s = SKIN[id]; if (!s) return ''; const st = skinStatus(s); const role = ROLE[s.role];
   const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'}" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>` : '';
-  return `<div class="sk-sheet">${card3dFor(role, 'sksheet-' + s.id, s.id)}
+  return `<div class="sk-sheet">${card3dFor(role, 'sksheet-' + s.id, s.id, undefined, st.own ? mySerial(s.id) : 'x')}
     <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px">${rarPill(s)}<span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span></div>
-    <h2 class="sk-name" style="text-align:center">${esc(s.name)}</h2><div class="hint" style="margin:0;text-align:center">${tt(u.skFor, { role: role.name })}</div>
+    <h2 class="sk-name ${s.rarity}" style="text-align:center">${esc(s.name)}</h2><div class="hint" style="margin:0;text-align:center">${tt(u.skFor, { role: role.name })}</div>
     <p class="sk-lore" style="text-align:center">${esc(s.lore)}</p>${skinHowText(s) ? `<div class="hint" style="margin:0;text-align:center">${skinHowText(s)}</div>` : ''}
     ${btn ? `<div class="btn-row" style="margin-top:12px">${btn}</div>` : ''}</div>`;
 }

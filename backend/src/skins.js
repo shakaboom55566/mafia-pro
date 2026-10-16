@@ -37,7 +37,9 @@ export const SKINS = {
   violet_ledger: { role: 'auditor', rarity: 'epic' },
   purple_knuckles: { role: 'thug', rarity: 'epic' },
   silent_petal: { role: 'ninja', rarity: 'epic' },
-  velvet_envelope: { role: 'corrupter', rarity: 'epic' }
+  velvet_envelope: { role: 'corrupter', rarity: 'epic' },
+  // v69: Mythic — for emeralds (EMERALDS_MYTHIC, 50 000), every copy numbered 000001, 000002… in the order of purchase; the card is animated in the app
+  untouchable: { role: 'ninja', rarity: 'mythic', numbered: true }
 };
 export const SEASON_SKIN = { 1: 'amethyst_don' };
 export const SKIN_NAMES = {
@@ -73,7 +75,8 @@ export const SKIN_NAMES = {
   violet_ledger: { ru: 'Фиолетовый гроссбух', uk: 'Фіолетовий гросбух', en: 'Violet Ledger', pl: 'Fioletowa Księga', hy: 'Մանուշակագույն մատյան' },
   purple_knuckles: { ru: 'Фиолетовый кастет', uk: 'Фіолетовий кастет', en: 'Purple Knuckles', pl: 'Fioletowy Kastet', hy: 'Մանուշակագույն կաստետ' },
   silent_petal: { ru: 'Тихий лепесток', uk: 'Тиха пелюстка', en: 'Silent Petal', pl: 'Cichy Płatek', hy: 'Լուռ թերթիկ' },
-  velvet_envelope: { ru: 'Бархатный конверт', uk: 'Оксамитовий конверт', en: 'Velvet Envelope', pl: 'Aksamitna Koperta', hy: 'Թավշյա ծրար' }
+  velvet_envelope: { ru: 'Бархатный конверт', uk: 'Оксамитовий конверт', en: 'Velvet Envelope', pl: 'Aksamitna Koperta', hy: 'Թավշյա ծրար' },
+  untouchable: { ru: 'Неуловимая', uk: 'Невловима', en: 'Untouchable', pl: 'Nieuchwytna', hy: 'Անհասանելին' }
 };
 export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_NAMES[id] || {}).ru) || id;
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;
@@ -90,8 +93,34 @@ export function buySkinStmts(env, tgId, skin, payload, ts) {
   const role = SKINS[skin].role;
   return [
     env.DB.prepare("INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (?1, 'skin', ?2, 0, ?3, 'paid', ?4, ?4)").bind(tgId, skin, payload, ts),
-    env.DB.prepare('INSERT OR IGNORE INTO user_skins (tg_id, role, skin, updated_at) VALUES (?1, ?2, ?3, ?4)').bind(tgId, role, skin, ts) // worn at once unless the role has a skin on
+    env.DB.prepare('INSERT OR IGNORE INTO user_skins (tg_id, role, skin, updated_at) VALUES (?1, ?2, ?3, ?4)').bind(tgId, role, skin, ts), // worn at once unless the role has a skin on
+    ...(isNumbered(skin) ? serialStmts(env, tgId, skin, ts) : [])
   ];
+}
+/* v69: numbered skins — the copy's number goes with the purchase, in the order of purchase, from 1. The counter only grows, so a number
+   is never given twice (not even after a player deletes his data); UNIQUE (skin, tg_id) makes a second purchase of the same skin fail
+   the whole transaction (the debit with it). */
+export const isNumbered = id => isSkin(id) && !!SKINS[id].numbered;
+export const fmtSerial = n => String(Math.max(0, Math.trunc(Number(n) || 0))).padStart(6, '0');
+export function serialStmts(env, tgId, skin, ts) {
+  return [
+    env.DB.prepare('INSERT INTO skin_counters (skin, last) VALUES (?1, 1) ON CONFLICT(skin) DO UPDATE SET last = last + 1').bind(skin),
+    env.DB.prepare('INSERT INTO skin_serials (skin, serial, tg_id, created_at) SELECT ?1, last, ?2, ?3 FROM skin_counters WHERE skin = ?1').bind(skin, tgId, ts)
+  ];
+}
+/* the numbers of several players' copies: { tgId: { skin: n } }; admins (who own every skin without buying) hold copy 000000 of what they wear */
+export async function serialsOf(env, ids, isAdminFn, worn) {
+  ids = [...new Set((ids || []).map(Number).filter(x => Number.isSafeInteger(x) && x > 0))].slice(0, 40); const out = {}; if (!ids.length) return out;
+  const rows = (await env.DB.prepare(`SELECT tg_id, skin, serial FROM skin_serials WHERE tg_id IN (${ids.map((_, i) => '?' + (i + 1)).join(',')})`).bind(...ids).all()).results || [];
+  for (const r of rows) if (isNumbered(r.skin)) (out[r.tg_id] = out[r.tg_id] || {})[r.skin] = r.serial;
+  if (isAdminFn) for (const id of ids) if (isAdminFn(id)) for (const skin of Object.values((worn && worn[id]) || {})) if (isNumbered(skin) && !(out[id] && out[id][skin] != null)) (out[id] = out[id] || {})[skin] = 0;
+  return out;
+}
+/* how many copies of each numbered skin are sold: { skin: n } (the next buyer gets n + 1) */
+export async function skinCounters(env) {
+  const rows = (await env.DB.prepare('SELECT skin, last FROM skin_counters').all()).results || [];
+  const out = {}; for (const id of Object.keys(SKINS)) if (SKINS[id].numbered) out[id] = 0;
+  for (const r of rows) if (isNumbered(r.skin)) out[r.skin] = r.last; return out;
 }
 /* what a player wears: { role: skin } (only skins that still exist and still match their role) */
 export async function equippedSkins(env, tgId) {
@@ -138,7 +167,8 @@ export async function giftedSkins(env, tgId) {
 export function giftSkinStmts(env, tgId, skins, adminId, ts, rnd) {
   return skins.filter(isSkin).flatMap((skin, i) => [
     env.DB.prepare("INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (?1, 'skin', ?2, 0, ?3, 'reward', ?4, ?4)").bind(tgId, skin, `${ADMIN_SKIN_PAYLOAD}${adminId}:${rnd}${i}`, ts),
-    env.DB.prepare('INSERT OR IGNORE INTO user_skins (tg_id, role, skin, updated_at) VALUES (?1, ?2, ?3, ?4)').bind(tgId, SKINS[skin].role, skin, ts)
+    env.DB.prepare('INSERT OR IGNORE INTO user_skins (tg_id, role, skin, updated_at) VALUES (?1, ?2, ?3, ?4)').bind(tgId, SKINS[skin].role, skin, ts),
+    ...(isNumbered(skin) ? serialStmts(env, tgId, skin, ts) : []) // v69: a gifted Mythic is a copy too — it gets the next number
   ]);
 }
 /* take the admins' gifts of these skins back; a skin the player no longer owns comes off his card */
@@ -146,6 +176,6 @@ export async function takeGiftedSkins(env, tgId, skins) {
   skins = skins.filter(isSkin); if (!skins.length) return [];
   await env.DB.batch(skins.map(skin => env.DB.prepare("DELETE FROM purchases WHERE tg_id = ?1 AND kind = 'skin' AND item = ?2 AND payload LIKE 'admin:%'").bind(tgId, skin)));
   const still = await ownedSkins(env, tgId, false); const gone = skins.filter(s => !still.includes(s));
-  if (gone.length) await env.DB.batch(gone.map(skin => env.DB.prepare('DELETE FROM user_skins WHERE tg_id = ?1 AND skin = ?2').bind(tgId, skin)));
+  if (gone.length) await env.DB.batch(gone.flatMap(skin => [env.DB.prepare('DELETE FROM user_skins WHERE tg_id = ?1 AND skin = ?2').bind(tgId, skin)].concat(isNumbered(skin) ? [env.DB.prepare('DELETE FROM skin_serials WHERE tg_id = ?1 AND skin = ?2').bind(tgId, skin)] : []))); // v69: the number of a copy taken back is not reused
   return gone;
 }

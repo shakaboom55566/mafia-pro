@@ -102,7 +102,7 @@ async function cloudSync() {
       ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
       S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
     } S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
-    if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}) }; // v56
+    if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}), serials: Object.assign({}, d.skins.serials || {}), sold: Object.assign({}, d.skins.sold || {}) }; // v56; v69: numbered copies
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -487,7 +487,7 @@ function playerStatsScreen() {
   if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
   else {
     const best = d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = best || ROLE.sheriff;
-    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dFor(bestRole, 'pstats', skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
+    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${(sk => card3dFor(bestRole, 'pstats', sk, undefined, serialOfTg(id, sk)))(skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
   const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;

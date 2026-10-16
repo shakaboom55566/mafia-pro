@@ -1073,6 +1073,39 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .sk-rars { margin-top: -2px; }
 html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .skin-gl { display: none !important; } }
+/* v69 Mythic: the number of the copy on top, the living card's ▶, the show over the whole screen (src/17-mythic.js) */
+.card.skinned .skin-layer { container-type: inline-size; }
+.skin-layer.mythic { background: #1a0509; }
+.skin-item.mythic { border-color: rgba(255,84,104,.6); background: radial-gradient(120% 90% at 0% 0%, rgba(230,30,60,.24), var(--bg-2) 62%); box-shadow: 0 10px 34px -18px rgba(255,40,60,.7); }
+.skin-item.mythic .sk-name, .sk-sheet .sk-name.mythic { text-shadow: 0 0 18px rgba(255,50,70,.65); }
+.skin-serial { position: absolute; left: 50%; top: .45%; z-index: 3; transform: translateX(-50%); padding: .3em .95em .26em; border-radius: 999px; font-family: var(--font-display); font-weight: 800; font-size: 9px; font-size: max(6.5px, 3.5cqw); line-height: 1; letter-spacing: .1em; color: #f3c98a; white-space: nowrap; pointer-events: none;
+  background: linear-gradient(180deg, #4a0a15, #16030a); border: 1px solid rgba(240,196,120,.9); box-shadow: 0 2px 10px rgba(0,0,0,.65), 0 0 14px rgba(255,40,60,.5), inset 0 1px 0 rgba(255,220,170,.35); }
+.skin-serial b { font-weight: 900; color: #fff1d2; font-variant-numeric: tabular-nums; text-shadow: 0 0 8px rgba(255,90,90,.7); }
+.skin-layer.myth-on .skin-serial { box-shadow: 0 2px 10px rgba(0,0,0,.65), 0 0 calc(14px + var(--mg, 0) * 26px) rgba(255,60,80,.85); }
+.skin-layer .skin-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; -webkit-user-drag: none; }
+.skin-layer.myth-on .skin-scene { opacity: var(--mo, 0); }
+.skin-layer.myth-on .skin-img, .skin-layer.myth-on .skin-gl { opacity: calc(1 - var(--mo, 0)); }
+.skin-layer.myth-on::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; box-shadow: inset 0 0 calc(var(--mg, 0) * 60px) rgba(255,50,70,.95); background: rgba(255,80,90, calc(var(--mg, 0) * .16)); }
+.myth-play { position: absolute; right: 8%; top: 12.5%; z-index: 4; width: 30px; height: 30px; width: max(26px, 12cqw); height: max(26px, 12cqw); padding: 2.4cqw; border-radius: 50%; border: 1px solid rgba(255,214,150,.9); color: #fff; cursor: pointer;
+  background: radial-gradient(circle at 35% 30%, #ff6476, #8e0b1f 72%); box-shadow: 0 0 0 3px rgba(255,40,60,.28), 0 4px 14px rgba(0,0,0,.6); animation: mythPulse 2.4s ease-in-out infinite; transition: opacity .2s; }
+.myth-play svg { display: block; }
+.skin-layer.myth-on .myth-play { opacity: 0; pointer-events: none; }
+@keyframes mythPulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(255,40,60,.28), 0 4px 14px rgba(0,0,0,.6); } 50% { box-shadow: 0 0 0 7px rgba(255,40,60,.12), 0 4px 14px rgba(0,0,0,.6); } }
+@container (max-width: 150px) { .myth-play { display: none; } .skin-serial { padding: .3em .7em .26em; } }
+html.lite .myth-play { display: none; }
+@media (prefers-reduced-motion: reduce) { .myth-play { display: none; } }
+.myth-fx { position: fixed; inset: 0; z-index: 90; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+.myth-fx > * { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform, opacity; }
+.myth-dim { width: 100%; height: 100%; opacity: 0; will-change: opacity; }
+.myth-hero, .myth-ghost { max-width: none; transform-origin: var(--ox, 50%) var(--oy, 50%); -webkit-user-drag: none; }
+.myth-hero { filter: drop-shadow(0 12px 18px rgba(0,0,0,.55)) drop-shadow(0 0 10px rgba(255,40,60,.5)); }
+.myth-ghost { filter: sepia(1) saturate(7) hue-rotate(-30deg) brightness(.95); mix-blend-mode: screen; }
+.myth-kunai { transform-origin: 100% 50%; }
+.myth-kunai svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgba(255,80,90,.95)); }
+.myth-kunai .tr { position: absolute; right: 72%; top: 50%; width: 280%; height: 3px; margin-top: -1.5px; border-radius: 3px; background: linear-gradient(90deg, rgba(255,60,70,0), rgba(255,110,100,.5) 60%, rgba(255,236,222,.95)); box-shadow: 0 0 10px rgba(255,60,70,.85); }
+.myth-spark { height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255,80,60,0), #ffd27a); box-shadow: 0 0 6px #ff5a3c; }
+.myth-smoke { border-radius: 50%; background: radial-gradient(circle, rgba(74,10,26,.92), rgba(32,2,12,.6) 45%, rgba(0,0,0,0) 70%); }
+.myth-ring { border-radius: 50%; border: 3px solid rgba(255,96,116,.95); box-shadow: 0 0 26px 6px rgba(255,40,60,.6), inset 0 0 18px 4px rgba(255,40,60,.5); opacity: 0; }
 /* ---------- v59 the guide: rules for players, the host's instruction ---------- */
 .gd-entry { border-color: rgba(240,205,122,.45); padding: 10px 14px; }
 .gd-entry .ico { font-size: 20px; width: 38px; height: 38px; }
@@ -7024,6 +7057,32 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.keys(R).forEach(l => { if (I18N[l] && I18N[l].ui) Object.assign(I18N[l].ui, R[l]); });
 })();
 /* ============================================================
+   v69 MYTHIC SKINS: the name and the story of «Untouchable» (Ninja) and the texts of the numbered copies (ru, uk, en, pl, hy).
+   The catalog is in src/12-skins.js, the living card — src/17-mythic.js, the price — src/15-emeralds.js.
+   ============================================================ */
+(function () {
+  const T = {
+    untouchable: {
+      ru: ['Неуловимая', 'Четыре клинка из четырёх углов — и ни один не нашёл цель. В Кастельмаре говорят: если ты её видишь, значит, она это позволила.'],
+      uk: ['Невловима', 'Чотири клинки з чотирьох кутів — і жоден не знайшов цілі. У Кастельмарі кажуть: якщо ти її бачиш, значить, вона це дозволила.'],
+      en: ['Untouchable', 'Four blades from four corners — and not one found its mark. In Castelmar they say: if you can see her, she let you.'],
+      pl: ['Nieuchwytna', 'Cztery ostrza z czterech rogów — i żadne nie trafiło. W Castelmarze mówią: jeśli ją widzisz, to znaczy, że ci pozwoliła.'],
+      hy: ['Անհասանելին', 'Չորս շեղբ՝ չորս անկյունից, և ոչ մեկը չգտավ թիրախը։ Կաստելմարում ասում են՝ եթե տեսնում ես նրան, ուրեմն նա է թույլ տվել։']
+    }
+  };
+  const UI = {
+    ru: { skMythTitle: 'Мифические · каждая копия с номером', myHow: 'Мифический скин: {n} 💎 в магазине. Карта живая — нажми ▶ на карте.', myCopyNext: 'Каждая копия с номером: твоя будет № {n} (уже куплено: {sold}).', myCopyMine: 'Твоя копия — № {n}. Всего куплено: {sold}.', myBought: '«{name}» твоя — копия № {n}', myPlay: 'Показать', myBuyBtn: 'Купить · {n} 💎', myMore: 'Подробнее' },
+    uk: { skMythTitle: 'Міфічні · кожна копія з номером', myHow: 'Міфічний скін: {n} 💎 у магазині. Карта жива — натисни ▶ на карті.', myCopyNext: 'Кожна копія з номером: твоя буде № {n} (уже куплено: {sold}).', myCopyMine: 'Твоя копія — № {n}. Усього куплено: {sold}.', myBought: '«{name}» твоя — копія № {n}', myPlay: 'Показати', myBuyBtn: 'Купити · {n} 💎', myMore: 'Докладніше' },
+    en: { skMythTitle: 'Mythical · every copy numbered', myHow: 'Mythical skin: {n} 💎 in the shop. The card is alive — tap ▶ on it.', myCopyNext: 'Every copy is numbered: yours will be № {n} ({sold} bought so far).', myCopyMine: 'Your copy is № {n}. Bought in total: {sold}.', myBought: '“{name}” is yours — copy № {n}', myPlay: 'Play', myBuyBtn: 'Buy · {n} 💎', myMore: 'More' },
+    pl: { skMythTitle: 'Mityczne · każdy egzemplarz z numerem', myHow: 'Skórka mityczna: {n} 💎 w sklepie. Karta żyje — dotknij ▶ na karcie.', myCopyNext: 'Każdy egzemplarz ma numer: twój będzie № {n} (kupiono już: {sold}).', myCopyMine: 'Twój egzemplarz to № {n}. Kupiono łącznie: {sold}.', myBought: '„{name}” jest twoja — egzemplarz № {n}', myPlay: 'Pokaż', myBuyBtn: 'Kup · {n} 💎', myMore: 'Więcej' },
+    hy: { skMythTitle: 'Առասպելական · յուրաքանչյուր օրինակ՝ համարով', myHow: 'Առասպելական սքին․ {n} 💎 խանութում։ Քարտը կենդանի է՝ սեղմիր ▶ քարտի վրա։', myCopyNext: 'Յուրաքանչյուր օրինակ ունի համար․ քոնը կլինի № {n} (արդեն գնված՝ {sold})։', myCopyMine: 'Քո օրինակը № {n} է։ Ընդհանուր գնված՝ {sold}։', myBought: '«{name}»-ը քոնն է՝ օրինակ № {n}', myPlay: 'Ցույց տալ', myBuyBtn: 'Գնել · {n} 💎', myMore: 'Ավելին' }
+  };
+  ['ru', 'uk', 'en', 'pl', 'hy'].forEach(code => {
+    const p = I18N[code]; if (!p) return; p.skins = p.skins || {}; Object.assign(p.ui, UI[code]);
+    Object.keys(T).forEach(id => { const row = T[id][code] || T[id].en; p.skins[id] = { name: row[0], lore: row[1] }; });
+  });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -8960,7 +9019,7 @@ function dealScreen() {
     <div class="panel raised" style="text-align:center"><div class="eyebrow">${u.passPhone}</div><div style="font-family:var(--font-display);font-weight:900;font-size:22px;margin-top:4px">${esc(p.name)}</div><div class="hint">${tt(u.seatHint, { seat: p.seat })}</div></div>
     <div class="card-wrap"><div class="flip ${(S.ui.flipAnim ? !g.dealOpen : g.dealOpen) ? 'open' : ''}" data-a="flip">
       <div class="face cardback ${r.premium ? 'premium' : ''}">${cardBackHTML(!!r.premium, `${r.premium ? u.premium + ' · ' : ''}${u.tapToOpen}`)}</div>
-      <div class="face front">${skinCardHTML(r, { seat: p.seat, fam: p.family }, skinOfPlayer(g, p))}</div>
+      <div class="face front">${skinCardHTML(r, { seat: p.seat, fam: p.family, serial: serialOfPlayer(g, p) }, skinOfPlayer(g, p))}</div>
     </div></div>
     ${g.dealOpen ? `<button class="btn primary" data-a="hide">${u.hidePass}</button>` : `<button class="btn" data-a="flip">${u.openCard}</button>`}
     <button class="btn ghost sm" data-a="showall" style="align-self:center">${u.hostTable}</button>
@@ -9949,7 +10008,7 @@ function profileScreen() {
     <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
     ${rankBlockHTML(profRank(pr))}
-    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dFor(bestRole, 'profile', skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
+    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${(sk => card3dFor(bestRole, 'profile', sk, undefined, serialOfProfile(pr, sk)))(skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
     <div class="eyebrow">${u.stats}</div>
     <div class="status">${tile(st.games, u.games)}${tile(st.wins, u.wins, 'color:#9fe0ab')}${tile(st.winRate + '%', u.winRate, 'color:var(--gold-2)')}${tile(st.rating, u.rating, 'color:var(--gold-2)')}</div>
     <div class="status" style="grid-template-columns:repeat(3,1fr)">${tile(st.killedN1, u.killedN1, 'color:var(--crimson-2)')}${tile(st.votedD1, u.votedD1, 'color:var(--crimson-2)')}${tile(st.survived, u.survived, 'color:#9fe0ab')}</div>
@@ -10349,7 +10408,7 @@ async function cloudSync() {
       ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
       S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
     } S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
-    if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}) }; // v56
+    if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}), serials: Object.assign({}, d.skins.serials || {}), sold: Object.assign({}, d.skins.sold || {}) }; // v56; v69: numbered copies
     startHeartbeat();
     if (added) toast(U().tgSynced);
     if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
@@ -10734,7 +10793,7 @@ function playerStatsScreen() {
   if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
   else {
     const best = d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = best || ROLE.sheriff;
-    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${card3dFor(bestRole, 'pstats', skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
+    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${(sk => card3dFor(bestRole, 'pstats', sk, undefined, serialOfTg(id, sk)))(skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
   const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
@@ -11141,7 +11200,7 @@ function tablePub(g) {
   if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; }
     let rv = null; try { rv = reviewGame(g); } catch (e) { rv = null; }
     const itemsOf = seat => { const p = g.players.find(x => x.seat === seat); const r = rv && p ? rv.byId[p.id] : null; return r && r.items ? r.items.slice(0, 20).map(it => ({ when: it.when, action: it.action, target: it.target, verdict: it.verdict, reason: it.reason || '', better: it.better || '', pts: it.pts || 0 })) : []; };
-    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, sk: r.sk || undefined, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, rg: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].games || 0 : null, rh: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].hosted || 0 : 0, up: r.up || 0, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
+    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, sk: r.sk || undefined, sn: r.sn != null ? r.sn : undefined, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, rg: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].games || 0 : null, rh: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].hosted || 0 : 0, up: r.up || 0, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
     pub.aborted = !!g.aborted; return pub; }
   if (!g.dealt) return pub;
   const asks = g.online ? buildAsks(g) : {};
@@ -11297,7 +11356,7 @@ function roundTableHTML(seats, profiles, center, marks = {}) {
 const tbMods = () => { const pub = TB.data && TB.data.pub; return { bombHunt: !!(pub && pub.bh), classic: !!(pub && pub.mode === 'classic') }; };
 function tbRoleRow(roleId, big) {
   const u = U(); const r = roleFor(tbMods(), roleId); if (!r) return ''; // v53: the bomb hunt's Bomb is shown as the mafia; v66: classic cards
-  if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dFor(r, 'tb', mySkin(r.id))}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
+  if (big) return `<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.tbMyCard}</div>${card3dFor(r, 'tb', mySkin(r.id), undefined, mySerial(mySkin(r.id)))}<div class="spin-hint">${u.tbCardHint}</div><button class="btn primary sm" style="margin-top:8px" data-a="role" data-id="${r.id}">${u.tbOpenCard}</button></div>`;
   return `<div class="fr-row tb-card" role="button" data-a="role" data-id="${r.id}">${sealFor(r, mySkin(r.id))}<div class="grow" style="min-width:0"><div class="eyebrow" style="margin:0">${u.tbMyCard}</div><div style="font-weight:800;font-size:16px">${r.name}</div><div class="hint" style="margin:0">${TEAM_LABEL[r.team]}</div></div><span class="btn xs">${u.tbOpenCard}</span></div>`;
 }
 function tbResultHTML(x) {
@@ -11548,7 +11607,7 @@ function resultRows(g) {
     const ctg = tgId || (pr && pr.tgId) || null; const cr = ctg && g.cloudRatings ? g.cloudRatings[ctg] : null; let rk = null, up = 0;
     if (cr) { rk = { points: 1000 + (cr.points || 0), games: cr.games || 0, hosted: cr.hosted || 0, tgId: ctg }; up = (g.cloudRankUp && g.cloudRankUp[ctg]) || 0; }
     else if (pr && !ctg) { const st = profStats(pr); const e = pr.history.find(x => x.gameId === g.id); rk = { points: st.rating, games: st.games, tgId: null }; if (e) up = rankUpOf({ points: st.rating - (e.points || 0), games: st.games - 1 }, rk); }
-    return { rk, up, seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), classic: isClassic(g), sk: skinOfPlayer(g, p) || null, streak: streakFor(g, p, tgId, pr) };
+    return { rk, up, seat: p.seat, name: p.name, roleId: p.roleId, family: p.family || null, won: res.won, alive: p.alive, pts, useful: r.useful || 0, total: pts + (r.useful || 0), tgId, profileId: p.profileId || null, photo: (pl && pl.photo) || (pr && pr.avatar) || '', club: (pl && pl.club) || '', clubLogo: (pl && pl.clubLogo) || '', side: gameSideOf(g, p), bh: !!(g.mods && g.mods.bombHunt), classic: isClassic(g), sk: skinOfPlayer(g, p) || null, sn: serialOfPlayer(g, p), streak: streakFor(g, p, tgId, pr) };
   }).sort((a, b) => b.total - a.total || b.useful - a.useful || a.seat - b.seat).map((x, i) => Object.assign(x, { place: i + 1 }));
 }
 function streakHTML(row) { const u = U(); const n = row.streak; if (!n || n < 2) return ''; return `<div class="pod-streak">${tt(u.streakLine, { n, wins: plural(n, 'wins'), side: (u.streakFor || {})[row.side] || '' })}</div>`; }
@@ -11557,7 +11616,7 @@ function podiumCardHTML(row, keyPrefix, big) {
   const act = row.tgId ? `data-a="fr-open" data-id="${row.tgId}"` : row.profileId ? `data-a="prof-open" data-id="${esc(row.profileId)}"` : `data-a="role" data-id="${role.id}"`; // no profile → the card itself
   const av = row.photo ? `<img src="${esc(row.photo)}" alt="">` : `<span>${esc((row.name || '?').slice(0, 1).toUpperCase())}</span>`;
   return `<div class="pod-card ${big ? 'big' : ''} ${row.won ? 'win' : 'loss'} p${row.place}">
-    <div class="pod-3d">${card3dFor(role, keyPrefix + row.seat, row.sk, !!big).replace('<div class="card3d-wrap"', `<div class="card3d-wrap" ${big ? '' : 'data-still="1"'}`)}
+    <div class="pod-3d">${card3dFor(role, keyPrefix + row.seat, row.sk, !!big, row.sn).replace('<div class="card3d-wrap"', `<div class="card3d-wrap" ${big ? '' : 'data-still="1"'}`)}
       <div class="pod-av" role="button" tabindex="0" ${act}>${av}<i class="pod-seat">${row.seat}</i></div>${row.clubLogo ? `<div class="pod-club" title="${esc(row.club)}"><img src="${esc(row.clubLogo)}" alt=""></div>` : ''}${row.place <= 3 ? `<i class="pod-medal m${row.place}">${row.place}</i>` : ''}</div>
     <div class="pod-plaque" role="button" tabindex="0" ${act}><div class="pod-nm">${row.rk ? rankIco(row.rk, 14) : ''}${esc(row.name)}</div>${row.up ? `<div class="rk-up sm">${rankSVG(row.up, 14)} ${tt(u.rkUp, { rank: rankName(row.up) })}</div>` : ''}<div class="pod-role">${role.name}${row.family ? ' · ' + esc(FAMILY_NAMES[row.family] || row.family) : ''}</div><div class="pod-pts ${row.won ? 'win' : 'loss'}">${row.total > 0 ? '+' : ''}${row.total} <small>${u.pts}</small></div>${row.club && !row.clubLogo ? `<div class="pod-clubname">${esc(row.club)}</div>` : ''}${streakHTML(row)}</div>
   </div>`;
@@ -12327,7 +12386,9 @@ const SKINS = [
   { id: 'violet_ledger', role: 'auditor', rarity: 'epic', file: 'violet-ledger' },
   { id: 'purple_knuckles', role: 'thug', rarity: 'epic', file: 'purple-knuckles' },
   { id: 'silent_petal', role: 'ninja', rarity: 'epic', file: 'silent-petal' },
-  { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' }
+  { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' },
+  // v69: Mythic — 50 000 emeralds, every copy numbered (000001…), the card is animated: the ninja steps out and dodges kunai (src/17-mythic.js)
+  { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge' }
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
@@ -12342,7 +12403,7 @@ const rarPill = (s, style = '') => `<span class="ss-epic rar-${s.rarity}"${style
 ['name', 'lore'].forEach(k => SKINS.forEach(s => Object.defineProperty(s, k, { get() { const p = (L.skins && L.skins[s.id]) || (I18N.ru.skins || {})[s.id] || {}; return p[k] || s.id; }, enumerable: true })));
 /* the pictures live on the app's site: the same origin in the app (WebGL may read them), the full address anywhere else */
 const SKIN_BASE = (() => { try { return /(^|\.)mafiapro\.app$/.test(location.hostname) ? '/skins/' : 'https://mafiapro.app/skins/'; } catch (e) { return 'https://mafiapro.app/skins/'; } })();
-const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : kind === 'thumb' ? '-thumb.webp' : '.webp');
+const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : kind === 'thumb' ? '-thumb.webp' : kind ? '-' + kind + '.webp' : '.webp'); // v69: 'scene', 'pose-stand'… for animated skins
 S.skins = S.skins && typeof S.skins === 'object' ? S.skins : { owned: [], equipped: {} };
 
 /* ---------- who wears what ---------- */
@@ -12373,34 +12434,50 @@ function skinOfProfile(pr, roleId) {
   return pr.id === S.meId && myTgId() ? mySkin(roleId) : null;
 }
 const skinFromMap = (map, roleId) => { const id = map && map[roleId]; return validSkin(id, roleId) ? id : null; };
+/* v69: numbered skins — whose copy has which number (mine: /api/me; others: /api/skins for the table, the public profile) */
+const SERIALS_OF = {}; // tgId → { skin: n }
+const fmtSerial = n => String(Math.max(0, Math.trunc(Number(n) || 0))).padStart(6, '0');
+function mySerial(skinId) { const m = S.skins && S.skins.serials; return m && m[skinId] != null ? Number(m[skinId]) : null; }
+function serialOfTg(tgId, skinId, g) {
+  if (!tgId || !SKIN[skinId] || !SKIN[skinId].numbered) return null; tgId = Number(tgId);
+  if (tgId === myTgId()) return mySerial(skinId);
+  const m = (g && g.serialsOf && g.serialsOf[tgId]) || SERIALS_OF[tgId] || (typeof FRP !== 'undefined' && FRP[tgId] && FRP[tgId].serials) || null;
+  return m && m[skinId] != null ? Number(m[skinId]) : null;
+}
+function serialOfPlayer(g, p) { const sk = skinOfPlayer(g, p); return sk ? serialOfTg(playerTg(g, p), sk, g) : null; }
+function serialOfProfile(pr, skinId) { if (!pr || !skinId) return null; if (pr.tgId) return serialOfTg(pr.tgId, skinId); return pr.id === S.meId && myTgId() ? mySerial(skinId) : null; }
 /* the skins worn by the players of a game (the host's phone asks once per game) */
 async function skinsLoad(g) {
   if (!g || g.skinsAt || typeof api !== 'function' || typeof TG === 'undefined' || !TG.app || !apiBase()) return;
   const me = myTgId(); const ids = [...new Set(g.players.map(p => playerTg(g, p)).filter(id => id && id !== me))];
   g.skinsAt = 1; if (!ids.length) { g.skinsOf = {}; return; }
   const d = await api('/api/skins', { ids }); if (!d || !d.ok) { g.skinsAt = 0; return; }
-  g.skinsOf = d.skins || {}; g.skinsAt = Date.now(); Object.assign(SKINS_OF, g.skinsOf);
+  g.skinsOf = d.skins || {}; g.serialsOf = d.serials || {}; g.skinsAt = Date.now(); Object.assign(SKINS_OF, g.skinsOf); Object.assign(SERIALS_OF, g.serialsOf);
   if (S.game === g) { save(); render(); }
 }
 
 /* ---------- drawing ---------- */
 /* the card face: the plain card stays underneath (a picture that does not load just disappears), the skin covers it */
-function skinLayerHTML(id, gl) {
+function skinLayerHTML(id, gl, serial) {
   const s = SKIN[id]; if (!s) return '';
-  return `<div class="skin-layer ${s.rarity}" data-skin="${s.id}"><img class="skin-img" src="${skinUrl(s)}" alt="${esc(s.name)}" draggable="false" onerror="this.parentNode.remove()">${gl ? `<canvas class="skin-gl" data-skin="${s.id}" hidden></canvas>` : ''}<div class="skin-foil"></div><div class="skin-glare"></div></div>`;
+  // v69: a numbered copy shows its number on top ('x' — a copy not bought yet: dots); an animated skin carries its empty scene for the show
+  const plate = s.numbered && serial != null ? `<div class="skin-serial">№ <b>${serial === 'x' ? '······' : fmtSerial(serial)}</b></div>` : '';
+  const scene = s.anim ? `<img class="skin-scene" src="${skinUrl(s, 'scene')}" alt="" draggable="false" loading="lazy" onerror="this.remove()">` : '';
+  const play = s.anim ? `<button class="myth-play" data-a="myth-play" aria-label="${esc(U().myPlay || 'Play')}" title="${esc(U().myPlay || 'Play')}"><svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="M9 6.5v11l9-5.5z" fill="currentColor"/></svg></button>` : '';
+  return `<div class="skin-layer ${s.rarity}${s.anim ? ' anim' : ''}" data-skin="${s.id}"><img class="skin-img" src="${skinUrl(s)}" alt="${esc(s.name)}" draggable="false" onerror="this.parentNode.remove()">${gl ? `<canvas class="skin-gl" data-skin="${s.id}" hidden></canvas>` : ''}${scene}<div class="skin-foil"></div><div class="skin-glare"></div>${plate}${play}</div>`;
 }
 const injectLast = (html, add) => { const k = html.lastIndexOf('</div>'); return k < 0 ? html : html.slice(0, k) + add + html.slice(k); };
 function skinCardHTML(role, opts, skinId, gl) {
   const html = cardHTML(role, opts || {}); if (!validSkin(skinId, role.id)) return html;
-  return injectLast(html.replace('class="card ', 'class="card skinned '), skinLayerHTML(skinId, gl !== false));
+  return injectLast(html.replace('class="card ', 'class="card skinned '), skinLayerHTML(skinId, gl !== false, opts && opts.serial));
 }
 function sealFor(role, skinId, cls = '') {
   const html = sealHTML(role, cls); if (!validSkin(skinId, role.id)) return html;
   return injectLast(html.replace('class="seal ', 'class="seal skinned '), `<img class="skin-seal" src="${skinUrl(SKIN[skinId], 'seal')}" alt="" draggable="false" onerror="this.remove()">`);
 }
-function card3dFor(role, key, skinId, gl) {
+function card3dFor(role, key, skinId, gl, serial) {
   if (!validSkin(skinId, role.id)) return card3dHTML(role, key);
-  return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${skinCardHTML(role, {}, skinId, gl)}</div><div class="face back cardback premium">${cardBackHTML(true, SKIN[skinId].name)}</div></div></div>`;
+  return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${skinCardHTML(role, { serial }, skinId, gl)}</div><div class="face back cardback premium">${cardBackHTML(true, SKIN[skinId].name)}</div></div></div>`;
 }
 
 /* ---------- 3D: one WebGL canvas renders every visible skin canvas (the frame stays, the scene behind it moves) ---------- */
@@ -12455,7 +12532,7 @@ function skglFrame() {
   });
   SKGL.raf = requestAnimationFrame(skglFrame);
 }
-function skinsAfterRender() { if (!SKGL.raf && document.querySelector('.skin-layer')) SKGL.raf = requestAnimationFrame(skglFrame); }
+function skinsAfterRender() { if (!SKGL.raf && document.querySelector('.skin-layer')) SKGL.raf = requestAnimationFrame(skglFrame); if (typeof mythAfterRender === 'function') mythAfterRender(); }
 setInterval(() => { try { skinsAfterRender(); } catch (e) {} }, 700); // screens drawn by a timer (online tables) start the loop too
 
 /* ---------- the Skins tab of the Cards screen ---------- */
@@ -12468,11 +12545,12 @@ function skinHowText(s) {
 function skinItemHTML(s) {
   const u = U(); const st = skinStatus(s); const role = ROLE[s.role];
   const me = typeof myRankObj === 'function' ? myRankObj() : null;
-  const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'} sm" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>` : '';
+  const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'} sm" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>`
+    : typeof emSkinForSale === 'function' && emSkinForSale(s) && s.rarity === 'mythic' ? `<button class="btn primary sm" data-a="skin-sheet" data-id="${s.id}">${tt(u.myBuyBtn, { n: fmtEm(emSkinPrice(s)) })}</button>` : ''; // v69: the Mythic item opens its sheet (price, number, buy)
   const pill = `<span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span>`;
   const rank = !st.own && me ? `<div class="sk-rank">${rankSVG(rankIdx(me.points, me.games), 18)} ${u.skYourRank}: <b>${rankName(rankIdx(me.points, me.games))}</b> · <span class="num">${esc(String(me.points))}</span></div>` : '';
   return `<div class="skin-item ${s.rarity}">
-    ${card3dFor(role, 'skin-' + s.id, s.id)}
+    ${card3dFor(role, 'skin-' + s.id, s.id, undefined, st.own ? mySerial(s.id) : 'x')}
     <div class="sk-info"><div class="row" style="gap:8px;flex-wrap:wrap">${rarPill(s)}${pill}</div>
       <div class="sk-name">${esc(s.name)}</div><div class="hint" style="margin:0">${tt(u.skFor, { role: role.name })}</div>
       <p class="sk-lore">${esc(s.lore)}</p><div class="hint" style="margin:0">${skinHowText(s)}</div>${rank}
@@ -12491,17 +12569,19 @@ function skinsTabHTML() {
   const own = id => (S.skins.owned || []).includes(id);
   const team = s => { const t = ROLE[s.role].team; return t === 'red' || t === 'ww' ? 'city' : t; };
   const rarOk = s => rf === 'all' || s.rarity === rf;
-  const season = SKINS.filter(s => s.season && rarOk(s)), series = SKINS.filter(s => !s.season);
+  const season = SKINS.filter(s => s.season && rarOk(s)), series = SKINS.filter(s => !s.season && s.rarity === 'epic');
+  const mythic = SKINS.filter(s => s.rarity === 'mythic' && rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f))); // v69: Mythic skins on top, each in full
   const list = series.filter(s => rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f)));
   const chip = (id, t) => `<button class="chip ${f === id ? 'active' : ''}" data-a="skin-filter" data-id="${id}">${t}</button>`;
   const rchip = r => `<button class="chip rar-chip ${rf === r.id ? 'active' : ''}" data-a="skin-rar" data-id="${r.id}"><i class="rar-dot rar-${r.id}"></i>${esc((u.skRar || {})[r.id] || r.id)} <b class="rar-ab">${r.abbr}</b></button>`;
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
+    ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
     <div class="filters">${chip('all', u.fAll)}${mine ? chip('mine', u.skMine + ' · ' + mine) : ''}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div>
-    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}`;
+    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : mythic.length ? '' : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}`;
 }
 /* the rarity row scrolls sideways: after each render the chosen rarity is brought into view */
 function skinRarScroll() {
@@ -12512,9 +12592,9 @@ function skinRarScroll() {
 function skinSheetHTML(id) {
   const u = U(); const s = SKIN[id]; if (!s) return ''; const st = skinStatus(s); const role = ROLE[s.role];
   const btn = st.own ? `<button class="btn ${st.worn ? 'ghost' : 'primary'}" data-a="skin-wear" data-id="${s.id}" data-on="${st.worn ? '0' : '1'}">${st.worn ? u.skTakeOff : u.skWear}</button>` : '';
-  return `<div class="sk-sheet">${card3dFor(role, 'sksheet-' + s.id, s.id)}
+  return `<div class="sk-sheet">${card3dFor(role, 'sksheet-' + s.id, s.id, undefined, st.own ? mySerial(s.id) : 'x')}
     <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px">${rarPill(s)}<span class="sk-pill ${st.own ? 'own' : ''}">${st.worn ? u.skWorn : st.own ? u.skOwned : u.skLocked}</span></div>
-    <h2 class="sk-name" style="text-align:center">${esc(s.name)}</h2><div class="hint" style="margin:0;text-align:center">${tt(u.skFor, { role: role.name })}</div>
+    <h2 class="sk-name ${s.rarity}" style="text-align:center">${esc(s.name)}</h2><div class="hint" style="margin:0;text-align:center">${tt(u.skFor, { role: role.name })}</div>
     <p class="sk-lore" style="text-align:center">${esc(s.lore)}</p>${skinHowText(s) ? `<div class="hint" style="margin:0;text-align:center">${skinHowText(s)}</div>` : ''}
     ${btn ? `<div class="btn-row" style="margin-top:12px">${btn}</div>` : ''}</div>`;
 }
@@ -12808,6 +12888,7 @@ const EM_PACKS = [
 ];
 const firstBonusPct = usd => (usd <= 4.99 ? 100 : usd <= 40 ? 40 : 20);
 const EM_EPIC = 7500;
+const EM_MYTHIC = 50000; // v69: a Mythic skin, every copy numbered
 const PRIZE_FUND = 10000;
 function prizeTable(n, fund) {
   n = Math.max(0, Math.floor(Number(n) || 0)); fund = Math.max(0, Math.floor(Number(fund) || 0));
@@ -12823,13 +12904,15 @@ function prizeTable(n, fund) {
 }
 /* packs:end */
 const EM_PACK = Object.fromEntries(EM_PACKS.map(p => [p.id, p]));
-S.em = S.em && typeof S.em === 'object' ? S.em : { balance: 0, bought: [], epic: EM_EPIC };
+S.em = S.em && typeof S.em === 'object' ? S.em : { balance: 0, bought: [], epic: EM_EPIC, mythic: EM_MYTHIC };
 const EMR = { ledger: null, at: 0, busy: false };
 const TRN = { d: null, at: 0, busy: false, form: null, closeAsk: 0 };
 const fmtEm = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 const emUsd = usd => usd.toFixed(2).replace('.', L.code === 'en' ? '.' : ',');
 const emBalance = () => (S.em && Number(S.em.balance)) || 0;
 const emEpic = () => (S.em && Number(S.em.epic)) || EM_EPIC;
+const emMythic = () => (S.em && Number(S.em.mythic)) || EM_MYTHIC;
+const emSkinPrice = s => (s && s.rarity === 'mythic' ? emMythic() : emEpic());
 const trnFund = () => (S.cloud && S.cloud.trn && Number(S.cloud.trn.fund)) || PRIZE_FUND;
 const emDate = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
 const emDay = d => { try { return new Date(Date.UTC(d.y, d.m - 1, d.d)).toLocaleDateString(locale(), { day: 'numeric', month: 'long', timeZone: 'UTC' }); } catch (e) { return `${d.d}.${d.m}`; } };
@@ -12863,7 +12946,7 @@ function emeraldsTabHTML() {
 }
 function emLedgerLoad() {
   if (!emInTg() || EMR.busy || (EMR.at && Date.now() - EMR.at < 30000)) return;
-  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
+  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC, mythic: d.mythic || EM_MYTHIC }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
 }
 (function () {
   const orig = shopScreen;
@@ -12891,7 +12974,7 @@ function emLedgerLoad() {
   cloudSync = async function () {
     await origSync.apply(this, arguments);
     const d = CLOUD.me; if (!d || !d.ok) return;
-    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC };
+    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC, mythic: Number(d.emeralds.mythic) || EM_MYTHIC };
     if (d.skins && typeof d.skins === 'object') S.skins.borrowed = Number(d.skins.borrowed) || 0;
     S.cloud = S.cloud || {}; S.cloud.trn = d.tournament || null;
     save(); render();
@@ -12899,13 +12982,19 @@ function emLedgerLoad() {
 })();
 
 /* ---------- the skin sheet: the price, «Buy for 7 500», the weekend's free skins ---------- */
-function emSkinForSale(s) { return !!(s && s.rarity === 'epic' && !s.season); }
+function emSkinForSale(s) { return !!(s && (s.rarity === 'epic' || s.rarity === 'mythic') && !s.season); }
+/* v69: a numbered skin — «Copy № 000004 · 3 sold» / «You will get № 000004» */
+function emSerialLine(s) {
+  if (!s || !s.numbered) return ''; const u = U(); const sold = Number((S.skins.sold || {})[s.id]) || 0; const mine = mySerial(s.id);
+  return mine != null ? tt(u.myCopyMine, { n: fmtSerial(mine), sold: fmtEm(sold) }) : tt(u.myCopyNext, { n: fmtSerial(sold + 1), sold: fmtEm(sold) });
+}
 (function () {
   if (typeof skinHowText === 'function') {
     const origHow = skinHowText;
     skinHowText = function (s) {
       if (!emSkinForSale(s)) return origHow.apply(this, arguments);
       const u = U(); const st = skinStatus(s);
+      if (s.rarity === 'mythic') return st.own ? emSerialLine(s) : tt(u.myHow, { n: fmtEm(emMythic()) }) + ' ' + emSerialLine(s);
       if (st.own) return S.skins.borrowed && !(S.cloud && S.cloud.admin) ? tt(u.emBorrowed, { date: emDate(S.skins.borrowed) }) : '';
       return tt(u.emSkinHow, { n: fmtEm(emEpic()) });
     };
@@ -12915,9 +13004,9 @@ function emSkinForSale(s) { return !!(s && s.rarity === 'epic' && !s.season); }
     skinSheetHTML = function (id) {
       const html = origSheet.apply(this, arguments); const s = SKIN[id]; if (!s || !emSkinForSale(s)) return html;
       const u = U(); const st = skinStatus(s); if (st.own) return html;
-      const price = emEpic(); const short = price - emBalance();
+      const price = emSkinPrice(s); const short = price - emBalance();
       const btn = short > 0 ? `<button class="btn primary" data-a="em-topup">${tt(u.emSkinShort, { n: fmtEm(short) })}</button>` : `<button class="btn primary" data-a="em-skin-buy" data-id="${s.id}">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`;
-      const block = `<div class="em-price"><span class="em-tag">💎 ${fmtEm(price)}</span><span class="hint" style="margin:0">${u.emBalance}: <b class="num">${fmtEm(emBalance())}</b> 💎</span></div><div class="btn-row" style="margin-top:10px">${emInTg() ? btn : `<button class="btn primary" data-a="buy-confirm" data-kind="emeralds" data-id="em_3xl">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`}</div>`;
+      const block = `<div class="em-price"><span class="em-tag">💎 ${fmtEm(price)}</span><span class="hint" style="margin:0">${u.emBalance}: <b class="num">${fmtEm(emBalance())}</b> 💎</span></div><div class="btn-row" style="margin-top:10px">${emInTg() ? btn : s.rarity === 'mythic' ? `<button class="btn primary" data-a="em-topup">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>` : `<button class="btn primary" data-a="buy-confirm" data-kind="emeralds" data-id="em_3xl">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`}</div>`;
       const k = html.lastIndexOf('</div>'); return k < 0 ? html + block : html.slice(0, k) + block + html.slice(k);
     };
   }
@@ -13034,7 +13123,13 @@ Object.assign(ACT, {
   async 'em-skin-buy'(el) {
     const u = U(); const s = SKIN[el.dataset.id]; if (!s || !emInTg()) return;
     const d = await api('/api/skin/buy', { skin: s.id });
-    if (d && d.ok) { if (d.skins) { S.skins.owned = d.skins.owned || S.skins.owned; S.skins.equipped = d.skins.equipped || S.skins.equipped; } if (d.balance != null) S.em.balance = d.balance; EMR.at = 0; save(); render(); toast(tt(u.emSkinBought, { name: s.name })); tgHaptic('success'); return; }
+    if (d && d.ok) {
+      if (d.skins) { S.skins.owned = d.skins.owned || S.skins.owned; S.skins.equipped = d.skins.equipped || S.skins.equipped; if (d.skins.serials) S.skins.serials = d.skins.serials; if (d.skins.sold) S.skins.sold = d.skins.sold; }
+      if (d.balance != null) S.em.balance = d.balance; EMR.at = 0; save(); render();
+      toast(s.numbered && d.serial != null ? tt(u.myBought, { name: s.name, n: fmtSerial(d.serial) }) : tt(u.emSkinBought, { name: s.name })); tgHaptic('success');
+      if (s.anim && typeof mythPlaySheet === 'function') mythPlaySheet(s.id); // v69: the new owner sees the show at once, with the number on top
+      return;
+    }
     if (d && d.error === 'not_enough') { if (d.balance != null) S.em.balance = d.balance; toast(tt(u.emSkinShort, { n: fmtEm(d.short || 0) })); render(); return; }
     toast(d && d.error === 'network' ? u.tgOffline : u.trnErr);
   },
@@ -13175,6 +13270,209 @@ function hostPollTake(d, g) {
     document.addEventListener('input', e => { const el = e.target && e.target.closest && e.target.closest('[data-a="hc-msg"]'); if (el) ACT['hc-msg'](el); });
   } catch (e) {}
 })();
+/* ============================================================
+   v69 MYTHIC: the living card «Untouchable» (Ninja; every copy is numbered — the plate on top, src/12-skins.js).
+   The show (~6 s): the card turns face up and freezes, she steps out of the frame (the card shows the empty rooftop),
+   four kunai fly at her from the four corners of the screen — she side-steps, flips over, drops low and vanishes in smoke,
+   time slows down at each miss — then she goes back into the card.
+   It plays by itself: when the skin's sheet opens, when the card is dealt to its owner, on my card at an online table
+   (once each) and once per visit of the Skins tab; ▶ on the card plays it again; a tap anywhere ends it.
+   Not on html.lite / reduced motion. Art (skins/): untouchable-scene.webp (the card without her), -stand / -flip / -crouch.webp
+   (cut-outs; «stand» is cut from the card itself, so stepping out is seamless). MYTH_ART: where each cut-out sits, in fractions
+   of the card (x, y, w, h) and its body centre inside the cut-out (ax, ay).
+   For the channel video: MYTH.manual = true, ACT['myth-play'](…) and mythSeek(ms) draws any moment (skins/tools/myth-video.js).
+   ============================================================ */
+const MYTH_ART = {
+  untouchable: {
+    stand: { x: 0.0562, y: 0.125, w: 0.88, h: 0.7817, ax: 0.5627, ay: 0.4086 },
+    flip: { w: 1.0513, h: 0.6417, ax: 0.4912, ay: 0.4755 },
+    crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 }
+  }
+};
+const MYTH_POSES = ['stand', 'flip', 'crouch'];
+const MYTH = { run: null, seen: new WeakSet(), keys: new Set(), pre: {}, manual: false, tabAt: 0 };
+// the story clock (ms): out — she steps out; k0 + k·gap — the kunai k is thrown, it reaches her `fly` later; back — into the card
+const MT = { out0: 280, out1: 860, k0: 1000, gap: 760, fly: 400, back0: 4300, back1: 4900, end: 5600 };
+const MYTH_MOVES = ['step', 'flip', 'crouch', 'blink']; // one per kunai: from the top-left, top-right, bottom-right, bottom-left corner
+
+function mythPreload(s) {
+  if (MYTH.pre[s.id]) return MYTH.pre[s.id];
+  const load = url => new Promise(ok => { const im = new Image(); im.decoding = 'async'; im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).then(() => ok(im), () => ok(im)); }; im.onerror = () => ok(null); im.src = url; });
+  MYTH.pre[s.id] = Promise.all([load(skinUrl(s, 'scene'))].concat(MYTH_POSES.map(p => load(skinUrl(s, p))))).then(a => (a.every(Boolean) ? a : (delete MYTH.pre[s.id], null)));
+  return MYTH.pre[s.id];
+}
+const mClamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const mLerp = (a, b, t) => a + (b - a) * t;
+const mEaseIO = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const mEaseOut = t => 1 - Math.pow(1 - t, 3);
+const mEaseBack = t => { const c = 1.5; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+const mSeg = (t, a, b) => mClamp((t - a) / (b - a), 0, 1);
+function mRand(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+/* real ms → story ms: the time slows down around each miss */
+function mythClock() {
+  const hits = [0, 1, 2, 3].map(k => MT.k0 + k * MT.gap + MT.fly);
+  const sp = tau => { let s = 1; hits.forEach(h => { s -= 0.62 * Math.exp(-Math.pow((tau - h) / 120, 2)); }); return Math.max(0.3, s); };
+  const tab = [0]; let tau = 0; while (tau < MT.end) { tau += sp(tau) * 4; tab.push(tau); }
+  return { dur: (tab.length - 1) * 4, at: r => { const i = mClamp(r / 4, 0, tab.length - 1); const i0 = Math.floor(i); return i0 + 1 < tab.length ? mLerp(tab[i0], tab[i0 + 1], i - i0) : tab[tab.length - 1]; } };
+}
+const KUNAI_SVG = '<svg viewBox="0 0 120 30" aria-hidden="true"><defs><linearGradient id="mkb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#c7ccd6"/><stop offset="1" stop-color="#7d8390"/></linearGradient></defs><circle cx="8" cy="15" r="6" fill="none" stroke="#c9ccd6" stroke-width="3"/><rect x="14" y="11.5" width="33" height="7" rx="2" fill="#2a0b12"/><path d="M19 11.5v7M25 11.5v7M31 11.5v7M37 11.5v7M43 11.5v7" stroke="#b3122b" stroke-width="2"/><rect x="46" y="9.5" width="4" height="11" rx="1" fill="#9aa0ab"/><polygon points="50,15 66,4 120,15 66,26" fill="url(#mkb)"/><path d="M52 15H117" stroke="#fff" stroke-width="1.2" opacity=".75"/><polygon points="60,15 66,11.5 72,15 66,18.5" fill="#d4142e"/></svg>';
+
+/* ---------- the show ---------- */
+async function mythPlay(layer, force) {
+  const s = SKIN[layer && layer.dataset.skin]; const art = s && MYTH_ART[s.id]; if (!art || MYTH.run) return;
+  if (skinsStill() && !force) return;
+  MYTH.run = { starting: true };
+  const imgs = await Promise.race([mythPreload(s), new Promise(ok => setTimeout(() => ok(null), 3000))]);
+  if (!imgs || !layer.isConnected) { MYTH.run = null; return; }
+  const wrap = layer.closest('.card3d-wrap'); const wkey = wrap && wrap.dataset.key; const inSheet = !!layer.closest('.sheet');
+  const find = () => (layer.isConnected ? layer : (layer = (wkey ? document.querySelector(`${inSheet ? '.sheet ' : ''}.card3d-wrap[data-key="${wkey}"] .skin-layer.anim[data-skin="${s.id}"]`) : document.querySelector(`.flip.open .skin-layer.anim[data-skin="${s.id}"]`)) || layer));
+  const R0 = layer.getBoundingClientRect(); const W0 = layer.offsetWidth || R0.width, H0 = layer.offsetHeight || R0.height;
+  const vw = window.innerWidth, vh = window.innerHeight; const st = art.stand;
+  const S1 = mClamp(0.68 * Math.min(vh, vw * 1.7) / (st.h * H0), 1.05, 1.6); // how much bigger she is out of the card
+  const fx = document.createElement('div'); fx.className = 'myth-fx';
+  const el = (tag, cls, html) => { const e = document.createElement(tag); e.className = cls; if (html) e.innerHTML = html; fx.appendChild(e); return e; };
+  const dim = el('div', 'myth-dim');
+  const ring = el('div', 'myth-ring'); const rs = W0 * 0.95; ring.style.width = ring.style.height = rs + 'px';
+  const poseImg = (p, cls) => { const a = art[p]; const im = document.createElement('img'); im.className = cls; im.src = imgs[1 + MYTH_POSES.indexOf(p)].src; im.alt = ''; im.draggable = false;
+    const w = a.w * W0 * S1, h = a.h * H0 * S1; im.style.width = w + 'px'; im.style.height = h + 'px'; im.style.setProperty('--ox', (a.ax * 100) + '%'); im.style.setProperty('--oy', (a.ay * 100) + '%'); im._w = w; im._h = h; im._a = a; im.style.opacity = 0; fx.appendChild(im); return im; };
+  const ghosts = [1, 2, 3].map(() => Object.fromEntries(MYTH_POSES.map(p => [p, poseImg(p, 'myth-ghost')])));
+  const hero = Object.fromEntries(MYTH_POSES.map(p => [p, poseImg(p, 'myth-hero')]));
+  const Lk = mClamp(W0 * 0.36, 64, 120);
+  const kunai = [0, 1, 2, 3].map(() => { const k = el('div', 'myth-kunai', '<i class="tr"></i>' + KUNAI_SVG); k.style.width = Lk + 'px'; k.style.height = (Lk / 4) + 'px'; k.style.opacity = 0; return k; });
+  const rnd = mRand(68);
+  const sparks = []; [0, 1, 2].forEach(k => { for (let i = 0; i < 14; i++) sparks.push({ k, e: el('i', 'myth-spark'), a: (rnd() - 0.5) * 1.9, v: 0.3 + rnd() * 0.55, life: 360 + rnd() * 220, len: 0.6 + rnd() * 0.9 }); });
+  const smoke = []; [0, 1].forEach(w => { for (let i = 0; i < 9; i++) { const e = el('i', 'myth-smoke'); const sz = W0 * (0.22 + rnd() * 0.2); e.style.width = e.style.height = sz + 'px'; smoke.push({ w, e, sz, a: rnd() * Math.PI * 2, v: 0.04 + rnd() * 0.09, life: 620 + rnd() * 260, d: rnd() * 90 }); } });
+  sparks.forEach(p => { p.e.style.width = (16 * p.len) + 'px'; p.e.style.opacity = 0; }); smoke.forEach(p => { p.e.style.opacity = 0; });
+  document.body.appendChild(fx);
+  const clock = mythClock();
+  const R = { s, art, fx, dim, ring, hero, ghosts, kunai, sparks, smoke, W0, H0, S1, vw, vh, Lk, find, wkey, clock, t0: performance.now(), fired: {}, dimAt: '' };
+  MYTH.run = R;
+  fx.addEventListener('pointerdown', e => { e.preventDefault(); mythStop(); });
+  if (!MYTH.manual) { const loop = () => { if (MYTH.run !== R) return; const t = performance.now() - R.t0; if (t >= clock.dur) { mythStop(); return; } mythDraw(R, clock.at(t)); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+  else mythDraw(R, 0);
+}
+function mythSeek(realMs) { const R = MYTH.run; if (!R || !R.clock) return 0; mythDraw(R, R.clock.at(realMs)); return R.clock.dur; }
+function mythStop() {
+  const R = MYTH.run; MYTH.run = null; if (!R || !R.fx) return;
+  const l = R.find && R.find(); if (l) { l.classList.remove('myth-on'); l.style.removeProperty('--mo'); l.style.removeProperty('--mg'); }
+  if (R.wkey && typeof c3state === 'function') c3state(R.wkey).idle = Date.now();
+  R.fx.style.transition = 'opacity .25s'; R.fx.style.opacity = 0; R.fx.style.pointerEvents = 'none'; setTimeout(() => R.fx.remove(), 280);
+}
+/* one moment of the show, story time tau (ms) */
+function mythDraw(R, tau) {
+  const layer = R.find(); if (!layer || !layer.isConnected) { mythStop(); return; }
+  // the card: face up and still while she is out
+  if (R.wkey && typeof c3state === 'function') { const st = c3state(R.wkey); const tgt = Math.round(st.ry / 360) * 360; st.ry += (tgt - st.ry) * 0.3; st.rx += (0 - st.rx) * 0.3; st.idle = Date.now() + 2000; const w = layer.closest('.card3d-wrap'); if (w) card3dApply(w); }
+  const r = layer.getBoundingClientRect(); const W = r.width, H = r.height; const a = R.art.stand;
+  if (W < 20) { mythStop(); return; }
+  const C0 = { x: r.left + (a.x + a.ax * a.w) * W, y: r.top + (a.y + a.ay * a.h) * H };
+  const hw = a.w * R.W0 * R.S1 / 2, hh = a.h * R.H0 * R.S1 / 2;
+  const C1 = { x: mClamp(r.left + W / 2, hw * 0.7 + 6, R.vw - hw * 0.7 - 6), y: mClamp(r.top + H * 0.47, hh * 0.85 + 6, R.vh - hh * 0.85 - 6) };
+  const vw = R.vw, vh = R.vh;
+  // the kunai: corner → her, the dodge of each
+  const corners = [{ x: 0, y: 0 }, { x: vw, y: 0 }, { x: vw, y: vh }, { x: 0, y: vh }];
+  const K = corners.map((c, k) => {
+    const dx = C1.x - c.x, dy = C1.y - c.y, len = Math.hypot(dx, dy) || 1; const d = { x: dx / len, y: dy / len };
+    const L = MT.k0 + k * MT.gap, Hh = L + MT.fly; const start = { x: c.x - d.x * R.Lk * 1.2, y: c.y - d.y * R.Lk * 1.2 }; const dist = Math.hypot(C1.x - start.x, C1.y - start.y);
+    const move = MYTH_MOVES[k]; let n = { x: -d.y, y: d.x };
+    const want = move === 'flip' ? (n.y > 0 ? -1 : 1) : move === 'crouch' ? (n.y < 0 ? -1 : 1) : (n.x >= 0 ? 1 : -1); // a flip goes up, a crouch goes down, a step / a blink to the right
+    n = { x: n.x * want, y: n.y * want };
+    const m = move === 'step' ? hw * 0.95 : move === 'flip' ? hh * 0.85 : move === 'crouch' ? hh * 0.7 : hw * 0.9;
+    const T = { x: mClamp(C1.x + n.x * m, hw * 0.55, vw - hw * 0.55), y: mClamp(C1.y + n.y * m, hh * 0.6, vh - hh * 0.6) };
+    return { c, d, L, H: Hh, start, v: dist / MT.fly, move, D: { x: T.x - C1.x, y: T.y - C1.y } };
+  });
+  const heroAt = t => {
+    if (t < MT.out0) return { x: C0.x, y: C0.y, s: 1, rot: 0, pose: 'stand', op: 0 };
+    if (t < MT.out1) { const p = mSeg(t, MT.out0, MT.out1); const e = mEaseIO(p); return { x: mLerp(C0.x, C1.x, e), y: mLerp(C0.y, C1.y, e) - Math.sin(p * Math.PI) * H * 0.06, s: mLerp(1, R.S1, mEaseBack(p)), rot: Math.sin(p * Math.PI) * -4, pose: 'stand', op: 1 }; }
+    if (t >= MT.back0) { const p = mSeg(t, MT.back0, MT.back1); const e = mEaseIO(p); return { x: mLerp(C1.x, C0.x, e), y: mLerp(C1.y, C0.y, e) - Math.sin(p * Math.PI) * H * 0.05, s: mLerp(R.S1, 1, e), rot: 0, pose: 'stand', op: t > MT.back1 ? 0 : 1 }; }
+    let x = C1.x, y = C1.y + Math.sin(t / 240) * H * 0.008, rot = 0, pose = 'stand', op = 1;
+    K.forEach(k => {
+      const u = t < k.H - 200 ? 0 : t < k.H - 50 ? mEaseOut(mSeg(t, k.H - 200, k.H - 50)) : t < k.H + 140 ? 1 : mEaseIO(1 - mSeg(t, k.H + 140, k.H + 440));
+      if (k.move === 'blink') {
+        if (t >= k.H - 170 && t < k.H + 60) op = 1 - mSeg(t, k.H - 170, k.H - 110);
+        if (t >= k.H + 60 && t < k.H + 440) { op = mSeg(t, k.H + 60, k.H + 130); const b = mEaseIO(1 - mSeg(t, k.H + 160, k.H + 440)); x += k.D.x * b; y += k.D.y * b; }
+        return;
+      }
+      if (!u) return;
+      x += k.D.x * u; y += k.D.y * u;
+      if (k.move === 'step') rot = (k.D.x >= 0 ? 1 : -1) * 13 * u;
+      if (k.move === 'flip' && t > k.H - 170 && t < k.H + 360) { pose = 'flip'; rot = (k.D.x >= 0 ? 1 : -1) * 360 * mEaseIO(mSeg(t, k.H - 170, k.H + 360)); }
+      if (k.move === 'crouch' && t > k.H - 160 && t < k.H + 330) pose = 'crouch';
+    });
+    return { x, y, s: R.S1, rot, pose, op };
+  };
+  // the card: her picture fades into the empty scene when she leaves and comes back when she returns
+  const mo = tau < MT.out0 ? 0 : tau < MT.back1 - 140 ? mSeg(tau, MT.out0, MT.out0 + 110) : 1 - mSeg(tau, MT.back1 - 140, MT.back1);
+  const mg = Math.max(Math.exp(-Math.pow((tau - MT.out0) / 160, 2)), Math.exp(-Math.pow((tau - MT.back1) / 200, 2)));
+  if (!layer.classList.contains('myth-on')) layer.classList.add('myth-on');
+  layer.style.setProperty('--mo', mo.toFixed(3)); layer.style.setProperty('--mg', mg.toFixed(3));
+  // the dim around the card
+  const cx = r.left + W / 2, cy = r.top + H / 2; const key = `${Math.round(cx)},${Math.round(cy)},${Math.round(H)}`;
+  if (R.dimAt !== key) { R.dimAt = key; R.dim.style.background = `radial-gradient(circle at ${cx}px ${cy}px, rgba(20,0,6,.05) 0, rgba(20,0,6,.05) ${H * 0.42}px, rgba(14,0,5,.78) ${H * 0.95}px)`; }
+  R.dim.style.opacity = (Math.min(mSeg(tau, 0, 320), 1 - mSeg(tau, MT.back1, MT.end))).toFixed(3);
+  // the portal ring: when she steps out and when she comes back
+  const ringAt = (t0) => { const p = mSeg(tau, t0, t0 + 560); return p > 0 && p < 1 ? p : 0; };
+  const rp = ringAt(MT.out0 - 40) || ringAt(MT.back1 - 180);
+  R.ring.style.opacity = rp ? (0.95 * (1 - rp)).toFixed(3) : 0;
+  if (rp) R.ring.style.transform = `translate3d(${cx - R.W0 * 0.475}px, ${cy - R.W0 * 0.475}px, 0) scale(${(0.25 + rp * 1.6).toFixed(3)})`;
+  // her and her afterimages
+  const place = (im, h, op) => { const a = im._a; im.style.opacity = op.toFixed(3); if (op <= 0.001) return; im.style.transform = `translate3d(${(h.x - a.ax * im._w).toFixed(1)}px, ${(h.y - a.ay * im._h).toFixed(1)}px, 0) rotate(${h.rot.toFixed(2)}deg) scale(${(h.s / R.S1).toFixed(4)})`; };
+  const h = heroAt(tau);
+  MYTH_POSES.forEach(p => place(R.hero[p], h, p === h.pose ? h.op : 0));
+  const prev = heroAt(tau - 30); const speed = Math.hypot(h.x - prev.x, h.y - prev.y) + Math.abs(h.rot - prev.rot) * 0.6;
+  const motion = mClamp((speed - 2) / (R.H0 * 0.07), 0, 1);
+  R.ghosts.forEach((g, i) => { const gh = heroAt(tau - (i + 1) * 36); const op = motion * [0.3, 0.17, 0.08][i] * Math.min(gh.op, h.op || gh.op); MYTH_POSES.forEach(p => place(g[p], gh, p === gh.pose ? op : 0)); });
+  // the kunai
+  K.forEach((k, i) => {
+    const e = R.kunai[i]; if (tau < k.L) { e.style.opacity = 0; return; }
+    const tr = (tau - k.H) * k.v; const tip = { x: C1.x + k.d.x * tr, y: C1.y + k.d.y * tr };
+    if (tr > Math.hypot(vw, vh) + R.Lk * 3) { e.style.opacity = 0; return; }
+    e.style.opacity = 1; e.style.transform = `translate3d(${(tip.x - R.Lk).toFixed(1)}px, ${(tip.y - R.Lk / 8).toFixed(1)}px, 0) rotate(${(Math.atan2(k.d.y, k.d.x) * 180 / Math.PI).toFixed(2)}deg)`;
+    if (tau >= k.H && !R.fired[i]) { R.fired[i] = 1; if (!MYTH.manual && typeof tgHaptic === 'function') try { tgHaptic('light'); } catch (x) {} }
+  });
+  // sparks where a blade grazes past, smoke where she vanishes and appears
+  R.sparks.forEach(p => {
+    const k = K[p.k]; const age = tau - k.H; if (age < 0 || age > p.life) { p.e.style.opacity = 0; return; }
+    const ang = Math.atan2(k.d.y, k.d.x) + p.a; const P0 = { x: C1.x + k.D.x * 0.38, y: C1.y + k.D.y * 0.38 };
+    const dist = p.v * age; const x = P0.x + Math.cos(ang) * dist, y = P0.y + Math.sin(ang) * dist + 0.0006 * age * age;
+    p.e.style.opacity = (1 - age / p.life).toFixed(3); p.e.style.transform = `translate3d(${(x - 16 * p.len).toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${(ang * 180 / Math.PI).toFixed(1)}deg)`;
+  });
+  const kb = K[3];
+  R.smoke.forEach(p => {
+    const t0 = (p.w ? kb.H + 50 : kb.H - 160) + p.d * (p.w ? 0.5 : 0.3); const age = tau - t0; if (age < 0 || age > p.life) { p.e.style.opacity = 0; return; }
+    const at = p.w ? { x: C1.x + kb.D.x, y: C1.y + kb.D.y } : { x: C1.x, y: C1.y }; const q = age / p.life;
+    const x = at.x + Math.cos(p.a) * p.v * age, y = at.y + Math.sin(p.a) * p.v * age - 0.05 * age;
+    p.e.style.opacity = (0.9 * (1 - q) * Math.min(1, age / 80)).toFixed(3); p.e.style.transform = `translate3d(${(x - p.sz / 2).toFixed(1)}px, ${(y - p.sz / 2).toFixed(1)}px, 0) scale(${(0.5 + q * 1.9).toFixed(3)})`;
+  });
+}
+
+/* ---------- when it plays by itself ---------- */
+function mythSoon(findLayer, ms) { setTimeout(() => { if (MYTH.run) return; const l = findLayer(); if (l) mythPlay(l); }, ms); }
+function mythAfterRender() {
+  if (typeof document === 'undefined' || !document.querySelectorAll || skinsStill()) return;
+  const layers = document.querySelectorAll('.skin-layer.anim'); if (!layers.length) return;
+  layers.forEach(l => { const s = SKIN[l.dataset.skin]; if (s) mythPreload(s); });
+  if (MYTH.run) return;
+  const sh = S.ui && S.ui.sheet;
+  if (sh && sh.type === 'skin' && SKIN[sh.id] && SKIN[sh.id].anim) { if (!MYTH.seen.has(sh)) { MYTH.seen.add(sh); mythSoon(() => document.querySelector('.sheet .sk-sheet .skin-layer.anim'), 650); } return; }
+  const g = S.game; const f = document.querySelector('.flip.open .skin-layer.anim');
+  if (f && g) { const k = 'deal:' + g.id + ':' + g.dealIdx; if (!MYTH.keys.has(k)) { MYTH.keys.add(k); mythSoon(() => document.querySelector('.flip.open .skin-layer.anim'), 700); } return; }
+  const t = document.querySelector('.card3d-wrap[data-key="tb"] .skin-layer.anim');
+  if (t && typeof TB !== 'undefined') { const k = 'tb:' + (TB.code || '') + ':' + t.dataset.skin; if (!MYTH.keys.has(k)) { MYTH.keys.add(k); mythSoon(() => document.querySelector('.card3d-wrap[data-key="tb"] .skin-layer.anim'), 600); } return; }
+  // the Skins tab: once per visit, when the Mythic card is fully on screen
+  if (S.screen === 'cards' && S.ui.cardsTab === 'skins') {
+    if (MYTH.tabAt) return; const l = document.querySelector('.skin-item .skin-layer.anim'); if (!l) return;
+    const r = l.getBoundingClientRect(); if (r.top < 0 || r.bottom > window.innerHeight || r.width < 60) return;
+    MYTH.tabAt = Date.now(); mythSoon(() => { const x = document.querySelector('.skin-item .skin-layer.anim'); return S.screen === 'cards' && S.ui.cardsTab === 'skins' && !S.ui.sheet ? x : null; }, 900);
+  } else MYTH.tabAt = 0;
+}
+/* after buying: the sheet stays open — the show with the new number on top */
+function mythPlaySheet(id) { setTimeout(() => { const l = document.querySelector(`.sheet .sk-sheet .skin-layer.anim[data-skin="${id}"]`); if (l && !MYTH.run) mythPlay(l, true); }, 500); }
+// ▶ on the card must not start turning the 3D card (05-profiles.js listens to pointerdown on the card)
+document.addEventListener('pointerdown', e => { if (e.target && e.target.closest && e.target.closest('.myth-play')) e.stopImmediatePropagation(); }, true);
+Object.assign(ACT, {
+  'myth-play'(el) { const l = el.closest('.skin-layer'); if (!l) return; if (MYTH.run && MYTH.run.fx) mythStop(); setTimeout(() => mythPlay(l, true), MYTH.run ? 300 : 0); }
+});
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

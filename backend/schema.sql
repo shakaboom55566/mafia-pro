@@ -545,6 +545,20 @@ CREATE TABLE IF NOT EXISTS user_skins (
   PRIMARY KEY (tg_id, role)
 );
 
+-- v69: numbered skins (Mythic): how many copies are sold (only grows — a number is never given twice) and whose copy has which number
+CREATE TABLE IF NOT EXISTS skin_counters (
+  skin TEXT PRIMARY KEY,
+  last INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS skin_serials (
+  skin       TEXT NOT NULL,
+  serial     INTEGER NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (skin, serial),
+  UNIQUE (skin, tg_id)
+);
+
 -- v63 emeralds: the in-game currency (emeralds.js) — the balance and every change to it
 CREATE TABLE IF NOT EXISTS emeralds (
   tg_id      INTEGER PRIMARY KEY,

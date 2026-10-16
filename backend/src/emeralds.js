@@ -19,6 +19,7 @@ export const PACKS = [
 /* the first purchase of a pack: the bonus share by the pack's price */
 export const firstBonusPct = usd => (usd <= 4.99 ? 100 : usd <= 40 ? 40 : 20);
 export const EPIC_PRICE = 7500; // an Epic skin in emeralds (overridable: EMERALDS_EPIC var)
+export const MYTHIC_PRICE = 50000; // v69: a Mythic skin (overridable: EMERALDS_MYTHIC var)
 export const PRIZE_FUND = 10000; // the weekly tournament's fund (overridable per tournament by the admin; EMERALDS_FUND var sets the default)
 /* the prize of each place for n players who played, from a fund: floors first (1–3: 2 000, 4–10: 500, 11–15: 100), what is left goes
    to the top three as 50 / 30 / 20 %; a fund that cannot even cover the floors is split in the floors' proportion */
@@ -40,6 +41,9 @@ export function prizeTable(n, fund) {
 export const PACK = Object.fromEntries(PACKS.map(p => [p.id, p]));
 export const isPack = id => typeof id === 'string' && Object.prototype.hasOwnProperty.call(PACK, id);
 export function epicPrice(env) { const v = Number(env && env.EMERALDS_EPIC); return Number.isFinite(v) && v > 0 ? Math.round(v) : EPIC_PRICE; }
+export function mythicPrice(env) { const v = Number(env && env.EMERALDS_MYTHIC); return Number.isFinite(v) && v > 0 ? Math.round(v) : MYTHIC_PRICE; }
+/* the price of a skin for sale by its rarity (null — not sold) */
+export const skinPrice = (env, rarity) => rarity === 'epic' ? epicPrice(env) : rarity === 'mythic' ? mythicPrice(env) : null;
 export function defaultFund(env) { const v = Number(env && env.EMERALDS_FUND); return Number.isFinite(v) && v > 0 ? Math.round(v) : PRIZE_FUND; }
 const now = () => Math.floor(Date.now() / 1000);
 const int = x => { const v = Math.trunc(Number(x)); return Number.isSafeInteger(v) ? v : 0; };
@@ -78,5 +82,5 @@ export async function ledgerOf(env, tgId, limit = 30) {
 }
 /* the account's emeralds for /api/me: the balance, the packs already bought once (no bonus any more), the prices */
 export async function emeraldsInfo(env, tgId) {
-  return { balance: await balanceOf(env, tgId), bought: await boughtPacks(env, tgId), epic: epicPrice(env) };
+  return { balance: await balanceOf(env, tgId), bought: await boughtPacks(env, tgId), epic: epicPrice(env), mythic: mythicPrice(env) };
 }
