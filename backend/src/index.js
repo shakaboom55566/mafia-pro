@@ -677,7 +677,7 @@ async function apiMe(env, bot, body, geo) {
   Object.assign(skins, await mySerialsInfo(env, u.id)); // v69: the numbers of my numbered copies, how many are sold
   const emeralds = await emeraldsInfo(env, u.id); // v63
   const tournament = await tournamentBrief(env, u.id);
-  return json({ ok: true, geo: geo || { country: '', city: '' }, season: seasonInfo(sz), peak, skins, emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  return json({ ok: true, geo: geo || { country: '', city: '' }, season: seasonInfo(sz), peak, skins, favCard: await favCardOf(env, u.id), emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -766,6 +766,17 @@ async function apiProfile(env, body) {
   return json(Object.assign({ ok: true }, d, { isFriend, grant: !!(await grantFor(env, id)) }));
 }
 /* a player's public game profile: rating, per-role results, recent games, win streaks, club (the app's profile screen and Discord /stats) */
+/* v76: the favourite card on the profile — a role id (letters and _), or null for «the best card» */
+const FAV_RE = /^[a-z_]{3,24}$/;
+async function favCardOf(env, id) { const r = await env.DB.prepare('SELECT role FROM user_fav_card WHERE tg_id = ?1').bind(id).first(); return r && FAV_RE.test(r.role) ? r.role : null; }
+async function apiFavCard(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const role = body.role == null || body.role === '' ? null : String(body.role);
+  if (role && !FAV_RE.test(role)) return json({ ok: false, error: 'bad_role' }, 400);
+  if (role) await env.DB.prepare('INSERT INTO user_fav_card (tg_id, role, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET role = ?2, updated_at = ?3').bind(v.user.id, role, now()).run();
+  else await env.DB.prepare('DELETE FROM user_fav_card WHERE tg_id = ?1').bind(v.user.id).run();
+  return json({ ok: true, fav: role });
+}
 async function profileData(env, id) {
   const u = await userRow(env, id); if (!u) return null;
   const seen = await env.DB.prepare('SELECT seen_at, created_at FROM users WHERE tg_id = ?1').bind(id).first();
@@ -784,7 +795,7 @@ async function profileData(env, id) {
   const club = await membershipOf(env, id);
   const loc = await env.DB.prepare('SELECT (SELECT city FROM user_cities WHERE tg_id = ?1) AS city, (SELECT country FROM user_countries WHERE tg_id = ?1) AS country').bind(id).first(); // v75
   return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '', city: (loc && loc.city) || '', country: (loc && loc.country) || '' },
-    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id), serials: await wornSerials(env, id) };
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id), fav: await favCardOf(env, id), serials: await wornSerials(env, id) };
 }
 /* ---------- v56 card skins (skins.js) ---------- */
 const epicSkinIds = () => Object.keys(SKINS).filter(id => SKINS[id].rarity === 'epic');
@@ -2031,6 +2042,7 @@ export default {
           case '/api/friends/respond': return wrap(apiFriendRespond(env, bot, body));
           case '/api/ping': return wrap(apiPing(env, bot, body));
           case '/api/profile': return wrap(apiProfile(env, body));
+          case '/api/profile/fav': return wrap(apiFavCard(env, body));
           case '/api/skin/equip': return wrap(apiSkinEquip(env, body));
           case '/api/skins': return wrap(apiSkinsOf(env, body));
           case '/api/skin/buy': return wrap(apiSkinBuy(env, bot, body)); // v63: an Epic skin for emeralds

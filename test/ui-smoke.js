@@ -1131,11 +1131,10 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v71 ' + m); }
   vm.runInContext('api = async (p, b) => { __calls.push([p, b]); if (p === "/api/skin/equip") { const e = Object.assign({}, S.skins.equipped); if (b.skin) e[b.role] = b.skin; else delete e[b.role]; return { ok: true, equipped: e }; } return { ok: false }; }', ctx);
   const calls = E('__calls'); const last = () => calls[calls.length - 1];
   S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.skinFilter = 'all'; S.ui.skinRar = 'all';
-  A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; X.render(); check('v71 skins tab rooms'); let h = app.innerHTML;
+  A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; S.ui.skinCat = 'looks'; X.render(); if (app.innerHTML.includes('data-a="room-sheet"')) F('the looks hold no rooms (v76)');
+  A['skin-cat'](el('skin-cat', { id: 'rooms' })); check('v71 skins tab rooms'); let h = app.innerHTML;
   if (!h.includes(u.rmTitle) || !h.includes(`class="rm-tile locked `) || !h.includes(`data-a="room-sheet" data-id="${id}"`) || !h.includes('rm-lock')) F('the section lists the room, locked');
-  A['skin-rar'](el('skin-rar', { id: 'epic' })); if (app.innerHTML.includes('data-a="room-sheet"')) F('the Epic filter hides the rooms (they are Legendary)');
-  A['skin-rar'](el('skin-rar', { id: RM[0].rarity })); if (!app.innerHTML.includes('data-a="room-sheet"')) F('their own rarity shows them'); A['skin-rar'](el('skin-rar', { id: 'all' }));
-  A['skin-filter'](el('skin-filter', { id: 'black' })); if (app.innerHTML.includes('data-a="room-sheet"')) F('a team filter hides the rooms'); A['skin-filter'](el('skin-filter', { id: 'all' }));
+  if ((app.innerHTML.match(/data-a="room-sheet"/g) || []).length !== RM.length || app.innerHTML.includes('data-a="skin-rar"')) F('the rooms category: every room, no rarity row');
   // the sheet of a room not owned: the preview of the table in that room, how to get it, no button
   A['room-sheet'](el('room-sheet', { id })); check('v71 room sheet locked'); h = app.innerHTML;
   if (!h.includes('class="rtable lg roomed"') || !h.includes(`class="rt-room" data-room="${id}"`) || !h.includes(RM[0].file + '.webp') || !h.includes(u.rmHow) || h.includes('data-a="room-set"') || (h.match(/class="rt-seat /g) || []).length < 8) F('locked: the live preview with 8 seats, how to get it');
@@ -1165,9 +1164,9 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v74 ' + m); }
   const calls = E('__calls'); const last = () => calls[calls.length - 1];
   if (FR.length !== 8 || !FR.every(f => f.role === 'frame' && f.hole > 0.3 && f.hole < 0.7)) F('eight frames with their holes');
   S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: [], equipped: {} }; S.em = { balance: 4200, bought: [], epic: 7500, mythic: 50000, frame: 3000 }; S.ui.sheet = null; S.ui.skinFilter = 'all'; S.ui.skinRar = 'all';
-  A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; X.render(); check('v74 skins tab frames'); let h = app.innerHTML;
+  A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; S.ui.skinCat = 'frames'; X.render(); check('v74 skins tab frames'); let h = app.innerHTML;
   if (!h.includes(u.afTitle) || (h.match(/data-a="frame-sheet"/g) || []).length !== 8 || (h.match(/class="av-frame"/g) || []).length < 8 || !h.includes('frame-hw-pumpkin-patch.webp') || !h.includes('3 000')) F('the section: eight frames around my avatar, with the price');
-  A['skin-rar'](el('skin-rar', { id: 'epic' })); if (app.innerHTML.includes('data-a="frame-sheet"')) F('the Epic filter hides the frames (Super Rare)'); A['skin-rar'](el('skin-rar', { id: 'sr' })); if (!app.innerHTML.includes('data-a="frame-sheet"')) F('SR shows them'); A['skin-rar'](el('skin-rar', { id: 'all' }));
+  A['skin-cat'](el('skin-cat', { id: 'looks' })); if (app.innerHTML.includes('data-a="frame-sheet"')) F('the looks hold no frames (v76)'); A['skin-cat'](el('skin-cat', { id: 'frames' }));
   // the sheet: a big preview, the seat at the table, the price; buy → on
   A['frame-sheet'](el('frame-sheet', { id })); check('v74 frame sheet'); h = app.innerHTML;
   if (!h.includes('af-big') || !h.includes('af-seat framed') || !h.includes(X.tt(u.emSkinBuy, { n: '3 000' })) || !h.includes(`data-a="em-skin-buy" data-id="${id}"`) || !h.includes(E('FRAME')[id].lore)) F('the sheet: the preview, the table seat, the buy button and the story');
@@ -1187,7 +1186,7 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v74 ' + m); }
   vm.runInContext('FRP[7] = { user: { tgId: 7, name: "Нина" }, rating: { points: 1000, games: 0, wins: 0 }, roles: [], recent: [], skins: { frame: "' + id2 + '" }, isFriend: false, at: Date.now() }', ctx);
   S.ui.sheet = { type: 'friend', id: 7 }; X.render(); check('v74 friend sheet frame'); if (!app.innerHTML.includes('av-fw') || !app.innerHTML.includes('frame-hw-grim-reaper.webp')) F('his sheet shows the frame');
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
-  S.lobby = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v74 ok');
+  S.lobby = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.ui.skinCat = 'looks'; S.screen = 'home'; X.render(); console.log('v74 ok');
 } catch (e) { fails++; console.log('FAIL v74 crashed', e && e.stack || e); }
 // v75: the country from the network — /api/me answers with geo; my profile takes the country, the form suggests the city, the pair goes to the server; flags at seats and in the player sheet
 try { const u = X.U(); const F = m => { fails++; console.log('FAIL v75 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
@@ -1227,6 +1226,31 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v75 ' + m); }
   me.city = 'Дніпро'; me.country = 'UA'; S.meId = me.id; S.ui.profileId = me.id; S.screen = 'myprofile'; X.render(); check('v75 my profile'); if (!app.innerHTML.includes('🇺🇦 Дніпро · ' + E('countryName')('UA'))) F('my profile shows the flag first');
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx); S.profiles = S.profiles.filter(p => p !== me && p !== me2); S.meId = null; S.cloud = null; S.screen = 'home'; X.render(); console.log('v75 ok');
 } catch (e) { fails++; console.log('FAIL v75 crashed', e && e.stack || e); }
+// v76: the Skins tab's four categories, the frame on my profile, the favourite card instead of the best one (mine and on a player's stats)
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v76 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []', ctx);
+  vm.runInContext('api = async (p, b) => { __calls.push([p, b]); return { ok: true, fav: b && b.role }; }', ctx);
+  const calls = E('__calls'); const last = () => calls[calls.length - 1];
+  S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: ['hw_grim_reaper'], equipped: { frame: 'hw_grim_reaper' } }; S.ui.sheet = null; S.ui.skinCat = null;
+  A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; X.render(); check('v76 skins categories'); let h = app.innerHTML;
+  if ((h.match(/data-a="skin-cat"/g) || []).length !== 4 || ![u.skCatLooks, u.skCatRooms, u.skCatTables, u.skCatFrames].every(t => h.includes(t)) || !h.includes('sk-cat active') || !h.includes('data-a="skin-rar"')) F('four categories, the looks first with their filters');
+  A['skin-cat'](el('skin-cat', { id: 'tables' })); check('v76 tables soon'); if (!app.innerHTML.includes(u.skTablesSoon) || app.innerHTML.includes('data-a="skin-rar"')) F('the table: coming soon');
+  A['skin-cat'](el('skin-cat', { id: 'nope' })); if (S.ui.skinCat !== 'looks') F('an unknown category — the looks');
+  // my profile: the frame around my avatar, the favourite card
+  const me = E('newProfile')({ name: 'Me', tgId: 500 }); S.profiles.unshift(me); S.meId = me.id; me.history = [{ roleId: 'doctor', won: true, n: 8, date: Date.now(), points: 15, survived: true }];
+  A.go(el('go', { to: 'myprofile' })); X.render(); check('v76 my profile'); h = app.innerHTML;
+  if (!h.includes('av-fw') || !h.includes('frame-hw-grim-reaper.webp')) F('my profile shows my frame');
+  if (!h.includes(u.bestRole) || !h.includes('data-a="fav-pick"') || !h.includes(u.favPick)) F('the best card with «choose a favourite»');
+  A['fav-pick'](); check('v76 fav sheet'); h = app.innerHTML; if ((h.match(/data-a="fav-set"/g) || []).length !== E('ROLES').length + 1 || !h.includes(u.favBest)) F('the picker: every card and «show my best»');
+  await A['fav-set'](el('fav-set', { id: 'witch' })); h = app.innerHTML;
+  if (me.favCard !== 'witch' || last()[0] !== '/api/profile/fav' || last()[1].role !== 'witch' || !h.includes(u.favTitle) || !h.includes(X.ROLE.witch.name) || !h.includes(u.favChange)) F('the favourite card is shown and saved on the server');
+  await A['fav-set'](el('fav-set', { id: '' })); if (me.favCard || last()[1].role !== null || !app.innerHTML.includes(u.bestRole)) F('back to the best card');
+  // a player's statistics: his favourite card
+  vm.runInContext('FRP[9] = { user: { tgId: 9, name: "Нина" }, rating: { points: 1000, games: 3, wins: 2 }, roles: [{ roleId: "doctor", games: 3, wins: 2 }], recent: [], skins: {}, fav: "don", isFriend: false, at: Date.now() }', ctx);
+  S.ui.pstatsId = 9; A.go(el('go', { to: 'pstats' })); X.render(); check('v76 pstats fav'); h = app.innerHTML; if (!h.includes(u.favTitle) || !h.includes(X.ROLE.don.name)) F('his statistics show his favourite card');
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
+  S.profiles = S.profiles.filter(p => p !== me); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.ui.skinCat = 'looks'; S.screen = 'home'; X.render(); console.log('v76 ok');
+} catch (e) { fails++; console.log('FAIL v76 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

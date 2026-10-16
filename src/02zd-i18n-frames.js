@@ -67,3 +67,24 @@
     Object.assign(p.ui, UI[code]);
   });
 })();
+/* v76: the Skins tab's categories, the favourite card on the profile; the rooms are now «room backgrounds» (the table's own look is a category of its own) */
+(function () {
+  const UI = {
+    ru: { skCatLooks: 'Облики', skCatRooms: 'Фоны комнаты', skCatTables: 'Фон стола', skCatFrames: 'Рамки', skTablesSoon: 'Скоро здесь появятся скины самого стола: сукно, мрамор, дерево, золото. Стол останется круглым, а вокруг — ваш фон комнаты.',
+      rmTitle: 'Фоны комнаты', rmLabel: 'Фон комнаты', rmOn: 'стоит', rmSetBtn: 'Сделать фоном комнаты', rmOffBtn: 'Убрать фон', rmNoneHint: 'обычный тёмный фон', rmSet: '«{name}» — теперь фон вашей комнаты', rmOff: 'Фон убран — снова обычный тёмный', rmPick: 'Фон вашей комнаты',
+      favTitle: 'Любимая карта', favPick: 'Выбрать любимую карту', favChange: 'Сменить', favBest: 'Показывать лучшую карту', favSheetHint: 'Её увидят все в вашем профиле вместо лучшей карты.', favSet: '«{name}» — ваша любимая карта', favOff: 'В профиле снова лучшая карта' },
+    uk: { skCatLooks: 'Образи', skCatRooms: 'Фони кімнати', skCatTables: 'Фон столу', skCatFrames: 'Рамки', skTablesSoon: 'Незабаром тут з’являться скіни самого столу: сукно, мармур, дерево, золото. Стіл залишиться круглим, а довкола — ваш фон кімнати.',
+      rmTitle: 'Фони кімнати', rmLabel: 'Фон кімнати', rmOn: 'стоїть', rmSetBtn: 'Зробити фоном кімнати', rmOffBtn: 'Прибрати фон', rmNoneHint: 'звичайний темний фон', rmSet: '«{name}» — тепер фон вашої кімнати', rmOff: 'Фон прибрано — знову звичайний темний', rmPick: 'Фон вашої кімнати',
+      favTitle: 'Улюблена карта', favPick: 'Обрати улюблену карту', favChange: 'Змінити', favBest: 'Показувати найкращу карту', favSheetHint: 'Її побачать усі у вашому профілі замість найкращої карти.', favSet: '«{name}» — ваша улюблена карта', favOff: 'У профілі знову найкраща карта' },
+    en: { skCatLooks: 'Looks', skCatRooms: 'Room backgrounds', skCatTables: 'Table', skCatFrames: 'Frames', skTablesSoon: 'Skins for the table itself are coming soon: cloth, marble, wood, gold. The table stays round, with your room background around it.',
+      rmTitle: 'Room backgrounds', rmLabel: 'Room background', rmOn: 'up', rmSetBtn: 'Make it my room', rmOffBtn: 'Take the background down', rmNoneHint: 'the plain dark background', rmSet: '«{name}» is your room now', rmOff: 'Background down — the plain dark one again', rmPick: 'Your room’s background',
+      favTitle: 'Favourite card', favPick: 'Choose a favourite card', favChange: 'Change', favBest: 'Show my best card', favSheetHint: 'Everyone will see it on your profile instead of your best card.', favSet: '«{name}» is your favourite card', favOff: 'Your profile shows your best card again' },
+    pl: { skCatLooks: 'Wygląd', skCatRooms: 'Tła pokoju', skCatTables: 'Stół', skCatFrames: 'Ramki', skTablesSoon: 'Wkrótce pojawią się tu skórki samego stołu: sukno, marmur, drewno, złoto. Stół zostanie okrągły, a wokół — Twoje tło pokoju.',
+      rmTitle: 'Tła pokoju', rmLabel: 'Tło pokoju', rmOn: 'ustawione', rmSetBtn: 'Ustaw jako tło pokoju', rmOffBtn: 'Zdejmij tło', rmNoneHint: 'zwykłe ciemne tło', rmSet: '„{name}” — teraz tło Twojego pokoju', rmOff: 'Tło zdjęte — znów zwykłe ciemne', rmPick: 'Tło Twojego pokoju',
+      favTitle: 'Ulubiona karta', favPick: 'Wybierz ulubioną kartę', favChange: 'Zmień', favBest: 'Pokazuj najlepszą kartę', favSheetHint: 'Wszyscy zobaczą ją w Twoim profilu zamiast najlepszej karty.', favSet: '„{name}” — Twoja ulubiona karta', favOff: 'W profilu znów najlepsza karta' },
+    hy: { skCatLooks: 'Կերպարներ', skCatRooms: 'Սենյակի ֆոներ', skCatTables: 'Սեղան', skCatFrames: 'Շրջանակներ', skTablesSoon: 'Շուտով այստեղ կհայտնվեն հենց սեղանի սքինները՝ մահուդ, մարմար, փայտ, ոսկի։ Սեղանը կմնա կլոր, իսկ շուրջը՝ ձեր սենյակի ֆոնը։',
+      rmTitle: 'Սենյակի ֆոներ', rmLabel: 'Սենյակի ֆոն', rmOn: 'դրված է', rmSetBtn: 'Դարձնել սենյակի ֆոն', rmOffBtn: 'Հանել ֆոնը', rmNoneHint: 'սովորական մուգ ֆոն', rmSet: '«{name}»՝ այժմ ձեր սենյակի ֆոնն է', rmOff: 'Ֆոնը հանվեց՝ կրկին սովորական մուգ', rmPick: 'Ձեր սենյակի ֆոնը',
+      favTitle: 'Սիրելի քարտ', favPick: 'Ընտրել սիրելի քարտը', favChange: 'Փոխել', favBest: 'Ցույց տալ լավագույն քարտը', favSheetHint: 'Բոլորը այն կտեսնեն ձեր պրոֆիլում լավագույն քարտի փոխարեն։', favSet: '«{name}»՝ ձեր սիրելի քարտն է', favOff: 'Պրոֆիլում կրկին լավագույն քարտն է' }
+  };
+  Object.keys(UI).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, UI[code]); });
+})();

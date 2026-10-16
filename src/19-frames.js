@@ -18,8 +18,14 @@ function frameImgHTML(id, compact) {
   const f = FRAME[id]; if (!f) return '';
   return `<img class="av-frame" src="${skinUrl(f)}" alt="" draggable="false" decoding="async" style="--fs:${frameScale(f, compact).toFixed(3)}" onerror="this.remove()">`;
 }
-/* an avatar (any element) with a frame over it — the wrapper takes the avatar's size */
-const frameWrap = (avatar, id) => (id && FRAME[id] ? `<span class="av-fw">${avatar}${frameImgHTML(id)}</span>` : avatar);
+/* an avatar (any element) with a frame over it — the wrapper takes the avatar's size; px (the avatar's size, profiles' heads): the compact
+   frame and a margin as wide as the frame sticks out, so it never lies on the name next to it */
+function frameWrap(avatar, id, px) {
+  const f = id && FRAME[id]; if (!f) return avatar;
+  if (!px) return `<span class="av-fw">${avatar}${frameImgHTML(id)}</span>`;
+  const m = Math.max(0, Math.round((frameScale(f, true) - 1) / 2 * px) - 4);
+  return `<span class="av-fw" style="margin:${m}px ${m}px ${m}px ${Math.max(0, m - 10)}px">${avatar}${frameImgHTML(id, true)}</span>`;
+}
 /* my own avatar for the previews: the Telegram photo or the first letter */
 function frameMyAvatar(cls = 'lg') {
   const usr = (S.cloud && S.cloud.user) || {}; const name = usr.name || '?';
@@ -71,5 +77,31 @@ Object.assign(ACT, {
     const sh = S.ui.sheet; if (!sh || sh.type !== 'frame') return orig.apply(this, arguments);
     const body = frameSheetHTML(sh.id); if (!body) return orig.apply(this, arguments);
     return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
+  };
+})();
+
+/* ---------- v76: the favourite card — my profile shows the card I choose instead of my best one; others see it on my profile ---------- */
+function favPickHTML() {
+  const u = U(); const me = S.meId ? profById(S.meId) : null; const cur = me && me.favCard;
+  const tiles = ROLES.filter(r => ROLE[r.id]).map(r => `<button class="fav-tile ${cur === r.id ? 'on' : ''}" data-a="fav-set" data-id="${r.id}">${sealFor(r, typeof mySkin === 'function' ? mySkin(r.id) : null)}<span>${esc(r.name)}</span></button>`).join('');
+  return `<h2 style="margin:0">${u.favTitle}</h2><p class="hint" style="margin:4px 0 10px">${u.favSheetHint}</p>
+    <button class="btn sm ghost" data-a="fav-set" data-id="" style="margin-bottom:10px;${cur ? '' : 'border-color:var(--gold)'}">🏆 ${u.favBest}</button>
+    <div class="fav-grid">${tiles}</div>`;
+}
+Object.assign(ACT, {
+  'fav-pick'() { if (!S.meId) return; S.ui.sheet = { type: 'favPick' }; render(); },
+  async 'fav-set'(el) {
+    const u = U(); const me = S.meId ? profById(S.meId) : null; if (!me) return;
+    const id = el.dataset.id && ROLE[el.dataset.id] ? el.dataset.id : null;
+    me.favCard = id; if (S.cloud) S.cloud.favCard = id; S.ui.sheet = null; save(); render();
+    toast(id ? tt(u.favSet, { name: ROLE[id].name }) : u.favOff);
+    if (typeof TG !== 'undefined' && TG.app && apiBase()) { const d = await api('/api/profile/fav', { role: id }); if (!d || !d.ok) toast(u.tgOffline); }
+  }
+});
+(function () {
+  const orig = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || sh.type !== 'favPick') return orig.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${favPickHTML()}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
   };
 })();

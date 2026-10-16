@@ -631,3 +631,10 @@ CREATE TABLE IF NOT EXISTS tournament_tables (
   PRIMARY KEY (tid, round, idx)
 );
 CREATE INDEX IF NOT EXISTS tournament_tables_code ON tournament_tables (code);
+
+-- v76: the card a player chose to show on his profile instead of his best card (a role id); others see it on his profile
+CREATE TABLE IF NOT EXISTS user_fav_card (
+  tg_id      INTEGER PRIMARY KEY,
+  role       TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

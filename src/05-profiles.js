@@ -126,7 +126,9 @@ function myProfileScreen() {
 function profileScreen() {
   const u = U(); const pr = profById(S.ui.profileId); if (!pr) { S.screen = 'myprofile'; return myProfileScreen(); }
   const st = profStats(pr); const best = bestRoleOf(pr);
-  const bestRole = best ? ROLE[best.id] : (pr.history.length ? ROLE[pr.history[pr.history.length - 1].roleId] : ROLE.sheriff);
+  const isMe0 = pr.id === S.meId; const fav = isMe0 && pr.favCard && ROLE[pr.favCard] ? ROLE[pr.favCard] : null; // v76: my favourite card instead of the best
+  const bestRole = fav || (best ? ROLE[best.id] : (pr.history.length ? ROLE[pr.history[pr.history.length - 1].roleId] : ROLE.sheriff));
+  const favStat = fav ? st.byRole[fav.id] : null;
   const favs = favoritesOf(pr, S.ui.allRoles ? 99 : 3);
   const tile = (v, k, c = '') => `<div class="st"><div class="v num" style="${c}">${v}</div><div class="k">${k}</div></div>`;
   const loc = (pr.country ? flagOf(pr.country) + ' ' : '') + [esc(pr.city), pr.country ? esc(countryName(pr.country)) : ''].filter(Boolean).join(' · ');
@@ -135,10 +137,10 @@ function profileScreen() {
   const isMe = pr.id === S.meId;
   return `${topbar(isMe ? u.myProfile : u.editProfile, pr.demo ? u.demoLabel : (isMe ? u.myProfileD : ''))}
   <div class="stack">
-    <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
+    <div class="prof-head">${isMe && typeof myFrame === 'function' && myFrame() ? frameWrap(avatarHTML(pr, 'lg'), myFrame(), 84) : avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
     ${rankBlockHTML(profRank(pr))}
-    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${(sk => card3dFor(bestRole, 'profile', sk, undefined, serialOfProfile(pr, sk)))(skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
+    <div class="panel"><div class="eyebrow gold" style="text-align:center">${fav ? '❤ ' + u.favTitle : u.bestRole}</div>${(sk => card3dFor(bestRole, 'profile', sk, undefined, serialOfProfile(pr, sk)))(skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${fav ? (favStat && favStat.g ? ' · ' + tt(u.bestRoleText, { wins: favStat.w, games: favStat.g }) : '') : best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div>${isMe ? `<div class="btn-row" style="justify-content:center;margin-top:10px"><button class="btn sm ghost" data-a="fav-pick">${I.heart} ${fav ? u.favChange : u.favPick}</button></div>` : ''}</div>
     <div class="eyebrow">${u.stats}</div>
     <div class="status">${tile(st.games, u.games)}${tile(st.wins, u.wins, 'color:#9fe0ab')}${tile(st.winRate + '%', u.winRate, 'color:var(--gold-2)')}${tile(st.rating, u.rating, 'color:var(--gold-2)')}</div>
     <div class="status" style="grid-template-columns:repeat(3,1fr)">${tile(st.killedN1, u.killedN1, 'color:var(--crimson-2)')}${tile(st.votedD1, u.votedD1, 'color:var(--crimson-2)')}${tile(st.survived, u.survived, 'color:#9fe0ab')}</div>

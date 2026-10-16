@@ -240,7 +240,22 @@ function skinTileHTML(s) {
     <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${st.worn ? `<span class="sk-badge">${u.skWorn}</span>` : ''}</div>
     <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role.name)}</div></div>`;
 }
+/* v76: the Skins tab in four categories — looks (card skins), room backgrounds, the table's own look (coming), avatar frames */
+const SKIN_CATS = ['looks', 'rooms', 'tables', 'frames'];
+function skinCatsHTML(cat) {
+  const u = U(); const n = { looks: SKINS.length, rooms: typeof ROOMS !== 'undefined' ? ROOMS.length : 0, tables: 0, frames: typeof FRAMES !== 'undefined' ? FRAMES.length : 0 };
+  const lbl = { looks: u.skCatLooks, rooms: u.skCatRooms, tables: u.skCatTables, frames: u.skCatFrames };
+  return `<div class="filters sk-cats">${SKIN_CATS.map(c => `<button class="chip sk-cat ${cat === c ? 'active' : ''}" data-a="skin-cat" data-id="${c}">${esc(lbl[c] || c)}${n[c] ? ` <b class="rar-ab">${n[c]}</b>` : ''}</button>`).join('')}</div>`;
+}
 function skinsTabHTML() {
+  const cat = SKIN_CATS.includes(S.ui.skinCat) ? S.ui.skinCat : 'looks';
+  if (cat !== 'looks') {
+    const u = U(); const body = cat === 'rooms' ? (typeof roomsSectionHTML === 'function' ? roomsSectionHTML('all', 'all') : '') : cat === 'frames' ? (typeof framesSectionHTML === 'function' ? framesSectionHTML('all', 'all') : '') : `<div class="panel sk-soon"><div style="font-size:30px">🎲</div><p class="hint" style="margin:8px 0 0">${u.skTablesSoon}</p></div>`;
+    return skinCatsHTML(cat) + body;
+  }
+  return skinCatsHTML(cat) + skinsLooksHTML();
+}
+function skinsLooksHTML() {
   const u = U(); const f = ['all', 'mine', 'black', 'city', 'neutral'].includes(S.ui.skinFilter) ? S.ui.skinFilter : 'all';
   const rf = RARITY[S.ui.skinRar] ? S.ui.skinRar : 'all'; // v60: the rarity filter (both rows work together)
   const own = id => (S.skins.owned || []).includes(id);
@@ -254,7 +269,7 @@ function skinsTabHTML() {
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
-    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}${typeof framesSectionHTML === 'function' ? framesSectionHTML(f, rf) : ''}
+
     ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
@@ -301,6 +316,7 @@ function roleSkinsHTML(r) {
 Object.assign(ACT, {
   'cards-tab'(el) { S.ui.cardsTab = el.dataset.v === 'skins' ? 'skins' : 'cards'; render(); },
   'skin-filter'(el) { S.ui.skinFilter = el.dataset.id; render(); },
+  'skin-cat'(el) { S.ui.skinCat = SKIN_CATS.includes(el.dataset.id) ? el.dataset.id : 'looks'; S.ui.sheet = null; render(); }, // v76
   'skin-rar'(el) { S.ui.skinRar = RARITY[el.dataset.id] ? el.dataset.id : 'all'; render(); },
   'skin-sheet'(el) { if (SKIN[el.dataset.id]) { S.ui.sheet = { type: 'skin', id: el.dataset.id }; render(); } },
   'skins-open'() { S.ui.sheet = null; S.ui.cardsTab = 'skins'; if (typeof go === 'function') go('cards'); else { S.screen = 'cards'; render(); } },

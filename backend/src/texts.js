@@ -336,11 +336,11 @@ Object.assign(TEXTS.pl, { skinGift: '🎁 Administrator podarował Ci skórkę <
 Object.assign(TEXTS.hy, { skinGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց <b>«{skin}»</b> սքինը։ Եթե այդ քարտին սքին չկար, այն արդեն հագցված է։ Դիտել և փոխել՝ «Քարտեր» → «Սքիններ»։', skinGiftMany: '🎁 Ադմինիստրատորը ձեզ նվիրեց սքիններ՝ {n}։ Դիտել և հագցնել՝ «Քարտեր» → «Սքիններ»։', adminHelpSkins: '/skin @user — խաղացողի սքինները, /skin @user lilac_doctor — նվիրել (all — բոլորը), /skin @user -lilac_doctor — հետ վերցնել նվերը' });
 
 /* v71: a table background as a gift */
-Object.assign(TEXTS.ru, { roomGift: '🎁 Администратор подарил вам фон стола <b>«{skin}»</b>. Если фона ещё не было — он уже стоит: когда вы ведёте онлайн-игру, комнату видят все игроки за вашим столом. Сменить: «Карты» → «Скины» → «Фон стола».' });
-Object.assign(TEXTS.uk, { roomGift: '🎁 Адміністратор подарував вам фон столу <b>«{skin}»</b>. Якщо фону ще не було — він уже стоїть: коли ви ведете онлайн-гру, кімнату бачать усі гравці за вашим столом. Змінити: «Карти» → «Скіни» → «Фон столу».' });
-Object.assign(TEXTS.en, { roomGift: '🎁 An admin gave you the table background <b>«{skin}»</b>. If you had none, it is already up: when you host an online game, every player at your table sees the room. Change it: «Cards» → «Skins» → «Table background».' });
-Object.assign(TEXTS.pl, { roomGift: '🎁 Administrator podarował Ci tło stołu <b>„{skin}”</b>. Jeśli nie miałeś tła — już stoi: gdy prowadzisz grę online, pokój widzą wszyscy gracze przy Twoim stole. Zmień: «Karty» → «Skórki» → «Tło stołu».' });
-Object.assign(TEXTS.hy, { roomGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց սեղանի ֆոն՝ <b>«{skin}»</b>։ Եթե ֆոն չունեիք, այն արդեն դրված է․ երբ վարում եք առցանց խաղ, սենյակը տեսնում են ձեր սեղանի բոլոր խաղացողները։ Փոխել՝ «Քարտեր» → «Սքիններ» → «Սեղանի ֆոն»։' });
+Object.assign(TEXTS.ru, { roomGift: '🎁 Администратор подарил вам фон комнаты <b>«{skin}»</b>. Если фона ещё не было — он уже стоит: когда вы ведёте онлайн-игру, комнату видят все игроки за вашим столом. Сменить: «Карты» → «Скины» → «Фоны комнаты».' });
+Object.assign(TEXTS.uk, { roomGift: '🎁 Адміністратор подарував вам фон кімнати <b>«{skin}»</b>. Якщо фону ще не було — він уже стоїть: коли ви ведете онлайн-гру, кімнату бачать усі гравці за вашим столом. Змінити: «Карти» → «Скіни» → «Фони кімнати».' });
+Object.assign(TEXTS.en, { roomGift: '🎁 An admin gave you the room background <b>«{skin}»</b>. If you had none, it is already up: when you host an online game, every player at your table sees the room. Change it: «Cards» → «Skins» → «Room backgrounds».' });
+Object.assign(TEXTS.pl, { roomGift: '🎁 Administrator podarował Ci tło pokoju <b>„{skin}”</b>. Jeśli nie miałeś tła — już stoi: gdy prowadzisz grę online, pokój widzą wszyscy gracze przy Twoim stole. Zmień: «Karty» → «Skórki» → «Tła pokoju».' });
+Object.assign(TEXTS.hy, { roomGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց սենյակի ֆոն՝ <b>«{skin}»</b>։ Եթե ֆոն չունեիք, այն արդեն դրված է․ երբ վարում եք առցանց խաղ, սենյակը տեսնում են ձեր սեղանի բոլոր խաղացողները։ Փոխել՝ «Քարտեր» → «Սքիններ» → «Սենյակի ֆոներ»։' });
 
 /* v74: an avatar frame as a gift */
 Object.assign(TEXTS.ru, { frameGift: '🎁 Администратор подарил вам рамку аватарки <b>«{skin}»</b>. Если рамки ещё не было — она уже надета: её видят все за столом и в вашем профиле. Сменить: «Карты» → «Скины» → «Рамки».' });

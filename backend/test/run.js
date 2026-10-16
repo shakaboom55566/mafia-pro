@@ -1762,6 +1762,16 @@ console.log('avatar frames (v74): bought for emeralds, one at a time, everyone a
   d = await (await post('/api/admin/skin', { initData: adm, tgId: 1801, skin: 'hw_ghost_parade', give: false })).json(); ok(d.ok && !d.equipped.frame, 'a gift taken back comes off');
   const ts2 = await (await post('/api/table/state', { initData: pid, code: lob.code })).json(); ok(!ts2.profiles[1801].frame, 'and the table sees no frame'); }
 
+console.log('favourite card (v76): set, shown on the profile and in /api/me, cleared, exported and deleted with the data');
+{ const H = user(1900, 'ru'); await hook(msg(H, '/start')); const id = await initData(H); const other = await initData(user(1901, 'en'));
+  eq((await post('/api/profile/fav', { initData: id, role: 'Bad Role!' })).status, 400, 'a bad role id is refused');
+  let d = await (await post('/api/profile/fav', { initData: id, role: 'witch' })).json(); ok(d.ok && d.fav === 'witch', 'set');
+  eq((await (await post('/api/me', { initData: id })).json()).favCard, 'witch', '/api/me returns it');
+  eq((await (await post('/api/profile', { initData: other, tgId: 1900 })).json()).fav, 'witch', 'others see it on the profile');
+  d = await (await post('/api/profile/fav', { initData: id, role: null })).json(); ok(d.ok && d.fav === null, 'cleared');
+  eq((await (await post('/api/profile', { initData: other, tgId: 1900 })).json()).fav, null, 'the profile shows the best card again');
+  eq((await post('/api/profile/fav', { role: 'witch' })).status, 401, 'needs Telegram'); }
+
 console.log('tournament (v63): the week, registration, the draw, points, prizes, borrowed Epic skins');
 { const TR = await import('../src/tournament.js'); const EM = await import('../src/emeralds.js');
   const at = iso => { env.TRN_NOW_MS = String(Date.parse(iso)); };

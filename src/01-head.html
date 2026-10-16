@@ -701,6 +701,13 @@ html.lite .rt-room-haze { display: none; }
 .af-tile.locked .af-prev .av-frame { filter: saturate(.85); }
 .af-big { display: grid; place-items: center; padding: 64px 0 62px; }
 .af-at { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 14px; background: var(--bg-3); }
+.sk-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; overflow: visible; flex-wrap: wrap; }
+.sk-cats .sk-cat { justify-content: center; margin: 0; white-space: nowrap; } .sk-cat.active { box-shadow: 0 0 0 1px rgba(240,205,122,.55); }
+.sk-soon { text-align: center; padding: 26px 18px; }
+.fav-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.fav-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: inherit; font: inherit; font-size: 10.5px; line-height: 1.15; cursor: pointer; text-align: center; }
+.fav-tile.on { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(240,205,122,.45); }
+.fav-tile span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .af-at .af-seat { position: relative; transform: none; width: 78px; margin: 14px 10px 4px; }
 
 /* results podium: scaled 3D cards with avatar, club badge, medal; plaque with points and the win streak in gold */

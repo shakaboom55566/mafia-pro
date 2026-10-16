@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.52.0-cd797db">
+<meta name="mafia-build" content="1.53.0-3a46114">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -770,6 +770,13 @@ html.lite .rt-room-haze { display: none; }
 .af-tile.locked .af-prev .av-frame { filter: saturate(.85); }
 .af-big { display: grid; place-items: center; padding: 64px 0 62px; }
 .af-at { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 14px; background: var(--bg-3); }
+.sk-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; overflow: visible; flex-wrap: wrap; }
+.sk-cats .sk-cat { justify-content: center; margin: 0; white-space: nowrap; } .sk-cat.active { box-shadow: 0 0 0 1px rgba(240,205,122,.55); }
+.sk-soon { text-align: center; padding: 26px 18px; }
+.fav-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.fav-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: inherit; font: inherit; font-size: 10.5px; line-height: 1.15; cursor: pointer; text-align: center; }
+.fav-tile.on { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(240,205,122,.45); }
+.fav-tile span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .af-at .af-seat { position: relative; transform: none; width: 78px; margin: 14px 10px 4px; }
 
 /* results podium: scaled 3D cards with avatar, club badge, medal; plaque with points and the win streak in gold */
@@ -7236,6 +7243,27 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
     Object.assign(p.ui, UI[code]);
   });
 })();
+/* v76: the Skins tab's categories, the favourite card on the profile; the rooms are now «room backgrounds» (the table's own look is a category of its own) */
+(function () {
+  const UI = {
+    ru: { skCatLooks: 'Облики', skCatRooms: 'Фоны комнаты', skCatTables: 'Фон стола', skCatFrames: 'Рамки', skTablesSoon: 'Скоро здесь появятся скины самого стола: сукно, мрамор, дерево, золото. Стол останется круглым, а вокруг — ваш фон комнаты.',
+      rmTitle: 'Фоны комнаты', rmLabel: 'Фон комнаты', rmOn: 'стоит', rmSetBtn: 'Сделать фоном комнаты', rmOffBtn: 'Убрать фон', rmNoneHint: 'обычный тёмный фон', rmSet: '«{name}» — теперь фон вашей комнаты', rmOff: 'Фон убран — снова обычный тёмный', rmPick: 'Фон вашей комнаты',
+      favTitle: 'Любимая карта', favPick: 'Выбрать любимую карту', favChange: 'Сменить', favBest: 'Показывать лучшую карту', favSheetHint: 'Её увидят все в вашем профиле вместо лучшей карты.', favSet: '«{name}» — ваша любимая карта', favOff: 'В профиле снова лучшая карта' },
+    uk: { skCatLooks: 'Образи', skCatRooms: 'Фони кімнати', skCatTables: 'Фон столу', skCatFrames: 'Рамки', skTablesSoon: 'Незабаром тут з’являться скіни самого столу: сукно, мармур, дерево, золото. Стіл залишиться круглим, а довкола — ваш фон кімнати.',
+      rmTitle: 'Фони кімнати', rmLabel: 'Фон кімнати', rmOn: 'стоїть', rmSetBtn: 'Зробити фоном кімнати', rmOffBtn: 'Прибрати фон', rmNoneHint: 'звичайний темний фон', rmSet: '«{name}» — тепер фон вашої кімнати', rmOff: 'Фон прибрано — знову звичайний темний', rmPick: 'Фон вашої кімнати',
+      favTitle: 'Улюблена карта', favPick: 'Обрати улюблену карту', favChange: 'Змінити', favBest: 'Показувати найкращу карту', favSheetHint: 'Її побачать усі у вашому профілі замість найкращої карти.', favSet: '«{name}» — ваша улюблена карта', favOff: 'У профілі знову найкраща карта' },
+    en: { skCatLooks: 'Looks', skCatRooms: 'Room backgrounds', skCatTables: 'Table', skCatFrames: 'Frames', skTablesSoon: 'Skins for the table itself are coming soon: cloth, marble, wood, gold. The table stays round, with your room background around it.',
+      rmTitle: 'Room backgrounds', rmLabel: 'Room background', rmOn: 'up', rmSetBtn: 'Make it my room', rmOffBtn: 'Take the background down', rmNoneHint: 'the plain dark background', rmSet: '«{name}» is your room now', rmOff: 'Background down — the plain dark one again', rmPick: 'Your room’s background',
+      favTitle: 'Favourite card', favPick: 'Choose a favourite card', favChange: 'Change', favBest: 'Show my best card', favSheetHint: 'Everyone will see it on your profile instead of your best card.', favSet: '«{name}» is your favourite card', favOff: 'Your profile shows your best card again' },
+    pl: { skCatLooks: 'Wygląd', skCatRooms: 'Tła pokoju', skCatTables: 'Stół', skCatFrames: 'Ramki', skTablesSoon: 'Wkrótce pojawią się tu skórki samego stołu: sukno, marmur, drewno, złoto. Stół zostanie okrągły, a wokół — Twoje tło pokoju.',
+      rmTitle: 'Tła pokoju', rmLabel: 'Tło pokoju', rmOn: 'ustawione', rmSetBtn: 'Ustaw jako tło pokoju', rmOffBtn: 'Zdejmij tło', rmNoneHint: 'zwykłe ciemne tło', rmSet: '„{name}” — teraz tło Twojego pokoju', rmOff: 'Tło zdjęte — znów zwykłe ciemne', rmPick: 'Tło Twojego pokoju',
+      favTitle: 'Ulubiona karta', favPick: 'Wybierz ulubioną kartę', favChange: 'Zmień', favBest: 'Pokazuj najlepszą kartę', favSheetHint: 'Wszyscy zobaczą ją w Twoim profilu zamiast najlepszej karty.', favSet: '„{name}” — Twoja ulubiona karta', favOff: 'W profilu znów najlepsza karta' },
+    hy: { skCatLooks: 'Կերպարներ', skCatRooms: 'Սենյակի ֆոներ', skCatTables: 'Սեղան', skCatFrames: 'Շրջանակներ', skTablesSoon: 'Շուտով այստեղ կհայտնվեն հենց սեղանի սքինները՝ մահուդ, մարմար, փայտ, ոսկի։ Սեղանը կմնա կլոր, իսկ շուրջը՝ ձեր սենյակի ֆոնը։',
+      rmTitle: 'Սենյակի ֆոներ', rmLabel: 'Սենյակի ֆոն', rmOn: 'դրված է', rmSetBtn: 'Դարձնել սենյակի ֆոն', rmOffBtn: 'Հանել ֆոնը', rmNoneHint: 'սովորական մուգ ֆոն', rmSet: '«{name}»՝ այժմ ձեր սենյակի ֆոնն է', rmOff: 'Ֆոնը հանվեց՝ կրկին սովորական մուգ', rmPick: 'Ձեր սենյակի ֆոնը',
+      favTitle: 'Սիրելի քարտ', favPick: 'Ընտրել սիրելի քարտը', favChange: 'Փոխել', favBest: 'Ցույց տալ լավագույն քարտը', favSheetHint: 'Բոլորը այն կտեսնեն ձեր պրոֆիլում լավագույն քարտի փոխարեն։', favSet: '«{name}»՝ ձեր սիրելի քարտն է', favOff: 'Պրոֆիլում կրկին լավագույն քարտն է' }
+  };
+  Object.keys(UI).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, UI[code]); });
+})();
 /* ============================================================
    v75 the country from the network at the first open — texts (logic: 19-geo.js)
    ============================================================ */
@@ -10160,7 +10188,9 @@ function myProfileScreen() {
 function profileScreen() {
   const u = U(); const pr = profById(S.ui.profileId); if (!pr) { S.screen = 'myprofile'; return myProfileScreen(); }
   const st = profStats(pr); const best = bestRoleOf(pr);
-  const bestRole = best ? ROLE[best.id] : (pr.history.length ? ROLE[pr.history[pr.history.length - 1].roleId] : ROLE.sheriff);
+  const isMe0 = pr.id === S.meId; const fav = isMe0 && pr.favCard && ROLE[pr.favCard] ? ROLE[pr.favCard] : null; // v76: my favourite card instead of the best
+  const bestRole = fav || (best ? ROLE[best.id] : (pr.history.length ? ROLE[pr.history[pr.history.length - 1].roleId] : ROLE.sheriff));
+  const favStat = fav ? st.byRole[fav.id] : null;
   const favs = favoritesOf(pr, S.ui.allRoles ? 99 : 3);
   const tile = (v, k, c = '') => `<div class="st"><div class="v num" style="${c}">${v}</div><div class="k">${k}</div></div>`;
   const loc = (pr.country ? flagOf(pr.country) + ' ' : '') + [esc(pr.city), pr.country ? esc(countryName(pr.country)) : ''].filter(Boolean).join(' · ');
@@ -10169,10 +10199,10 @@ function profileScreen() {
   const isMe = pr.id === S.meId;
   return `${topbar(isMe ? u.myProfile : u.editProfile, pr.demo ? u.demoLabel : (isMe ? u.myProfileD : ''))}
   <div class="stack">
-    <div class="prof-head">${avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
+    <div class="prof-head">${isMe && typeof myFrame === 'function' && myFrame() ? frameWrap(avatarHTML(pr, 'lg'), myFrame(), 84) : avatarHTML(pr, 'lg')}<div class="grow" style="min-width:0"><div class="nm">${rankIco(profRank(pr), 22)}${esc(pr.name)}</div>${pr.username ? `<div class="un">@${esc(pr.username)}</div>` : ''}<div class="loc">${loc || u.noCountry}</div></div></div>
     <div class="row"><button class="like ${pr.likedByMe ? 'on' : ''}" data-a="prof-like" data-id="${pr.id}">${I.heart} ${pr.likes}</button><button class="btn sm ghost" data-a="prof-edit" data-id="${pr.id}">${I.edit} ${u.edit}</button></div>
     ${rankBlockHTML(profRank(pr))}
-    <div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${(sk => card3dFor(bestRole, 'profile', sk, undefined, serialOfProfile(pr, sk)))(skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div></div>
+    <div class="panel"><div class="eyebrow gold" style="text-align:center">${fav ? '❤ ' + u.favTitle : u.bestRole}</div>${(sk => card3dFor(bestRole, 'profile', sk, undefined, serialOfProfile(pr, sk)))(skinOfProfile(pr, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${fav ? (favStat && favStat.g ? ' · ' + tt(u.bestRoleText, { wins: favStat.w, games: favStat.g }) : '') : best ? ' · ' + tt(u.bestRoleText, { wins: best.w, games: best.g }) : ' · ' + u.noGamesYet}</div>${isMe ? `<div class="btn-row" style="justify-content:center;margin-top:10px"><button class="btn sm ghost" data-a="fav-pick">${I.heart} ${fav ? u.favChange : u.favPick}</button></div>` : ''}</div>
     <div class="eyebrow">${u.stats}</div>
     <div class="status">${tile(st.games, u.games)}${tile(st.wins, u.wins, 'color:#9fe0ab')}${tile(st.winRate + '%', u.winRate, 'color:var(--gold-2)')}${tile(st.rating, u.rating, 'color:var(--gold-2)')}</div>
     <div class="status" style="grid-template-columns:repeat(3,1fr)">${tile(st.killedN1, u.killedN1, 'color:var(--crimson-2)')}${tile(st.votedD1, u.votedD1, 'color:var(--crimson-2)')}${tile(st.survived, u.survived, 'color:#9fe0ab')}</div>
@@ -10571,7 +10601,7 @@ async function cloudSync() {
       (CLOUD.bought || []).forEach(k => { const i = k.indexOf(':'); const kind = k.slice(0, i), id = k.slice(i + 1); const key = kind === 'role' ? 'roles' : kind === 'pack' ? 'packs' : 'scenarios'; if (!next[key].includes(id)) next[key].push(id); });
       ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
       S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
-    } S.cloud.admin = !!d.admin; S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
+    } S.cloud.admin = !!d.admin; S.cloud.favCard = d.favCard || null; { const me0 = S.meId && typeof profById === 'function' ? profById(S.meId) : null; if (me0) me0.favCard = d.favCard || null; } // v76 S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
     if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}), serials: Object.assign({}, d.skins.serials || {}), sold: Object.assign({}, d.skins.sold || {}) }; // v56; v69: numbered copies
     startHeartbeat();
     if (added) toast(U().tgSynced);
@@ -10927,7 +10957,7 @@ function friendSheetHTML(id) {
   const tile = (v, k, col = '') => `<div class="st"><div class="v num" style="${col}">${v}</div><div class="k">${k}</div></div>`;
   const fid = d && d.skins && typeof frameWrap === 'function' ? d.skins.frame : null; // v74: his avatar frame
   const av0 = usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`;
-  const head = `<div class="row" style="gap:12px">${fid ? frameWrap(av0, fid) : av0}<div class="grow" style="min-width:0"><h2 style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : known, 20)}${esc(usr.name)}</h2>${usr.username ? `<div class="hint" style="margin:0">@${esc(usr.username)}</div>` : ''}${usr.country || usr.city ? `<div class="hint" style="margin:0">${usr.country ? flagOf(usr.country) + ' ' : ''}${[usr.city ? esc(usr.city) : '', usr.country ? esc(countryName(usr.country)) : ''].filter(Boolean).join(' · ')}</div>` : ''}<div style="font-size:12px;margin-top:2px">${presenceHTML(usr)}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
+  const head = `<div class="row" style="gap:12px">${fid ? frameWrap(av0, fid, 84) : av0}<div class="grow" style="min-width:0"><h2 style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : known, 20)}${esc(usr.name)}</h2>${usr.username ? `<div class="hint" style="margin:0">@${esc(usr.username)}</div>` : ''}${usr.country || usr.city ? `<div class="hint" style="margin:0">${usr.country ? flagOf(usr.country) + ' ' : ''}${[usr.city ? esc(usr.city) : '', usr.country ? esc(countryName(usr.country)) : ''].filter(Boolean).join(' · ')}</div>` : ''}<div style="font-size:12px;margin-top:2px">${presenceHTML(usr)}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
   let body;
   if (!d) body = c && c.error ? `<div class="hint" style="margin-top:12px">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</div>` : `<div class="hint" style="margin-top:12px">${u.frLoading}</div>`;
   else {
@@ -10972,12 +11002,13 @@ function playerStatsScreen() {
   const fmt = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
   const pav = usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`;
   const pfid = d && d.skins && typeof frameWrap === 'function' ? d.skins.frame : null; // v74: his avatar frame
-  const head = `<div class="prof-head">${pfid ? frameWrap(pav, pfid) : pav}<div class="grow" style="min-width:0"><div class="nm">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : usr, 22)}${esc(usr.name)}</div>${usr.username ? `<div class="un">@${esc(usr.username)}</div>` : ''}<div class="loc">${presenceHTML(usr)}${usr.since ? ` · ${tt(u.psSince, { date: fmt(usr.since) })}` : ''}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
+  const head = `<div class="prof-head">${pfid ? frameWrap(pav, pfid, 84) : pav}<div class="grow" style="min-width:0"><div class="nm">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : usr, 22)}${esc(usr.name)}</div>${usr.username ? `<div class="un">@${esc(usr.username)}</div>` : ''}<div class="loc">${presenceHTML(usr)}${usr.since ? ` · ${tt(u.psSince, { date: fmt(usr.since) })}` : ''}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
   let body;
   if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
   else {
-    const best = d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = best || ROLE.sheriff;
-    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${u.bestRole}</div>${(sk => card3dFor(bestRole, 'pstats', sk, undefined, serialOfTg(id, sk)))(skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
+    const fav = d.fav && ROLE[d.fav] ? ROLE[d.fav] : null; const favR = fav ? d.roles.find(x => x.roleId === fav.id) : null; // v76: his favourite card
+    const best = fav ? null : d.roles[0] && ROLE[d.roles[0].roleId]; const bestRole = fav || best || ROLE.sheriff;
+    body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${fav ? '❤ ' + u.favTitle : u.bestRole}</div>${(sk => card3dFor(bestRole, 'pstats', sk, undefined, serialOfTg(id, sk)))(skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${fav ? (favR ? ' · ' + tt(u.bestRoleText, { wins: favR.wins, games: favR.games }) : '') : best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
   const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
@@ -12770,7 +12801,22 @@ function skinTileHTML(s) {
     <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${st.worn ? `<span class="sk-badge">${u.skWorn}</span>` : ''}</div>
     <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role.name)}</div></div>`;
 }
+/* v76: the Skins tab in four categories — looks (card skins), room backgrounds, the table's own look (coming), avatar frames */
+const SKIN_CATS = ['looks', 'rooms', 'tables', 'frames'];
+function skinCatsHTML(cat) {
+  const u = U(); const n = { looks: SKINS.length, rooms: typeof ROOMS !== 'undefined' ? ROOMS.length : 0, tables: 0, frames: typeof FRAMES !== 'undefined' ? FRAMES.length : 0 };
+  const lbl = { looks: u.skCatLooks, rooms: u.skCatRooms, tables: u.skCatTables, frames: u.skCatFrames };
+  return `<div class="filters sk-cats">${SKIN_CATS.map(c => `<button class="chip sk-cat ${cat === c ? 'active' : ''}" data-a="skin-cat" data-id="${c}">${esc(lbl[c] || c)}${n[c] ? ` <b class="rar-ab">${n[c]}</b>` : ''}</button>`).join('')}</div>`;
+}
 function skinsTabHTML() {
+  const cat = SKIN_CATS.includes(S.ui.skinCat) ? S.ui.skinCat : 'looks';
+  if (cat !== 'looks') {
+    const u = U(); const body = cat === 'rooms' ? (typeof roomsSectionHTML === 'function' ? roomsSectionHTML('all', 'all') : '') : cat === 'frames' ? (typeof framesSectionHTML === 'function' ? framesSectionHTML('all', 'all') : '') : `<div class="panel sk-soon"><div style="font-size:30px">🎲</div><p class="hint" style="margin:8px 0 0">${u.skTablesSoon}</p></div>`;
+    return skinCatsHTML(cat) + body;
+  }
+  return skinCatsHTML(cat) + skinsLooksHTML();
+}
+function skinsLooksHTML() {
   const u = U(); const f = ['all', 'mine', 'black', 'city', 'neutral'].includes(S.ui.skinFilter) ? S.ui.skinFilter : 'all';
   const rf = RARITY[S.ui.skinRar] ? S.ui.skinRar : 'all'; // v60: the rarity filter (both rows work together)
   const own = id => (S.skins.owned || []).includes(id);
@@ -12784,7 +12830,7 @@ function skinsTabHTML() {
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
-    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}${typeof framesSectionHTML === 'function' ? framesSectionHTML(f, rf) : ''}
+
     ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
@@ -12831,6 +12877,7 @@ function roleSkinsHTML(r) {
 Object.assign(ACT, {
   'cards-tab'(el) { S.ui.cardsTab = el.dataset.v === 'skins' ? 'skins' : 'cards'; render(); },
   'skin-filter'(el) { S.ui.skinFilter = el.dataset.id; render(); },
+  'skin-cat'(el) { S.ui.skinCat = SKIN_CATS.includes(el.dataset.id) ? el.dataset.id : 'looks'; S.ui.sheet = null; render(); }, // v76
   'skin-rar'(el) { S.ui.skinRar = RARITY[el.dataset.id] ? el.dataset.id : 'all'; render(); },
   'skin-sheet'(el) { if (SKIN[el.dataset.id]) { S.ui.sheet = { type: 'skin', id: el.dataset.id }; render(); } },
   'skins-open'() { S.ui.sheet = null; S.ui.cardsTab = 'skins'; if (typeof go === 'function') go('cards'); else { S.screen = 'cards'; render(); } },
@@ -13997,8 +14044,14 @@ function frameImgHTML(id, compact) {
   const f = FRAME[id]; if (!f) return '';
   return `<img class="av-frame" src="${skinUrl(f)}" alt="" draggable="false" decoding="async" style="--fs:${frameScale(f, compact).toFixed(3)}" onerror="this.remove()">`;
 }
-/* an avatar (any element) with a frame over it — the wrapper takes the avatar's size */
-const frameWrap = (avatar, id) => (id && FRAME[id] ? `<span class="av-fw">${avatar}${frameImgHTML(id)}</span>` : avatar);
+/* an avatar (any element) with a frame over it — the wrapper takes the avatar's size; px (the avatar's size, profiles' heads): the compact
+   frame and a margin as wide as the frame sticks out, so it never lies on the name next to it */
+function frameWrap(avatar, id, px) {
+  const f = id && FRAME[id]; if (!f) return avatar;
+  if (!px) return `<span class="av-fw">${avatar}${frameImgHTML(id)}</span>`;
+  const m = Math.max(0, Math.round((frameScale(f, true) - 1) / 2 * px) - 4);
+  return `<span class="av-fw" style="margin:${m}px ${m}px ${m}px ${Math.max(0, m - 10)}px">${avatar}${frameImgHTML(id, true)}</span>`;
+}
 /* my own avatar for the previews: the Telegram photo or the first letter */
 function frameMyAvatar(cls = 'lg') {
   const usr = (S.cloud && S.cloud.user) || {}; const name = usr.name || '?';
@@ -14050,6 +14103,32 @@ Object.assign(ACT, {
     const sh = S.ui.sheet; if (!sh || sh.type !== 'frame') return orig.apply(this, arguments);
     const body = frameSheetHTML(sh.id); if (!body) return orig.apply(this, arguments);
     return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
+  };
+})();
+
+/* ---------- v76: the favourite card — my profile shows the card I choose instead of my best one; others see it on my profile ---------- */
+function favPickHTML() {
+  const u = U(); const me = S.meId ? profById(S.meId) : null; const cur = me && me.favCard;
+  const tiles = ROLES.filter(r => ROLE[r.id]).map(r => `<button class="fav-tile ${cur === r.id ? 'on' : ''}" data-a="fav-set" data-id="${r.id}">${sealFor(r, typeof mySkin === 'function' ? mySkin(r.id) : null)}<span>${esc(r.name)}</span></button>`).join('');
+  return `<h2 style="margin:0">${u.favTitle}</h2><p class="hint" style="margin:4px 0 10px">${u.favSheetHint}</p>
+    <button class="btn sm ghost" data-a="fav-set" data-id="" style="margin-bottom:10px;${cur ? '' : 'border-color:var(--gold)'}">🏆 ${u.favBest}</button>
+    <div class="fav-grid">${tiles}</div>`;
+}
+Object.assign(ACT, {
+  'fav-pick'() { if (!S.meId) return; S.ui.sheet = { type: 'favPick' }; render(); },
+  async 'fav-set'(el) {
+    const u = U(); const me = S.meId ? profById(S.meId) : null; if (!me) return;
+    const id = el.dataset.id && ROLE[el.dataset.id] ? el.dataset.id : null;
+    me.favCard = id; if (S.cloud) S.cloud.favCard = id; S.ui.sheet = null; save(); render();
+    toast(id ? tt(u.favSet, { name: ROLE[id].name }) : u.favOff);
+    if (typeof TG !== 'undefined' && TG.app && apiBase()) { const d = await api('/api/profile/fav', { role: id }); if (!d || !d.ok) toast(u.tgOffline); }
+  }
+});
+(function () {
+  const orig = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || sh.type !== 'favPick') return orig.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${favPickHTML()}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
   };
 })();
 /* ============================================================

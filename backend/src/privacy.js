@@ -95,7 +95,8 @@ export async function exportUser(env, id) {
     invited: await all('SELECT tg_id, created_at, qualified_at FROM referrals WHERE ref_by = ?1', id),
     rewards: { credits: await all('SELECT kind, count FROM credits WHERE tg_id = ?1', id), milestones: await all('SELECT level, created_at FROM milestones WHERE tg_id = ?1', id), access: await one('SELECT until, created_at FROM grants WHERE tg_id = ?1', id) },
     purchases: await all('SELECT kind, item, stars, status, charge_id, created_at, paid_at FROM purchases WHERE tg_id = ?1', id),
-    skinsWorn: await all('SELECT role, skin, updated_at FROM user_skins WHERE tg_id = ?1', id), // v56: the card skins put on
+    skinsWorn: await all('SELECT role, skin, updated_at FROM user_skins WHERE tg_id = ?1', id), // v56: the card skins put on (v71–v74: the room and the avatar frame too)
+    favCard: await one('SELECT role, updated_at FROM user_fav_card WHERE tg_id = ?1', id), // v76: the favourite card on the profile
     skinSerials: await all('SELECT skin, serial, created_at FROM skin_serials WHERE tg_id = ?1', id), // v69: the numbers of the numbered copies
     emeralds: await one('SELECT balance, updated_at FROM emeralds WHERE tg_id = ?1', id), // v63: the in-game currency and every change to it
     emeraldLedger: await all('SELECT delta, kind, ref, created_at FROM emerald_ledger WHERE tg_id = ?1 ORDER BY id DESC LIMIT 1000', id),
@@ -146,7 +147,7 @@ export async function deleteUser(env, id) {
     st('DELETE FROM user_cities WHERE tg_id = ?1'), st('DELETE FROM user_countries WHERE tg_id = ?1'), st('DELETE FROM player_track WHERE tg_id = ?1'), st('DELETE FROM start_hits WHERE tg_id = ?1'), st('DELETE FROM ad_clicks WHERE tg_id = ?1'),
     st('DELETE FROM broadcast_queue WHERE tg_id = ?1'), st('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_members SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE discord_invites SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_events SET inviter_tg = NULL WHERE inviter_tg = ?1'),
-    st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM user_skins WHERE tg_id = ?1'), st('DELETE FROM skin_serials WHERE tg_id = ?1'),
+    st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM user_skins WHERE tg_id = ?1'), st('DELETE FROM user_fav_card WHERE tg_id = ?1'), st('DELETE FROM skin_serials WHERE tg_id = ?1'),
     st('DELETE FROM emeralds WHERE tg_id = ?1'), st('DELETE FROM emerald_ledger WHERE tg_id = ?1'), st('DELETE FROM tournament_players WHERE tg_id = ?1'), st('UPDATE tournament_tables SET host_id = NULL WHERE host_id = ?1'), // v63
     st('DELETE FROM users WHERE tg_id = ?1')
   ];
