@@ -1864,6 +1864,118 @@ console.log('tournament (v63): the week, registration, the draw, points, prizes,
   delete env.TRN_NOW_MS;
   await env.DB.prepare("DELETE FROM lobbies WHERE code IN (SELECT code FROM tournament_tables)").run(); }
 
+
+console.log('official hosts (v77): the application, the admin\'s buttons, the licence, emeralds for games, limits, flags, appoint, revoke, punish');
+{ const OF = await import('../src/official.js'); const EM = await import('../src/emeralds.js'); const fs = await import('node:fs'); const vm = await import('node:vm');
+  // the same arithmetic in the app
+  const app = fs.readFileSync(path.join(here, '..', '..', 'src', '21-official.js'), 'utf8'); const blk = app.slice(app.indexOf('/* official:begin'), app.indexOf('/* official:end */'));
+  const c = vm.createContext({}); vm.runInContext(blk + '; this.K = OFFICIAL_RANK_K; this.LIC = OFFICIAL_LICENSE; this.LIM = OFFICIAL_LIMITS; this.rw = officialReward;', c);
+  eq([c.K, c.LIC, c.LIM], [OF.OFFICIAL_RANK_K, OF.OFFICIAL_LICENSE, OF.OFFICIAL_LIMITS], 'the app and the server: the same rank values, licence and limits');
+  for (let a = 0; a <= 7; a += 0.5) for (let o = 0; o <= 7; o++) if (c.rw(a, o) !== OF.officialReward(a, o)) { ok(false, `reward ${a}/${o} differs`); }
+  eq([OF.officialReward(0, 0), OF.officialReward(3, 3), OF.officialReward(7, 7), OF.officialReward(0.7, 7), OF.officialReward(6.3, 0)], [20, 50, 100, 30, 66], 'rookies 20, adepts 50, Legends 100; a Legend at a weak table 30, a rookie at a strong one 66');
+  ok([0, 1, 2, 3, 4, 5, 6, 7].every(a => [0, 1, 2, 3, 4, 5, 6, 7].every(o => { const r = OF.officialReward(a, o); return r >= 1 && r <= 100; })), 'never above 100');
+  const H = 4001, hid = await initData(user(H)); const adm = await initData(user(777));
+  await post('/api/me', { initData: hid });
+  let d = await (await post('/api/official', { initData: hid })).json(); ok(d.ok && d.me.state === 'none' && d.me.eligible === false && d.me.hosted === 0 && d.license.price === 5000 && d.license.days === 30 && !d.admin, 'a new host: no status, 0 hosted, the licence 5 000 / 30 days; no admin block');
+  const form = { name: 'Анна Ведущая', city: 'Киев', exp: '1to3', formats: ['online', 'offline'], games: ['classic', 'role'], langs: ['ru', 'uk'], schedule: 'пт и сб вечером', about: 'Веду клубные игры три года, есть свой клуб и канал.', rules: true };
+  let r = await post('/api/official/apply', { initData: hid, form }); d = await r.json(); ok(r.status === 409 && d.error === 'few_games' && d.need === 51, 'fewer than 51 hosted games — no application');
+  await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, 0, 0, 0, 51, 1) ON CONFLICT(tg_id) DO UPDATE SET hosted = 51').bind(H).run();
+  r = await post('/api/official/apply', { initData: hid, form: Object.assign({}, form, { about: 'мало', rules: false, formats: ['moon'] }) }); d = await r.json(); ok(r.status === 409 && d.error === 'bad_form' && ['about', 'rules', 'formats'].every(k => d.fields.includes(k)), 'a bad form: the wrong fields are named');
+  r = await post('/api/official/apply', { initData: hid, form: Object.assign({}, form, { about: form.about + ' <script>x</script>' }) }); d = await r.json(); ok(d.ok && d.me.state === 'pending' && d.me.app.form.langs.join() === 'ru,uk', 'applied: pending');
+  const appMsg = lastTo(777); ok(appMsg.params.text.includes('Анкета на официального ведущего') && appMsg.params.text.includes('проведено партий: <b>51</b>') && !appMsg.params.text.includes('<script>') && appMsg.params.reply_markup.inline_keyboard[0][0].callback_data === `oh_ok_${d.id}`, 'the admins get the application with «Approve / Decline» (no markup gets through)');
+  eq((await post('/api/official/apply', { initData: hid, form })).status, 409, 'a second application while one is pending — no');
+  await hook({ update_id: 700, callback_query: { id: 'cq1', from: user(H), data: `oh_ok_${d.id}`, message: { message_id: 5, chat: { id: H }, text: 'x' } } }); eq((await (await post('/api/official', { initData: hid })).json()).me.state, 'pending', 'a non-admin\'s button does nothing');
+  await hook({ update_id: 701, callback_query: { id: 'cq2', from: user(777), data: `oh_ok_${d.id}`, message: { message_id: 5, chat: { id: 777 }, text: 'Анкета' } } });
+  ok(lastCall('editMessageText').params.text.includes('одобрена') && lastTo(H).params.text.includes('одобрена') && lastTo(H).params.text.includes('5000'), 'the admin approves in the bot; the host is told to buy the licence');
+  await hook({ update_id: 702, callback_query: { id: 'cq3', from: user(777), data: `oh_ok_${d.id}`, message: { message_id: 5, chat: { id: 777 }, text: 'Анкета' } } }); ok(lastCall('answerCallbackQuery').params.text.includes('уже'), 'a second tap: already decided');
+  d = await (await post('/api/official', { initData: hid })).json(); ok(d.me.state === 'approved' && d.list.length === 0, 'approved; not in the list without a licence');
+  r = await post('/api/official/license', { initData: hid }); d = await r.json(); ok(r.status === 402 && d.error === 'not_enough' && d.short === 5000, 'no emeralds — 402 with the shortfall');
+  await EM.addEmeralds(env, H, 6000, 'admin', 'test');
+  d = await (await post('/api/official/license', { initData: hid })).json(); const until1 = d.until; ok(d.ok && d.balance === 1000 && Math.abs(until1 - (Date.now() + 30 * 86400000)) < 120000 && d.me.state === 'active', 'the licence: −5 000, active for 30 days');
+  await EM.addEmeralds(env, H, 4000, 'admin', 'test'); d = await (await post('/api/official/license', { initData: hid })).json(); ok(d.ok && Math.abs(d.until - until1 - 30 * 86400000) < 5000, 'renewing adds 30 days to what is left');
+  d = await (await post('/api/me', { initData: hid })).json(); ok(d.official && d.official.state === 'active', '/api/me carries my status');
+  // an official table: 8 players with different ranks, the cards dealt through the app
+  const P = Array.from({ length: 8 }, (_, i) => 4101 + i); const pid = {}; for (const p of P) { pid[p] = await initData(user(p, p % 2 ? 'uk' : 'en')); await post('/api/me', { initData: pid[p] }); }
+  await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (4101, 1950, 40, 20, 0, 1), (4102, 200, 12, 5, 0, 1), (4103, 200, 12, 5, 0, 1), (4104, 400, 20, 9, 0, 1)').run(); // Legend, Player, Player, Adept; the rest — Rookies
+  const lob = await (await post('/api/lobby', { initData: hid, fresh: true })).json(); const code = lob.code;
+  await post('/api/lobby/role', { initData: hid, code, online: true });
+  for (const p of P) await post('/api/table/join', { initData: pid[p], code });
+  let lbs = await (await post('/api/lobbies', { initData: pid[4101], all: true })).json(); ok(lbs.lobbies.find(l => l.code === code).official === true, 'the finder marks the official table');
+  await post('/api/lobby/deal', { initData: hid, code, cards: P.map((tgId, i) => ({ tgId, seat: i + 1, roleId: i < 2 ? 'mafia' : 'citizen' })) });
+  const ranks = [7, 2, 2, 3, 0, 0, 0, 0]; const avg = ranks.reduce((a, b) => a + b, 0) / 8;
+  let ts1 = await (await post('/api/table/state', { initData: pid[4105], code })).json(); ok(ts1.official && ts1.official.on && ts1.official.est === OF.officialReward(avg, 0) && ts1.official.left === 5 && ts1.host.official === true, 'at the table: «about N 💎 for you», 5 games left today, the host\'s mark');
+  const tsH = await (await post('/api/table/state', { initData: hid, code })).json(); ok(tsH.official && tsH.official.on && tsH.official.est === undefined, 'the host sees the table is official, no reward of his own');
+  const game = (id, rows) => post('/api/game/result', { initData: hid, game: { id, code, mode: 'classic', winner: 'city', players: rows } });
+  const rows8 = P.map((tgId, i) => ({ seat: i + 1, name: 'P' + i, tgId, roleId: i < 2 ? 'mafia' : 'citizen', won: i >= 2, points: i >= 2 ? 24 : -10, side: i < 2 ? 'mafia' : 'city' }));
+  d = await (await game('og-1', rows8)).json(); ok(d.official && d.official.reason === 'too_short' && !Object.keys(d.official.rewards).length, 'right after the deal: too short, no emeralds');
+  const ago = async min => { const row = await env.DB.prepare('SELECT priv FROM table_state WHERE code = ?1').bind(code).first(); const pv = JSON.parse(row.priv); for (const k of Object.keys(pv)) pv[k].dealtAt = Date.now() - min * 60000; await env.DB.prepare('UPDATE table_state SET priv = ?2 WHERE code = ?1').bind(code, JSON.stringify(pv)).run(); };
+  await ago(25);
+  d = await (await game('og-2', rows8)).json(); const exp = Object.fromEntries(P.map((id, i) => [id, OF.officialReward(avg, ranks[i])]));
+  ok(d.official && d.official.official && JSON.stringify(Object.fromEntries(Object.entries(d.official.rewards).map(([k, v]) => [Number(k), v]))) === JSON.stringify(exp) && d.official.total === Object.values(exp).reduce((a, b) => a + b, 0), 'a game of 25 minutes: every seated player gets his reward by the table\'s average and his rank: ' + JSON.stringify(d.official.rewards));
+  ok(exp[4101] === OF.officialReward(avg, avg + 1) && exp[4101] === exp[4104] && exp[4101] > exp[4105], 'the Legend at a weaker table counts one step above its average — no more than the Adept');
+  ok(!(H in d.official.rewards) && await EM.balanceOf(env, 4105) === exp[4105], 'the host gets nothing; the balance grows');
+  ok(lastTo(4105).params.text.includes('+' + exp[4105]) && lastTo(4105).params.text.includes('User4001'), 'the player is told by the bot');
+  ok((await env.DB.prepare('SELECT games FROM official_hosts WHERE tg_id = ?1').bind(H).first('games')) === 1 && (await env.DB.prepare("SELECT COUNT(*) AS n FROM emerald_ledger WHERE kind = 'game'").first('n')) === 8, 'one official game, eight ledger rows');
+  d = await (await game('og-2', rows8)).json(); eq(await EM.balanceOf(env, 4105), exp[4105], 'the same game again — nothing twice');
+  d = await (await game('og-3', rows8.slice(0, 6))).json(); ok(d.official.reason === 'few_players', 'six players — no emeralds');
+  // the daily limit: 4105 already has 1, give him 4 more → the next game skips him
+  for (let i = 0; i < 4; i++) await EM.addEmeralds(env, 4105, 10, 'game', 'og:test');
+  d = await (await game('og-4', rows8)).json(); ok(d.official.capped.includes(4105) && !(4105 in d.official.rewards) && d.official.rewards[4106] && lastTo(4105).params.text.includes('5'), 'the 6th game of the day: no emeralds for him, he is told');
+  ts1 = await (await post('/api/table/state', { initData: pid[4105], code })).json(); ok(ts1.official.left === 0, 'the table shows the limit is reached');
+  // a friend's ordinary table is not official
+  const F = 4201; const fid = await initData(user(F)); const fl = await (await post('/api/lobby', { initData: fid, fresh: true })).json();
+  d = await (await post('/api/game/result', { initData: fid, game: { id: 'og-x', code: fl.code, mode: 'classic', winner: 'city', players: rows8 } })).json(); ok(d.official === null, 'not an official host — no emeralds');
+  // flags for the admins: mostly fresh accounts
+  ok(tg.calls.some(c => c.method === 'sendMessage' && c.params.chat_id === 777 && /Официальные игры: проверьте/.test(c.params.text) && /младше 3 дней/.test(c.params.text)), 'fresh accounts at an official table — the admins are told');
+  // the profile and the seat profiles show the mark
+  const pr = await (await post('/api/profile', { initData: pid[4101], tgId: H })).json(); ok(pr.official === true, 'the profile carries the mark');
+  // appoint without an application: the bot and the app
+  await post('/api/me', { initData: await initData(user(4301)) }); await post('/api/me', { initData: await initData(user(4302)) });
+  await hook(msg(user(777), '/official @user4301 7')); ok(lastTo(4301).params.text.includes('назначены официальным') && lastTo(777).params.text.includes('официальный ведущий до'), '/official @user 7 — appointed, told');
+  ok(Math.abs((await env.DB.prepare('SELECT until FROM official_hosts WHERE tg_id = 4301').first('until')) - (now() + 7 * 86400)) < 60, 'for 7 days, free');
+  eq((await post('/api/official/admin', { initData: hid, action: 'appoint', q: 'user4302' })).status, 403, 'a non-admin cannot appoint');
+  d = await (await post('/api/official/admin', { initData: adm, action: 'appoint', q: '@user4302', days: 30 })).json(); ok(d.ok && d.admin.all.some(x => x.tgId === 4302 && x.official.active), 'the app: appointed for 30 days');
+  d = await (await post('/api/official', { initData: adm })).json(); ok(d.admin && d.list.length === 3 && d.admin.apps.length === 0, 'the admin sees all three; no applications left');
+  d = await (await post('/api/official/admin', { initData: adm, action: 'revoke', tgId: 4302 })).json(); ok(d.ok && d.admin.all.find(x => x.tgId === 4302).official.status === 'revoked', 'revoked');
+  eq((await (await post('/api/official', { initData: await initData(user(4302)) })).json()).me.state, 'revoked', 'his state: revoked');
+  await hook(msg(user(777), '/officials')); ok(lastTo(777).params.text.includes('Официальные ведущие') && lastTo(777).params.text.includes('User4001'), '/officials lists them');
+  // a rejected application
+  const R2 = 4401; const rid = await initData(user(R2)); await post('/api/me', { initData: rid }); await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, 0, 0, 0, 80, 1)').bind(R2).run();
+  d = await (await post('/api/official/apply', { initData: rid, form })).json(); const a2 = d.id;
+  d = await (await post('/api/official/admin', { initData: adm, action: 'reject', id: a2, note: 'мало опыта онлайн' })).json(); ok(d.ok && lastTo(R2).params.text.includes('мало опыта онлайн'), 'declined with a note, the host is told');
+  d = await (await post('/api/official', { initData: rid })).json(); ok(d.me.state === 'rejected' && d.me.app.note === 'мало опыта онлайн', 'the state: rejected, with the note');
+  d = await (await post('/api/official/apply', { initData: rid, form })).json(); ok(d.ok && d.me.state === 'pending', 'may apply again'); d = await (await post('/api/official/apply', { initData: rid, withdraw: true })).json(); ok(d.ok && d.me.state === 'none' && d.me.app.status === 'withdrawn', 'withdrawn');
+  // the punishment: a ban and the account zeroed
+  const C = 4106; await EM.addEmeralds(env, C, 8000, 'admin', 'test'); const cid = pid[C];
+  d = await (await post('/api/skin/buy', { initData: cid, skin: 'velvet_cat' })).json(); ok(d.ok, 'the cheater bought a skin for emeralds');
+  await env.DB.prepare("INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (?1, 'role', 'arsonist', 100, 'p_cheat_role', 'paid', 1, 1)").bind(C).run();
+  await env.DB.prepare('UPDATE ratings SET points = 300 WHERE tg_id = ?1').bind(C).run().catch(() => {});
+  await hook(msg(user(777), `/cheat @user${C} 30 фейковые партии`));
+  ok(/blocked|заблокирован/.test(lastTo(C).params.text) && lastTo(C).params.text.includes('фейковые партии') && lastTo(777).params.text.includes('бан до'), 'the cheater is told, then banned; the admin gets the summary');
+  ok(await EM.balanceOf(env, C) === 0, 'emeralds → 0');
+  ok((await env.DB.prepare("SELECT status FROM purchases WHERE tg_id = ?1 AND item = 'velvet_cat'").bind(C).first('status')) === 'revoked' && !(await env.DB.prepare("SELECT 1 FROM user_skins WHERE tg_id = ?1 AND skin = 'velvet_cat'").bind(C).first()), 'the skin bought for emeralds is taken back');
+  ok((await env.DB.prepare("SELECT status FROM purchases WHERE tg_id = ?1 AND item = 'arsonist'").bind(C).first('status')) === 'paid', 'a Stars purchase stays');
+  ok((await env.DB.prepare('SELECT points FROM ratings WHERE tg_id = ?1').bind(C).first('points')) === 0, 'the rating → 1000');
+  eq((await post('/api/me', { initData: cid })).status, 403, 'banned: the app is closed');
+  const before = tg.calls.length; await hook(msg(user(C), '/start')); ok(!tg.calls.slice(before).some(x => x.method === 'sendMessage' && x.params.chat_id === C), 'banned: the bot is silent');
+  await hook(msg(user(777), `/uncheat @user${C}`)); eq((await post('/api/me', { initData: cid })).status, 200, '/uncheat lifts the ban');
+  ok(await EM.balanceOf(env, C) === 0, '…what was zeroed stays zeroed');
+  d = await (await post('/api/official/admin', { initData: adm, action: 'punish', q: '@user4001', reason: 'накрутка изумрудов' })).json(); ok(d.ok && d.forever && d.emeralds === 0 && d.admin.penalties.length === 2, 'the app: the official host punished forever');
+  ok((await env.DB.prepare('SELECT status FROM official_hosts WHERE tg_id = ?1').bind(H).first('status')) === 'revoked', 'his status is gone');
+  ok((await env.DB.prepare("SELECT until FROM security_bans WHERE key = 'tg:4001'").first('until')) > now() + 50 * 365 * 86400, 'a ban «forever»');
+  eq((await post('/api/official/admin', { initData: adm, action: 'punish', q: '@user777', reason: 'x' })).status, 409, 'an admin cannot be punished');
+  await post('/api/official/admin', { initData: adm, action: 'unban', q: '4001' });
+  // the licence reminders (each once)
+  await env.DB.prepare("UPDATE official_hosts SET until = ?1 WHERE tg_id = 4301").bind(now() + 2 * 86400).run();
+  const cron5 = async () => { const w = []; await worker.scheduled({ cron: '*/5 * * * *' }, env, { waitUntil: p => w.push(p) }); await Promise.all(w); };
+  await cron5(); ok(lastTo(4301).params.text.includes('заканчивается'), 'two days left — a reminder'); const n1 = tg.calls.filter(x => x.method === 'sendMessage' && x.params.chat_id === 4301).length; await cron5(); eq(tg.calls.filter(x => x.method === 'sendMessage' && x.params.chat_id === 4301).length, n1, 'only once');
+  await env.DB.prepare("UPDATE official_hosts SET until = ?1 WHERE tg_id = 4301").bind(now() - 60).run(); await cron5(); ok(lastTo(4301).params.text.includes('закончилась'), 'ended — a notice');
+  eq((await (await post('/api/official', { initData: await initData(user(4301)) })).json()).me.state, 'expired', 'his state: expired');
+  // privacy
+  const ex = await exportUser(env, 4401); ok(ex.officialApplications.length === 2 && ex.officialApplications[0].note === 'мало опыта онлайн', '/mydata includes the applications');
+  const exH = await exportUser(env, H); ok(exH.officialHost && exH.officialHost.status === 'revoked' && exH.penalties.length === 1 && exH.officialGamesHosted.length >= 2, '/mydata: the status, the games hosted, the penalty');
+  await hook(msg(user(777), '/help')); ok(lastTo(777).params.text.includes('/officials'), 'the admin help lists the commands'); }
+
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
   eq((await call('/api/nothing', { method: 'POST', body: '{}' })).status, 404, 'unknown api');

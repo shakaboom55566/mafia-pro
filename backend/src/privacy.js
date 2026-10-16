@@ -100,6 +100,10 @@ export async function exportUser(env, id) {
     skinSerials: await all('SELECT skin, serial, created_at FROM skin_serials WHERE tg_id = ?1', id), // v69: the numbers of the numbered copies
     emeralds: await one('SELECT balance, updated_at FROM emeralds WHERE tg_id = ?1', id), // v63: the in-game currency and every change to it
     emeraldLedger: await all('SELECT delta, kind, ref, created_at FROM emerald_ledger WHERE tg_id = ?1 ORDER BY id DESC LIMIT 1000', id),
+    officialHost: await one('SELECT status, until, source, games, paid, created_at, updated_at FROM official_hosts WHERE tg_id = ?1', id), // v77: the official host's status and licence
+    officialApplications: await all('SELECT status, form, hosted, created_at, decided_at, note FROM host_applications WHERE tg_id = ?1 ORDER BY id', id),
+    officialGamesHosted: await all('SELECT game_id, players, accounts, avg, total, created_at FROM official_games WHERE host_id = ?1 ORDER BY created_at DESC LIMIT 500', id),
+    penalties: await all('SELECT reason, emeralds, items, rating, until, created_at FROM cheat_penalties WHERE tg_id = ?1 ORDER BY id', id),
     tournaments: await all('SELECT t.week, p.role, p.status, p.points, p.games, p.wins, p.place, p.prize, p.registered_at FROM tournament_players p JOIN tournaments t ON t.id = p.tid WHERE p.tg_id = ?1 ORDER BY t.opens_at', id), // v63: weekly tournaments
     partner: await one('SELECT status, name, channel, audience, share, created_at, approved_at FROM partners WHERE tg_id = ?1', id),
     payouts: await all('SELECT stars, note, created_at FROM payouts WHERE tg_id = ?1', id),
@@ -148,6 +152,7 @@ export async function deleteUser(env, id) {
     st('DELETE FROM broadcast_queue WHERE tg_id = ?1'), st('UPDATE discord_members SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_members SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE discord_invites SET tg_id = NULL WHERE tg_id = ?1'), st('UPDATE discord_events SET inviter_tg = NULL WHERE inviter_tg = ?1'),
     st('UPDATE security_events SET tg_id = NULL WHERE tg_id = ?1'), st('DELETE FROM user_prefs WHERE tg_id = ?1'), st('DELETE FROM user_skins WHERE tg_id = ?1'), st('DELETE FROM user_fav_card WHERE tg_id = ?1'), st('DELETE FROM skin_serials WHERE tg_id = ?1'),
+    st('DELETE FROM official_hosts WHERE tg_id = ?1'), st('DELETE FROM host_applications WHERE tg_id = ?1'), st('UPDATE official_games SET host_id = 0 WHERE host_id = ?1'), st('DELETE FROM cheat_penalties WHERE tg_id = ?1'), // v77 (a ban itself stays in security_bans until it ends)
     st('DELETE FROM emeralds WHERE tg_id = ?1'), st('DELETE FROM emerald_ledger WHERE tg_id = ?1'), st('DELETE FROM tournament_players WHERE tg_id = ?1'), st('UPDATE tournament_tables SET host_id = NULL WHERE host_id = ?1'), // v63
     st('DELETE FROM users WHERE tg_id = ?1')
   ];

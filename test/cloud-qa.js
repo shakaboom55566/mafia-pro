@@ -883,6 +883,30 @@ const path = require('path'); const http = require('http');
     await p.click('[data-a="trn-close"]'); await p.waitForTimeout(200); await p.click('[data-a="trn-close"]'); await p.waitForTimeout(1200);
     ok(await S(() => TRN.d.t.status === 'cancelled'), 'closed with no games → cancelled');
     await S(() => go('home')); await Q(() => go('home')); }
+  console.log('v77: official hosts — Нина applies in the app, the admin approves in his app, she buys the licence, the ✔ in the list');
+  { await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (601, 0, 0, 0, 60, 1) ON CONFLICT(tg_id) DO UPDATE SET hosted = 60').run();
+    await Q(() => { S.ui.sheet = null; OH.at = 0; go('official'); }); await q.waitForTimeout(1200);
+    ok(!!(await q.$('[data-a="oh-form-open"]')) && (await q.$eval('#app', el => el.textContent)).includes(await Q(() => tt(U().ohReqOk, { have: 60 }))), 'Нина (60 games): the condition is met, «fill in the application»');
+    await q.click('[data-a="oh-form-open"]'); await q.waitForTimeout(200);
+    await q.fill('#oh-name', 'Нина Ведуча'); await q.fill('#oh-city', 'Київ');
+    await q.click('[data-a="oh-one"][data-k="exp"][data-v="1to3"]'); await q.click('[data-a="oh-chip"][data-k="formats"][data-v="online"]'); await q.click('[data-a="oh-chip"][data-k="games"][data-v="role"]');
+    await q.fill('#oh-schedule', 'пт і сб увечері'); await q.fill('#oh-about', 'Веду рольову мафію в клубі третій рік, є свій канал.');
+    await q.click('[data-a="oh-send"]'); await q.waitForTimeout(600); ok(!!(await q.$('.oh-bad')), 'without the rules accepted — the field is marked');
+    await q.click('[data-a="oh-rules"]'); await q.click('[data-a="oh-send"]'); await q.waitForTimeout(900);
+    ok(await Q(() => OH.d && OH.d.me && OH.d.me.state === 'pending') && !!(await q.$('[data-a="oh-withdraw"]')), 'sent: pending');
+    const appMsg = tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 100 && /Анкета на официального ведущего/.test(c.params.text)).pop(); ok(!!appMsg && appMsg.params.text.includes('Нина Ведуча') && appMsg.params.text.includes('<b>60</b>'), 'the admin got the application in the bot');
+    await S(() => { S.ui.sheet = null; OH.at = 0; go('official'); }); await p.waitForTimeout(1200);
+    ok(!!(await p.$('[data-a="oh-decide"][data-v="1"]')) && (await p.$eval('#app', el => el.textContent)).includes('Веду рольову мафію'), 'the admin\'s panel shows the application');
+    await p.click('[data-a="oh-decide"][data-v="1"]'); await p.waitForTimeout(1200);
+    ok(!(await p.$('[data-a="oh-decide"]')) && tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 601).pop().params.text.includes('5000'), 'approved in the app; Нина is told to buy the licence');
+    await hook({ update_id: 9101, message: { message_id: 3, from: { id: 100, first_name: 'Ведущий', language_code: 'ru' }, chat: { id: 100, type: 'private' }, text: '/emeralds 601 +5000' } });
+    await Q(() => { cloudSync(); OH.at = 0; render(); }); await q.waitForTimeout(1600); await Q(() => { OH.at = 0; render(); }); await q.waitForTimeout(900);
+    ok(!!(await q.$('[data-a="oh-buy"]')), 'approved + 5 000 on the account → «buy the licence»');
+    await q.click('[data-a="oh-buy"]'); await q.waitForTimeout(1200);
+    ok(await Q(() => OH.d.me.state === 'active' && S.em.balance === 0) && !!(await q.$('.oh-me .oh-badge')), 'the licence bought: active, the balance 0, the ✔');
+    await Q(() => { OH.at = 0; render(); }); await q.waitForTimeout(1000); ok(await Q(() => (OH.d.list || []).some(x => x.tgId === 601)), 'she is in the list of official hosts');
+    await Q(() => go('home')); await q.waitForTimeout(300); ok((await q.$eval('[data-to="official"] .d', el => el.textContent)).includes(await Q(() => U().ohMenuMe.split('{')[0].trim())), 'the home item: «you are an official host until …»');
+    await S(() => go('home')); }
   ok(errs2.length === 0, 'no page errors on the player’s phone: ' + errs2.join(' | ').slice(0, 300));
   await ctx2.close();
 

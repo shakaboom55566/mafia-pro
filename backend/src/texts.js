@@ -348,3 +348,61 @@ Object.assign(TEXTS.uk, { frameGift: '🎁 Адміністратор подар
 Object.assign(TEXTS.en, { frameGift: '🎁 An admin gave you the avatar frame <b>«{skin}»</b>. If you had none, it is already on: everyone sees it at the table and in your profile. Change it: «Cards» → «Skins» → «Frames».' });
 Object.assign(TEXTS.pl, { frameGift: '🎁 Administrator podarował Ci ramkę awatara <b>„{skin}”</b>. Jeśli nie miałeś ramki — już ją masz: widzą ją wszyscy przy stole i w Twoim profilu. Zmień: «Karty» → «Skórki» → «Ramki».' });
 Object.assign(TEXTS.hy, { frameGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց ավատարի շրջանակ՝ <b>«{skin}»</b>։ Եթե շրջանակ չունեիք, այն արդեն դրված է․ այն տեսնում են բոլորը սեղանի շուրջ և ձեր պրոֆիլում։ Փոխել՝ «Քարտեր» → «Սքիններ» → «Շրջանակներ»։' });
+
+/* v77 official hosts (official.js) */
+Object.assign(TEXTS.ru, {
+  ohApproved: '✅ <b>Ваша анкета официального ведущего одобрена!</b>\nОсталось купить лицензию — {price} 💎 на {days} дней: «Официальные ведущие» в приложении. С лицензией каждая партия за вашим столом приносит игрокам изумруды.',
+  ohRejected: 'Анкета официального ведущего отклонена.{note}\nМожно исправить и подать снова — «Официальные ведущие» в приложении.',
+  ohAppointed: '🎩 <b>Вы назначены официальным ведущим Mafia Pro</b> — до {until}. Партии за вашим столом приносят игрокам изумруды; правила официальных игр — в приложении.',
+  ohRevoked: 'Статус официального ведущего снят администратором.{note}',
+  ohReward: '💎 <b>+{n}</b> изумрудов за партию у официального ведущего {host}. На счету — {balance} 💎.',
+  ohCapped: 'Сегодня у вас уже {n} партий с изумрудами — эта прошла без них. Лимит обновляется через 24 часа после первой из них.',
+  ohPunished: '⛔ <b>Аккаунт заблокирован за нарушение правил официальных игр</b>: {reason}.\nИзумруды, всё купленное за них и рейтинг обнулены. Блокировка — {until}.',
+  ohForever: 'навсегда', ohExpiring: '🎩 Лицензия официального ведущего заканчивается {until}. Продлить — {price} 💎 на {days} дней: «Официальные ведущие» в приложении.', ohExpired: 'Лицензия официального ведущего закончилась — партии за вашим столом больше не приносят изумруды. Продлить можно в приложении: «Официальные ведущие».',
+  ohExp_lt1: 'до года', ohExp_1to3: '1–3 года', ohExp_gt3: 'больше 3 лет',
+  adminHelpOfficial: '/officials — официальные ведущие и анкеты, /official @user [дней] — назначить без анкеты (по умолчанию 30 дней), /official_off @user — снять статус, /cheat @user [дней] причина — бан (без дней — навсегда) и обнуление аккаунта, /uncheat @user — снять бан'
+});
+Object.assign(TEXTS.uk, {
+  ohApproved: '✅ <b>Вашу анкету офіційного ведучого схвалено!</b>\nЗалишилося купити ліцензію — {price} 💎 на {days} днів: «Офіційні ведучі» в застосунку. З ліцензією кожна партія за вашим столом приносить гравцям смарагди.',
+  ohRejected: 'Анкету офіційного ведучого відхилено.{note}\nМожна виправити й подати знову — «Офіційні ведучі» в застосунку.',
+  ohAppointed: '🎩 <b>Вас призначено офіційним ведучим Mafia Pro</b> — до {until}. Партії за вашим столом приносять гравцям смарагди; правила офіційних ігор — у застосунку.',
+  ohRevoked: 'Статус офіційного ведучого знято адміністратором.{note}',
+  ohReward: '💎 <b>+{n}</b> смарагдів за партію в офіційного ведучого {host}. На рахунку — {balance} 💎.',
+  ohCapped: 'Сьогодні у вас уже {n} партій зі смарагдами — ця пройшла без них. Ліміт оновлюється через 24 години після першої з них.',
+  ohPunished: '⛔ <b>Акаунт заблоковано за порушення правил офіційних ігор</b>: {reason}.\nСмарагди, усе куплене за них і рейтинг обнулено. Блокування — {until}.',
+  ohForever: 'назавжди', ohExpiring: '🎩 Ліцензія офіційного ведучого закінчується {until}. Продовжити — {price} 💎 на {days} днів: «Офіційні ведучі» в застосунку.', ohExpired: 'Ліцензія офіційного ведучого закінчилася — партії за вашим столом більше не приносять смарагди. Продовжити можна в застосунку: «Офіційні ведучі».',
+  ohExp_lt1: 'до року', ohExp_1to3: '1–3 роки', ohExp_gt3: 'понад 3 роки'
+});
+Object.assign(TEXTS.en, {
+  ohApproved: '✅ <b>Your official host application is approved!</b>\nNow buy the licence — {price} 💎 for {days} days: Official hosts in the app. With the licence every game at your table brings the players emeralds.',
+  ohRejected: 'Your official host application was declined.{note}\nYou can fix it and apply again — Official hosts in the app.',
+  ohAppointed: '🎩 <b>You are appointed an official host of Mafia Pro</b> — until {until}. Games at your table bring the players emeralds; the rules of official games are in the app.',
+  ohRevoked: 'An admin removed your official host status.{note}',
+  ohReward: '💎 <b>+{n}</b> emeralds for the game with the official host {host}. Your balance: {balance} 💎.',
+  ohCapped: 'You already have {n} games with emeralds today — this one went without. The limit renews 24 hours after the first of them.',
+  ohPunished: '⛔ <b>Your account is blocked for breaking the rules of official games</b>: {reason}.\nYour emeralds, everything bought with them and your rating are reset. Blocked: {until}.',
+  ohForever: 'forever', ohExpiring: '🎩 Your official host licence ends on {until}. Renew it — {price} 💎 for {days} days: Official hosts in the app.', ohExpired: 'Your official host licence has ended — games at your table no longer bring emeralds. Renew it in the app: Official hosts.',
+  ohExp_lt1: 'under a year', ohExp_1to3: '1–3 years', ohExp_gt3: 'over 3 years'
+});
+Object.assign(TEXTS.pl, {
+  ohApproved: '✅ <b>Twoje zgłoszenie na oficjalnego prowadzącego zostało zatwierdzone!</b>\nTeraz kup licencję — {price} 💎 na {days} dni: „Oficjalni prowadzący” w aplikacji. Z licencją każda partia przy twoim stole daje graczom szmaragdy.',
+  ohRejected: 'Zgłoszenie na oficjalnego prowadzącego zostało odrzucone.{note}\nMożesz je poprawić i złożyć ponownie — „Oficjalni prowadzący” w aplikacji.',
+  ohAppointed: '🎩 <b>Zostałeś(-aś) oficjalnym prowadzącym Mafia Pro</b> — do {until}. Partie przy twoim stole dają graczom szmaragdy; zasady oficjalnych gier są w aplikacji.',
+  ohRevoked: 'Administrator odebrał status oficjalnego prowadzącego.{note}',
+  ohReward: '💎 <b>+{n}</b> szmaragdów za partię u oficjalnego prowadzącego {host}. Saldo: {balance} 💎.',
+  ohCapped: 'Masz już dziś {n} partii ze szmaragdami — ta była bez nich. Limit odnawia się 24 godziny po pierwszej z nich.',
+  ohPunished: '⛔ <b>Konto zablokowane za łamanie zasad oficjalnych gier</b>: {reason}.\nSzmaragdy, wszystko kupione za nie i ranking zostały wyzerowane. Blokada: {until}.',
+  ohForever: 'na zawsze', ohExpiring: '🎩 Licencja oficjalnego prowadzącego kończy się {until}. Przedłuż — {price} 💎 na {days} dni: „Oficjalni prowadzący” w aplikacji.', ohExpired: 'Licencja oficjalnego prowadzącego wygasła — partie przy twoim stole nie dają już szmaragdów. Przedłużysz ją w aplikacji: „Oficjalni prowadzący”.',
+  ohExp_lt1: 'do roku', ohExp_1to3: '1–3 lata', ohExp_gt3: 'ponad 3 lata'
+});
+Object.assign(TEXTS.hy, {
+  ohApproved: '✅ <b>Պաշտոնական վարողի ձեր հայտը հաստատվել է։</b>\nՄնում է գնել լիցենզիան՝ {price} 💎 {days} օրով․ «Պաշտոնական վարողներ» հավելվածում։ Լիցենզիայով ձեր սեղանի յուրաքանչյուր խաղ խաղացողներին զմրուխտներ է բերում։',
+  ohRejected: 'Պաշտոնական վարողի հայտը մերժվել է։{note}\nԿարող եք ուղղել և կրկին դիմել՝ «Պաշտոնական վարողներ» հավելվածում։',
+  ohAppointed: '🎩 <b>Դուք նշանակվել եք Mafia Pro-ի պաշտոնական վարող</b>՝ մինչև {until}։ Ձեր սեղանի խաղերը խաղացողներին զմրուխտներ են բերում․ պաշտոնական խաղերի կանոնները հավելվածում են։',
+  ohRevoked: 'Ադմինիստրատորը հանել է պաշտոնական վարողի կարգավիճակը։{note}',
+  ohReward: '💎 <b>+{n}</b> զմրուխտ՝ պաշտոնական վարող {host}-ի խաղի համար։ Հաշվին՝ {balance} 💎։',
+  ohCapped: 'Այսօր արդեն ունեք զմրուխտներով {n} խաղ․ այս մեկն անցավ առանց դրանց։ Սահմանը թարմանում է դրանցից առաջինից 24 ժամ անց։',
+  ohPunished: '⛔ <b>Հաշիվը արգելափակված է պաշտոնական խաղերի կանոնները խախտելու համար</b>՝ {reason}։\nԶմրուխտները, դրանցով գնված ամեն ինչ և վարկանիշը զրոյացվել են։ Արգելափակում՝ {until}։',
+  ohForever: 'ընդմիշտ', ohExpiring: '🎩 Պաշտոնական վարողի լիցենզիան ավարտվում է {until}։ Երկարացնել՝ {price} 💎 {days} օրով․ «Պաշտոնական վարողներ» հավելվածում։', ohExpired: 'Պաշտոնական վարողի լիցենզիան ավարտվել է․ ձեր սեղանի խաղերն այլևս զմրուխտներ չեն բերում։ Երկարացնել կարող եք հավելվածում՝ «Պաշտոնական վարողներ»։',
+  ohExp_lt1: 'մինչև մեկ տարի', ohExp_1to3: '1–3 տարի', ohExp_gt3: 'ավելի քան 3 տարի'
+});

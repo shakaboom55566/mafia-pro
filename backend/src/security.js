@@ -108,8 +108,8 @@ export async function setLockdown(env, on, by, reason) {
   await refreshCfg(env, true);
 }
 export async function setGuard(env, minutes) { const until = minutes > 0 ? now() + minutes * 60 : 0; await cfgSet(env, 'sec:guard', String(until)); await refreshCfg(env, true); return until; }
-export async function banKey(env, key, seconds, reason, by) {
-  const until = now() + Math.max(60, Math.min(90 * 86400, seconds | 0));
+export async function banKey(env, key, seconds, reason, by, maxSec) { // maxSec: a longer cap than 90 days (v77: an admin's ban for cheating, up to «forever»)
+  const until = now() + Math.max(60, Math.min(maxSec || 90 * 86400, Math.trunc(Number(seconds) || 0))); // not «| 0»: a long ban does not fit 32 bits
   await env.DB.prepare('INSERT INTO security_bans (key, until, reason, by, created_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(key) DO UPDATE SET until = MAX(until, ?2), reason = ?3, by = ?4').bind(key, until, String(reason || '').slice(0, 200), String(by || 'auto').slice(0, 40), now()).run();
   MEM.cfg.bans.set(key, until); secEvent(env, 'ban', 'medium', { detail: { key: key.startsWith('tg:') ? 'tg' : 'ip', reason: String(reason || '').slice(0, 120), by: String(by || 'auto'), hours: Math.round((until - now()) / 3600) } });
   return until;

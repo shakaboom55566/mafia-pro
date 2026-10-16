@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.53.0-3a46114">
+<meta name="mafia-build" content="1.54.0-755d327">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -1284,6 +1284,31 @@ html.lite .gd-img { box-shadow: none; }
 .rt-seat.wait .rt-av { border-color: var(--warn); border-style: dashed; }
 .msg.host { border-color: rgba(240, 205, 122, .45); }
 .msg.host .who { color: var(--gold); }
+/* v77 official hosts: the ✔ mark, the reward table, the application form */
+.oh-badge { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(180deg, #8ff0b6, #39b27a); color: #06261a; font-size: 10px; font-weight: 900; line-height: 1; vertical-align: 1px; flex: none; box-shadow: 0 0 0 1.5px rgba(240, 205, 122, .6); }
+.oh-badge.big { width: 20px; height: 20px; font-size: 12px; }
+.oh-em { color: #8ff0b6; font-weight: 700; }
+.oh-hero { border-color: rgba(80, 200, 140, .45); background: radial-gradient(120% 90% at 0% 0%, rgba(40, 150, 100, .22), transparent 60%), var(--bg-2); }
+.oh-big { font-size: 20px; font-weight: 900; color: #8ff0b6; letter-spacing: -.2px; }
+.oh-mine { margin-top: 8px; padding: 8px 12px; border-radius: 12px; background: rgba(40, 150, 100, .15); border: 1px solid rgba(80, 200, 140, .4); color: #8ff0b6; font-weight: 800; }
+.oh-kgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.oh-kgrid.one { grid-template-columns: minmax(0, 1fr); }
+.oh-k { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); font-size: 13px; min-width: 0; }
+.oh-k span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oh-k b { color: #8ff0b6; flex: none; }
+.oh-me { border-color: var(--gold-dim); }
+.oh-form .oh-l { display: block; font-size: 12.5px; color: var(--muted); margin: 10px 0 4px; font-weight: 700; }
+.oh-form textarea.input { resize: vertical; min-height: 84px; font: inherit; }
+.oh-form .input.oh-bad, .oh-form .filters.oh-bad, .oh-check.oh-bad { box-shadow: 0 0 0 1.5px var(--crimson-2); border-radius: 12px; }
+.oh-check { display: flex; align-items: flex-start; gap: 10px; width: 100%; margin-top: 12px; padding: 8px; background: none; border: 0; color: var(--fg); text-align: left; font: inherit; font-size: 13.5px; cursor: pointer; }
+.oh-check .box { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line-2); display: inline-flex; align-items: center; justify-content: center; font-weight: 900; color: #06261a; }
+.oh-check.on .box { background: linear-gradient(180deg, #8ff0b6, #39b27a); border-color: transparent; }
+.oh-table, .oh-got { border-color: rgba(80, 200, 140, .5); background: radial-gradient(120% 90% at 0% 0%, rgba(40, 150, 100, .18), transparent 60%), var(--bg-2); }
+.oh-got { font-weight: 800; color: #8ff0b6; }
+.oh-got .eyebrow { color: var(--gold-2); }
+.oh-row > .grow { flex: 1; min-width: 0; }
+.oh-big .oh-badge.big { vertical-align: 3px; }
+.oh-prof { display: flex; align-items: center; gap: 8px; border-color: rgba(80, 200, 140, .5); color: #8ff0b6; }
 </style>
 </head><body>
 <div id="app"></div>
@@ -7278,6 +7303,169 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.keys(R).forEach(l => { if (I18N[l] && I18N[l].ui) Object.assign(I18N[l].ui, R[l]); });
 })();
 /* ============================================================
+   v77 official hosts: the application, the licence, emeralds for games at their tables, the rules (texts; logic — 21-official.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      ohMenu: 'Официальные ведущие', ohMenuD: 'Изумруды за каждую партию — до 100 💎', ohMenuMe: 'Вы официальный ведущий до {date}',
+      ohTitle: 'Официальные ведущие', ohSub: 'Партии с изумрудами', ohNeedTg: 'Официальные игры — в Telegram-версии приложения.',
+      ohWhat: 'Официальный ведущий — проверенный ведущий Mafia Pro с лицензией. Каждая партия за его столом приносит игрокам изумруды — до 100 💎 за игру.',
+      ohHowTitle: 'Сколько изумрудов за партию',
+      ohHow: ['Две трети награды — по среднему рангу игроков за столом, одна треть — по вашему рангу.', 'Ваш ранг считается не выше чем на ступень над средним по столу: сильному игроку нет смысла «фармить» слабые столы.', 'Ведущий изумруды за партию не получает.'],
+      ohKTitle: 'Цена ранга', ohExTitle: 'Примеры',
+      ohEx: { novice: 'Стол новичков', mixed: 'Стол знатоков', strong: 'Легенда за столом любителей', underdog: 'Новичок за столом экспертов', legends: 'Стол легенд' },
+      ohMine: 'Вам за столом вашего уровня — {n} 💎',
+      ohTablesTitle: 'Столы официальных ведущих', ohTablesNone: 'Сейчас никто из официальных ведущих не собирает стол онлайн.', ohListTitle: 'Официальные ведущие · {n}', ohListNone: 'Пока нет ни одного — станьте первым.',
+      ohPlayers: 'за столом {n}', ohHostStats: 'проведено партий: {n} · официальных: {m}', ohLive: 'идёт игра',
+      ohBecome: 'Стать официальным ведущим', ohReq: 'Нужно больше {n} проведённых партий — у вас {have}.', ohReqOk: 'Проведено партий: {have} — условие выполнено.', ohLicLine: 'Лицензия — {price} 💎 на {days} дней, продлевается.',
+      ohApply: 'Заполнить анкету', ohStatePending: 'Анкета на рассмотрении с {date}. Ответ придёт от бота.', ohWithdraw: 'Отозвать анкету', ohStateRejected: 'Анкета отклонена{note}. Можно исправить и подать снова.',
+      ohStateApproved: 'Анкета одобрена! Купите лицензию — и партии за вашим столом начнут приносить игрокам изумруды.', ohStateActive: 'Вы официальный ведущий до {date}.', ohStateExpired: 'Лицензия закончилась {date}. Продлите — и партии снова будут приносить изумруды.', ohStateRevoked: 'Статус официального ведущего снят администратором.',
+      ohBuy: 'Купить лицензию · {price} 💎', ohRenew: 'Продлить на {days} дней · {price} 💎', ohShort: 'Не хватает {n} 💎 — пополнить', ohBought: 'Лицензия активна до {date}', ohMyGames: 'Официальных партий проведено: {n}', ohSourceAdmin: 'назначен администратором',
+      ohFormTitle: 'Анкета официального ведущего', ohFName: 'Как к вам обращаться', ohFCity: 'Город', ohFExp: 'Опыт ведения', ohExp: { lt1: 'до года', '1to3': '1–3 года', gt3: 'больше 3 лет' },
+      ohFFormats: 'Где ведёте', ohFmt: { online: 'Онлайн', offline: 'Вживую' }, ohFGames: 'Какие игры', ohGames: { classic: 'Классика', role: 'Ролевая' }, ohFLangs: 'Языки ведения',
+      ohFSchedule: 'Когда проводите игры', ohFSchedulePh: 'например: пт и сб вечером, вс днём', ohFAbout: 'О себе', ohFAboutPh: 'Где и как ведёте, сколько лет, ваш клуб или канал',
+      ohFRules: 'Принимаю правила официальных игр: за накрутку — бан и обнуление аккаунта', ohSend: 'Отправить анкету', ohCancel: 'Отмена', ohSent: 'Анкета отправлена — ответ придёт от бота', ohFormErr: 'Заполните отмеченные поля', ohAutoNote: 'К анкете приложатся ваш ник в Telegram и число проведённых партий.',
+      ohRulesTitle: 'Правила официальных игр',
+      ohRules: ['Изумруды дают только партии, которые официальный ведущий провёл в приложении за своим столом: игроки садятся по коду или приглашению, карты раздаются через приложение.', 'В партии — не меньше {minPlayers} игроков, из них не меньше {minAccounts} с аккаунтом Telegram за столом; от раздачи до итога — не меньше {minMinutes} минут.', 'Игрок получает изумруды не больше чем за {dayGames} партий в сутки, стол ведущего — не больше {hostDay} партий в сутки.', 'Запрещено: играть с нескольких аккаунтов, договариваться о результате, проводить «пустые» партии ради изумрудов, сажать за стол подставных игроков.', 'Нарушение — бан и обнуление аккаунта: изумруды, всё купленное за них и рейтинг сгорают, статус ведущего снимается. Покупки за Telegram Stars остаются.'],
+      ohTableOn: '💎 Официальная игра', ohTableEst: 'За эту партию вам — около {n} 💎', ohTableAvg: 'средний ранг стола — {r}', ohTableLeft: 'сегодня ещё {n} из {max} партий с изумрудами', ohTableNoLeft: 'Сегодня лимит партий с изумрудами исчерпан', ohTableHost: 'Партия за вашим столом принесёт игрокам изумруды',
+      ohGot: '💎 +{n} изумрудов за партию', ohEndTitle: 'Изумруды за партию', ohEndTotal: 'Всего: {n} 💎', ohEndNone: 'Эта партия прошла без изумрудов: {why}',
+      ohWhy: { few_players: 'меньше {minPlayers} игроков', few_accounts: 'меньше {minAccounts} игроков с Telegram за столом', too_short: 'меньше {minMinutes} минут от раздачи', no_deal: 'карты раздавались не через приложение', host_cap: 'у стола уже {hostDay} партий за сутки' }, ohCapped: 'лимит на сегодня',
+      ohBadge: 'Официальный ведущий', ohLbTag: 'изумруды за игру', ohProfileBadge: 'Официальный ведущий Mafia Pro',
+      ohAdmin: 'Панель администратора', ohApps: 'Анкеты · {n}', ohAppsNone: 'Новых анкет нет', ohApprove: 'Одобрить', ohReject: 'Отклонить', ohNotePh: 'Комментарий для ведущего (необязательно)',
+      ohAppoint: 'Назначить без анкеты', ohQ: '@ник или id', ohDays: '{n} дн.', ohAppointBtn: 'Назначить', ohAll: 'Все ведущие · {n}', ohRevoke: 'Снять', ohRevokeSure: 'Точно снять?',
+      ohPunish: 'Наказать за накрутку', ohReason: 'Причина', ohForever: 'навсегда', ohPunishBtn: 'Бан и обнуление', ohPunishSure: 'Точно? Это не отменить', ohUnban: 'Снять бан', ohPenalties: 'Наказания',
+      ohDone: 'Готово', ohNotFound: 'Игрок не найден — он должен хоть раз открыть бота', ohErr: 'Не удалось — проверьте связь и попробуйте снова', ohFew: 'Нужно больше {n} проведённых партий',
+      ohStatus: { active: 'до {date}', expired: 'лицензия истекла', approved: 'одобрен, без лицензии', revoked: 'снят' }, ohPenLine: '{reason} · −{em} 💎 · предметов: {items} · до {date}'
+    },
+    uk: {
+      ohMenu: 'Офіційні ведучі', ohMenuD: 'Смарагди за кожну партію — до 100 💎', ohMenuMe: 'Ви офіційний ведучий до {date}',
+      ohTitle: 'Офіційні ведучі', ohSub: 'Партії зі смарагдами', ohNeedTg: 'Офіційні ігри — у Telegram-версії застосунку.',
+      ohWhat: 'Офіційний ведучий — перевірений ведучий Mafia Pro з ліцензією. Кожна партія за його столом приносить гравцям смарагди — до 100 💎 за гру.',
+      ohHowTitle: 'Скільки смарагдів за партію',
+      ohHow: ['Дві третини нагороди — за середнім рангом гравців за столом, одна третина — за вашим рангом.', 'Ваш ранг рахується не вище ніж на щабель над середнім по столу: сильному гравцеві немає сенсу «фармити» слабкі столи.', 'Ведучий смарагди за партію не отримує.'],
+      ohKTitle: 'Ціна рангу', ohExTitle: 'Приклади',
+      ohEx: { novice: 'Стіл новачків', mixed: 'Стіл знавців', strong: 'Легенда за столом любителів', underdog: 'Новачок за столом експертів', legends: 'Стіл легенд' },
+      ohMine: 'Вам за столом вашого рівня — {n} 💎',
+      ohTablesTitle: 'Столи офіційних ведучих', ohTablesNone: 'Зараз ніхто з офіційних ведучих не збирає стіл онлайн.', ohListTitle: 'Офіційні ведучі · {n}', ohListNone: 'Поки немає жодного — станьте першим.',
+      ohPlayers: 'за столом {n}', ohHostStats: 'проведено партій: {n} · офіційних: {m}', ohLive: 'триває гра',
+      ohBecome: 'Стати офіційним ведучим', ohReq: 'Потрібно понад {n} проведених партій — у вас {have}.', ohReqOk: 'Проведено партій: {have} — умову виконано.', ohLicLine: 'Ліцензія — {price} 💎 на {days} днів, продовжується.',
+      ohApply: 'Заповнити анкету', ohStatePending: 'Анкета на розгляді з {date}. Відповідь надішле бот.', ohWithdraw: 'Відкликати анкету', ohStateRejected: 'Анкету відхилено{note}. Можна виправити й подати знову.',
+      ohStateApproved: 'Анкету схвалено! Купіть ліцензію — і партії за вашим столом почнуть приносити гравцям смарагди.', ohStateActive: 'Ви офіційний ведучий до {date}.', ohStateExpired: 'Ліцензія закінчилася {date}. Продовжте — і партії знову приноситимуть смарагди.', ohStateRevoked: 'Статус офіційного ведучого знято адміністратором.',
+      ohBuy: 'Купити ліцензію · {price} 💎', ohRenew: 'Продовжити на {days} днів · {price} 💎', ohShort: 'Не вистачає {n} 💎 — поповнити', ohBought: 'Ліцензія активна до {date}', ohMyGames: 'Офіційних партій проведено: {n}', ohSourceAdmin: 'призначений адміністратором',
+      ohFormTitle: 'Анкета офіційного ведучого', ohFName: 'Як до вас звертатися', ohFCity: 'Місто', ohFExp: 'Досвід ведення', ohExp: { lt1: 'до року', '1to3': '1–3 роки', gt3: 'понад 3 роки' },
+      ohFFormats: 'Де ведете', ohFmt: { online: 'Онлайн', offline: 'Наживо' }, ohFGames: 'Які ігри', ohGames: { classic: 'Класика', role: 'Рольова' }, ohFLangs: 'Мови ведення',
+      ohFSchedule: 'Коли проводите ігри', ohFSchedulePh: 'наприклад: пт і сб увечері, нд удень', ohFAbout: 'Про себе', ohFAboutPh: 'Де і як ведете, скільки років, ваш клуб або канал',
+      ohFRules: 'Приймаю правила офіційних ігор: за накрутку — бан і обнулення акаунта', ohSend: 'Надіслати анкету', ohCancel: 'Скасувати', ohSent: 'Анкету надіслано — відповідь надішле бот', ohFormErr: 'Заповніть позначені поля', ohAutoNote: 'До анкети додадуться ваш нік у Telegram і кількість проведених партій.',
+      ohRulesTitle: 'Правила офіційних ігор',
+      ohRules: ['Смарагди дають лише партії, які офіційний ведучий провів у застосунку за своїм столом: гравці сідають за кодом або запрошенням, карти роздаються через застосунок.', 'У партії — не менше {minPlayers} гравців, із них не менше {minAccounts} з акаунтом Telegram за столом; від роздачі до підсумку — не менше {minMinutes} хвилин.', 'Гравець отримує смарагди не більше ніж за {dayGames} партій на добу, стіл ведучого — не більше {hostDay} партій на добу.', 'Заборонено: грати з кількох акаунтів, домовлятися про результат, проводити «порожні» партії заради смарагдів, саджати за стіл підставних гравців.', 'Порушення — бан і обнулення акаунта: смарагди, усе куплене за них і рейтинг згорають, статус ведучого знімається. Покупки за Telegram Stars залишаються.'],
+      ohTableOn: '💎 Офіційна гра', ohTableEst: 'За цю партію вам — близько {n} 💎', ohTableAvg: 'середній ранг столу — {r}', ohTableLeft: 'сьогодні ще {n} з {max} партій зі смарагдами', ohTableNoLeft: 'Сьогодні ліміт партій зі смарагдами вичерпано', ohTableHost: 'Партія за вашим столом принесе гравцям смарагди',
+      ohGot: '💎 +{n} смарагдів за партію', ohEndTitle: 'Смарагди за партію', ohEndTotal: 'Усього: {n} 💎', ohEndNone: 'Ця партія пройшла без смарагдів: {why}',
+      ohWhy: { few_players: 'менше {minPlayers} гравців', few_accounts: 'менше {minAccounts} гравців із Telegram за столом', too_short: 'менше {minMinutes} хвилин від роздачі', no_deal: 'карти роздавалися не через застосунок', host_cap: 'у столу вже {hostDay} партій за добу' }, ohCapped: 'ліміт на сьогодні',
+      ohBadge: 'Офіційний ведучий', ohLbTag: 'смарагди за гру', ohProfileBadge: 'Офіційний ведучий Mafia Pro',
+      ohAdmin: 'Панель адміністратора', ohApps: 'Анкети · {n}', ohAppsNone: 'Нових анкет немає', ohApprove: 'Схвалити', ohReject: 'Відхилити', ohNotePh: 'Коментар для ведучого (необов’язково)',
+      ohAppoint: 'Призначити без анкети', ohQ: '@нік або id', ohDays: '{n} дн.', ohAppointBtn: 'Призначити', ohAll: 'Усі ведучі · {n}', ohRevoke: 'Зняти', ohRevokeSure: 'Точно зняти?',
+      ohPunish: 'Покарати за накрутку', ohReason: 'Причина', ohForever: 'назавжди', ohPunishBtn: 'Бан і обнулення', ohPunishSure: 'Точно? Це не скасувати', ohUnban: 'Зняти бан', ohPenalties: 'Покарання',
+      ohDone: 'Готово', ohNotFound: 'Гравця не знайдено — він має хоч раз відкрити бота', ohErr: 'Не вдалося — перевірте зв’язок і спробуйте знову', ohFew: 'Потрібно понад {n} проведених партій',
+      ohStatus: { active: 'до {date}', expired: 'ліцензія закінчилася', approved: 'схвалений, без ліцензії', revoked: 'знятий' }, ohPenLine: '{reason} · −{em} 💎 · предметів: {items} · до {date}'
+    },
+    en: {
+      ohMenu: 'Official hosts', ohMenuD: 'Emeralds for every game — up to 100 💎', ohMenuMe: 'You are an official host until {date}',
+      ohTitle: 'Official hosts', ohSub: 'Games with emeralds', ohNeedTg: 'Official games are in the Telegram version of the app.',
+      ohWhat: 'An official host is a verified Mafia Pro host with a licence. Every game at his table brings the players emeralds — up to 100 💎 a game.',
+      ohHowTitle: 'How many emeralds a game',
+      ohHow: ['Two thirds of the reward come from the average rank of the players at the table, one third from your own rank.', 'Your rank counts at most one step above the table\'s average: a strong player gains nothing by farming weak tables.', 'The host gets no emeralds for the game.'],
+      ohKTitle: 'Rank value', ohExTitle: 'Examples',
+      ohEx: { novice: 'A table of rookies', mixed: 'A table of adepts', strong: 'A Legend at a table of amateurs', underdog: 'A rookie at a table of experts', legends: 'A table of Legends' },
+      ohMine: 'At a table of your level you get {n} 💎',
+      ohTablesTitle: 'Official hosts\' tables', ohTablesNone: 'No official host is gathering an online table right now.', ohListTitle: 'Official hosts · {n}', ohListNone: 'None yet — be the first.',
+      ohPlayers: '{n} at the table', ohHostStats: 'games hosted: {n} · official: {m}', ohLive: 'game on',
+      ohBecome: 'Become an official host', ohReq: 'More than {n} hosted games needed — you have {have}.', ohReqOk: 'Games hosted: {have} — the condition is met.', ohLicLine: 'The licence: {price} 💎 for {days} days, renewable.',
+      ohApply: 'Fill in the application', ohStatePending: 'Your application is under review since {date}. The bot will answer.', ohWithdraw: 'Withdraw the application', ohStateRejected: 'Your application was declined{note}. You can fix it and apply again.',
+      ohStateApproved: 'Your application is approved! Buy the licence and the games at your table will start bringing the players emeralds.', ohStateActive: 'You are an official host until {date}.', ohStateExpired: 'Your licence ended on {date}. Renew it and your games will bring emeralds again.', ohStateRevoked: 'An admin removed your official host status.',
+      ohBuy: 'Buy the licence · {price} 💎', ohRenew: 'Renew for {days} days · {price} 💎', ohShort: '{n} 💎 short — top up', ohBought: 'Licence active until {date}', ohMyGames: 'Official games hosted: {n}', ohSourceAdmin: 'appointed by an admin',
+      ohFormTitle: 'Official host application', ohFName: 'Your name', ohFCity: 'City', ohFExp: 'Hosting experience', ohExp: { lt1: 'under a year', '1to3': '1–3 years', gt3: 'over 3 years' },
+      ohFFormats: 'Where you host', ohFmt: { online: 'Online', offline: 'In person' }, ohFGames: 'Which games', ohGames: { classic: 'Classic', role: 'Role-play' }, ohFLangs: 'Languages',
+      ohFSchedule: 'When you host', ohFSchedulePh: 'e.g. Fri and Sat evenings, Sun afternoon', ohFAbout: 'About you', ohFAboutPh: 'Where and how you host, for how long, your club or channel',
+      ohFRules: 'I accept the rules of official games: cheating means a ban and a reset account', ohSend: 'Send the application', ohCancel: 'Cancel', ohSent: 'Application sent — the bot will answer', ohFormErr: 'Fill in the marked fields', ohAutoNote: 'Your Telegram username and the number of games you hosted are attached automatically.',
+      ohRulesTitle: 'Rules of official games',
+      ohRules: ['Emeralds come only from games the official host ran in the app at his own table: players sit down by code or invitation, the cards are dealt through the app.', 'A game has at least {minPlayers} players, at least {minAccounts} of them with a Telegram account at the table; at least {minMinutes} minutes from the deal to the result.', 'A player gets emeralds for at most {dayGames} games a day, a host\'s table for at most {hostDay} games a day.', 'Forbidden: playing from several accounts, fixing results, running empty games for emeralds, seating stooges.', 'A breach means a ban and a reset account: emeralds, everything bought with them and the rating are gone, the host status is removed. Telegram Stars purchases stay.'],
+      ohTableOn: '💎 Official game', ohTableEst: 'This game brings you about {n} 💎', ohTableAvg: 'table\'s average rank: {r}', ohTableLeft: '{n} of {max} games with emeralds left today', ohTableNoLeft: 'Today\'s limit of games with emeralds is reached', ohTableHost: 'A game at your table brings the players emeralds',
+      ohGot: '💎 +{n} emeralds for the game', ohEndTitle: 'Emeralds for the game', ohEndTotal: 'Total: {n} 💎', ohEndNone: 'This game went without emeralds: {why}',
+      ohWhy: { few_players: 'fewer than {minPlayers} players', few_accounts: 'fewer than {minAccounts} players with Telegram at the table', too_short: 'less than {minMinutes} minutes from the deal', no_deal: 'the cards were not dealt through the app', host_cap: 'the table already has {hostDay} games today' }, ohCapped: 'daily limit',
+      ohBadge: 'Official host', ohLbTag: 'emeralds a game', ohProfileBadge: 'Official Mafia Pro host',
+      ohAdmin: 'Admin panel', ohApps: 'Applications · {n}', ohAppsNone: 'No new applications', ohApprove: 'Approve', ohReject: 'Decline', ohNotePh: 'A note for the host (optional)',
+      ohAppoint: 'Appoint without an application', ohQ: '@username or id', ohDays: '{n} d', ohAppointBtn: 'Appoint', ohAll: 'All hosts · {n}', ohRevoke: 'Remove', ohRevokeSure: 'Remove for sure?',
+      ohPunish: 'Punish for cheating', ohReason: 'Reason', ohForever: 'forever', ohPunishBtn: 'Ban and reset', ohPunishSure: 'Sure? This cannot be undone', ohUnban: 'Lift the ban', ohPenalties: 'Penalties',
+      ohDone: 'Done', ohNotFound: 'Player not found — he must have opened the bot at least once', ohErr: 'Failed — check the connection and try again', ohFew: 'More than {n} hosted games needed',
+      ohStatus: { active: 'until {date}', expired: 'licence expired', approved: 'approved, no licence', revoked: 'removed' }, ohPenLine: '{reason} · −{em} 💎 · items: {items} · until {date}'
+    },
+    pl: {
+      ohMenu: 'Oficjalni prowadzący', ohMenuD: 'Szmaragdy za każdą partię — do 100 💎', ohMenuMe: 'Jesteś oficjalnym prowadzącym do {date}',
+      ohTitle: 'Oficjalni prowadzący', ohSub: 'Partie ze szmaragdami', ohNeedTg: 'Oficjalne gry są w wersji aplikacji w Telegramie.',
+      ohWhat: 'Oficjalny prowadzący to sprawdzony prowadzący Mafia Pro z licencją. Każda partia przy jego stole daje graczom szmaragdy — do 100 💎 za grę.',
+      ohHowTitle: 'Ile szmaragdów za partię',
+      ohHow: ['Dwie trzecie nagrody zależą od średniej rangi graczy przy stole, jedna trzecia — od twojej rangi.', 'Twoja ranga liczy się najwyżej o stopień wyżej niż średnia stołu: silny gracz nic nie zyska na „farmieniu” słabych stołów.', 'Prowadzący nie dostaje szmaragdów za partię.'],
+      ohKTitle: 'Wartość rangi', ohExTitle: 'Przykłady',
+      ohEx: { novice: 'Stół nowicjuszy', mixed: 'Stół znawców', strong: 'Legenda przy stole amatorów', underdog: 'Nowicjusz przy stole ekspertów', legends: 'Stół legend' },
+      ohMine: 'Przy stole twojego poziomu dostajesz {n} 💎',
+      ohTablesTitle: 'Stoły oficjalnych prowadzących', ohTablesNone: 'Teraz żaden oficjalny prowadzący nie zbiera stołu online.', ohListTitle: 'Oficjalni prowadzący · {n}', ohListNone: 'Na razie nikogo — bądź pierwszy.',
+      ohPlayers: 'przy stole {n}', ohHostStats: 'poprowadzone partie: {n} · oficjalne: {m}', ohLive: 'trwa gra',
+      ohBecome: 'Zostań oficjalnym prowadzącym', ohReq: 'Potrzeba ponad {n} poprowadzonych partii — masz {have}.', ohReqOk: 'Poprowadzone partie: {have} — warunek spełniony.', ohLicLine: 'Licencja — {price} 💎 na {days} dni, odnawialna.',
+      ohApply: 'Wypełnij zgłoszenie', ohStatePending: 'Zgłoszenie rozpatrywane od {date}. Odpowiedź przyśle bot.', ohWithdraw: 'Wycofaj zgłoszenie', ohStateRejected: 'Zgłoszenie odrzucone{note}. Możesz je poprawić i złożyć ponownie.',
+      ohStateApproved: 'Zgłoszenie zatwierdzone! Kup licencję — a partie przy twoim stole zaczną dawać graczom szmaragdy.', ohStateActive: 'Jesteś oficjalnym prowadzącym do {date}.', ohStateExpired: 'Licencja wygasła {date}. Przedłuż ją — a partie znów będą dawać szmaragdy.', ohStateRevoked: 'Administrator odebrał status oficjalnego prowadzącego.',
+      ohBuy: 'Kup licencję · {price} 💎', ohRenew: 'Przedłuż o {days} dni · {price} 💎', ohShort: 'Brakuje {n} 💎 — doładuj', ohBought: 'Licencja aktywna do {date}', ohMyGames: 'Poprowadzone oficjalne partie: {n}', ohSourceAdmin: 'mianowany przez administratora',
+      ohFormTitle: 'Zgłoszenie oficjalnego prowadzącego', ohFName: 'Jak się do ciebie zwracać', ohFCity: 'Miasto', ohFExp: 'Doświadczenie', ohExp: { lt1: 'do roku', '1to3': '1–3 lata', gt3: 'ponad 3 lata' },
+      ohFFormats: 'Gdzie prowadzisz', ohFmt: { online: 'Online', offline: 'Na żywo' }, ohFGames: 'Jakie gry', ohGames: { classic: 'Klasyka', role: 'Z rolami' }, ohFLangs: 'Języki',
+      ohFSchedule: 'Kiedy prowadzisz gry', ohFSchedulePh: 'np. pt i sob wieczorem, nd po południu', ohFAbout: 'O sobie', ohFAboutPh: 'Gdzie i jak prowadzisz, od ilu lat, twój klub lub kanał',
+      ohFRules: 'Akceptuję zasady oficjalnych gier: za oszustwo — ban i wyzerowanie konta', ohSend: 'Wyślij zgłoszenie', ohCancel: 'Anuluj', ohSent: 'Zgłoszenie wysłane — odpowiedź przyśle bot', ohFormErr: 'Wypełnij zaznaczone pola', ohAutoNote: 'Do zgłoszenia zostaną dołączone twój nick w Telegramie i liczba poprowadzonych partii.',
+      ohRulesTitle: 'Zasady oficjalnych gier',
+      ohRules: ['Szmaragdy dają tylko partie, które oficjalny prowadzący poprowadził w aplikacji przy swoim stole: gracze siadają przez kod lub zaproszenie, karty są rozdawane w aplikacji.', 'W partii co najmniej {minPlayers} graczy, w tym co najmniej {minAccounts} z kontem Telegram przy stole; od rozdania do wyniku co najmniej {minMinutes} minut.', 'Gracz dostaje szmaragdy najwyżej za {dayGames} partii na dobę, stół prowadzącego — najwyżej za {hostDay} partii na dobę.', 'Zakazane: gra z kilku kont, ustawianie wyniku, „puste” partie dla szmaragdów, podstawieni gracze.', 'Złamanie zasad to ban i wyzerowanie konta: szmaragdy, wszystko kupione za nie i ranking przepadają, status prowadzącego jest odbierany. Zakupy za Telegram Stars zostają.'],
+      ohTableOn: '💎 Oficjalna gra', ohTableEst: 'Ta partia da ci około {n} 💎', ohTableAvg: 'średnia ranga stołu — {r}', ohTableLeft: 'dziś jeszcze {n} z {max} partii ze szmaragdami', ohTableNoLeft: 'Dzisiejszy limit partii ze szmaragdami wyczerpany', ohTableHost: 'Partia przy twoim stole da graczom szmaragdy',
+      ohGot: '💎 +{n} szmaragdów za partię', ohEndTitle: 'Szmaragdy za partię', ohEndTotal: 'Razem: {n} 💎', ohEndNone: 'Ta partia była bez szmaragdów: {why}',
+      ohWhy: { few_players: 'mniej niż {minPlayers} graczy', few_accounts: 'mniej niż {minAccounts} graczy z Telegramem przy stole', too_short: 'mniej niż {minMinutes} minut od rozdania', no_deal: 'karty nie były rozdane w aplikacji', host_cap: 'stół ma już {hostDay} partii na dobę' }, ohCapped: 'limit na dziś',
+      ohBadge: 'Oficjalny prowadzący', ohLbTag: 'szmaragdy za grę', ohProfileBadge: 'Oficjalny prowadzący Mafia Pro',
+      ohAdmin: 'Panel administratora', ohApps: 'Zgłoszenia · {n}', ohAppsNone: 'Brak nowych zgłoszeń', ohApprove: 'Zatwierdź', ohReject: 'Odrzuć', ohNotePh: 'Komentarz dla prowadzącego (opcjonalnie)',
+      ohAppoint: 'Mianuj bez zgłoszenia', ohQ: '@nick lub id', ohDays: '{n} dni', ohAppointBtn: 'Mianuj', ohAll: 'Wszyscy prowadzący · {n}', ohRevoke: 'Odbierz', ohRevokeSure: 'Na pewno odebrać?',
+      ohPunish: 'Ukarz za oszustwo', ohReason: 'Powód', ohForever: 'na zawsze', ohPunishBtn: 'Ban i wyzerowanie', ohPunishSure: 'Na pewno? Tego nie da się cofnąć', ohUnban: 'Zdejmij bana', ohPenalties: 'Kary',
+      ohDone: 'Gotowe', ohNotFound: 'Nie znaleziono gracza — musi choć raz otworzyć bota', ohErr: 'Nie udało się — sprawdź połączenie i spróbuj ponownie', ohFew: 'Potrzeba ponad {n} poprowadzonych partii',
+      ohStatus: { active: 'do {date}', expired: 'licencja wygasła', approved: 'zatwierdzony, bez licencji', revoked: 'odebrany' }, ohPenLine: '{reason} · −{em} 💎 · przedmiotów: {items} · do {date}'
+    },
+    hy: {
+      ohMenu: 'Պաշտոնական վարողներ', ohMenuD: 'Զմրուխտներ յուրաքանչյուր խաղի համար՝ մինչև 100 💎', ohMenuMe: 'Դուք պաշտոնական վարող եք մինչև {date}',
+      ohTitle: 'Պաշտոնական վարողներ', ohSub: 'Խաղեր զմրուխտներով', ohNeedTg: 'Պաշտոնական խաղերը հավելվածի Telegram տարբերակում են։',
+      ohWhat: 'Պաշտոնական վարողը Mafia Pro-ի ստուգված վարող է՝ լիցենզիայով։ Նրա սեղանի յուրաքանչյուր խաղ խաղացողներին զմրուխտներ է բերում՝ մինչև 100 💎 մեկ խաղի համար։',
+      ohHowTitle: 'Քանի զմրուխտ մեկ խաղի համար',
+      ohHow: ['Պարգևի երկու երրորդը՝ ըստ սեղանի խաղացողների միջին կոչման, մեկ երրորդը՝ ըստ ձեր կոչման։', 'Ձեր կոչումը հաշվվում է սեղանի միջինից առավելագույնը մեկ աստիճան բարձր․ ուժեղ խաղացողին իմաստ չունի «ֆարմել» թույլ սեղանները։', 'Վարողը խաղի համար զմրուխտներ չի ստանում։'],
+      ohKTitle: 'Կոչման արժեքը', ohExTitle: 'Օրինակներ',
+      ohEx: { novice: 'Սկսնակների սեղան', mixed: 'Գիտակների սեղան', strong: 'Լեգենդը սիրողների սեղանի շուրջ', underdog: 'Սկսնակը փորձագետների սեղանի շուրջ', legends: 'Լեգենդների սեղան' },
+      ohMine: 'Ձեր մակարդակի սեղանի շուրջ՝ {n} 💎',
+      ohTablesTitle: 'Պաշտոնական վարողների սեղաններ', ohTablesNone: 'Այժմ պաշտոնական վարողներից ոչ ոք առցանց սեղան չի հավաքում։', ohListTitle: 'Պաշտոնական վարողներ · {n}', ohListNone: 'Դեռ ոչ ոք․ եղեք առաջինը։',
+      ohPlayers: 'սեղանի շուրջ՝ {n}', ohHostStats: 'վարած խաղեր՝ {n} · պաշտոնական՝ {m}', ohLive: 'խաղն ընթանում է',
+      ohBecome: 'Դառնալ պաշտոնական վարող', ohReq: 'Պետք է {n}-ից ավելի վարած խաղ․ ունեք {have}։', ohReqOk: 'Վարած խաղեր՝ {have}․ պայմանը կատարված է։', ohLicLine: 'Լիցենզիա՝ {price} 💎 {days} օրով, երկարաձգվում է։',
+      ohApply: 'Լրացնել հայտը', ohStatePending: 'Հայտը քննարկվում է {date}-ից։ Պատասխանը կուղարկի բոտը։', ohWithdraw: 'Հետ կանչել հայտը', ohStateRejected: 'Հայտը մերժվել է{note}։ Կարող եք ուղղել և կրկին դիմել։',
+      ohStateApproved: 'Հայտը հաստատված է։ Գնեք լիցենզիան՝ և ձեր սեղանի խաղերը խաղացողներին զմրուխտներ կբերեն։', ohStateActive: 'Դուք պաշտոնական վարող եք մինչև {date}։', ohStateExpired: 'Լիցենզիան ավարտվել է {date}։ Երկարաձգեք՝ և խաղերը կրկին զմրուխտներ կբերեն։', ohStateRevoked: 'Ադմինիստրատորը հանել է պաշտոնական վարողի կարգավիճակը։',
+      ohBuy: 'Գնել լիցենզիա · {price} 💎', ohRenew: 'Երկարաձգել {days} օրով · {price} 💎', ohShort: 'Պակասում է {n} 💎․ համալրել', ohBought: 'Լիցենզիան ակտիվ է մինչև {date}', ohMyGames: 'Վարած պաշտոնական խաղեր՝ {n}', ohSourceAdmin: 'նշանակված է ադմինիստրատորի կողմից',
+      ohFormTitle: 'Պաշտոնական վարողի հայտ', ohFName: 'Ինչպես դիմել ձեզ', ohFCity: 'Քաղաք', ohFExp: 'Վարելու փորձ', ohExp: { lt1: 'մինչև մեկ տարի', '1to3': '1–3 տարի', gt3: 'ավելի քան 3 տարի' },
+      ohFFormats: 'Որտեղ եք վարում', ohFmt: { online: 'Առցանց', offline: 'Կենդանի' }, ohFGames: 'Որ խաղերը', ohGames: { classic: 'Դասական', role: 'Դերային' }, ohFLangs: 'Լեզուներ',
+      ohFSchedule: 'Երբ եք խաղեր անցկացնում', ohFSchedulePh: 'օրինակ՝ ուրբ և շաբ երեկոյան, կիր ցերեկը', ohFAbout: 'Ձեր մասին', ohFAboutPh: 'Որտեղ և ինչպես եք վարում, քանի տարի, ձեր ակումբը կամ ալիքը',
+      ohFRules: 'Ընդունում եմ պաշտոնական խաղերի կանոնները․ խարդախության համար՝ արգելափակում և հաշվի զրոյացում', ohSend: 'Ուղարկել հայտը', ohCancel: 'Չեղարկել', ohSent: 'Հայտն ուղարկված է․ պատասխանը կուղարկի բոտը', ohFormErr: 'Լրացրեք նշված դաշտերը', ohAutoNote: 'Հայտին ավտոմատ կկցվեն ձեր Telegram անունը և վարած խաղերի թիվը։',
+      ohRulesTitle: 'Պաշտոնական խաղերի կանոններ',
+      ohRules: ['Զմրուխտներ են տալիս միայն այն խաղերը, որոնք պաշտոնական վարողն անցկացրել է հավելվածում իր սեղանի շուրջ․ խաղացողները նստում են կոդով կամ հրավերով, քարտերը բաժանվում են հավելվածով։', 'Խաղում՝ առնվազն {minPlayers} խաղացող, որոնցից առնվազն {minAccounts}-ը՝ Telegram հաշվով սեղանի շուրջ․ բաժանումից մինչև արդյունք՝ առնվազն {minMinutes} րոպե։', 'Խաղացողը զմրուխտներ է ստանում օրական առավելագույնը {dayGames} խաղի համար, վարողի սեղանը՝ օրական առավելագույնը {hostDay} խաղ։', 'Արգելվում է՝ խաղալ մի քանի հաշվից, պայմանավորվել արդյունքի մասին, անցկացնել «դատարկ» խաղեր զմրուխտների համար, նստեցնել կեղծ խաղացողների։', 'Խախտում՝ արգելափակում և հաշվի զրոյացում․ զմրուխտները, դրանցով գնված ամեն ինչ և վարկանիշը կորչում են, վարողի կարգավիճակը հանվում է։ Telegram Stars-ով գնումները մնում են։'],
+      ohTableOn: '💎 Պաշտոնական խաղ', ohTableEst: 'Այս խաղը ձեզ կբերի մոտ {n} 💎', ohTableAvg: 'սեղանի միջին կոչումը՝ {r}', ohTableLeft: 'այսօր դեռ {n}՝ {max}-ից զմրուխտներով խաղ', ohTableNoLeft: 'Այսօրվա զմրուխտներով խաղերի սահմանը սպառված է', ohTableHost: 'Ձեր սեղանի խաղը խաղացողներին զմրուխտներ կբերի',
+      ohGot: '💎 +{n} զմրուխտ խաղի համար', ohEndTitle: 'Զմրուխտներ խաղի համար', ohEndTotal: 'Ընդամենը՝ {n} 💎', ohEndNone: 'Այս խաղն անցավ առանց զմրուխտների՝ {why}',
+      ohWhy: { few_players: '{minPlayers}-ից քիչ խաղացող', few_accounts: 'սեղանի շուրջ Telegram-ով {minAccounts}-ից քիչ խաղացող', too_short: 'բաժանումից {minMinutes} րոպեից քիչ', no_deal: 'քարտերը բաժանվել են ոչ հավելվածով', host_cap: 'սեղանն արդեն ունի {hostDay} խաղ մեկ օրում' }, ohCapped: 'օրվա սահման',
+      ohBadge: 'Պաշտոնական վարող', ohLbTag: 'զմրուխտներ խաղի համար', ohProfileBadge: 'Mafia Pro-ի պաշտոնական վարող',
+      ohAdmin: 'Ադմինիստրատորի վահանակ', ohApps: 'Հայտեր · {n}', ohAppsNone: 'Նոր հայտեր չկան', ohApprove: 'Հաստատել', ohReject: 'Մերժել', ohNotePh: 'Մեկնաբանություն վարողի համար (ոչ պարտադիր)',
+      ohAppoint: 'Նշանակել առանց հայտի', ohQ: '@անուն կամ id', ohDays: '{n} օր', ohAppointBtn: 'Նշանակել', ohAll: 'Բոլոր վարողները · {n}', ohRevoke: 'Հանել', ohRevokeSure: 'Իսկապե՞ս հանել',
+      ohPunish: 'Պատժել խարդախության համար', ohReason: 'Պատճառ', ohForever: 'ընդմիշտ', ohPunishBtn: 'Արգելափակում և զրոյացում', ohPunishSure: 'Իսկապե՞ս։ Սա հնարավոր չէ չեղարկել', ohUnban: 'Հանել արգելափակումը', ohPenalties: 'Պատիժներ',
+      ohDone: 'Պատրաստ է', ohNotFound: 'Խաղացողը չի գտնվել․ նա պետք է գոնե մեկ անգամ բացած լինի բոտը', ohErr: 'Չստացվեց․ ստուգեք կապը և նորից փորձեք', ohFew: 'Պետք է {n}-ից ավելի վարած խաղ',
+      ohStatus: { active: 'մինչև {date}', expired: 'լիցենզիան ավարտվել է', approved: 'հաստատված, առանց լիցենզիայի', revoked: 'հանված' }, ohPenLine: '{reason} · −{em} 💎 · առարկաներ՝ {items} · մինչև {date}'
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -9018,7 +9206,8 @@ function render() {
     case 'tables': html = typeof tablesScreen === 'function' ? tablesScreen() : ''; break;
     case 'shop': html = shopScreen(); break;
     case 'guide': html = typeof guideScreen === 'function' ? guideScreen() : homeScreen(); break; // v59: the rules and the host's instruction
-    case 'tournament': html = typeof tournamentScreen === 'function' ? tournamentScreen() : homeScreen(); break; // v63: the weekly tournament
+    case 'tournament': html = typeof tournamentScreen === 'function' ? tournamentScreen() : homeScreen(); break;
+    case 'official': html = typeof officialScreen === 'function' ? officialScreen() : homeScreen(); break; // v77: official hosts // v63: the weekly tournament
   }
   // enter animations only when the screen / phase / sheet actually changes (not on every tap)
   const key = S.screen + '|' + (S.screen === 'game' && S.game ? (S.game.winner ? 'end' : S.game.phase) : '') + '|' + (S.screen === 'profile' ? S.ui.profileId : '');
@@ -10601,7 +10790,7 @@ async function cloudSync() {
       (CLOUD.bought || []).forEach(k => { const i = k.indexOf(':'); const kind = k.slice(0, i), id = k.slice(i + 1); const key = kind === 'role' ? 'roles' : kind === 'pack' ? 'packs' : 'scenarios'; if (!next[key].includes(id)) next[key].push(id); });
       ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
       S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
-    } S.cloud.admin = !!d.admin; S.cloud.favCard = d.favCard || null; { const me0 = S.meId && typeof profById === 'function' ? profById(S.meId) : null; if (me0) me0.favCard = d.favCard || null; } // v76 S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
+    } S.cloud.admin = !!d.admin; S.cloud.favCard = d.favCard || null; { const me0 = S.meId && typeof profById === 'function' ? profById(S.meId) : null; if (me0) me0.favCard = d.favCard || null; } S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null; // v76: the favourite card; v77: the comment no longer swallows the rest of this line
     if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}), serials: Object.assign({}, d.skins.serials || {}), sold: Object.assign({}, d.skins.sold || {}) }; // v56; v69: numbered copies
     startHeartbeat();
     if (added) toast(U().tgSynced);
@@ -10661,7 +10850,7 @@ function sendResult(g, w) {
     const role = ROLE[p.roleId]; const ps = role ? playSideOf(g, p) : 'city'; const side = ps === 'mafia' ? 'mafia' : ps === 'city' ? 'city' : 'neutral';
     return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
-  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
+  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; if (d.official) g.cloudOfficial = d.official; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
 }
 /* ---------- lobby: players join from Telegram and receive their card privately ---------- */
 function cardTextFor(p, lang) {
@@ -11415,7 +11604,7 @@ function tablePub(g) {
   if (g.winner) { const w = g.winner; pub.result = { side: w.side, title: w.title, text: w.text, family: w.family || null, extra: (g.extraWinners || []).map(id => P(g, id).seat), jester: g.jesterWon ? P(g, g.jesterWon).seat : null }; let rows = null; try { rows = resultRows(g); } catch (e) { rows = null; }
     let rv = null; try { rv = reviewGame(g); } catch (e) { rv = null; }
     const itemsOf = seat => { const p = g.players.find(x => x.seat === seat); const r = rv && p ? rv.byId[p.id] : null; return r && r.items ? r.items.slice(0, 20).map(it => ({ when: it.when, action: it.action, target: it.target, verdict: it.verdict, reason: it.reason || '', better: it.better || '', pts: it.pts || 0 })) : []; };
-    pub.roles = rows ? rows.map(r => ({ seat: r.seat, name: r.name, roleId: r.roleId, sk: r.sk || undefined, sn: r.sn != null ? r.sn : undefined, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, rg: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].games || 0 : null, rh: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].hosted || 0 : 0, up: r.up || 0, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
+    pub.roles = rows ? rows.map(r => ({ em: r.tgId && g.cloudOfficial && g.cloudOfficial.rewards ? g.cloudOfficial.rewards[r.tgId] || undefined : undefined, seat: r.seat, name: r.name, roleId: r.roleId, sk: r.sk || undefined, sn: r.sn != null ? r.sn : undefined, rn: ROLE[r.roleId] ? ROLE[r.roleId].name : '', family: r.family, won: r.won, alive: r.alive, pts: r.pts, useful: r.useful, total: r.total, place: r.place, side: r.side, bh: r.bh, streak: r.streak, tgId: r.tgId, rating: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? 1000 + (g.cloudRatings[r.tgId].points || 0) : null, rg: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].games || 0 : null, rh: r.tgId && g.cloudRatings && g.cloudRatings[r.tgId] ? g.cloudRatings[r.tgId].hosted || 0 : 0, up: r.up || 0, items: itemsOf(r.seat) })) : g.players.map(p => ({ seat: p.seat, name: p.name, roleId: p.roleId, rn: ROLE[p.roleId] ? ROLE[p.roleId].name : '', family: p.family || null, won: resultFor(g, p, w).won, alive: p.alive }));
     pub.aborted = !!g.aborted; return pub; }
   if (!g.dealt) return pub;
   const asks = g.online ? buildAsks(g) : {};
@@ -11752,7 +11941,7 @@ function lobbiesHTML() {
   const all = (LB.list || []).filter(l => !myId || l.host.tgId !== myId); const counts = { role: all.filter(l => !isClassicL(l)).length, classic: all.filter(isClassicL).length };
   const list = all.filter(l => (tab === 'classic') === isClassicL(l));
   const tabs = `<div class="segment n2" style="margin:8px 0"><button class="${tab === 'role' ? 'active' : ''}" data-a="lb-tab" data-id="role">${u.lbTabRole}${LB.list ? ` · ${counts.role}` : ''}</button><button class="${tab === 'classic' ? 'active' : ''}" data-a="lb-tab" data-id="classic">${u.lbTabClassic}${LB.list ? ` · ${counts.classic}` : ''}</button></div>`;
-  const rows = list.map(l => { const live = l.status === 'live'; const n = live && typeof l.alive === 'number' ? tt(u.lbAlive, { alive: l.alive, n: l.seats || l.players }) : (l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })); return `<div class="fr-row" style="padding:8px 10px;${live ? 'opacity:.75' : ''}"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.flag ? `<span title="${u.dcTableLang}">${l.flag}</span> ` : ''}${esc(l.host.name)} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${modeLine(l.mode, l.open)} · ${n}${l.discord ? ` · <span class="dc-tag">🎧 ${u.dcTag}</span>` : ''} · ${live ? `<span style="color:var(--gold-2)">${u.lbLive}</span>` : u.tbLobby}${l.via && u.lbVia[l.via] ? ` · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${u.lbVia[l.via]}</span>` : ''}${l.hostPlays ? ` · ${u.tbHostPlaysNote}` : ''}</div></div>${live ? (l.via === 'seated' ? `<button class="btn xs" data-a="lb-join" data-code="${esc(l.code)}">${u.lbOpenMine}</button>` : '') : `<button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button>`}</div>`; }).join('');
+  const rows = list.map(l => { const live = l.status === 'live'; const n = live && typeof l.alive === 'number' ? tt(u.lbAlive, { alive: l.alive, n: l.seats || l.players }) : (l.seats ? tt(u.lbSeats, { n: l.players, seats: l.seats }) : tt(u.tgJoined, { n: l.players })); return `<div class="fr-row" style="padding:8px 10px;${live ? 'opacity:.75' : ''}"><span style="width:0"></span>${friendAvatar(l.host)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.flag ? `<span title="${u.dcTableLang}">${l.flag}</span> ` : ''}${esc(l.host.name)}${l.official && typeof ohBadge === 'function' ? ' ' + ohBadge() : ''} <span style="color:var(--muted);font-weight:500">· ${esc(l.code)}</span></div><div class="sub" style="font-size:12px;color:var(--fg-2)">${modeLine(l.mode, l.open)} · ${n}${l.official && u.ohLbTag ? ` · <span class="oh-em">💎 ${u.ohLbTag}</span>` : ''}${l.discord ? ` · <span class="dc-tag">🎧 ${u.dcTag}</span>` : ''} · ${live ? `<span style="color:var(--gold-2)">${u.lbLive}</span>` : u.tbLobby}${l.via && u.lbVia[l.via] ? ` · <span class="${l.via === 'invite' ? 'fr-on' : ''}">${u.lbVia[l.via]}</span>` : ''}${l.hostPlays ? ` · ${u.tbHostPlaysNote}` : ''}</div></div>${live ? (l.via === 'seated' ? `<button class="btn xs" data-a="lb-join" data-code="${esc(l.code)}">${u.lbOpenMine}</button>` : '') : `<button class="btn xs ${l.via === 'seated' ? '' : 'primary'}" data-a="lb-join" data-code="${esc(l.code)}">${l.via === 'seated' ? u.lbOpenMine : u.lbSit}</button>`}</div>`; }).join('');
   return `<div class="panel" style="margin-bottom:14px"><div class="row"><div class="eyebrow grow">${u.lbTitle}${LB.list ? ` · ${all.length}` : ''}</div><button class="btn xs ghost" data-a="lb-refresh">${LB.busy ? '…' : u.tgRefresh}</button></div>${tabs}<div class="hint" style="margin:4px 0 8px">${u.lbHint}${web ? ' ' + u.lbWebHint : ''}</div>
     ${rows ? `<div class="stack-s">${rows}</div>` : `<div class="hint">${LB.list ? (all.length ? u.lbEmptyMode : u.lbEmpty) : u.frLoading}</div>`}
     <div class="row" style="margin-top:10px"><input class="input grow" id="lb-code" data-a="lb-code" placeholder="${u.lbCodePh}" value="${esc(LB.code)}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8"><button class="btn sm" data-a="lb-join" data-code="" style="flex:0 0 auto">${u.lbJoinCode}</button></div></div>`;
@@ -14183,6 +14372,230 @@ function geoSend() {
   const origPf = ACT.pf;
   ACT.pf = function (el) { origPf.call(this, el); if (S.ui.pf && S.ui.pf.geo && (el.dataset.k === 'city' || el.dataset.k === 'country')) { S.ui.pf.geo = ''; const h = document.querySelector('.geo-hint'); if (h) h.remove(); } }; // edited by hand — the hint is no longer true
 })();
+/* ============================================================
+   v77 OFFICIAL HOSTS — verified hosts with a licence; every game at their tables brings the players emeralds (up to 100 a game).
+   The screen «Official hosts»: how the reward is counted, the officials' open tables, my way to the status (the application,
+   the licence for 5 000 💎 / 30 days), the rules and the penalties, the admin's panel (applications, appoint, remove, punish).
+   The ✔ mark: the table finder, the round table, the player's statistics. At an official table: «about N 💎 for you»; after the game: +N 💎.
+   Server: backend/src/official.js (the arithmetic between official:begin … official:end is the same there; backend/test/run.js compares).
+   Texts — src/02zf-i18n-official.js.
+   ============================================================ */
+/* official:begin — the same constants and arithmetic as in backend/src/official.js */
+const OFFICIAL_RANK_K = [20, 30, 40, 50, 60, 70, 85, 100]; // emeralds a game «worth» at each rank: Rookie … Legend
+const OFFICIAL_LICENSE = { price: 5000, days: 30, minHosted: 50 }; // the licence: emeralds, days; an applicant needs MORE than minHosted hosted games
+const OFFICIAL_LIMITS = { minPlayers: 7, minAccounts: 5, minMinutes: 15, dayGames: 5, hostDay: 12, max: 100 };
+/* the «worth» at a fractional rank (the table's average) */
+function officialK(x) {
+  x = Math.max(0, Math.min(OFFICIAL_RANK_K.length - 1, Number(x) || 0)); const i = Math.floor(x), f = x - i;
+  return i >= OFFICIAL_RANK_K.length - 1 ? OFFICIAL_RANK_K[i] : OFFICIAL_RANK_K[i] + (OFFICIAL_RANK_K[i + 1] - OFFICIAL_RANK_K[i]) * f;
+}
+/* the emeralds of one player for one game: 2/3 the table (the average rank of the seated accounts), 1/3 his own rank — which counts
+   at most one step above the table's average (a strong player at a weak table cannot farm it) */
+function officialReward(avg, own) {
+  const table = officialK(avg); const me = Math.min(officialK(own), officialK(Math.min(OFFICIAL_RANK_K.length - 1, (Number(avg) || 0) + 1)));
+  return Math.max(1, Math.min(OFFICIAL_LIMITS.max, Math.round((2 * table + me) / 3)));
+}
+/* official:end */
+const OH = { d: null, at: 0, busy: false, formOpen: false, form: null, err: [], adm: { aq: '', adays: 30, pq: '', preason: '', pdays: 0, notes: {} }, ask: '' };
+const ohIn = () => typeof TG !== 'undefined' && !!TG.app && !!apiBase();
+const ohLim = () => (OH.d && OH.d.limits) || OFFICIAL_LIMITS;
+const ohLic = () => (OH.d && OH.d.license) || OFFICIAL_LICENSE;
+const ohDate = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
+const ohEm = n => (typeof fmtEm === 'function' ? fmtEm(n) : String(n));
+const ohMe = () => (OH.d && OH.d.me) || (S.cloud && S.cloud.official) || null;
+const ohBadge = (big) => `<span class="oh-badge${big ? ' big' : ''}" title="${esc(U().ohBadge)}">✔</span>`;
+function ohFetch(force) {
+  if (!ohIn() || OH.busy) return; if (!force && OH.at && Date.now() - OH.at < 20000) return;
+  OH.busy = true; api('/api/official', {}).then(d => { OH.busy = false; OH.at = Date.now(); if (d && d.ok) { OH.d = d; if (S.cloud) S.cloud.official = d.me; if (S.screen === 'official') keepFocus(render); } }).catch(() => { OH.busy = false; });
+}
+try { setInterval(() => { try { if (S.screen === 'official') ohFetch(); } catch (e) {} }, 30000); } catch (e) {}
+
+/* ---------- how the reward is counted ---------- */
+function ohHowHTML() {
+  const u = U(); const K = (OH.d && OH.d.k) || OFFICIAL_RANK_K;
+  const kRows = K.map((k, i) => `<div class="oh-k"><span>${typeof rankSVG === 'function' ? rankSVG(i, 18) : ''} ${esc(rankName(i))}</span><b class="num">${k} 💎</b></div>`).join('');
+  const ex = [['novice', 0, 0], ['mixed', 3, 3], ['strong', 1, 7], ['underdog', 5, 0], ['legends', 7, 7]].map(([k, a, o]) => `<div class="oh-k"><span>${esc(u.ohEx[k])}</span><b class="num">${officialReward(a, o)} 💎</b></div>`).join('');
+  const me = typeof myRankObj === 'function' ? myRankObj() : null; const mine = me ? officialReward(rankIdx(me.points, me.games), rankIdx(me.points, me.games)) : 0;
+  return `<div class="eyebrow" style="margin-top:14px">${u.ohHowTitle}</div>${listHTML(u.ohHow)}
+    ${mine ? `<div class="oh-mine">${tt(u.ohMine, { n: mine })}</div>` : ''}
+    <div class="eyebrow" style="margin-top:10px">${u.ohKTitle}</div><div class="oh-kgrid">${kRows}</div>
+    <div class="eyebrow" style="margin-top:10px">${u.ohExTitle}</div><div class="oh-kgrid one">${ex}</div>`;
+}
+function ohRulesHTML() { const u = U(); const lim = ohLim(); return `<div class="eyebrow" style="margin-top:14px">${u.ohRulesTitle}</div>${listHTML(u.ohRules.map(r => tt(r, lim)))}`; }
+
+/* ---------- the officials and their open tables ---------- */
+function ohTablesHTML() {
+  const u = U(); const list = (OH.d && OH.d.list) || []; const myId = myTgId();
+  const open = list.filter(x => x.table && x.tgId !== myId);
+  const rows = open.map(x => { const live = x.table.status === 'live'; return `<div class="fr-row oh-row">${friendAvatar(x)}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)} ${ohBadge()}</div><div class="hint" style="margin:0">${tt(u.ohPlayers, { n: x.table.players })} · ${live ? u.ohLive : esc(x.table.code)}</div></div>${live ? '' : `<button class="btn xs primary" data-a="lb-join" data-code="${esc(x.table.code)}">${u.lbSit}</button>`}</div>`; }).join('');
+  const all = list.map(x => `<div class="fr-row oh-row" role="button" data-a="fr-open" data-id="${x.tgId}">${friendAvatar(x)}<div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${typeof rankIco === 'function' ? rankIco({ points: x.points, games: x.games, hosted: x.hosted, tgId: x.tgId }) : ''}${esc(x.name)} ${ohBadge()}</div><div class="hint" style="margin:0">${tt(u.ohHostStats, { n: x.hosted, m: x.official.games })}${x.city ? ' · ' + esc(x.city) : ''}</div></div>${x.online ? '<span class="fr-on">●</span>' : ''}</div>`).join('');
+  return `<div class="eyebrow" style="margin-top:14px">${u.ohTablesTitle}</div>${rows ? `<div class="stack-s">${rows}</div>` : `<p class="hint">${OH.d ? u.ohTablesNone : u.tgTopLoading}</p>`}
+    <div class="eyebrow" style="margin-top:14px">${tt(u.ohListTitle, { n: list.length })}</div>${all ? `<div class="stack-s">${all}</div>` : `<p class="hint">${OH.d ? u.ohListNone : u.tgTopLoading}</p>`}`;
+}
+
+/* ---------- my way to the status: requirements, the application, the licence ---------- */
+function ohFormDefaults() {
+  const me = S.meId && typeof profById === 'function' ? profById(S.meId) : null;
+  return { name: (S.cloud && S.cloud.user && S.cloud.user.name) || '', city: (me && me.city) || '', exp: '', formats: [], games: [], langs: [L.code], schedule: '', about: '', rules: false };
+}
+function ohFormHTML() {
+  const u = U(); const f = OH.form || (OH.form = ohFormDefaults()); const bad = k => OH.err.includes(k) ? ' oh-bad' : '';
+  const chips = (key, opts, labels, multi) => `<div class="filters wrap${bad(key)}">${opts.map(v => { const on = multi ? f[key].includes(v) : f[key] === v; return `<button class="chip ${on ? 'active' : ''}" data-a="${multi ? 'oh-chip' : 'oh-one'}" data-k="${key}" data-v="${v}">${esc(labels[v] || v)}</button>`; }).join('')}</div>`;
+  const langNames = Object.fromEntries((typeof LANGS !== 'undefined' ? LANGS : [['ru', 'RU'], ['uk', 'UK'], ['en', 'EN'], ['pl', 'PL'], ['hy', 'HY']]).map(([c, n]) => [c, n]));
+  return `<div class="panel oh-form"><div class="eyebrow gold">${u.ohFormTitle}</div>
+    <label class="oh-l">${u.ohFName}</label><input class="input${bad('name')}" id="oh-name" data-a="oh-in" data-k="name" value="${esc(f.name)}" maxlength="64" autocomplete="off">
+    <label class="oh-l">${u.ohFCity}</label><input class="input" id="oh-city" data-a="oh-in" data-k="city" value="${esc(f.city)}" maxlength="48" autocomplete="off">
+    <label class="oh-l">${u.ohFExp}</label>${chips('exp', ['lt1', '1to3', 'gt3'], u.ohExp, false)}
+    <label class="oh-l">${u.ohFFormats}</label>${chips('formats', ['online', 'offline'], u.ohFmt, true)}
+    <label class="oh-l">${u.ohFGames}</label>${chips('games', ['classic', 'role'], u.ohGames, true)}
+    <label class="oh-l">${u.ohFLangs}</label>${chips('langs', ['ru', 'uk', 'en', 'pl', 'hy'], langNames, true)}
+    <label class="oh-l">${u.ohFSchedule}</label><input class="input${bad('schedule')}" id="oh-schedule" data-a="oh-in" data-k="schedule" value="${esc(f.schedule)}" maxlength="160" placeholder="${esc(u.ohFSchedulePh)}" autocomplete="off">
+    <label class="oh-l">${u.ohFAbout}</label><textarea class="input${bad('about')}" id="oh-about" data-a="oh-in" data-k="about" maxlength="600" rows="4" placeholder="${esc(u.ohFAboutPh)}">${esc(f.about)}</textarea>
+    <button class="oh-check${f.rules ? ' on' : ''}${bad('rules')}" data-a="oh-rules"><span class="box">${f.rules ? '✓' : ''}</span><span>${u.ohFRules}</span></button>
+    <p class="hint" style="margin:8px 0 0">${u.ohAutoNote}</p>
+    ${OH.err.length ? `<p class="hint" style="margin:6px 0 0;color:var(--crimson-2)">${u.ohFormErr}</p>` : ''}
+    <div class="btn-row" style="margin-top:10px"><button class="btn ghost" data-a="oh-form-close">${u.ohCancel}</button><button class="btn primary" data-a="oh-send">${u.ohSend}</button></div></div>`;
+}
+function ohStatusHTML() {
+  const u = U(); const me = ohMe(); const lic = ohLic(); if (!me) return '';
+  const head = `<div class="eyebrow gold">${u.ohBecome}</div>`; const licLine = `<div class="hint" style="margin:4px 0 0">${tt(u.ohLicLine, { price: ohEm(lic.price), days: lic.days })}</div>`;
+  const bal = typeof emBalance === 'function' ? emBalance() : 0; const short = Math.max(0, lic.price - bal);
+  const buyBtn = label => short > 0 ? `<button class="btn primary" style="margin-top:10px" data-a="em-topup">${tt(u.ohShort, { n: ohEm(short) })}</button>` : `<button class="btn primary" style="margin-top:10px" data-a="oh-buy">${label}</button>`;
+  let body = '';
+  if (me.state === 'active') body = `<div style="font-weight:800;margin-top:4px">${ohBadge(true)} ${tt(u.ohStateActive, { date: ohDate(me.until) })}</div><div class="hint" style="margin:4px 0 0">${tt(u.ohMyGames, { n: me.games })}${me.source === 'admin' ? ' · ' + u.ohSourceAdmin : ''}</div>${buyBtn(tt(u.ohRenew, { days: lic.days, price: ohEm(lic.price) }))}<div class="hint" style="margin:6px 0 0">${u.ohTableHost}</div>`;
+  else if (me.state === 'approved') body = `<div style="font-weight:700;margin-top:4px">${u.ohStateApproved}</div>${licLine}${buyBtn(tt(u.ohBuy, { price: ohEm(lic.price) }))}`;
+  else if (me.state === 'expired') body = `<div style="font-weight:700;margin-top:4px">${tt(u.ohStateExpired, { date: ohDate(me.until) })}</div>${buyBtn(tt(u.ohRenew, { days: lic.days, price: ohEm(lic.price) }))}`;
+  else if (me.state === 'revoked') body = `<div style="font-weight:700;margin-top:4px">${u.ohStateRevoked}</div>`;
+  else if (me.state === 'pending') body = `<div style="font-weight:700;margin-top:4px">${tt(u.ohStatePending, { date: ohDate(me.app ? me.app.at : Date.now()) })}</div><button class="btn ghost sm" style="margin-top:8px" data-a="oh-withdraw">${u.ohWithdraw}</button>`;
+  else {
+    const req = me.eligible ? tt(u.ohReqOk, { have: me.hosted }) : tt(u.ohReq, { n: lic.minHosted, have: me.hosted }); const pct = Math.min(100, 100 * me.hosted / (lic.minHosted + 1));
+    body = `${me.state === 'rejected' ? `<div style="font-weight:700;margin-top:4px">${tt(u.ohStateRejected, { note: me.app && me.app.note ? ': ' + esc(me.app.note) : '' })}</div>` : ''}<div class="hint" style="margin:6px 0 0">${req}</div>${me.eligible ? '' : `<div class="rk-bar"><i style="width:${pct.toFixed(0)}%"></i></div>`}${licLine}
+      ${me.eligible ? (OH.formOpen ? '' : `<button class="btn primary" style="margin-top:10px" data-a="oh-form-open">${u.ohApply}</button>`) : ''}`;
+  }
+  return `<div class="panel oh-me">${head}${body}</div>${OH.formOpen && me.eligible && ['none', 'rejected'].includes(me.state) ? ohFormHTML() : ''}`;
+}
+
+/* ---------- the admin's panel ---------- */
+function ohAdminHTML() {
+  const u = U(); const a = OH.d && OH.d.admin; if (!a) return ''; const m = OH.adm;
+  const fl = (k, v) => (u[k] && u[k][v]) || v;
+  const apps = a.apps.map(x => { const f = x.form || {}; return `<div class="panel" style="padding:10px 12px"><div style="font-weight:800">${esc(f.name || x.name)}${x.username ? ` <span class="hint" style="display:inline">@${esc(x.username)}</span>` : ''}</div>
+    <div class="hint" style="margin:2px 0 0">${tt(u.ohHostStats, { n: x.hosted, m: 0 }).split(' · ')[0]} · ${esc(f.city || '—')} · ${esc(fl('ohExp', f.exp))}</div>
+    <div class="hint" style="margin:2px 0 0">${(f.formats || []).map(v => esc(fl('ohFmt', v))).join(', ')} · ${(f.games || []).map(v => esc(fl('ohGames', v))).join(', ')} · ${(f.langs || []).map(x2 => x2.toUpperCase()).join(', ')}</div>
+    <div class="hint" style="margin:2px 0 0">${esc(f.schedule || '')}</div><p class="sk-lore" style="margin:6px 0 0">${esc(f.about || '')}</p>
+    <input class="input" style="margin-top:6px" id="oh-note-${x.id}" data-a="oh-in" data-k="note:${x.id}" value="${esc(m.notes[x.id] || '')}" maxlength="200" placeholder="${esc(u.ohNotePh)}">
+    <div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="oh-decide" data-id="${x.id}" data-v="0">${u.ohReject}</button><button class="btn primary sm" data-a="oh-decide" data-id="${x.id}" data-v="1">${u.ohApprove}</button></div></div>`; }).join('');
+  const dayChips = (act, cur, list) => `<div class="filters" style="margin-top:6px">${list.map(n => `<button class="chip ${cur === n ? 'active' : ''}" data-a="${act}" data-v="${n}">${n ? tt(u.ohDays, { n }) : u.ohForever}</button>`).join('')}</div>`;
+  const st = x => x.official.active ? tt(u.ohStatus.active, { date: ohDate(x.official.until) }) : x.official.status === 'revoked' ? u.ohStatus.revoked : x.official.until ? u.ohStatus.expired : u.ohStatus.approved;
+  const all = a.all.map(x => `<div class="fr-row oh-row"><div class="grow" style="min-width:0"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}${x.username ? ` <span class="hint" style="display:inline">@${esc(x.username)}</span>` : ''}</div><div class="hint" style="margin:0">${st(x)} · ${tt(u.ohMyGames, { n: x.official.games })}</div></div>${x.official.status === 'ok' ? `<button class="btn xs ${OH.ask === 'rv' + x.tgId ? 'primary' : 'ghost'}" data-a="oh-revoke" data-id="${x.tgId}">${OH.ask === 'rv' + x.tgId ? u.ohRevokeSure : u.ohRevoke}</button>` : ''}</div>`).join('');
+  const pens = (a.penalties || []).map(x => `<div class="fr-row oh-row"><div class="grow" style="min-width:0"><div style="font-weight:700">${esc(x.name)}${x.username ? ' @' + esc(x.username) : ''}</div><div class="hint" style="margin:0">${tt(u.ohPenLine, { reason: esc(x.reason || ''), em: ohEm(x.emeralds), items: x.items, date: ohDate(x.until) })}</div></div></div>`).join('');
+  return `<div class="panel trn-admin"><div class="eyebrow gold">${u.ohAdmin}</div>
+    <div class="eyebrow" style="margin-top:10px">${tt(u.ohApps, { n: a.apps.length })}</div>${apps ? `<div class="stack-s">${apps}</div>` : `<p class="hint">${u.ohAppsNone}</p>`}
+    <div class="eyebrow" style="margin-top:14px">${u.ohAppoint}</div><input class="input" id="oh-aq" data-a="oh-in" data-k="aq" value="${esc(m.aq)}" placeholder="${esc(u.ohQ)}" autocomplete="off" autocapitalize="off">${dayChips('oh-adays', m.adays, [7, 30, 90, 365])}
+    <button class="btn primary sm" style="margin-top:8px" data-a="oh-appoint">${u.ohAppointBtn}</button>
+    <div class="eyebrow" style="margin-top:14px">${tt(u.ohAll, { n: a.all.length })}</div>${all ? `<div class="stack-s">${all}</div>` : `<p class="hint">${u.ohListNone}</p>`}
+    <div class="eyebrow" style="margin-top:14px;color:var(--crimson-2)">${u.ohPunish}</div><input class="input" id="oh-pq" data-a="oh-in" data-k="pq" value="${esc(m.pq)}" placeholder="${esc(u.ohQ)}" autocomplete="off" autocapitalize="off">
+    <input class="input" style="margin-top:6px" id="oh-preason" data-a="oh-in" data-k="preason" value="${esc(m.preason)}" maxlength="200" placeholder="${esc(u.ohReason)}" autocomplete="off">${dayChips('oh-pdays', m.pdays, [30, 90, 365, 0])}
+    <div class="btn-row" style="margin-top:8px"><button class="btn ghost sm" data-a="oh-unban">${u.ohUnban}</button><button class="btn sm ${OH.ask === 'punish' ? 'primary' : ''}" style="${OH.ask === 'punish' ? 'background:var(--crimson-2);color:#fff' : 'color:var(--crimson-2)'}" data-a="oh-punish">${OH.ask === 'punish' ? u.ohPunishSure : u.ohPunishBtn}</button></div>
+    ${pens ? `<div class="eyebrow" style="margin-top:14px">${u.ohPenalties}</div><div class="stack-s">${pens}</div>` : ''}</div>`;
+}
+function officialScreen() {
+  const u = U();
+  const hero = `<div class="panel oh-hero"><div class="oh-big">${ohBadge(true)} ${esc(u.ohMenuD.split('—').pop().trim())}</div><p class="hint" style="margin:6px 0 0">${u.ohWhat}</p></div>`;
+  if (!ohIn()) return `${topbar(u.ohTitle, u.ohSub)}<div class="stack">${hero}<p class="hint">${u.ohNeedTg}</p>${ohHowHTML()}${ohRulesHTML()}</div>`;
+  ohFetch();
+  return `${topbar(u.ohTitle, u.ohSub)}<div class="stack">${hero}${ohStatusHTML()}${ohTablesHTML()}${ohHowHTML()}${ohRulesHTML()}${S.cloud && S.cloud.admin ? ohAdminHTML() : ''}</div>`;
+}
+
+/* ---------- the mark and the reward elsewhere: the home menu, the round table, the results, the player's statistics ---------- */
+(function () {
+  const origHome = homeScreen;
+  homeScreen = function () {
+    const html = origHome.apply(this, arguments); const u = U(); const me = S.cloud && S.cloud.official;
+    const sub = me && me.state === 'active' ? tt(u.ohMenuMe, { date: ohDate(me.until) }) : u.ohMenuD;
+    const item = `<button class="menu-item" data-a="go" data-to="official"><div class="ico" style="color:#8ff0b6">✔</div><div><div class="t">${u.ohMenu}</div><div class="d">${sub}</div></div><span class="chev">${I.chev}</span></button>`;
+    const k = html.indexOf('<button class="menu-item" data-a="go" data-to="mini">'); return k < 0 ? html : html.slice(0, k) + item + html.slice(k);
+  };
+  const origStart = applyStartParam;
+  applyStartParam = function (sp) { if (sp === 'official') { S.screen = 'official'; return; } return origStart.apply(this, arguments); };
+  if (typeof cloudSync === 'function') {
+    const origSync = cloudSync;
+    cloudSync = async function () { await origSync.apply(this, arguments); const d = CLOUD.me; if (d && d.ok && d.official) { S.cloud = S.cloud || {}; S.cloud.official = d.official; } };
+  }
+  /* the round table: the host's ✔ and what this game brings me */
+  if (typeof tableScreen === 'function') {
+    const origTable = tableScreen;
+    tableScreen = function () {
+      let html = origTable.apply(this, arguments); const d = TB.data; if (!d || !d.official || !d.official.on) return html; const u = U();
+      html = html.replace(/<div class="rt-host">/g, `<div class="rt-host">${ohBadge()} `);
+      const pub = d.pub || {}; const myId = myTgId(); const lim = d.official.limits || OFFICIAL_LIMITS; let panel = '';
+      if (pub.phase === 'end') { const mine = (pub.roles || []).find(r => r.tgId === myId); if (mine && mine.em) panel = `<div class="panel oh-got">${tt(u.ohGot, { n: mine.em })}</div>`; }
+      else if (d.isHost) panel = `<div class="panel oh-table"><b>${u.ohTableOn}</b><div class="hint" style="margin:2px 0 0">${u.ohTableHost}</div></div>`;
+      else if (d.official.est) panel = `<div class="panel oh-table"><b>${u.ohTableOn}</b><div style="font-weight:800;margin-top:2px">${d.official.left > 0 ? tt(u.ohTableEst, { n: d.official.est }) : u.ohTableNoLeft}</div><div class="hint" style="margin:2px 0 0">${tt(u.ohTableAvg, { r: esc(rankName(Math.round(d.official.avg || 0))) })}${d.official.left > 0 ? ' · ' + tt(u.ohTableLeft, { n: d.official.left, max: lim.dayGames }) : ''}</div></div>`;
+      if (!panel) return html; const k = html.indexOf('<div class="stack">'); return k < 0 ? html : html.slice(0, k + 19) + panel + html.slice(k + 19);
+    };
+  }
+  /* the host's results: who got how many emeralds (or why none) */
+  if (typeof endScreen === 'function') {
+    const origEnd = endScreen;
+    endScreen = function () {
+      const html = origEnd.apply(this, arguments); const g = S.game; const o = g && g.cloudOfficial; if (!o || !o.official) return html; const u = U(); const lim = ohLim();
+      const ids = Object.keys(o.rewards || {}); const seatOf = id => { const p = g.players.find(x => String(typeof playerTg === 'function' ? playerTg(g, x) : '') === String(id)); return p ? `№${p.seat} ${esc(p.name)}` : '…'; };
+      const body = ids.length ? `<div class="stack-s" style="margin-top:6px">${ids.map(id => `<div class="row"><div class="grow">${seatOf(id)}</div><b class="num" style="color:#8ff0b6">+${o.rewards[id]} 💎</b></div>`).join('')}${(o.capped || []).map(id => `<div class="row"><div class="grow">${seatOf(id)}</div><span class="hint" style="margin:0">${u.ohCapped}</span></div>`).join('')}</div><div class="hint" style="margin:6px 0 0">${tt(u.ohEndTotal, { n: o.total || 0 })}</div>`
+        : `<div class="hint" style="margin:4px 0 0">${tt(u.ohEndNone, { why: tt((u.ohWhy || {})[o.reason] || o.reason || '', lim) })}</div>`;
+      const panel = `<div class="panel oh-got"><div class="eyebrow gold">${u.ohEndTitle}</div>${body}</div>`;
+      const i = html.indexOf('<div class="panel"><div class="eyebrow gold">'); return i < 0 ? html + panel : html.slice(0, i) + panel + html.slice(i);
+    };
+  }
+  /* the player's statistics: the official host's mark */
+  if (typeof cloudStatsHTML === 'function') {
+    const origStats = cloudStatsHTML;
+    cloudStatsHTML = function (d) { const html = origStats.apply(this, arguments); return d && d.official ? `<div class="panel oh-prof">${ohBadge(true)} <b>${U().ohProfileBadge}</b></div>` + html : html; };
+  }
+})();
+/* the form's text fields: kept as typed, no redraw (the keyboard stays) */
+function ohInput(el) {
+  const k = el.dataset.k || ''; const v = String(el.value || '');
+  if (k.startsWith('note:')) OH.adm.notes[k.slice(5)] = v;
+  else if (['aq', 'pq', 'preason'].includes(k)) OH.adm[k] = v;
+  else { OH.form = OH.form || ohFormDefaults(); if (['name', 'city', 'schedule', 'about'].includes(k)) OH.form[k] = v; }
+}
+try { document.addEventListener('input', e => { const el = e.target && e.target.closest ? e.target.closest('[data-a="oh-in"]') : null; if (el) ohInput(el); }); } catch (e) {}
+const ohAsk = (key, fn) => { if (OH.ask !== key) { OH.ask = key; render(); setTimeout(() => { if (OH.ask === key) { OH.ask = ''; render(); } }, 4000); return; } OH.ask = ''; fn(); };
+async function ohAdmin(body, okMsg) {
+  const u = U(); const d = await api('/api/official/admin', body);
+  if (d && d.ok) { if (OH.d && d.admin) OH.d.admin = d.admin; OH.at = 0; ohFetch(true); toast(okMsg || u.ohDone); tgHaptic('success'); render(); return d; }
+  toast(d && d.error === 'not_found' ? u.ohNotFound : u.ohErr); return null;
+}
+Object.assign(ACT, {
+  'oh-form-open'() { OH.formOpen = true; OH.err = []; OH.form = OH.form || ohFormDefaults(); render(); },
+  'oh-form-close'() { OH.formOpen = false; OH.err = []; render(); },
+  'oh-chip'(el) { const f = OH.form = OH.form || ohFormDefaults(); const k = el.dataset.k, v = el.dataset.v; if (!Array.isArray(f[k])) return; f[k] = f[k].includes(v) ? f[k].filter(x => x !== v) : f[k].concat(v); OH.err = OH.err.filter(x => x !== k); render(); },
+  'oh-one'(el) { const f = OH.form = OH.form || ohFormDefaults(); f[el.dataset.k] = el.dataset.v; OH.err = OH.err.filter(x => x !== el.dataset.k); render(); },
+  'oh-rules'() { const f = OH.form = OH.form || ohFormDefaults(); f.rules = !f.rules; OH.err = OH.err.filter(x => x !== 'rules'); render(); },
+  async 'oh-send'() {
+    const u = U(); const d = await api('/api/official/apply', { form: OH.form || ohFormDefaults() });
+    if (d && d.ok) { OH.formOpen = false; OH.err = []; if (OH.d) OH.d.me = d.me; if (S.cloud) S.cloud.official = d.me; toast(u.ohSent); tgHaptic('success'); render(); return; }
+    if (d && d.error === 'bad_form') { OH.err = d.fields || []; toast(u.ohFormErr); render(); return; }
+    if (d && d.error === 'few_games') { toast(tt(u.ohFew, { n: ohLic().minHosted })); return; }
+    if (d && d.me && OH.d) { OH.d.me = d.me; OH.formOpen = false; render(); return; }
+    toast(u.ohErr);
+  },
+  async 'oh-withdraw'() { const d = await api('/api/official/apply', { withdraw: true }); if (d && d.ok) { if (OH.d) OH.d.me = d.me; if (S.cloud) S.cloud.official = d.me; render(); } else toast(U().ohErr); },
+  async 'oh-buy'() {
+    const u = U(); const d = await api('/api/official/license', {});
+    if (d && d.ok) { if (OH.d) OH.d.me = d.me; if (S.cloud) S.cloud.official = d.me; if (S.em && d.balance != null) S.em.balance = d.balance; toast(tt(u.ohBought, { date: ohDate(d.until) })); tgHaptic('success'); save(); render(); return; }
+    if (d && d.error === 'not_enough') { if (S.em && d.balance != null) S.em.balance = d.balance; render(); toast(tt(u.ohShort, { n: ohEm(d.short || 0) })); return; }
+    toast(u.ohErr);
+  },
+  async 'oh-decide'(el) { const id = el.dataset.id; await ohAdmin({ action: el.dataset.v === '1' ? 'approve' : 'reject', id: Number(id), note: OH.adm.notes[id] || '' }); },
+  'oh-adays'(el) { OH.adm.adays = Number(el.dataset.v) || 30; render(); },
+  'oh-pdays'(el) { OH.adm.pdays = Number(el.dataset.v) || 0; render(); },
+  async 'oh-appoint'() { const q = OH.adm.aq.trim(); if (!q) return; if (await ohAdmin({ action: 'appoint', q, days: OH.adm.adays })) { OH.adm.aq = ''; render(); } },
+  'oh-revoke'(el) { const id = el.dataset.id; ohAsk('rv' + id, () => ohAdmin({ action: 'revoke', tgId: Number(id) })); },
+  'oh-punish'() { const q = OH.adm.pq.trim(), reason = OH.adm.preason.trim(); if (!q || !reason) { toast(U().ohFormErr); return; } ohAsk('punish', async () => { if (await ohAdmin({ action: 'punish', q, reason, days: OH.adm.pdays })) { OH.adm.pq = ''; OH.adm.preason = ''; render(); } }); },
+  async 'oh-unban'() { const q = OH.adm.pq.trim(); if (!q) return; await ohAdmin({ action: 'unban', q }); }
+});
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

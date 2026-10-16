@@ -101,7 +101,7 @@ async function cloudSync() {
       (CLOUD.bought || []).forEach(k => { const i = k.indexOf(':'); const kind = k.slice(0, i), id = k.slice(i + 1); const key = kind === 'role' ? 'roles' : kind === 'pack' ? 'packs' : 'scenarios'; if (!next[key].includes(id)) next[key].push(id); });
       ['roles', 'scenarios', 'packs'].forEach(k => next[k].forEach(id => { if (!(before[k] || []).includes(id)) added++; }));
       S.owned = Object.assign({}, before, next, { allUntil: Number(o.allUntil) || 0 });
-    } S.cloud.admin = !!d.admin; S.cloud.favCard = d.favCard || null; { const me0 = S.meId && typeof profById === 'function' ? profById(S.meId) : null; if (me0) me0.favCard = d.favCard || null; } // v76 S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null;
+    } S.cloud.admin = !!d.admin; S.cloud.favCard = d.favCard || null; { const me0 = S.meId && typeof profById === 'function' ? profById(S.meId) : null; if (me0) me0.favCard = d.favCard || null; } S.cloud.credits = d.credits || { role: 0, scenario: 0 }; S.cloud.ref = d.invite && d.invite.ref; S.cloud.club = d.club || null; S.cloud.discord = !!d.discord; S.cloud.channel = d.channel || ''; S.cloud.peak = d.peak || null; S.cloud.season = d.season || null; // v76: the favourite card; v77: the comment no longer swallows the rest of this line
     if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}), serials: Object.assign({}, d.skins.serials || {}), sold: Object.assign({}, d.skins.sold || {}) }; // v56; v69: numbered copies
     startHeartbeat();
     if (added) toast(U().tgSynced);
@@ -161,7 +161,7 @@ function sendResult(g, w) {
     const role = ROLE[p.roleId]; const ps = role ? playSideOf(g, p) : 'city'; const side = ps === 'mafia' ? 'mafia' : ps === 'city' ? 'city' : 'neutral';
     return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
-  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
+  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; if (d.official) g.cloudOfficial = d.official; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
 }
 /* ---------- lobby: players join from Telegram and receive their card privately ---------- */
 function cardTextFor(p, lang) {

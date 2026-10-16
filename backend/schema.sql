@@ -638,3 +638,51 @@ CREATE TABLE IF NOT EXISTS user_fav_card (
   role       TEXT NOT NULL,
   updated_at INTEGER NOT NULL
 );
+-- v77 official hosts (official.js): the status and the licence, the applications, the rewarded games, the penalties for cheating
+CREATE TABLE IF NOT EXISTS official_hosts (
+  tg_id      INTEGER PRIMARY KEY,
+  status     TEXT NOT NULL,          -- ok (approved / appointed) | revoked
+  until      INTEGER NOT NULL DEFAULT 0, -- the licence ends (0 = approved, not bought yet)
+  source     TEXT,                   -- application | admin
+  by         INTEGER,                -- the admin who approved / appointed
+  games      INTEGER NOT NULL DEFAULT 0, -- rewarded games hosted
+  paid       INTEGER NOT NULL DEFAULT 0, -- emeralds paid for licences
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS host_applications (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  tg_id      INTEGER NOT NULL,
+  status     TEXT NOT NULL,          -- pending | approved | rejected | withdrawn
+  form       TEXT NOT NULL,          -- JSON: name, city, exp, formats, games, langs, schedule, about, rules
+  hosted     INTEGER NOT NULL,       -- games hosted when applying
+  created_at INTEGER NOT NULL,
+  decided_at INTEGER,
+  decided_by INTEGER,
+  note       TEXT
+);
+CREATE INDEX IF NOT EXISTS host_applications_user ON host_applications (tg_id, status);
+CREATE TABLE IF NOT EXISTS official_games (
+  game_id    TEXT PRIMARY KEY,
+  host_id    INTEGER NOT NULL,
+  code       TEXT,
+  players    INTEGER NOT NULL,
+  accounts   INTEGER NOT NULL,
+  avg        REAL NOT NULL,          -- the average rank of the seated accounts
+  total      INTEGER NOT NULL,       -- emeralds given
+  rewards    TEXT NOT NULL,          -- JSON { tgId: emeralds }
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS official_games_host ON official_games (host_id, created_at);
+CREATE TABLE IF NOT EXISTS cheat_penalties (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  tg_id      INTEGER NOT NULL,
+  reason     TEXT,
+  by         INTEGER,
+  emeralds   INTEGER NOT NULL DEFAULT 0, -- taken
+  items      TEXT,                   -- JSON: items bought for emeralds, taken back
+  rating     INTEGER NOT NULL DEFAULT 0, -- the rating points reset
+  until      INTEGER NOT NULL,       -- the ban ends
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS emerald_ledger_kind ON emerald_ledger (tg_id, kind, created_at);

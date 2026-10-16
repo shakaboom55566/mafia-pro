@@ -21,6 +21,13 @@ STARS_PACK = "1750"
 # v63 emeralds: an Epic skin price and the weekly tournament's default fund (the admin may change the fund per tournament in the app)
 EMERALDS_EPIC = "7500"
 EMERALDS_FUND = "10000"
+# v77 official hosts (official.js): the licence price and the anti-farming limits; all optional, these are the defaults
+OFFICIAL_PRICE = "5000"
+OFFICIAL_MIN_PLAYERS = "7"
+OFFICIAL_MIN_ACCOUNTS = "5"
+OFFICIAL_MIN_MINUTES = "15"
+OFFICIAL_DAY_GAMES = "5"
+OFFICIAL_HOST_DAY = "12"
 # Telegram ids that may grant full access (/grant in the bot or the admin panel in the app); comma-separated
 ADMIN_IDS = "6462266188"
 # Telegram @username shown to partners for payout requests (empty = the bot itself; partners' messages to the bot are forwarded to admins)

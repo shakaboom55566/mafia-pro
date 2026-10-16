@@ -21,6 +21,7 @@
    - POST /api/skins           v56: the skins several players wear (ids) — the host's table shows each player's own card face
    - POST /api/skin/buy        v63: an Epic skin for emeralds (emeralds.js); /api/emeralds — the balance, the ledger, the packs
    - POST /api/admin/skins     v68 (admins): a player's skins — owned, given by admins, worn; /api/admin/skin — give (one or all) / take a gift back
+   - POST /api/official        v77: official hosts (official.js): my status, the list, the rules; /apply — the application; /license — buy 30 days; /admin — approve, appoint, revoke, punish
    - POST /api/tournament      v63: the weekly tournament (tournament.js): state, standings, my table; /join — register; /admin — format, draw, hosts, close
    - POST /api/players         everyone who opened the bot: name, @username, presence, rating (paged, optional prefix filter)
    - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
@@ -63,6 +64,7 @@ import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
 import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered, roomOf, isRoom, isFrame, framesOf } from './skins.js';
 import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, skinPrice, framePrice, PACKS as EM_PACKS } from './emeralds.js';
+import { officialInfo, officialSet, officialList, pendingApps, applyForm, decideApp, buyLicense, appoint, revoke as revokeOfficial, punish, pardon, penaltiesList, rewardGame, estimateFor, officialsText, runOfficialCron, license as officialLicense, limits as officialLimits, OFFICIAL_RANK_K } from './official.js';
 import { tournamentView, joinTournament, openTournament, drawRound, setTableHost, closeTournament, setTournament, creditGame, borrowsSkins, runTournamentCron, tournamentStatusText, currentTournament, takeTable } from './tournament.js';
 
 const VERSION = '0.1.0';
@@ -465,6 +467,17 @@ async function onCallback(env, bot, q) {
   if (await bannedTg(env, u.id) || botFlood(env, u.id)) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
   if (/^sec_/.test(q.data || '') && await onSecurityCallback(env, bot, q, id => isAdmin(env, id))) return;
   if (/^pv_/.test(q.data || '') && await onPrivacyCallback(env, bot, q, lang)) return;
+  const oh = /^oh_(ok|no)_(\d+)$/.exec(q.data || ''); // v77: an official host's application — the admin's buttons
+  if (oh) {
+    if (!isAdmin(env, u.id)) return bot.call('answerCallbackQuery', { callback_query_id: q.id });
+    secAudit(env, u.id, 'official_' + (oh[1] === 'ok' ? 'approve' : 'reject'), { detail: oh[2] });
+    if (await isLockdown(env)) return bot.call('answerCallbackQuery', { callback_query_id: q.id, text: '🔒 Режим блокировки: действие отключено', show_alert: true });
+    const r = await decideApp(env, bot, Number(oh[2]), oh[1] === 'ok', u.id, '');
+    const done = r.ok ? (oh[1] === 'ok' ? '✅ Анкета одобрена — ведущему отправлено приглашение купить лицензию.' : '✖ Анкета отклонена.') : 'Анкета уже рассмотрена.';
+    await bot.call('answerCallbackQuery', { callback_query_id: q.id, text: done.slice(0, 190) });
+    if (q.message) await bot.call('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text: (q.message.text || '').slice(0, 3500) + '\n\n' + done });
+    return;
+  }
   if (/^(cp|bc|sm|ads)_/.test(q.data || '') && isAdmin(env, u.id)) { // admin powers: audited, off in lockdown
     secAudit(env, u.id, /^bc_go/.test(q.data) ? 'broadcast_send' : /^cp_/.test(q.data) ? 'post_' + String(q.data).split('_')[1] : /^sm_/.test(q.data) ? 'social_' + String(q.data).split('_')[1] : /^ads_/.test(q.data) ? 'ads_' + String(q.data).split('_')[1] : 'broadcast', { detail: String(q.data).slice(0, 40) });
     if (await isLockdown(env)) return bot.call('answerCallbackQuery', { callback_query_id: q.id, text: '🔒 Режим блокировки: действие отключено', show_alert: true });
@@ -562,10 +575,10 @@ async function onText(env, bot, msg) {
     return bot.send(chat, t(lang, 'welcome'), play);
   }
   if (await onPrivacyText(env, bot, msg, lang)) return; // /privacy /mydata /deletedata /unsubscribe /subscribe /support (privacy.js)
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n' + t(lang, 'adminHelpEmeralds') + '\n' + t(lang, 'adminHelpSkins') + '\n' + t(lang, 'adminHelpTrn') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n' + t(lang, 'adminHelpEmeralds') + '\n' + t(lang, 'adminHelpSkins') + '\n' + t(lang, 'adminHelpTrn') + '\n' + t(lang, 'adminHelpOfficial') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
   if (isAdmin(env, u.id)) {
     if (/^\/security(?:@\w+)?(?:\s|$)/.test(text)) return onSecurityCommand(env, bot, msg);
-    const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no|emeralds)(?:@\w+)?(?:\s|$)/.exec(text);
+    const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no|emeralds|official|official_off|cheat|uncheat)(?:@\w+)?(?:\s|$)/.exec(text);
     if (power || (msg.reply_to_message && !text.startsWith('/'))) { // admin powers: every use is audited; all off in lockdown
       secAudit(env, u.id, power ? (power[1] === 'players' ? 'players_export' : power[1]) : 'post_reply', { detail: text.split(/\s+/).slice(0, 2).join(' ').slice(0, 60) });
       if (await isLockdown(env)) return bot.send(chat, LOCKED_TEXT);
@@ -578,6 +591,7 @@ async function onText(env, bot, msg) {
     if (/^\/social(?:@\w+)?(?:\s|$)/.test(text)) return onSocialCommand(env, bot, msg); // Instagram, Facebook, TikTok (social.js)
     if (/^\/ads(?:@\w+)?(?:\s|$)/.test(text)) return onAdsCommand(env, bot, msg); // paid ads in Meta: pause, notices, numbers (ads.js)
     if (/^\/emeralds(?:@\w+)?(?:\s|$)/.test(text)) return onEmeraldsCommand(env, bot, msg); // v63: a player's emeralds
+    if (/^\/(officials?|official_off|cheat|uncheat)(?:@\w+)?(?:\s|$)/.test(text)) return onOfficialCommand(env, bot, msg); // v77: official hosts, punishment for cheating
     if (/^\/skins?(?:@\w+)?(?:\s|$)/.test(text)) return onSkinCommand(env, bot, msg); // v68: give a player skins
     if (/^\/tournament(?:@\w+)?(?:\s|$)/.test(text)) return bot.send(chat, await tournamentStatusText(env)); // v63: the week's tournament
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
@@ -677,7 +691,8 @@ async function apiMe(env, bot, body, geo) {
   Object.assign(skins, await mySerialsInfo(env, u.id)); // v69: the numbers of my numbered copies, how many are sold
   const emeralds = await emeraldsInfo(env, u.id); // v63
   const tournament = await tournamentBrief(env, u.id);
-  return json({ ok: true, geo: geo || { country: '', city: '' }, season: seasonInfo(sz), peak, skins, favCard: await favCardOf(env, u.id), emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
+  const official = await officialInfo(env, u.id); // v77
+  return json({ ok: true, official, geo: geo || { country: '', city: '' }, season: seasonInfo(sz), peak, skins, favCard: await favCardOf(env, u.id), emeralds, tournament, table, invites, user: { id: u.id, name: displayName(u), username: u.username || '', lang: u.language_code || '', photo: u.photo_url || '' }, owned, rating, startParam: v.startParam, bot: username, invite: { code, link: `https://t.me/${username}?start=friend_${code}`, ref: `https://t.me/${username}?start=ref_${code}` }, admin: isAdmin(env, u.id), discord: discordReady(env), channel: env.CHANNEL_ID && /^@\w{4,}$/.test(env.CHANNEL_ID) ? 'https://t.me/' + env.CHANNEL_ID.slice(1) : '', credits, club: club ? { id: club.club_id, role: club.role, name: club.name, city: club.city || '', logo: club.logo || '', partner: !!partner } : null });
 }
 /* a Mini App opened directly with ?startapp=ref_<code> (no /start in the bot): attribute if this account is brand new */
 async function apiRefAttach(env, bot, body) {
@@ -795,7 +810,7 @@ async function profileData(env, id) {
   const club = await membershipOf(env, id);
   const loc = await env.DB.prepare('SELECT (SELECT city FROM user_cities WHERE tg_id = ?1) AS city, (SELECT country FROM user_countries WHERE tg_id = ?1) AS country').bind(id).first(); // v75
   return { user: { tgId: id, name: rowName(u), username: u.username || '', photo: u.photo_url || '', lang: u.lang || 'ru', online: ts - (seen.seen_at || 0) <= ONLINE_SEC, seenAgo: Math.max(0, ts - (seen.seen_at || 0)), since: (seen.created_at || 0) * 1000, club: club ? club.name : '', clubLogo: club ? club.logo || '' : '', city: (loc && loc.city) || '', country: (loc && loc.country) || '' },
-    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id), fav: await favCardOf(env, id), serials: await wornSerials(env, id) };
+    rating: Object.assign({}, rating, { points: 1000 + rating.points }), roles, recent, streaks: await streaksOf(env, id), peak: await peakOf(env, id, seasonNow(env), rating), season: seasonInfo(seasonNow(env)), skins: await equippedSkins(env, id), fav: await favCardOf(env, id), serials: await wornSerials(env, id), official: (await officialSet(env)).has(id) }; // v77: the official host's mark
 }
 /* ---------- v56 card skins (skins.js) ---------- */
 const epicSkinIds = () => Object.keys(SKINS).filter(id => SKINS[id].rarity === 'epic');
@@ -905,6 +920,62 @@ async function apiTournamentTable(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const r = await takeTable(env, await currentTournament(env), v.user.id);
   return json(r, r.ok ? 200 : 409);
+}
+/* ---------- v77 official hosts (official.js) ---------- */
+async function apiOfficial(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const admin = isAdmin(env, v.user.id);
+  const out = { ok: true, me: await officialInfo(env, v.user.id), list: await officialList(env, false), license: officialLicense(env), limits: officialLimits(env), k: OFFICIAL_RANK_K, balance: await balanceOf(env, v.user.id) };
+  if (admin) out.admin = { apps: await pendingApps(env), all: await officialList(env, true), penalties: await penaltiesList(env) };
+  return json(out);
+}
+async function apiOfficialApply(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const r = await applyForm(env, bot, v.user, body, await bannedTg(env, v.user.id));
+  if (!r.ok) return json(Object.assign(r, { me: await officialInfo(env, v.user.id) }), 409);
+  return json(Object.assign(r, { me: await officialInfo(env, v.user.id) }));
+}
+async function apiOfficialLicense(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const r = await buyLicense(env, v.user);
+  if (r.ok) secAudit(env, v.user.id, 'official_license', { detail: String(r.until) });
+  return json(Object.assign(r, { me: await officialInfo(env, v.user.id) }), r.ok ? 200 : r.error === 'not_enough' ? 402 : 409);
+}
+async function apiOfficialAdmin(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!isAdmin(env, v.user.id)) { secEvent(env, 'admin_denied', 'medium', { tg: v.user.id, path: 'official' }); return json({ ok: false, error: 'forbidden' }, 403); }
+  const action = String(body.action || ''); secAudit(env, v.user.id, 'official_' + action.slice(0, 12), { detail: String(body.q || body.tgId || body.id || '').slice(0, 40) });
+  if (await isLockdown(env)) return json({ ok: false, error: 'lockdown' }, 423);
+  let r;
+  if (action === 'approve' || action === 'reject') r = await decideApp(env, bot, Number(body.id) || 0, action === 'approve', v.user.id, body.note);
+  else {
+    const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
+    if (action === 'appoint') r = await appoint(env, bot, v.user.id, target, Number(body.days) || 30);
+    else if (action === 'revoke') r = await revokeOfficial(env, bot, target, body.note);
+    else if (action === 'punish') { if (isAdmin(env, target.tg_id)) return json({ ok: false, error: 'admin' }, 409); r = await punish(env, bot, v.user.id, target, body.reason, Number(body.days) || 0); }
+    else if (action === 'unban') r = await pardon(env, target);
+    else return json({ ok: false, error: 'bad_action' }, 400);
+    if (r && r.ok) r.target = { tgId: target.tg_id, name: rowName(target), username: target.username || '' };
+  }
+  if (!r.ok) return json(r, 409);
+  return json(Object.assign(r, { admin: { apps: await pendingApps(env), all: await officialList(env, true), penalties: await penaltiesList(env) } }));
+}
+/* the bot: /official @user [days], /official_off @user, /officials, /cheat @user [days] reason, /uncheat @user */
+async function onOfficialCommand(env, bot, msg) {
+  const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id; const text = msg.text.trim();
+  if (/^\/officials(?:@\w+)?$/.test(text)) return bot.send(chat, await officialsText(env));
+  const m = /^\/(official|official_off|cheat|uncheat)(?:@\w+)?(?:\s+(\S+))?(?:\s+([\s\S]*))?$/.exec(text);
+  if (!m || !m[2]) return bot.send(chat, t(lang, 'adminHelpOfficial'));
+  const target = await findUser(env, m[2]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(m[2]) }));
+  const who = `${esc(rowName(target) || String(target.tg_id))}${target.username ? ' @' + esc(target.username) : ''}`;
+  if (m[1] === 'official') { const r = await appoint(env, bot, u.id, target, Number((m[3] || '').trim()) || 30); return bot.send(chat, `🎩 ${who} — официальный ведущий до ${fmtDate(r.until / 1000, 'ru')}.`); }
+  if (m[1] === 'official_off') { const r = await revokeOfficial(env, bot, target, ''); return bot.send(chat, r.ok ? `Статус официального ведущего снят: ${who}.` : `${who} не был официальным ведущим.`); }
+  if (m[1] === 'uncheat') { const r = await pardon(env, target); return bot.send(chat, r.unbanned ? `Бан снят: ${who}. Обнулённое не возвращается.` : `${who} не заблокирован.`); }
+  if (isAdmin(env, target.tg_id)) return bot.send(chat, 'Администратора наказать нельзя.');
+  const rest = (m[3] || '').trim(); const dm = /^(\d{1,4})\s+([\s\S]+)$/.exec(rest); const days = dm ? Number(dm[1]) : 0; const reason = dm ? dm[2] : rest;
+  if (!reason) return bot.send(chat, 'Укажите причину: /cheat @user [дней] причина');
+  const r = await punish(env, bot, u.id, target, reason, days);
+  return bot.send(chat, `⛔ ${who}: бан ${r.forever ? 'навсегда' : 'до ' + fmtDate(r.until / 1000, 'ru')}, обнулено — ${r.emeralds} 💎, предметов за изумруды: ${r.items}, рейтинг (было ${1000 + r.rating}) → 1000, статус ведущего и турнир сняты.`);
 }
 async function apiTournamentAdmin(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -1090,7 +1161,7 @@ async function apiResult(env, bot, body) {
   const ins = await env.DB.prepare('INSERT OR IGNORE INTO games (game_id, host_id, code, mode, players, winner, summary, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
     .bind(gameId, hostId, code, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), now()).run();
   if (flood && ins.meta && ins.meta.changes > 0) secEvent(env, 'result_flood', 'medium', { tg: hostId, path: '/api/game/result', detail: { last24h: recent.n } });
-  const ratings = {}; const rankUp = {}; const sz = seasonNow(env); const live = sz.phase === 'live'; // v55: between seasons games count, the rating does not move
+  const ratings = {}; const rankUp = {}; const beforeR = {}; const sz = seasonNow(env); const live = sz.phase === 'live'; // v55: between seasons games count, the rating does not move
   await trackGameNames(env, players);
   if (ins.meta && ins.meta.changes > 0 && !flood) { // first report of this game → credit the players
     const hb = await ratingFor(env, hostId);
@@ -1098,7 +1169,7 @@ async function apiResult(env, bot, body) {
     if (hostLevel(hb.hosted + 1) > hostLevel(hb.hosted)) { try { await noteHostUp(env, bot, hostId, hostLevel(hb.hosted + 1)); } catch (e) { console.error('host up', e); } }
     for (const p of players) {
       const tgId = Number(p.tgId); if (!tgId) continue;
-      const pts = live ? p.points : 0; const before = await ratingFor(env, tgId);
+      const pts = live ? p.points : 0; const before = await ratingFor(env, tgId); beforeR[tgId] = before;
       await bumpRating(env, tgId, pts, 1, p.won ? 1 : 0, 0);
       // v54: a new rank → a mark in the results (rankUp) and, the first time this rank is reached, a message from the bot
       const a = rankIdx(1000 + before.points, before.games), b = rankIdx(1000 + before.points + pts, before.games + 1);
@@ -1106,11 +1177,13 @@ async function apiResult(env, bot, body) {
       try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); }
     }
   }
+  let official = null; // v77: a game at an official host's table — emeralds for the seated players (official.js)
+  if (ins.meta && ins.meta.changes > 0 && !flood && code) { try { official = await rewardGame(env, bot, { gameId, hostId, code, players, before: beforeR }); } catch (e) { console.error('official reward', e); } }
   let tournament = null; // v63: a game at a tournament table (the host's own, by its code) counts in the standings — once per table
   if (ins.meta && ins.meta.changes > 0 && !flood && code) { try { tournament = await creditGame(env, code, hostId, players); } catch (e) { console.error('trn credit', e); } }
   const streaks = {};
   for (const p of players) { const tgId = Number(p.tgId); if (!tgId) continue; if (!ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); const side = String(p.side || ''); if (side) streaks[tgId] = { side, n: (await streaksOf(env, tgId))[side] || 0 }; }
-  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp, season: seasonInfo(sz), tournament });
+  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp, season: seasonInfo(sz), tournament, official });
 }
 /* v54: the bot congratulates on a rank reached for the first time (rank_best keeps the highest one announced: going down and back up
    near a threshold does not repeat the message) and on a new host badge */
@@ -1226,6 +1299,7 @@ async function seatProfiles(env, ids) {
   const ts = now(); const out = {};
   for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, wins: r.wins || 0, city: r.city || '', country: r.country || '', club: r.club || '', clubLogo: r.clubLogo || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
   const fr = await framesOf(env, ids); for (const id of Object.keys(fr)) if (out[id]) out[id].frame = fr[id]; // v74: the avatar frame everyone at the table sees
+  const off = await officialSet(env); for (const id of Object.keys(out)) if (off.has(Number(id))) out[id].official = true; // v77: the official host's mark
   return out;
 }
 async function pendingInvites(env, tgId) {
@@ -1371,7 +1445,7 @@ async function apiLobbies(env, bot, body) {
   const seated = v ? ((await env.DB.prepare('SELECT code FROM lobby_players WHERE tg_id = ?1').bind(me).all()).results || []).map(r => r.code) : [];
   const all = !!body.all; // the table finder: every online table on the server (joinable ones first, running ones marked), not only friends'
   const rows = (await env.DB.prepare(`SELECT l.code, l.host_id, l.status, l.created_at, u.first_name, u.last_name, u.username, u.photo_url, u.seen_at, (SELECT COUNT(*) FROM lobby_players p WHERE p.code = l.code) AS n, ts.pub, o.online AS opt_online, o.host_plays, u.lang AS host_lang, mt.lang AS meta_lang, tv.status AS voice FROM lobbies l JOIN users u ON u.tg_id = l.host_id LEFT JOIN table_state ts ON ts.code = l.code LEFT JOIN lobby_opts o ON o.code = l.code LEFT JOIN lobby_meta mt ON mt.code = l.code LEFT JOIN table_voice tv ON tv.code = l.code WHERE l.status IN (${all ? "'open', 'dealt', 'live'" : "'open', 'dealt'"}) AND l.created_at > ?1 ORDER BY l.created_at DESC, l.rowid DESC LIMIT 300`).bind(ts - 8 * 3600).all()).results || [];
-  const out = []; const hosts = new Set();
+  const out = []; const hosts = new Set(); const offs = await officialSet(env); // v77: official tables are marked and come first
   for (const r of rows) {
     if (hosts.has(r.host_id)) { await supersededTable(env, r.code, r.host_id); continue; } hosts.add(r.host_id); // the newest table of each host; older ones are closed
     if (await staleTable(env, { code: r.code, status: r.status, host_id: r.host_id })) continue; // host gone for 5 minutes, nobody else at the table
@@ -1379,10 +1453,10 @@ async function apiLobbies(env, bot, body) {
     const pub = parseJSON(r.pub, {}) || {};
     const online = !!(r.opt_online || pub.online);
     if (all ? !online : !via) continue;
-    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: pub0 ? 0 : r.host_id, name: rowName(r) || (pub0 ? '…' : String(r.host_id)), username: pub0 ? '' : r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online, hostPlays: !!r.host_plays, flag: flagOf(r.meta_lang || pickLang(r.host_lang)), discord: r.voice === 'on', mode: pub.mode || null, open: typeof pub.open === 'boolean' ? pub.open : typeof pub.openRoles === 'boolean' ? pub.openRoles : true, phase: pub.phase || 'lobby', alive: Array.isArray(pub.seats) ? pub.seats.filter(x => x.alive !== false).length : null });
+    out.push({ code: r.code, status: r.status, at: r.created_at * 1000, via, host: { tgId: pub0 ? 0 : r.host_id, name: rowName(r) || (pub0 ? '…' : String(r.host_id)), username: pub0 ? '' : r.username || '', photo: r.photo_url || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC }, players: r.n || 0, seats: Number(pub.n) || null, online, hostPlays: !!r.host_plays, flag: flagOf(r.meta_lang || pickLang(r.host_lang)), discord: r.voice === 'on', mode: pub.mode || null, open: typeof pub.open === 'boolean' ? pub.open : typeof pub.openRoles === 'boolean' ? pub.openRoles : true, phase: pub.phase || 'lobby', alive: Array.isArray(pub.seats) ? pub.seats.filter(x => x.alive !== false).length : null, official: offs.has(r.host_id) });
     if (out.length >= 60) break;
   }
-  if (all) out.sort((a, b) => (a.status === 'live' ? 1 : 0) - (b.status === 'live' ? 1 : 0) || b.at - a.at); // joinable first
+  if (all) out.sort((a, b) => (a.status === 'live' ? 1 : 0) - (b.status === 'live' ? 1 : 0) || (b.official ? 1 : 0) - (a.official ? 1 : 0) || b.at - a.at); // joinable first, official tables first among them
   try { await sweepVoice(env); } catch (e) {}
   if (pub0) { let b = ''; try { b = await botUsername(env, bot); } catch (e) {} return json({ ok: true, lobbies: out, bot: b, public: true }); }
   return json({ ok: true, lobbies: out });
@@ -1469,7 +1543,9 @@ async function apiTableState(env, bot, body) {
   if (peerKeys.length && !dead) { const q = peerKeys.map((k, i) => '?' + (i + 2)).join(', '); peers = ((await env.DB.prepare(`SELECT tg_id, key, payload, created_at FROM table_actions WHERE code = ?1 AND key IN (${q}) ORDER BY id LIMIT 60`).bind(code, ...peerKeys).all()).results || []).map(r => ({ tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })); }
   const mySeat = me && me.seat ? me.seat : null; const opts = await lobbyOpts(env, code);
   const voice = await voiceInfo(env, code, v.user.id); const flag = flagOf(await lobbyLang(env, code));
-  return json({ ok: true, now: Date.now(), peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, room: await roomOf(env, lobby.host_id), host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
+  let official = null; // v77: an official host's table — what a game here brings me
+  if (profiles[lobby.host_id] && profiles[lobby.host_id].official) { const lim = officialLimits(env); const today = isHost ? 0 : (await env.DB.prepare("SELECT COUNT(*) AS n FROM emerald_ledger WHERE tg_id = ?1 AND kind = 'game' AND created_at > ?2").bind(v.user.id, now() - 86400).first('n')) || 0; official = Object.assign({ on: true, left: Math.max(0, lim.dayGames - today), limits: lim }, isHost ? {} : estimateFor(profiles, players.map(p => p.tgId).filter(id => id !== lobby.host_id), v.user.id) || {}); }
+  return json({ ok: true, now: Date.now(), official, peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, room: await roomOf(env, lobby.host_id), host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
 }
 async function apiTableAct(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -2053,6 +2129,10 @@ export default {
           case '/api/tournament/join': return wrap(apiTournamentJoin(env, bot, body));
           case '/api/tournament/table': return wrap(apiTournamentTable(env, body));
           case '/api/tournament/admin': return wrap(apiTournamentAdmin(env, bot, body));
+          case '/api/official': return wrap(apiOfficial(env, body)); // v77: official hosts
+          case '/api/official/apply': return wrap(apiOfficialApply(env, bot, body));
+          case '/api/official/license': return wrap(apiOfficialLicense(env, body));
+          case '/api/official/admin': return wrap(apiOfficialAdmin(env, bot, body));
           case '/api/players': return wrap(apiPlayers(env, body));
           case '/api/admin/grant': return wrap(apiAdmin(env, bot, body, 'grant'));
           case '/api/admin/revoke': return wrap(apiAdmin(env, bot, body, 'revoke'));
@@ -2120,6 +2200,7 @@ export default {
     if (!minute) ctx.waitUntil(runAdsCron(env).catch(e => console.error('ads cron', e && e.stack || e))); // ad clicks: Meta match data erased after 7 days
     if (!minute) ctx.waitUntil(runSeasonCron(env, new Bot(env)).catch(e => console.error('season cron', e && e.stack || e))); // v55: a finished season → results, ratings back to 1000
     if (!minute) ctx.waitUntil(runTournamentCron(env, new Bot(env)).catch(e => console.error('tournament cron', e && e.stack || e))); // v63: Monday 12:00 registration opens, Saturday the games begin, Monday 00:00 prizes
+    if (!minute) ctx.waitUntil(runOfficialCron(env, new Bot(env)).catch(e => console.error('official cron', e && e.stack || e))); // v77: the official host's licence ends soon / ended
     if (minute || !event || !event.cron) ctx.waitUntil(syncDiscordMembers(env).catch(e => console.error('discord members', e && e.stack || e)));
     if (minute || !event || !event.cron) ctx.waitUntil(runBroadcastCron(env, new Bot(env)).catch(e => console.error('broadcast cron', e && e.stack || e))); // /broadcast: the next portion
     if (minute || !event || !event.cron) ctx.waitUntil(runSecurityWatch(env, new Bot(env)).catch(e => console.error('security watch', e && e.stack || e))); // incidents → response → alerts (security.js)
