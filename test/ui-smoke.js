@@ -64,6 +64,7 @@ if (process.env.LANG_CODE) { A.lang({ dataset: { id: process.env.LANG_CODE } });
 // sample profiles are gone from the app: the test creates its own three players
 vm.runInContext("[['Артём','artem_k','Днепр','UA'],['Олена','olena_sh','Київ','UA'],['Mykola','mykola_dp','Днепр','UA']].forEach(([name, username, city, country], i) => S.profiles.push(newProfile({ name, username, city, country, color: i })))", ctx);
 check('home');
+if (app.innerHTML.includes(X.U().tgTitle) || app.innerHTML.includes(X.U().tgText)) { fails++; console.log('FAIL the old «live game through Telegram» prototype note is back on the home screen'); }
 A.go(el('go', { to: 'cards' })); check('cards');
 A.filter(el('filter', { id: 'black' })); check('cards black');
 A.role(el('role', { id: 'rabbi' })); check('role sheet');

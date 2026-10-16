@@ -244,10 +244,7 @@ function homeScreen() {
     <button class="menu-item" data-a="go" data-to="scenarios"><div class="ico">${I.scen}</div><div><div class="t">${u.scenTitle}</div><div class="d">${u.scenD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="myprofile"><div class="ico">${I.person}</div><div><div class="t">${u.myProfile}</div><div class="d">${u.myProfileD}</div></div><span class="chev">${I.chev}</span></button>
     <button class="menu-item" data-a="go" data-to="shop"><div class="ico" style="background:#f0cd7a;color:#1a1206;border-color:transparent">${I.cards}</div><div><div class="t">${u.shop}</div><div class="d">${u.shopD}</div></div><span class="chev">${I.chev}</span></button>
-  </div>
-  <div class="panel" style="margin-top:14px">
-    <div class="row"><div class="ico" style="color:var(--gold)">${I.tg}</div><div class="grow"><div class="eyebrow">${u.tgTitle}</div><div class="hint">${u.tgText}</div></div></div>
-  </div>`;
+  </div>`; // the old «Живая игра через Telegram» prototype note is gone (the owner's request, 17.10): the bot deals the cards for real now
 }
 
 /* ---------- Setup ---------- */
