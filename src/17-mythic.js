@@ -20,7 +20,7 @@ const MYTH_ART = {
     flip: { w: 1.0513, h: 0.6417, ax: 0.4912, ay: 0.4755 },
     crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 },
     // v70: the Gemini cinematic (720×1280, 8.6 s; the card fills the first and the last frame); three generation bugs cut out (see skins/STYLE.md)
-    cine: { file: 'cinematic', size: [720, 1280], dur: 8.625, card: [0, 0, 1, 1] }
+    cine: { file: 'cinematic', size: [720, 1280], dur: 8.625, card: [0, 0, 1, 1], grow: 1.32 }
   }
 };
 const MYTH_POSES = ['stand', 'flip', 'crouch'];
@@ -145,8 +145,9 @@ function mythDrawC(R, t) {
   const a = R.a, T = R.T, vw = window.innerWidth, vh = window.innerHeight; const [VW, VH] = a.size; const cb = a.card; // the card in the video's first frame (fractions)
   // on the card: the video's card covers the app's card exactly (Gemini drew the 2:3 card into a 9:16 frame — stretched back here)
   const sx0 = r.width / ((cb[2] - cb[0]) * VW), sy0 = r.height / ((cb[3] - cb[1]) * VH); const onCard = { x: r.left - cb[0] * VW * sx0, y: r.top - cb[1] * VH * sy0, sx: sx0, sy: sy0 };
-  // full screen: the whole video fits the screen (a little cropped at the sides on tall phones)
-  const sFull = Math.min(vw / VW * 1.08, vh / VH); const full = { x: (vw - VW * sFull) / 2, y: (vh - VH * sFull) / 2, sx: sFull, sy: sFull };
+  // v70.1 (the owner): the show stays over the card — the video grows only a little past the frame (by `a.grow`), never to the whole screen
+  const g = a.grow || 1.3; let sG = Math.min(r.height * g / VH, vw / VW, vh / VH); const Wg = VW * sG, Hg = VH * sG;
+  const full = { x: mClamp(r.left + r.width / 2 - Wg / 2, 0, Math.max(0, vw - Wg)), y: mClamp(r.top + r.height / 2 - Hg / 2, 0, Math.max(0, vh - Hg)), sx: sG, sy: sG };
   const k = t < T.in1 ? mEaseIO(mSeg(t, T.in0 + 120, T.in1)) : t < T.out0 ? 1 : 1 - mEaseIO(mSeg(t, T.out0, T.play1 - 40));
   const P = { x: mLerp(onCard.x, full.x, k), y: mLerp(onCard.y, full.y, k), sx: mLerp(onCard.sx, full.sx, k), sy: mLerp(onCard.sy, full.sy, k) };
   R.box.style.width = VW + 'px'; R.box.style.height = VH + 'px';
