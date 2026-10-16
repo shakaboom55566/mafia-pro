@@ -1069,6 +1069,39 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v66 ' + m); }
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null; TB.chat = []', ctx);
   S.game = null; S.lobby = null; S.screen = 'home'; S.ui.sheet = null; X.render(); console.log('v66 ok');
 } catch (e) { fails++; console.log('FAIL v66 crashed', e && e.stack || e); }
+// v68: an admin gives a player skins — the entry in the player's sheet, the stats screen and the admin panel; a tile gives, a gift is taken back, «Give all»
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v68 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const SK = E('SKINS');
+  vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []; globalThis.__own = { owned: ["amethyst_don"], gifted: [] }', ctx);
+  vm.runInContext(`api = async (p, b) => { __calls.push([p, b]); const view = () => ({ ok: true, user: { tgId: 777, name: 'Нина <b>', username: 'nina' }, owned: __own.owned.slice(), gifted: __own.gifted.slice(), equipped: { don: 'amethyst_don' } });
+    if (p === '/api/admin/skins') return (b.q === '@nobody') ? { ok: false, error: 'not_found' } : view();
+    if (p === '/api/admin/skin') { const ids = b.skin === 'all' ? SKINS.map(s => s.id).filter(id => !__own.owned.includes(id)) : [b.skin];
+      if (b.give) ids.forEach(id => { if (!__own.owned.includes(id)) { __own.owned.push(id); __own.gifted.push(id); } }); else ids.forEach(id => { __own.owned = __own.owned.filter(x => x !== id); __own.gifted = __own.gifted.filter(x => x !== id); });
+      return Object.assign(view(), { changed: ids, give: !!b.give }); }
+    return { ok: false, error: 'not_found' }; }`, ctx);
+  const calls = E('__calls'); const tick = () => new Promise(r => setTimeout(r, 5));
+  // not an admin — no entry anywhere
+  S.cloud = { user: { id: 500, name: 'Me' }, admin: false }; S.ui.sheet = { type: 'friend', id: 777 }; X.render(); if (app.innerHTML.includes('data-a="adm-skins"')) F('a player sees no skins button');
+  S.cloud.admin = true; X.render(); check('v68 friend sheet admin'); if (!app.innerHTML.includes('data-a="adm-skins" data-id="777"') || !app.innerHTML.includes(u.askBtn)) F('the admin sees «Player\'s skins» in the player\'s sheet');
+  S.ui.sheet = null; S.ui.pstatsId = 777; A.go(el('go', { to: 'pstats' })); X.render(); check('v68 stats admin'); if (!app.innerHTML.includes('data-a="adm-skins" data-id="777"')) F('the stats screen has the button too');
+  A['adm-skins'](el('adm-skins', { id: '777' })); check('v68 sheet loading'); if (!app.innerHTML.includes(u.askLoading)) F('the sheet says it is loading'); await tick(); check('v68 sheet');
+  let h = app.innerHTML; if (!calls.some(c => c[0] === '/api/admin/skins' && c[1].tgId === 777)) F('the sheet asks the server for the player\'s skins by id');
+  if ((h.match(/data-a="adm-skin" /g) || []).length !== SK.length || !h.includes('Нина &lt;b&gt;') || h.includes('Нина <b>') || !h.includes('@nina') || !h.includes(X.tt(u.askCount, { n: 1, all: SK.length }))) F('every skin as a tile, the name escaped, the count');
+  if (!h.includes('sk-grid adm') || !h.includes(u.askWorn) || !h.includes(`${u.askAll} · ${SK.length - 1}`)) F('the worn mark and «Give all» with the number missing');
+  // give one, then take the gift back; a skin bought or won stays
+  const sk = SK.find(x => x.id !== 'amethyst_don'); await A['adm-skin'](el('adm-skin', { id: sk.id })); h = app.innerHTML;
+  const last = () => calls[calls.length - 1]; if (last()[0] !== '/api/admin/skin' || last()[1].skin !== sk.id || last()[1].give !== true || last()[1].tgId !== 777) F('a tap on a skin not owned gives it');
+  if (!h.includes('sk-badge gift') || !h.includes(X.tt(u.askCount, { n: 2, all: SK.length }))) F('the gift is marked 🎁 at once');
+  await A['adm-skin'](el('adm-skin', { id: sk.id })); if (last()[1].give !== false || E('__own').owned.includes(sk.id)) F('a tap on a gift takes it back');
+  const n0 = calls.length; await A['adm-skin'](el('adm-skin', { id: 'amethyst_don' })); if (calls.length !== n0) F('a skin bought or won is not taken — no request');
+  await A['adm-skin-all'](); h = app.innerHTML; if (last()[1].skin !== 'all' || last()[1].give !== true || h.includes('data-a="adm-skin-all"') || !h.includes(X.tt(u.askCount, { n: SK.length, all: SK.length }))) F('«Give all» gives every skin, the button goes');
+  // the admin panel in Settings: search by @username; not found is said so
+  S.ui.sheet = null; const ph = E('admSkinsPanelHTML')(); if (!ph.includes('id="adm-sk-q"') || !ph.includes(u.askPanel)) F('the admin panel has the search field');
+  E('ADMSK').q = '@nobody'; A['adm-sk-find'](); await tick(); check('v68 not found'); if (!app.innerHTML.includes(u.askNone) || last()[1].q !== '@nobody') F('a player not found is said so');
+  E('ADMSK').q = '777'; A['adm-sk-find'](); await tick(); if (last()[1].tgId !== 777) F('digits search by Telegram id');
+  S.cloud.admin = false; if (E('admSkinsPanelHTML')() !== '') F('no panel for a player');
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
+  S.cloud = null; S.ui.sheet = null; S.screen = 'home'; X.render(); console.log('v68 ok');
+} catch (e) { fails++; console.log('FAIL v68 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

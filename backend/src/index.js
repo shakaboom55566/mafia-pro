@@ -20,6 +20,7 @@
    - POST /api/skin/equip      v56: put a card skin on / take it off (role, skin | null; the player must own it)
    - POST /api/skins           v56: the skins several players wear (ids) — the host's table shows each player's own card face
    - POST /api/skin/buy        v63: an Epic skin for emeralds (emeralds.js); /api/emeralds — the balance, the ledger, the packs
+   - POST /api/admin/skins     v68 (admins): a player's skins — owned, given by admins, worn; /api/admin/skin — give (one or all) / take a gift back
    - POST /api/tournament      v63: the weekly tournament (tournament.js): state, standings, my table; /join — register; /admin — format, draw, hosts, close
    - POST /api/players         everyone who opened the bot: name, @username, presence, rating (paged, optional prefix filter)
    - POST /api/admin/grant|revoke|grants  full access for a player (admins only, ADMIN_IDS var)
@@ -60,7 +61,7 @@ import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, r
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
-import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts } from './skins.js';
+import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins } from './skins.js';
 import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, PACKS as EM_PACKS } from './emeralds.js';
 import { tournamentView, joinTournament, openTournament, drawRound, setTableHost, closeTournament, setTournament, creditGame, borrowsSkins, runTournamentCron, tournamentStatusText, currentTournament, takeTable } from './tournament.js';
 
@@ -561,7 +562,7 @@ async function onText(env, bot, msg) {
     return bot.send(chat, t(lang, 'welcome'), play);
   }
   if (await onPrivacyText(env, bot, msg, lang)) return; // /privacy /mydata /deletedata /unsubscribe /subscribe /support (privacy.js)
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n' + t(lang, 'adminHelpEmeralds') + '\n' + t(lang, 'adminHelpTrn') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n' + t(lang, 'adminHelpEmeralds') + '\n' + t(lang, 'adminHelpSkins') + '\n' + t(lang, 'adminHelpTrn') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
   if (isAdmin(env, u.id)) {
     if (/^\/security(?:@\w+)?(?:\s|$)/.test(text)) return onSecurityCommand(env, bot, msg);
     const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no|emeralds)(?:@\w+)?(?:\s|$)/.exec(text);
@@ -577,6 +578,7 @@ async function onText(env, bot, msg) {
     if (/^\/social(?:@\w+)?(?:\s|$)/.test(text)) return onSocialCommand(env, bot, msg); // Instagram, Facebook, TikTok (social.js)
     if (/^\/ads(?:@\w+)?(?:\s|$)/.test(text)) return onAdsCommand(env, bot, msg); // paid ads in Meta: pause, notices, numbers (ads.js)
     if (/^\/emeralds(?:@\w+)?(?:\s|$)/.test(text)) return onEmeraldsCommand(env, bot, msg); // v63: a player's emeralds
+    if (/^\/skins?(?:@\w+)?(?:\s|$)/.test(text)) return onSkinCommand(env, bot, msg); // v68: give a player skins
     if (/^\/tournament(?:@\w+)?(?:\s|$)/.test(text)) return bot.send(chat, await tournamentStatusText(env)); // v63: the week's tournament
     const g = /^\/(grant|revoke)(?:@\w+)?\s+(\S+)(?:\s+(\d+))?/.exec(text);
     if (g) {
@@ -801,6 +803,52 @@ async function apiSkinBuy(env, bot, body) {
   await env.DB.batch([...changeStmts(env, v.user.id, -price, 'skin', skin, ts), ...buySkinStmts(env, v.user.id, skin, 'em_' + randomId(10), ts)]);
   secAudit(env, v.user.id, 'skin_buy', { detail: skin });
   return json({ ok: true, bought: skin, price, balance: await balanceOf(env, v.user.id), skins: { owned: await ownedSkins(env, v.user.id, false, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) } });
+}
+/* ---------- v68: an admin gives a player skins (one, several or all) and can take his gifts back ---------- */
+async function playerSkinsView(env, target) {
+  return { user: { tgId: target.tg_id, name: rowName(target) || String(target.tg_id), username: target.username || '' }, owned: await ownedSkins(env, target.tg_id, false), gifted: await giftedSkins(env, target.tg_id), equipped: await equippedSkins(env, target.tg_id) };
+}
+/* give: the skins not owned yet get an admin's gift row (worn at once if the role has none on); the player gets a message in the bot */
+async function giveSkins(env, bot, adminId, target, skins) {
+  const owned = await ownedSkins(env, target.tg_id, false); const add = [...new Set(skins)].filter(s => isSkin(s) && !owned.includes(s));
+  if (!add.length) return [];
+  for (let i = 0; i < add.length; i += 40) await env.DB.batch(giftSkinStmts(env, target.tg_id, add.slice(i, i + 40), adminId, now(), randomId(4) + i));
+  const lang = pickLang(target.lang);
+  const text = add.length === 1 ? t(lang, 'skinGift', { skin: esc(skinName(add[0], lang)) }) : t(lang, 'skinGiftMany', { n: add.length });
+  try { await bot.send(target.tg_id, text, bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) {}
+  return add;
+}
+async function apiAdminSkins(env, bot, body, action) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!isAdmin(env, v.user.id)) { secEvent(env, 'admin_denied', 'medium', { tg: v.user.id, path: 'skins' }); return json({ ok: false, error: 'forbidden' }, 403); }
+  const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
+  if (action === 'list') return json(Object.assign({ ok: true }, await playerSkinsView(env, target)));
+  secAudit(env, v.user.id, 'skin_gift', { detail: `${body.give === false ? '-' : '+'}${String(body.skin || '').slice(0, 40)} → ${target.tg_id}` });
+  if (await isLockdown(env)) return json({ ok: false, error: 'lockdown' }, 423);
+  const want = String(body.skin || ''); const list = want === 'all' ? Object.keys(SKINS) : [want];
+  if (!list.every(isSkin)) return json({ ok: false, error: 'bad_skin' }, 400);
+  let changed = [];
+  if (body.give === false) changed = await takeGiftedSkins(env, target.tg_id, list);
+  else changed = await giveSkins(env, bot, v.user.id, target, list);
+  return json(Object.assign({ ok: true, changed, give: body.give !== false }, await playerSkinsView(env, target)));
+}
+/* /skin in the bot (admins): /skin @user — the list; /skin @user <id|all> — give; /skin @user -<id> — take a gift back */
+async function onSkinCommand(env, bot, msg) {
+  const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id;
+  const m = /^\/skins?(?:@\w+)?\s+(\S+)(?:\s+(-?)([a-z0-9_]{2,40}))?\s*$/.exec(msg.text.trim());
+  if (!m) return bot.send(chat, t(lang, 'adminHelpSkins') + '\n\n' + Object.keys(SKINS).map(id => `<code>${id}</code> — ${esc(skinName(id, 'ru'))}`).join('\n'));
+  const target = await findUser(env, m[1]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(m[1]) }));
+  const who = `${esc(rowName(target) || String(target.tg_id))}${target.username ? ' @' + esc(target.username) : ''}`;
+  if (m[3]) {
+    const list = m[3] === 'all' ? Object.keys(SKINS) : [m[3]]; if (!list.every(isSkin)) return bot.send(chat, `Нет такого скина: <code>${esc(m[3])}</code>. Список — /skin`);
+    secAudit(env, u.id, 'skin_gift', { detail: `${m[2] ? '-' : '+'}${m[3]} → ${target.tg_id}` });
+    if (await isLockdown(env)) return bot.send(chat, '🔒 Режим блокировки — изменения отключены.');
+    const changed = m[2] ? await takeGiftedSkins(env, target.tg_id, list) : await giveSkins(env, bot, u.id, target, list);
+    if (!changed.length) return bot.send(chat, m[2] ? `У ${who} нет такого подарка от админов (купленный или выигранный скин не забирается).` : `У ${who} это уже есть.`);
+    return bot.send(chat, `🎁 ${who}: ${m[2] ? 'забрано' : 'выдано'} — ${changed.map(id => esc(skinName(id, 'ru'))).join(', ')}`);
+  }
+  const view = await playerSkinsView(env, target);
+  return bot.send(chat, `🎨 ${who}: скинов ${view.owned.length} из ${Object.keys(SKINS).length}${view.owned.length ? '\n' + view.owned.map(id => `• ${esc(skinName(id, 'ru'))}${view.gifted.includes(id) ? ' 🎁' : ''}${Object.values(view.equipped).includes(id) ? ' (надет)' : ''}`).join('\n') : ''}`);
 }
 /* ---------- v63 the weekly tournament (tournament.js) ---------- */
 /* a line for /api/me and the home screen: the tournament's state and whether I am in */
@@ -1964,6 +2012,8 @@ export default {
           case '/api/skin/equip': return wrap(apiSkinEquip(env, body));
           case '/api/skins': return wrap(apiSkinsOf(env, body));
           case '/api/skin/buy': return wrap(apiSkinBuy(env, bot, body)); // v63: an Epic skin for emeralds
+          case '/api/admin/skins': return wrap(apiAdminSkins(env, bot, body, 'list')); // v68: an admin gives skins
+          case '/api/admin/skin': return wrap(apiAdminSkins(env, bot, body, 'set'));
           case '/api/emeralds': return wrap(apiEmeralds(env, body));
           case '/api/tournament': return wrap(apiTournament(env, body));
           case '/api/tournament/join': return wrap(apiTournamentJoin(env, bot, body));

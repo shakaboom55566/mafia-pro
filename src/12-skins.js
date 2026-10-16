@@ -271,3 +271,61 @@ Object.assign(ACT, {
     S.skins.equipped = d.equipped || {}; save(); render(); toast(tt(on ? u.skWornToast : u.skOffToast, { name: s.name, role: ROLE[s.role].name }));
   }
 });
+/* ---------- v68: an admin gives a player skins (a sheet from the player's profile or the admin panel in Settings) ----------
+   every skin as a tile: a gift 🎁 (tap — take back), owned (bought or won — stays), not owned (tap — give); «Give all». */
+const ADMSK = { id: null, d: null, busy: false, q: '' };
+const admSkinsOn = () => !!(typeof TG !== 'undefined' && TG.app && apiBase() && S.cloud && S.cloud.admin);
+function admSkinsLoad(q) {
+  ADMSK.d = null; ADMSK.busy = true;
+  setTimeout(async () => { const d = await api('/api/admin/skins', typeof q === 'number' ? { tgId: q } : { q }); ADMSK.busy = false; ADMSK.d = d && d.ok ? d : { error: (d && d.error) || 'network' }; if (ADMSK.d.user) ADMSK.id = ADMSK.d.user.tgId; render(); }, 0);
+}
+function admSkinsSheetHTML() {
+  const u = U(); const d = ADMSK.d;
+  if (!d) return `<h2>${u.askTitle}</h2><p class="hint">${u.askLoading}</p>`;
+  if (d.error) return `<h2>${u.askTitle}</h2><p class="hint">${d.error === 'not_found' ? u.askNone : u.tgOffline}</p>`;
+  const owned = d.owned || [], gifted = d.gifted || [], worn = Object.values(d.equipped || {});
+  const tile = s => { const own = owned.includes(s.id), gift = gifted.includes(s.id), on = worn.includes(s.id); const role = ROLE[s.role];
+    return `<div class="sk-tile ${s.rarity} ${own ? 'own' : 'locked'} ${on ? 'worn' : ''}" role="button" tabindex="0" data-a="adm-skin" data-id="${s.id}">
+      <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
+      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role)}</div></div>`; };
+  const all = SKINS.length; const missing = SKINS.filter(s => !owned.includes(s.id)).length;
+  return `<h2 style="margin:0">${u.askTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''} · ${tt(u.askCount, { n: owned.length, all })}</div>
+    <p class="hint" style="margin:8px 0">${u.askHint}</p>
+    ${missing ? `<button class="btn primary sm" data-a="adm-skin-all" style="margin-bottom:10px">🎁 ${u.askAll} · ${missing}</button>` : ''}
+    <div class="sk-grid adm">${SKINS.map(tile).join('')}</div>`;
+}
+function admSkinsPanelHTML() { // the admin panel in Settings: open any player's skins by @username or id
+  if (!admSkinsOn()) return ''; const u = U();
+  return `<div class="eyebrow" style="margin-top:12px">🎨 ${u.askPanel}</div><div class="hint" style="margin:4px 0 6px">${u.askPanelHint}</div>
+    <div class="row"><input class="input grow" id="adm-sk-q" data-a="adm-sk-q" placeholder="@username" value="${esc(ADMSK.q)}" autocomplete="off" autocapitalize="off"><button class="btn sm" data-a="adm-sk-find" style="flex:0 0 auto">${u.askOpen}</button></div>`;
+}
+Object.assign(ACT, {
+  'adm-skins'(el) { if (!admSkinsOn()) return; const id = Number(el.dataset.id); if (!id) return; ADMSK.id = id; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(id); render(); },
+  'adm-sk-q'(el) { ADMSK.q = el.value || ''; },
+  'adm-sk-find'() { if (!admSkinsOn()) return; const q = ADMSK.q.trim(); if (!q) return; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
+  async 'adm-skin'(el) {
+    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id]; if (!d || !d.user || !s || ADMSK.busy) return;
+    const own = (d.owned || []).includes(s.id), gift = (d.gifted || []).includes(s.id);
+    if (own && !gift) { toast(u.askKeep); return; }
+    ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: s.id, give: !own }); ADMSK.busy = false;
+    if (!r || !r.ok) { toast(u.tgOffline); return; }
+    ADMSK.d = r; toast(tt(own ? u.askTook : u.askGave, { name: s.name })); tgHaptic(own ? 'light' : 'success'); render();
+  },
+  async 'adm-skin-all'() {
+    const u = U(); const d = ADMSK.d; if (!d || !d.user || ADMSK.busy) return;
+    ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: 'all', give: true }); ADMSK.busy = false;
+    if (!r || !r.ok) { toast(u.tgOffline); return; }
+    ADMSK.d = r; toast(tt(u.askGaveAll, { n: (r.changed || []).length })); tgHaptic('success'); render();
+  }
+});
+(function () {
+  try { // the search field in the admin panel: typing and Enter
+    document.addEventListener('input', e => { const el = e.target && e.target.closest && e.target.closest('[data-a="adm-sk-q"]'); if (el) ACT['adm-sk-q'](el); });
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'adm-sk-q') { e.preventDefault(); ACT['adm-sk-find'](); } });
+  } catch (e) {}
+  const orig = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || sh.type !== 'admSkins') return orig.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${admSkinsSheetHTML()}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
+  };
+})();

@@ -127,3 +127,25 @@ export async function grantSeasonSkin(env, season, ids, ts) {
   }
   return skin;
 }
+/* ---------- v68: an admin gives skins to a player (and takes his own gifts back) ----------
+   a gift is a purchases row (kind 'skin', status 'reward', payload 'admin:<adminId>:<random>'); it is worn at once unless the role
+   already has a skin on. Taking back removes only the admins' gifts — a skin bought or won stays with the player. */
+export const ADMIN_SKIN_PAYLOAD = 'admin:';
+export async function giftedSkins(env, tgId) {
+  const rows = (await env.DB.prepare("SELECT DISTINCT item FROM purchases WHERE tg_id = ?1 AND kind = 'skin' AND status IN ('paid', 'reward') AND payload LIKE 'admin:%'").bind(tgId).all()).results || [];
+  return rows.map(r => r.item).filter(isSkin);
+}
+export function giftSkinStmts(env, tgId, skins, adminId, ts, rnd) {
+  return skins.filter(isSkin).flatMap((skin, i) => [
+    env.DB.prepare("INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (?1, 'skin', ?2, 0, ?3, 'reward', ?4, ?4)").bind(tgId, skin, `${ADMIN_SKIN_PAYLOAD}${adminId}:${rnd}${i}`, ts),
+    env.DB.prepare('INSERT OR IGNORE INTO user_skins (tg_id, role, skin, updated_at) VALUES (?1, ?2, ?3, ?4)').bind(tgId, SKINS[skin].role, skin, ts)
+  ]);
+}
+/* take the admins' gifts of these skins back; a skin the player no longer owns comes off his card */
+export async function takeGiftedSkins(env, tgId, skins) {
+  skins = skins.filter(isSkin); if (!skins.length) return [];
+  await env.DB.batch(skins.map(skin => env.DB.prepare("DELETE FROM purchases WHERE tg_id = ?1 AND kind = 'skin' AND item = ?2 AND payload LIKE 'admin:%'").bind(tgId, skin)));
+  const still = await ownedSkins(env, tgId, false); const gone = skins.filter(s => !still.includes(s));
+  if (gone.length) await env.DB.batch(gone.map(skin => env.DB.prepare('DELETE FROM user_skins WHERE tg_id = ?1 AND skin = ?2').bind(tgId, skin)));
+  return gone;
+}

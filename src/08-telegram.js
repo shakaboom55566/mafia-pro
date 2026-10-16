@@ -453,7 +453,7 @@ function friendSheetHTML(id) {
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id); const isMe = S.cloud && S.cloud.user && S.cloud.user.id === id;
   const primary = isMe ? '' : (isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : ''));
-  const secondary = `${!isMe && usr.username ? `<button class="btn ghost sm" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}${isFriend ? `<button class="btn ghost sm" style="color:var(--crimson-2)" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}`;
+  const secondary = `${!isMe && usr.username ? `<button class="btn ghost sm" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}${isFriend ? `<button class="btn ghost sm" style="color:var(--crimson-2)" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}${typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}">🎁 ${u.askBtn}</button>` : ''}`; // v68: admins give skins
   const actions = `<div class="btn-row" style="margin-top:14px"><button class="btn" data-a="ps-open" data-id="${id}">${I.person} ${u.psBtn}</button>${primary}</div>${secondary ? `<div class="btn-row" style="margin-top:8px">${secondary}</div>` : ''}`;
   return head + body + actions;
 }
@@ -491,7 +491,8 @@ function playerStatsScreen() {
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
   const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
-  return `${topbar(u.psTitle, u.psSub)}<div class="stack">${head}${body}${actions}</div>`;
+  const admSk = typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}" style="align-self:flex-start">🎁 ${u.askBtn}</button>` : ''; // v68
+  return `${topbar(u.psTitle, u.psSub)}<div class="stack">${head}${body}${actions}${admSk}</div>`;
 }
 Object.assign(ACT, {
   'fr-open'(el) { S.ui.sheet = { type: 'friend', id: Number(el.dataset.id) }; render(); },
@@ -711,7 +712,7 @@ function adminPanelHTML() {
     <button class="btn primary" style="margin-top:8px" data-a="adm-grant">${u.adminGrant}</button>
     <div class="eyebrow" style="margin-top:12px">${u.adminGrants}${ADM.grants ? ` · ${ADM.grants.length}` : ''}</div>
     ${ADM.grants ? (rows ? `<div class="stack-s" style="margin-top:8px">${rows}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}
-    ${partners}${clubsAdm}</div>`;
+    ${typeof admSkinsPanelHTML === 'function' ? admSkinsPanelHTML() : ''}${partners}${clubsAdm}</div>`;
 }
 Object.assign(ACT, {
   'adm-q'(el) { ADM.q = el.value || ''; },

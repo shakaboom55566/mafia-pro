@@ -980,6 +980,11 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .sk-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sk-tile.locked .sk-thumb img { filter: saturate(.75) brightness(.86); }
 .sk-badge { position: absolute; right: 5px; top: 5px; padding: 2px 7px; border-radius: 999px; background: rgba(10,6,16,.8); color: #d9c2ff; font-size: 10.5px; font-weight: 800; }
+/* v68: the admin's view of a player's skins — not owned is dim with a «+», a gift has a gold badge */
+.sk-grid.adm .sk-tile.locked .sk-thumb img { filter: grayscale(.85) brightness(.5); }
+.sk-grid.adm .sk-tile.locked .sk-thumb::after { content: '+'; position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.85); font-size: 30px; font-weight: 800; }
+.sk-grid.adm .sk-badge.gift { background: rgba(60,40,8,.88); color: #f0cd7a; }
+
 .sk-tn { margin-top: 5px; font-weight: 800; font-size: 12.5px; line-height: 1.2; overflow-wrap: anywhere; }
 .sk-tr { font-size: 11px; color: var(--fg-2); line-height: 1.2; }
 .sk-sheet .card3d-wrap { width: min(250px, 70vw); }

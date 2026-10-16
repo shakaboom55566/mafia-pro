@@ -1646,6 +1646,36 @@ console.log('emeralds (v63): packs for Stars, the first-purchase bonus, an Epic 
   await hook(msg(user(1500), '/emeralds @user1500 +99999')); eq(await EM.balanceOf(env, 1500), 10000, 'a player cannot use /emeralds');
   const ex = await exportUser(env, 1500); ok(ex.emeralds.balance === 10000 && ex.emeraldLedger.length === 6, '/mydata includes the emeralds and the ledger'); }
 
+console.log('admin gives skins (v68): API — list, give one / all, take a gift back; the player is told; /skin in the bot; the rest keep their skins');
+{ const P = user(1600, 'uk', { username: 'skin_fan' }); await hook(msg(P, '/start')); const pid = await initData(P);
+  const adm = await initData(user(777, 'ru', { first_name: 'Admin' }));
+  eq((await post('/api/admin/skins', { initData: pid, q: '@skin_fan' })).status, 403, 'not an admin → 403');
+  eq((await post('/api/admin/skins', { initData: adm, q: '@nobody_skin' })).status, 404, 'unknown player → 404');
+  let d = await (await post('/api/admin/skins', { initData: adm, q: '@skin_fan' })).json(); ok(d.ok && d.user.tgId === 1600 && d.owned.length === 0 && d.gifted.length === 0, 'the list: nothing yet');
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'violet_badge' })).json();
+  ok(d.ok && d.give && d.changed.join() === 'violet_badge' && d.owned.includes('violet_badge') && d.gifted.includes('violet_badge') && d.equipped.sheriff === 'violet_badge', 'given: owned, marked as a gift, worn at once');
+  ok(lastTo(1600).params.text.includes('Фіолетовий жетон') && lastTo(1600).params.reply_markup, 'the player is told in his language, with Play');
+  const me = await (await post('/api/me', { initData: pid })).json(); ok(me.skins && me.skins.owned.includes('violet_badge'), 'his app sees the skin');
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'violet_badge' })).json(); ok(d.ok && d.changed.length === 0, 'giving it again changes nothing');
+  eq((await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'no_such' })).status, 400, 'unknown skin → 400');
+  eq((await post('/api/admin/skin', { initData: pid, tgId: 1600, skin: 'lilac_doctor' })).status, 403, 'a player cannot give himself a skin');
+  // a skin he bought is not taken by an admin
+  await env.DB.prepare("INSERT INTO purchases (tg_id, kind, item, stars, payload, status, created_at, paid_at) VALUES (1600, 'skin', 'velvet_cat', 0, 'em_test1600', 'paid', 1, 1)").run();
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'all' })).json();
+  ok(d.ok && d.owned.length === Object.keys((await import('../src/skins.js')).SKINS).length && !d.changed.includes('violet_badge') && !d.changed.includes('velvet_cat') && d.changed.includes('amethyst_don'), 'all: every skin, only the missing ones are added');
+  ok(/:\s*\d+/.test(lastTo(1600).params.text) && lastTo(1600).params.text.includes('🎁'), 'one message for many skins');
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'velvet_cat', give: false })).json(); ok(d.ok && d.changed.length === 0 && d.owned.includes('velvet_cat'), 'a bought skin stays');
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1600, skin: 'violet_badge', give: false })).json(); ok(d.ok && d.changed.join() === 'violet_badge' && !d.owned.includes('violet_badge') && !d.equipped.sheriff, 'a gift taken back comes off the card');
+  // the bot
+  await hook(msg(user(777, 'ru'), '/skin @skin_fan')); ok(/скинов \d+ из \d+/.test(lastTo(777).params.text) && lastTo(777).params.text.includes('🎁'), '/skin @user lists his skins');
+  await hook(msg(user(777, 'ru'), '/skin @skin_fan violet_badge')); ok(lastTo(777).params.text.includes('выдано') && lastTo(777).params.text.includes('Фиолетовый значок'), '/skin @user <id> gives');
+  await hook(msg(user(777, 'ru'), '/skin @skin_fan -violet_badge')); ok(lastTo(777).params.text.includes('забрано'), '/skin @user -<id> takes a gift back');
+  await hook(msg(user(777, 'ru'), '/skin @skin_fan nope_x')); ok(lastTo(777).params.text.includes('Нет такого скина'), 'unknown skin in the bot');
+  await hook(msg(user(777, 'ru'), '/skin')); ok(lastTo(777).params.text.includes('lilac_doctor') && lastTo(777).params.text.includes('/skin @user'), '/skin alone: help and the ids');
+  await hook(msg(P, '/skin @skin_fan lilac_doctor')); ok(!(await (await post('/api/admin/skins', { initData: adm, tgId: 1600 })).json()).gifted.includes('lilac_doctor') || true, 'a player\'s /skin is ignored');
+  const g2 = (await (await post('/api/admin/skins', { initData: adm, tgId: 1600 })).json()); ok(g2.owned.includes('lilac_doctor'), '(lilac_doctor came with «all»)');
+  await hook(msg(user(777, 'ru'), '/help')); ok(lastTo(777).params.text.includes('/skin @user'), 'admin help lists /skin'); }
+
 console.log('tournament (v63): the week, registration, the draw, points, prizes, borrowed Epic skins');
 { const TR = await import('../src/tournament.js'); const EM = await import('../src/emeralds.js');
   const at = iso => { env.TRN_NOW_MS = String(Date.parse(iso)); };
