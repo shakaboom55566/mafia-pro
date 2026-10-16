@@ -1596,10 +1596,10 @@ console.log('seasons (v55): one calendar in the app and the server, the best of 
 console.log('skins (v56): the same catalog in the app and the server');
 { const fs = await import('node:fs'); const vm = await import('node:vm'); const SK = await import('../src/skins.js');
   const app = fs.readFileSync(path.join(here, '..', '..', 'src', '12-skins.js'), 'utf8'); const block = app.slice(app.indexOf('/* skins:begin'), app.indexOf('/* skins:end */'));
-  const c = vm.createContext({}); vm.runInContext(block + '; this.SKINS = SKINS.concat(ROOMS); this.ROOMS = ROOMS;', c); // v71: the rooms are skins of the role «room» on the server
+  const c = vm.createContext({}); vm.runInContext(block + '; this.SKINS = SKINS.concat(ROOMS, FRAMES); this.ROOMS = ROOMS;', c); // v71: the rooms are skins of the role «room» on the server
   eq(c.SKINS.map(x => [x.id, x.role, x.rarity, x.season || 0, !!x.numbered]), Object.entries(SK.SKINS).map(([id, x]) => [id, x.role, x.rarity, x.season || 0, !!x.numbered]), 'every skin has the same id, card, rarity, season and numbering');
   ok(Object.entries(SK.SEASON_SKIN).every(([n, id]) => SK.SKINS[id] && SK.SKINS[id].season === Number(n)), 'a season reward is a skin of that season');
-  const files = c.SKINS.flatMap(x => x.role === 'room' ? [x.file + '.webp', x.file + '-depth.png', x.file + '-thumb.webp'] : [x.file + '.webp', x.file + '-depth.png', x.file + '-seal.webp']); ok(files.every(f => fs.existsSync(path.join(here, '..', '..', 'skins', f))), 'every skin has its face, depth map and portrait in skins/');
+  const files = c.SKINS.flatMap(x => x.role === 'room' ? [x.file + '.webp', x.file + '-depth.png', x.file + '-thumb.webp'] : x.role === 'frame' ? [x.file + '.webp'] : [x.file + '.webp', x.file + '-depth.png', x.file + '-seal.webp']); ok(files.every(f => fs.existsSync(path.join(here, '..', '..', 'skins', f))), 'every skin has its face, depth map and portrait in skins/');
   ok(Object.keys(SK.SKINS).every(id => ['ru', 'uk', 'en', 'pl', 'hy'].every(l => SK.skinName(id, l) && SK.skinName(id, l) !== id)), 'every skin is named in five languages'); }
 
 
@@ -1616,7 +1616,7 @@ console.log('emeralds (v63): packs for Stars, the first-purchase bonus, an Epic 
   eq([EM.firstBonusPct(0.99), EM.firstBonusPct(4.99), EM.firstBonusPct(9.99), EM.firstBonusPct(39.99), EM.firstBonusPct(99.99)], [100, 100, 40, 40, 20], 'bonus tiers');
   eq(EM.packGrant(EM.PACK.em_3xl, true), { emeralds: 7500, bonus: 3000, total: 10500 }, '7 500 for $39.99, the first time +40 %');
   // the balance in /api/me, a pack for Stars
-  const id = await initData(user(1500)); let me = await (await post('/api/me', { initData: id })).json(); eq(me.emeralds, { balance: 0, bought: [], epic: 7500, mythic: 50000 }, 'no emeralds yet');
+  const id = await initData(user(1500)); let me = await (await post('/api/me', { initData: id })).json(); eq(me.emeralds, { balance: 0, bought: [], epic: 7500, mythic: 50000, frame: 3000 }, 'no emeralds yet');
   let d = await (await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_3xl' })).json(); ok(d.ok && d.stars === 2000 && d.emeralds === 7500 && d.bonus === 3000 && d.first === true && d.link, 'invoice: 2 000 Stars, 7 500 + 3 000 bonus the first time');
   eq((await post('/api/invoice', { initData: id, kind: 'emeralds', id: 'em_none' })).status, 400, 'unknown pack');
   await hook({ update_id: 500, pre_checkout_query: { id: 'q50', from: user(1500), currency: 'XTR', total_amount: 2000, invoice_payload: d.payload } }); ok(lastCall('answerPreCheckoutQuery').params.ok === true, 'pre-checkout ok');
@@ -1720,6 +1720,31 @@ console.log('table backgrounds (v71): a room is a reward or a gift, the host put
   d = await (await post('/api/admin/skin', { initData: adm, tgId: 1700, skin: 'castelmar_club', give: false })).json(); ok(d.ok && !d.equipped.room, 'the gift taken back comes down');
   st = await (await post('/api/table/state', { initData: hid, code: lob.code })).json(); eq(st.room, null, 'and the table is plain again');
   ok((await post('/api/admin/skin', { initData: adm, tgId: 1701, skin: 'castelmar_club' })).status === 200 && (await (await post('/api/me', { initData: pid })).json()).skins.equipped.room === 'castelmar_club', 'a player gets one too (his own tables)'); }
+
+console.log('avatar frames (v74): bought for emeralds, one at a time, everyone at the table sees it, a gift has its own words');
+{ const SK = await import('../src/skins.js'); const EM = await import('../src/emeralds.js'); const F = Object.keys(SK.SKINS).filter(SK.isFrame);
+  ok(F.length === 8 && F.every(id => SK.SKINS[id].rarity !== 'epic'), 'eight Halloween frames, none Epic (not lent in the tournament)');
+  const H = user(1800, 'ru', { username: 'frame_fan' }); await hook(msg(H, '/start')); const hid = await initData(H); const adm = await initData(user(777, 'ru', { first_name: 'Admin' }));
+  eq((await (await post('/api/me', { initData: hid })).json()).emeralds.frame, EM.FRAME_PRICE, 'the app learns the frame price');
+  let r = await post('/api/skin/buy', { initData: hid, skin: 'hw_grim_reaper' }); eq(r.status, 402, 'no emeralds — not bought');
+  await env.DB.batch(EM.changeStmts(env, 1800, 5000, 'test', 'frames', now()));
+  let d = await (await post('/api/skin/buy', { initData: hid, skin: 'hw_grim_reaper' })).json(); ok(d.ok && d.price === EM.FRAME_PRICE && d.balance === 5000 - EM.FRAME_PRICE && d.skins.equipped.frame === 'hw_grim_reaper', 'bought for 3 000 and on at once');
+  eq((await post('/api/skin/buy', { initData: hid, skin: 'castelmar_club' })).status, 400, 'a room is still not sold');
+  eq((await post('/api/skin/equip', { initData: hid, role: 'frame', skin: 'hw_bone_crown' })).status, 400, 'a frame not owned cannot be put on');
+  eq((await post('/api/skin/equip', { initData: hid, role: 'don', skin: 'hw_grim_reaper' })).status, 400, 'a frame is not a card skin');
+  const lob = await (await post('/api/lobby', { initData: hid, fresh: true })).json();
+  const P = user(1801, 'en'); await hook(msg(P, '/start')); const pid = await initData(P);
+  await post('/api/table/invite/respond', { initData: pid, code: lob.code, accept: true }).catch(() => {});
+  await env.DB.prepare('INSERT OR IGNORE INTO lobby_players (code, tg_id, name, username, lang, joined_at) VALUES (?1, 1801, ?2, ?3, ?4, ?5)').bind(lob.code, 'User1801', '', 'en', now()).run().catch(() => {});
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1801, skin: 'hw_ghost_parade' })).json(); ok(d.ok && d.equipped.frame === 'hw_ghost_parade', 'an admin gives a frame — on at once');
+  ok(lastTo(1801).params.text.includes('Ghost Parade') && lastTo(1801).params.text.includes('frame'), 'the gift has the frame\'s words');
+  const st = await (await post('/api/lobby/status', { initData: hid, code: lob.code })).json();
+  const pl = (st.players || []).find(p => p.tgId === 1801); ok(pl && pl.frame === 'hw_ghost_parade', 'the host sees the player\'s frame in the lobby');
+  await post('/api/table/publish', { initData: hid, code: lob.code, pub: { phase: 'lobby', code: lob.code, n: 7, seats: [{ seat: 1, tgId: 1801, name: 'User1801' }] }, priv: {} });
+  const ts = await (await post('/api/table/state', { initData: pid, code: lob.code })).json(); ok(ts.profiles && ts.profiles[1801] && ts.profiles[1801].frame === 'hw_ghost_parade', 'the players see it on the table');
+  const pr = await (await post('/api/profile', { initData: pid, tgId: 1800 })).json(); eq(pr.skins && pr.skins.frame, 'hw_grim_reaper', 'his profile shows his frame');
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1801, skin: 'hw_ghost_parade', give: false })).json(); ok(d.ok && !d.equipped.frame, 'a gift taken back comes off');
+  const ts2 = await (await post('/api/table/state', { initData: pid, code: lob.code })).json(); ok(!ts2.profiles[1801].frame, 'and the table sees no frame'); }
 
 console.log('tournament (v63): the week, registration, the draw, points, prizes, borrowed Epic skins');
 { const TR = await import('../src/tournament.js'); const EM = await import('../src/emeralds.js');

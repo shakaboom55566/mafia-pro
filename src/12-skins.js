@@ -56,6 +56,17 @@ const ROOMS = [
   { id: 'khrushchevka_kitchen', role: 'room', rarity: 'legendary', file: 'room-khrushchevka-kitchen', rug: { cx: 0.51, cy: 0.53, fit: 2.35, tw: 0.62, ar: 1.33 } },
   { id: 'golden_palace', role: 'room', rarity: 'legendary', file: 'room-golden-palace', rug: { cx: 0.5, cy: 0.585, fit: 2.55, tw: 0.58, ar: 1.3, ty: 0.55 } }
 ];
+// v74: avatar frames (role «frame» on the server) — hole: the ring's inner circle / the picture's size (the frame is scaled so the hole fits the avatar) — src/19-frames.js
+const FRAMES = [
+  { id: 'hw_pumpkin_patch', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-pumpkin-patch', hole: 0.4576 },
+  { id: 'hw_vampire_count', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-vampire-count', hole: 0.507 },
+  { id: 'hw_witch_brew', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-witch-brew', hole: 0.5415 },
+  { id: 'hw_spider_queen', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-spider-queen', hole: 0.5051 },
+  { id: 'hw_bone_crown', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-bone-crown', hole: 0.515 },
+  { id: 'hw_ghost_parade', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-ghost-parade', hole: 0.5485 },
+  { id: 'hw_werewolf_moon', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-werewolf-moon', hole: 0.4759 },
+  { id: 'hw_grim_reaper', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-grim-reaper', hole: 0.4963 }
+];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
 /* v60: nine rarities (the owner's list, 15.10.2026) in the filter's order; abbr — the short mark, plate — the word on the pill (as on the card's plaque) */
@@ -243,7 +254,7 @@ function skinsTabHTML() {
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
-    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}
+    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}${typeof framesSectionHTML === 'function' ? framesSectionHTML(f, rf) : ''}
     ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
@@ -317,9 +328,9 @@ function admSkinsSheetHTML() {
   const owned = d.owned || [], gifted = d.gifted || [], worn = Object.values(d.equipped || {});
   const tile = s => { const own = owned.includes(s.id), gift = gifted.includes(s.id), on = worn.includes(s.id); const role = ROLE[s.role];
     return `<div class="sk-tile ${s.rarity} ${own ? 'own' : 'locked'} ${on ? 'worn' : ''}" role="button" tabindex="0" data-a="adm-skin" data-id="${s.id}">
-      <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
-      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role)}</div></div>`; };
-  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : []); // v71: the table backgrounds are given the same way
+      <div class="sk-thumb"><img src="${skinUrl(s, s.role === 'frame' ? '' : 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()"${s.role === 'frame' ? ' style="object-fit:contain;padding:8px"' : ''}>${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
+      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role === 'frame' ? u.afLabel : s.role)}</div></div>`; };
+  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : [], typeof FRAMES !== 'undefined' ? FRAMES : []); // v71/v74: the table backgrounds and the frames are given the same way
   const all = ALL.length; const missing = ALL.filter(s => !owned.includes(s.id)).length;
   return `<h2 style="margin:0">${u.askTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''} · ${tt(u.askCount, { n: owned.length, all })}</div>
     <p class="hint" style="margin:8px 0">${u.askHint}</p>
@@ -336,7 +347,7 @@ Object.assign(ACT, {
   'adm-sk-q'(el) { ADMSK.q = el.value || ''; },
   'adm-sk-find'() { if (!admSkinsOn()) return; const q = ADMSK.q.trim(); if (!q) return; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
   async 'adm-skin'(el) {
-    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
+    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]) || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
     const own = (d.owned || []).includes(s.id), gift = (d.gifted || []).includes(s.id);
     if (own && !gift) { toast(u.askKeep); return; }
     ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: s.id, give: !own }); ADMSK.busy = false;

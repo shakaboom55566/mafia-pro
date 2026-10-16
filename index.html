@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.50.0-ad66620">
+<meta name="mafia-build" content="1.51.0-e27bea5">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -751,6 +751,26 @@ html.lite .rt-room-haze { display: none; }
 .rm-lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; filter: drop-shadow(0 2px 6px #000); }
 .rm-plain { display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(240,205,122,.16), rgba(29,20,20,.9) 55%, #0b0a0e); color: var(--muted); font-size: 11px; text-align: center; padding: 8px; }
 .rm-preview { margin: 0 auto; max-width: 360px; }
+/* v74: avatar frames — over the avatar (the hole scaled to it), under the seat's number and fouls */
+.av-frame { position: absolute; left: 50%; top: 50%; width: calc(100% * var(--fs, 2)); max-width: none; height: auto; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; }
+.rt-seat .rt-av img.av-frame { width: calc(100% * var(--fs, 2)); height: auto; border-radius: 0; object-fit: contain; }
+.rt-seat .rt-num, .rt-seat .rt-foul { z-index: 2; }
+.rt-seat.framed .rt-nm { position: relative; z-index: 2; margin-top: 11px; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,.9); }
+.rt-seat.framed .rt-meta, .rt-seat.framed .rt-club { position: relative; z-index: 2; text-shadow: 0 1px 2px #000; }
+.rtable.sm .rt-seat.framed .rt-nm { margin-top: 7px; }
+.rtable:has(.rt-seat.framed) { margin-bottom: 14px; } .rt-stage .rtable:has(.rt-seat.framed) { margin-bottom: 0; }
+.av-fw { position: relative; display: inline-grid; flex: 0 0 auto; isolation: isolate; }
+.av-fw > .avatar { position: relative; z-index: 0; }
+.avatar.xl { width: 112px; height: 112px; font-size: 38px; }
+.af-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.af-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px 9px; border-radius: 14px; border: 1px solid rgba(255,140,40,.32); background: linear-gradient(180deg, rgba(255,120,30,.10), var(--bg-2)); cursor: pointer; text-align: center; }
+.af-tile.on { border-color: rgba(255,160,60,.95); box-shadow: 0 0 0 1px rgba(255,160,60,.45), 0 6px 22px -10px rgba(255,140,40,.8); }
+.af-prev { position: relative; width: 100%; aspect-ratio: 1.15; display: grid; place-items: center; overflow: hidden; }
+.af-prev .sk-badge { right: 4px; top: 4px; }
+.af-tile.locked .af-prev .av-frame { filter: saturate(.85); }
+.af-big { display: grid; place-items: center; padding: 64px 0 62px; }
+.af-at { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 14px; background: var(--bg-3); }
+.af-at .af-seat { position: relative; transform: none; width: 78px; margin: 14px 10px 4px; }
 
 /* results podium: scaled 3D cards with avatar, club badge, medal; plaque with points and the win streak in gold */
 .pod-panel { overflow: hidden; }
@@ -7148,6 +7168,75 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.keys(R).forEach(code => { const p = I18N[code]; if (!p) return; p.skins = Object.assign(p.skins || {}, R[code].skins); Object.assign(p.ui, R[code].ui); });
 })();
 /* ============================================================
+   v74 avatar frames — texts (screens: 19-frames.js; the catalog: FRAMES in 12-skins.js)
+   ============================================================ */
+(function () {
+  const N = { // name / a line about it
+    ru: {
+      hw_pumpkin_patch: ['Тыквенная грядка', 'Пять тыкв ухмыляются из колючих лоз — в эту ночь они тоже играют.'],
+      hw_vampire_count: ['Граф-вампир', 'Крылья летучей мыши, рубин и свечи, что плачут красным воском.'],
+      hw_witch_brew: ['Ведьмино зелье', 'Шляпы, метла и котёл, в котором булькает что-то зелёное. Не пробуйте.'],
+      hw_spider_queen: ['Королева пауков', 'Серебряная паутина в росе и чёрная вдова, которая всё видит.'],
+      hw_bone_crown: ['Костяная корона', 'Черепа, кости и свечи — корона для того, кто пережил не одну ночь.'],
+      hw_ghost_parade: ['Парад призраков', 'Весёлые привидения с фонариками кружат вокруг — им тоже интересно, кто мафия.'],
+      hw_werewolf_moon: ['Луна оборотня', 'Мех, следы когтей и полная луна. В полнолуние доверять никому.'],
+      hw_grim_reaper: ['Жнец', 'Капюшон, две косы и песочные часы. Время на исходе — голосуйте.']
+    },
+    uk: {
+      hw_pumpkin_patch: ['Гарбузова грядка', 'П’ять гарбузів шкіряться з колючих лоз — цієї ночі вони теж грають.'],
+      hw_vampire_count: ['Граф-вампір', 'Крила кажана, рубін і свічки, що плачуть червоним воском.'],
+      hw_witch_brew: ['Відьмине зілля', 'Капелюхи, мітла й казан, у якому булькає щось зелене. Не куштуйте.'],
+      hw_spider_queen: ['Королева павуків', 'Срібне павутиння в росі й чорна вдова, яка все бачить.'],
+      hw_bone_crown: ['Кістяна корона', 'Черепи, кістки й свічки — корона для того, хто пережив не одну ніч.'],
+      hw_ghost_parade: ['Парад привидів', 'Веселі привиди з ліхтариками кружляють довкола — їм теж цікаво, хто мафія.'],
+      hw_werewolf_moon: ['Місяць перевертня', 'Хутро, сліди кігтів і повний місяць. У повню не довіряйте нікому.'],
+      hw_grim_reaper: ['Жнець', 'Каптур, дві коси й пісочний годинник. Час спливає — голосуйте.']
+    },
+    en: {
+      hw_pumpkin_patch: ['Pumpkin Patch', 'Five pumpkins grin out of thorny vines — tonight they play too.'],
+      hw_vampire_count: ['Vampire Count', 'Bat wings, a ruby and candles weeping red wax.'],
+      hw_witch_brew: ['Witch’s Brew', 'Hats, a broom and a cauldron bubbling with something green. Don’t taste it.'],
+      hw_spider_queen: ['Spider Queen', 'A silver web in the dew and a black widow who sees everything.'],
+      hw_bone_crown: ['Bone Crown', 'Skulls, bones and candles — a crown for one who has lived through many nights.'],
+      hw_ghost_parade: ['Ghost Parade', 'Cheerful ghosts with lanterns circle around — they want to know who the mafia is too.'],
+      hw_werewolf_moon: ['Werewolf Moon', 'Fur, claw marks and a full moon. Trust no one at full moon.'],
+      hw_grim_reaper: ['Grim Reaper', 'A hood, two scythes and an hourglass. Time is running out — vote.']
+    },
+    pl: {
+      hw_pumpkin_patch: ['Dyniowa grządka', 'Pięć dyń szczerzy się z kolczastych pnączy — tej nocy one też grają.'],
+      hw_vampire_count: ['Hrabia wampir', 'Skrzydła nietoperza, rubin i świece płaczące czerwonym woskiem.'],
+      hw_witch_brew: ['Wiedźmi wywar', 'Kapelusze, miotła i kocioł, w którym bulgocze coś zielonego. Nie próbuj.'],
+      hw_spider_queen: ['Królowa pająków', 'Srebrna pajęczyna w rosie i czarna wdowa, która widzi wszystko.'],
+      hw_bone_crown: ['Kościana korona', 'Czaszki, kości i świece — korona dla tego, kto przeżył niejedną noc.'],
+      hw_ghost_parade: ['Parada duchów', 'Wesołe duszki z latarenkami krążą wokół — też chcą wiedzieć, kto jest mafią.'],
+      hw_werewolf_moon: ['Księżyc wilkołaka', 'Futro, ślady pazurów i pełnia. W pełnię nie ufaj nikomu.'],
+      hw_grim_reaper: ['Żniwiarz', 'Kaptur, dwie kosy i klepsydra. Czas ucieka — głosuj.']
+    },
+    hy: {
+      hw_pumpkin_patch: ['Դդմի մարգ', 'Հինգ դդում քմծիծաղում են փշոտ որթերի միջից․ այս գիշեր նրանք էլ են խաղում։'],
+      hw_vampire_count: ['Կոմս-վամպիր', 'Չղջիկի թևեր, սուտակ և կարմիր մոմով լացող մոմեր։'],
+      hw_witch_brew: ['Կախարդի եփուկ', 'Գլխարկներ, ավել և կաթսա, որում ինչ-որ կանաչ բան է եռում։ Մի՛ համտեսեք։'],
+      hw_spider_queen: ['Սարդերի թագուհի', 'Արծաթե սարդոստայն ցողի մեջ և սև այրի, որն ամեն ինչ տեսնում է։'],
+      hw_bone_crown: ['Ոսկրե թագ', 'Գանգեր, ոսկորներ և մոմեր՝ թագ նրա համար, ով շատ գիշերներ է վերապրել։'],
+      hw_ghost_parade: ['Ուրվականների շքերթ', 'Զվարթ ուրվականները լապտերներով պտտվում են շուրջը․ նրանք էլ են ուզում իմանալ, թե ով է մաֆիան։'],
+      hw_werewolf_moon: ['Գայլամարդու լուսին', 'Մորթի, ճանկերի հետքեր և լիալուսին։ Լիալուսնին ոչ մեկին մի՛ վստահեք։'],
+      hw_grim_reaper: ['Մահվան հնձվոր', 'Գլխանոց, երկու գերանդի և ավազի ժամացույց։ Ժամանակը սպառվում է՝ քվեարկե՛ք։']
+    }
+  };
+  const UI = {
+    ru: { afTitle: 'Рамки аватарки · Хэллоуин', afHint: 'Рамка вокруг вашей аватарки: её видят все за столом и в вашем профиле.', afLabel: 'Рамка', afOn: 'надета', afWear: 'Надеть', afOff: 'Снять рамку', afSet: '«{name}» — теперь ваша рамка', afOffToast: 'Рамка снята', afPreview: 'Так вас увидят за столом', afHow: 'Купить рамку можно в Telegram-версии: откройте приложение через бота.' },
+    uk: { afTitle: 'Рамки аватарки · Гелловін', afHint: 'Рамка навколо вашої аватарки: її бачать усі за столом і у вашому профілі.', afLabel: 'Рамка', afOn: 'вдягнена', afWear: 'Вдягнути', afOff: 'Зняти рамку', afSet: '«{name}» — тепер ваша рамка', afOffToast: 'Рамку знято', afPreview: 'Так вас побачать за столом', afHow: 'Купити рамку можна в Telegram-версії: відкрийте застосунок через бота.' },
+    en: { afTitle: 'Avatar frames · Halloween', afHint: 'A frame around your avatar: everyone sees it at the table and in your profile.', afLabel: 'Frame', afOn: 'on', afWear: 'Put on', afOff: 'Take off the frame', afSet: '«{name}» is your frame now', afOffToast: 'Frame off', afPreview: 'This is how the table sees you', afHow: 'Frames are bought in the Telegram version: open the app through the bot.' },
+    pl: { afTitle: 'Ramki awatara · Halloween', afHint: 'Ramka wokół Twojego awatara: widzą ją wszyscy przy stole i w Twoim profilu.', afLabel: 'Ramka', afOn: 'założona', afWear: 'Załóż', afOff: 'Zdejmij ramkę', afSet: '„{name}” — teraz Twoja ramka', afOffToast: 'Ramka zdjęta', afPreview: 'Tak zobaczą Cię przy stole', afHow: 'Ramkę kupisz w wersji Telegram: otwórz aplikację przez bota.' },
+    hy: { afTitle: 'Ավատարի շրջանակներ · Հելոուին', afHint: 'Շրջանակ ձեր ավատարի շուրջ․ այն տեսնում են բոլորը սեղանի շուրջ և ձեր պրոֆիլում։', afLabel: 'Շրջանակ', afOn: 'դրված է', afWear: 'Դնել', afOff: 'Հանել շրջանակը', afSet: '«{name}»՝ այժմ ձեր շրջանակն է', afOffToast: 'Շրջանակը հանվեց', afPreview: 'Այսպես ձեզ կտեսնեն սեղանի շուրջ', afHow: 'Շրջանակը կարելի է գնել Telegram-տարբերակում․ բացեք հավելվածը բոտի միջոցով։' }
+  };
+  Object.keys(UI).forEach(code => {
+    const p = I18N[code]; if (!p) return; p.skins = p.skins || {};
+    Object.entries(N[code]).forEach(([id, [name, lore]]) => { p.skins[id] = { name, lore }; });
+    Object.assign(p.ui, UI[code]);
+  });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -10826,7 +10915,9 @@ function friendSheetHTML(id) {
   const d = c && !c.loading && !c.error ? c : null;
   const usr = d ? d.user : known; const fmt = ms => new Date(ms).toLocaleDateString(L.code === 'en' ? 'en-GB' : L.code === 'uk' ? 'uk-UA' : L.code === 'pl' ? 'pl-PL' : L.code === 'hy' ? 'hy-AM' : 'ru-RU');
   const tile = (v, k, col = '') => `<div class="st"><div class="v num" style="${col}">${v}</div><div class="k">${k}</div></div>`;
-  const head = `<div class="row" style="gap:12px">${usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow" style="min-width:0"><h2 style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : known, 20)}${esc(usr.name)}</h2>${usr.username ? `<div class="hint" style="margin:0">@${esc(usr.username)}</div>` : ''}<div style="font-size:12px;margin-top:2px">${presenceHTML(usr)}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
+  const fid = d && d.skins && typeof frameWrap === 'function' ? d.skins.frame : null; // v74: his avatar frame
+  const av0 = usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`;
+  const head = `<div class="row" style="gap:12px">${fid ? frameWrap(av0, fid) : av0}<div class="grow" style="min-width:0"><h2 style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : known, 20)}${esc(usr.name)}</h2>${usr.username ? `<div class="hint" style="margin:0">@${esc(usr.username)}</div>` : ''}<div style="font-size:12px;margin-top:2px">${presenceHTML(usr)}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
   let body;
   if (!d) body = c && c.error ? `<div class="hint" style="margin-top:12px">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</div>` : `<div class="hint" style="margin-top:12px">${u.frLoading}</div>`;
   else {
@@ -10869,7 +10960,9 @@ function playerStatsScreen() {
   loadPlayerProfile(id, false); const c = FRP[id]; const d = c && !c.loading && !c.error ? c : null;
   const usr = d ? d.user : knownUser(id); const isMe = S.cloud && S.cloud.user && S.cloud.user.id === id;
   const fmt = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
-  const head = `<div class="prof-head">${usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`}<div class="grow" style="min-width:0"><div class="nm">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : usr, 22)}${esc(usr.name)}</div>${usr.username ? `<div class="un">@${esc(usr.username)}</div>` : ''}<div class="loc">${presenceHTML(usr)}${usr.since ? ` · ${tt(u.psSince, { date: fmt(usr.since) })}` : ''}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
+  const pav = usr.photo ? `<img class="avatar lg" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar lg" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((usr.name || '?').slice(0, 1).toUpperCase())}</div>`;
+  const pfid = d && d.skins && typeof frameWrap === 'function' ? d.skins.frame : null; // v74: his avatar frame
+  const head = `<div class="prof-head">${pfid ? frameWrap(pav, pfid) : pav}<div class="grow" style="min-width:0"><div class="nm">${rankIco(d ? Object.assign({ tgId: id }, d.rating) : usr, 22)}${esc(usr.name)}</div>${usr.username ? `<div class="un">@${esc(usr.username)}</div>` : ''}<div class="loc">${presenceHTML(usr)}${usr.since ? ` · ${tt(u.psSince, { date: fmt(usr.since) })}` : ''}${d && d.grant ? ` · <span style="color:var(--gold-2)">★ ${u.frFullAccess}</span>` : ''}</div></div></div>`;
   let body;
   if (!d) body = c && c.error ? `<p class="hint">${c.error === 'not_found' ? u.frSearchEmpty : u.tgOffline}</p>` : `<p class="hint">${u.frLoading}</p>`;
   else {
@@ -11371,7 +11464,7 @@ function modeSegmentHTML() {
 function hostTableHTML(st) {
   if (!TG.app || !apiBase()) return ''; const l = S.lobby; if (!l || !l.code || (S.game && !S.game.winner)) return ''; // a finished game is history: the new table's waiting room shows
   const u = U(); const seats = []; const profiles = {}; const marks = {};
-  l.players.forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
+  l.players.forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online, frame: pl.frame || '' }; });
   for (let i = 0; i < st.n; i++) { const e = Object.entries(l.seats || {}).find(([k, v]) => Number(v) === i); const pl = e && l.players.find(p => p.tgId === Number(e[0])); const prof = (st.seatProfiles || [])[i] ? profById(st.seatProfiles[i]) : null; const name = (st.names[i] || '').trim() || (pl ? pl.name : '') || (prof ? prof.name : ''); seats.push({ seat: i + 1, name: name || u.tbSeatFree, tgId: e ? Number(e[0]) : null, alive: true }); if (!name) marks[i + 1] = { dim: true }; if (pl) marks[i + 1] = { joined: true }; }
   const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-host">${esc(hostName())}</div><div class="rt-n">${tt(u.tbPlayersN, { n: `${l.players.length} / ${st.n}` })}</div>`;
   // the host moves players by tapping: a player, then a seat (whoever sat there takes the vacated one)
@@ -11428,9 +11521,10 @@ function roundTableHTML(seats, profiles, center, marks = {}, room = null) { // v
     const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
     const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${free ? '·' : esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
     const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
-    const cls = ['rt-seat', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : '', m.wait ? 'wait' : ''].filter(Boolean).join(' ');
+    const fr = pr && pr.frame && typeof FRAME !== 'undefined' && FRAME[pr.frame] ? pr.frame : null; // v74: his avatar frame
+    const cls = ['rt-seat', fr ? 'framed' : '', s.alive === false ? 'dead' : '', m.mine ? 'mine' : '', m.speaker ? 'spk' : '', m.cand ? 'cand' : '', m.picked ? 'picked' : '', m.ok === false ? 'dis' : '', m.pick ? 'pickable' : '', m.dim ? 'free' : '', m.joined ? 'joined' : '', m.wait ? 'wait' : ''].filter(Boolean).join(' ');
     const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
-    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
+    return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}${fr ? frameImgHTML(fr, true) : ''}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
   const table = `<div class="rtable ${size}${rl ? ' roomed' : ''}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
   return rl ? `<div class="rt-stage" ${roomStageAttr(room)}>${rl}${table}</div>` : table;
@@ -12482,6 +12576,17 @@ const ROOMS = [
   { id: 'khrushchevka_kitchen', role: 'room', rarity: 'legendary', file: 'room-khrushchevka-kitchen', rug: { cx: 0.51, cy: 0.53, fit: 2.35, tw: 0.62, ar: 1.33 } },
   { id: 'golden_palace', role: 'room', rarity: 'legendary', file: 'room-golden-palace', rug: { cx: 0.5, cy: 0.585, fit: 2.55, tw: 0.58, ar: 1.3, ty: 0.55 } }
 ];
+// v74: avatar frames (role «frame» on the server) — hole: the ring's inner circle / the picture's size (the frame is scaled so the hole fits the avatar) — src/19-frames.js
+const FRAMES = [
+  { id: 'hw_pumpkin_patch', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-pumpkin-patch', hole: 0.4576 },
+  { id: 'hw_vampire_count', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-vampire-count', hole: 0.507 },
+  { id: 'hw_witch_brew', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-witch-brew', hole: 0.5415 },
+  { id: 'hw_spider_queen', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-spider-queen', hole: 0.5051 },
+  { id: 'hw_bone_crown', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-bone-crown', hole: 0.515 },
+  { id: 'hw_ghost_parade', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-ghost-parade', hole: 0.5485 },
+  { id: 'hw_werewolf_moon', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-werewolf-moon', hole: 0.4759 },
+  { id: 'hw_grim_reaper', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-grim-reaper', hole: 0.4963 }
+];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
 /* v60: nine rarities (the owner's list, 15.10.2026) in the filter's order; abbr — the short mark, plate — the word on the pill (as on the card's plaque) */
@@ -12669,7 +12774,7 @@ function skinsTabHTML() {
   const mine = SKINS.filter(s => own(s.id)).length;
   return `<p class="hint">${u.skHint}</p>
     <div class="filters sk-rars">${`<button class="chip rar-chip ${rf === 'all' ? 'active' : ''}" data-a="skin-rar" data-id="all">${u.skRarAll}</button>`}${RARITIES.map(rchip).join('')}</div>
-    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}
+    ${typeof roomsSectionHTML === 'function' ? roomsSectionHTML(f, rf) : ''}${typeof framesSectionHTML === 'function' ? framesSectionHTML(f, rf) : ''}
     ${mythic.length ? `<div class="eyebrow gold">${u.skMythTitle}</div><div class="stack">${mythic.map(skinItemHTML).join('')}</div>` : ''}
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
@@ -12743,9 +12848,9 @@ function admSkinsSheetHTML() {
   const owned = d.owned || [], gifted = d.gifted || [], worn = Object.values(d.equipped || {});
   const tile = s => { const own = owned.includes(s.id), gift = gifted.includes(s.id), on = worn.includes(s.id); const role = ROLE[s.role];
     return `<div class="sk-tile ${s.rarity} ${own ? 'own' : 'locked'} ${on ? 'worn' : ''}" role="button" tabindex="0" data-a="adm-skin" data-id="${s.id}">
-      <div class="sk-thumb"><img src="${skinUrl(s, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
-      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role)}</div></div>`; };
-  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : []); // v71: the table backgrounds are given the same way
+      <div class="sk-thumb"><img src="${skinUrl(s, s.role === 'frame' ? '' : 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()"${s.role === 'frame' ? ' style="object-fit:contain;padding:8px"' : ''}>${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
+      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role === 'frame' ? u.afLabel : s.role)}</div></div>`; };
+  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : [], typeof FRAMES !== 'undefined' ? FRAMES : []); // v71/v74: the table backgrounds and the frames are given the same way
   const all = ALL.length; const missing = ALL.filter(s => !owned.includes(s.id)).length;
   return `<h2 style="margin:0">${u.askTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''} · ${tt(u.askCount, { n: owned.length, all })}</div>
     <p class="hint" style="margin:8px 0">${u.askHint}</p>
@@ -12762,7 +12867,7 @@ Object.assign(ACT, {
   'adm-sk-q'(el) { ADMSK.q = el.value || ''; },
   'adm-sk-find'() { if (!admSkinsOn()) return; const q = ADMSK.q.trim(); if (!q) return; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
   async 'adm-skin'(el) {
-    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
+    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]) || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
     const own = (d.owned || []).includes(s.id), gift = (d.gifted || []).includes(s.id);
     if (own && !gift) { toast(u.askKeep); return; }
     ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: s.id, give: !own }); ADMSK.busy = false;
@@ -12983,6 +13088,7 @@ const EM_PACKS = [
 const firstBonusPct = usd => (usd <= 4.99 ? 100 : usd <= 40 ? 40 : 20);
 const EM_EPIC = 7500;
 const EM_MYTHIC = 50000; // v69: a Mythic skin, every copy numbered
+const EM_FRAME = 3000; // v74: an avatar frame (the server's EMERALDS_FRAME)
 const PRIZE_FUND = 10000;
 function prizeTable(n, fund) {
   n = Math.max(0, Math.floor(Number(n) || 0)); fund = Math.max(0, Math.floor(Number(fund) || 0));
@@ -13006,6 +13112,7 @@ const emUsd = usd => usd.toFixed(2).replace('.', L.code === 'en' ? '.' : ',');
 const emBalance = () => (S.em && Number(S.em.balance)) || 0;
 const emEpic = () => (S.em && Number(S.em.epic)) || EM_EPIC;
 const emMythic = () => (S.em && Number(S.em.mythic)) || EM_MYTHIC;
+const emFrame = () => (S.em && Number(S.em.frame)) || EM_FRAME;
 const emSkinPrice = s => (s && s.rarity === 'mythic' ? emMythic() : emEpic());
 const trnFund = () => (S.cloud && S.cloud.trn && Number(S.cloud.trn.fund)) || PRIZE_FUND;
 const emDate = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
@@ -13040,7 +13147,7 @@ function emeraldsTabHTML() {
 }
 function emLedgerLoad() {
   if (!emInTg() || EMR.busy || (EMR.at && Date.now() - EMR.at < 30000)) return;
-  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC, mythic: d.mythic || EM_MYTHIC }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
+  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC, mythic: d.mythic || EM_MYTHIC, frame: d.frame || EM_FRAME }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
 }
 (function () {
   const orig = shopScreen;
@@ -13068,7 +13175,7 @@ function emLedgerLoad() {
   cloudSync = async function () {
     await origSync.apply(this, arguments);
     const d = CLOUD.me; if (!d || !d.ok) return;
-    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC, mythic: Number(d.emeralds.mythic) || EM_MYTHIC };
+    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC, mythic: Number(d.emeralds.mythic) || EM_MYTHIC, frame: Number(d.emeralds.frame) || EM_FRAME };
     if (d.skins && typeof d.skins === 'object') S.skins.borrowed = Number(d.skins.borrowed) || 0;
     S.cloud = S.cloud || {}; S.cloud.trn = d.tournament || null;
     save(); render();
@@ -13215,7 +13322,7 @@ Object.assign(ACT, {
   'em-topup'() { S.ui.sheet = null; S.ui.shopTab = 'emeralds'; go('shop'); },
   'em-buy'(el) { const id = el.dataset.id; if (!EM_PACK[id]) return; if (emInTg() && tgBuy('emeralds', id, () => {})) return; ACT['buy-confirm']({ dataset: { kind: 'emeralds', id } }); },
   async 'em-skin-buy'(el) {
-    const u = U(); const s = SKIN[el.dataset.id]; if (!s || !emInTg()) return;
+    const u = U(); const s = SKIN[el.dataset.id] || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!s || !emInTg()) return; // v74: frames too
     const d = await api('/api/skin/buy', { skin: s.id });
     if (d && d.ok) {
       if (d.skins) { S.skins.owned = d.skins.owned || S.skins.owned; S.skins.equipped = d.skins.equipped || S.skins.equipped; if (d.skins.serials) S.skins.serials = d.skins.serials; if (d.skins.sold) S.skins.sold = d.skins.sold; }
@@ -13274,7 +13381,7 @@ function hostGameTableHTML(g) {
   const head = hvHeaderHTML('hvTable', u.hvTable, `<span class="hint hv-sub">${tt(u.tbAtTable, { n: al.length })}</span>`);
   if (!open) return `<div class="panel hv-panel folded">${head}</div>`;
   const l = g.tg && g.tg.code ? g.tg : null; const profiles = {};
-  if (l) (l.players || []).forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
+  if (l) (l.players || []).forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online, frame: pl.frame || '' }; });
   const seats = g.players.map(p => ({ seat: p.seat, name: p.name, tgId: l ? seatTg(g, p.seat) : null, alive: p.alive, fouls: p.fouls || 0 }));
   const marks = {}; const mk = (seat, m) => { if (seat) marks[seat] = Object.assign(marks[seat] || {}, m); };
   const seatOf = id => { const p = id ? P(g, id) : null; return p ? p.seat : 0; };
@@ -13857,6 +13964,81 @@ Object.assign(ACT, {
   sheetHTML = function (enter) {
     const sh = S.ui.sheet; if (!sh || (sh.type !== 'room' && sh.type !== 'roomPick')) return orig.apply(this, arguments);
     const body = sh.type === 'room' ? roomSheetHTML(sh.id) : roomPickHTML(); if (!body) return orig.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
+  };
+})();
+/* ============================================================
+   v74 AVATAR FRAMES — a frame around the player's avatar wherever others see him
+   - owning: like a skin (role «frame» on the server): bought for emeralds (EMERALDS_FRAME, 3 000 by default) or given by an admin;
+     admins own all. One frame at a time (/api/skin/equip { role: 'frame' }); bought or given — it is on at once if none was.
+   - seen: on the round table (the host's lobby, the players' table, the host's game screen — seatProfiles → profile.frame),
+     in a player's sheet and his statistics (/api/profile → skins.frame), in the Skins tab with my own avatar.
+   - the picture: a transparent square, the hole in its middle (FRAMES[].hole — its share of the picture) is scaled to the avatar
+     (a hair bigger, so the ring covers the avatar's rim); the seat's number and fouls stay on top.
+   ============================================================ */
+const FRAME = Object.fromEntries(FRAMES.map(f => [f.id, f]));
+['name', 'lore'].forEach(k => FRAMES.forEach(f => Object.defineProperty(f, k, { get() { const p = (L.skins && L.skins[f.id]) || (I18N.ru.skins || {})[f.id] || {}; return p[k] || f.id; }, enumerable: true })));
+const frameOwned = id => !!FRAME[id] && (S.skins.owned || []).includes(id);
+const myFrame = () => { const id = S.skins && S.skins.equipped && S.skins.equipped.frame; return frameOwned(id) ? id : null; };
+// full: the hole a hair bigger than the avatar (profiles, previews); compact (the table's seats): at most 1.7× the avatar — the ring then
+// lies over the avatar's rim, and the neighbours and the names keep their room
+const frameScale = (f, compact) => Math.min(compact ? 1.7 : 2.4, 1.05 / Math.max(0.3, f.hole || 0.5));
+function frameImgHTML(id, compact) {
+  const f = FRAME[id]; if (!f) return '';
+  return `<img class="av-frame" src="${skinUrl(f)}" alt="" draggable="false" decoding="async" style="--fs:${frameScale(f, compact).toFixed(3)}" onerror="this.remove()">`;
+}
+/* an avatar (any element) with a frame over it — the wrapper takes the avatar's size */
+const frameWrap = (avatar, id) => (id && FRAME[id] ? `<span class="av-fw">${avatar}${frameImgHTML(id)}</span>` : avatar);
+/* my own avatar for the previews: the Telegram photo or the first letter */
+function frameMyAvatar(cls = 'lg') {
+  const usr = (S.cloud && S.cloud.user) || {}; const name = usr.name || '?';
+  return usr.photo ? `<img class="avatar ${cls}" src="${esc(usr.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar ${cls}" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc(name.slice(0, 1).toUpperCase())}</div>`;
+}
+
+/* ---------- the Skins tab: the frames' section, a frame's sheet ---------- */
+function frameTileHTML(f) {
+  const u = U(); const own = frameOwned(f.id), on = myFrame() === f.id;
+  return `<div class="af-tile ${own ? 'own' : 'locked'} ${on ? 'on' : ''}" role="button" tabindex="0" data-a="frame-sheet" data-id="${f.id}">
+    <div class="af-prev">${frameWrap(frameMyAvatar(''), f.id)}${on ? `<span class="sk-badge">${u.afOn}</span>` : ''}</div>
+    <div class="sk-tn">${esc(f.name)}</div><div class="sk-tr">${own ? rarPill(f) : `💎 ${typeof fmtEm === 'function' ? fmtEm(emFrame()) : 3000}`}</div></div>`;
+}
+function framesSectionHTML(f, rf) {
+  if (f && !['all', 'mine'].includes(f)) return ''; // the team filters are about cards
+  const list = FRAMES.filter(x => (rf === 'all' || !rf || x.rarity === rf) && (f !== 'mine' || frameOwned(x.id))); if (!list.length) return '';
+  const u = U(); return `<div class="eyebrow gold">🎃 ${u.afTitle}</div><p class="hint" style="margin:2px 0 8px">${u.afHint}</p><div class="af-grid">${list.map(frameTileHTML).join('')}</div>`;
+}
+function frameSheetHTML(id) {
+  const u = U(); const f = FRAME[id]; if (!f) return '';
+  const own = frameOwned(id), on = myFrame() === id;
+  let btn;
+  if (own) btn = on ? `<button class="btn ghost" data-a="frame-set" data-id="">${u.afOff}</button>` : `<button class="btn primary" data-a="frame-set" data-id="${f.id}">${u.afWear}</button>`;
+  else if (typeof emInTg === 'function' && emInTg()) { const price = emFrame(); const short = price - emBalance(); btn = short > 0 ? `<button class="btn primary" data-a="em-topup">${tt(u.emSkinShort, { n: fmtEm(short) })}</button>` : `<button class="btn primary" data-a="em-skin-buy" data-id="${f.id}">${tt(u.emSkinBuy, { n: fmtEm(price) })}</button>`; }
+  else btn = `<p class="hint" style="margin:0">${u.afHow}</p>`;
+  const price = !own && typeof fmtEm === 'function' ? `<div class="em-price"><span class="em-tag">💎 ${fmtEm(emFrame())}</span>${typeof emBalance === 'function' ? `<span class="hint" style="margin:0">${u.emBalance}: <b class="num">${fmtEm(emBalance())}</b> 💎</span>` : ''}</div>` : '';
+  const seat = `<div class="rt-seat af-seat framed"><div class="rt-av">${(S.cloud && S.cloud.user && S.cloud.user.photo) ? `<img src="${esc(S.cloud.user.photo)}" alt="">` : `<span>${esc(((S.cloud && S.cloud.user && S.cloud.user.name) || '?').slice(0, 1).toUpperCase())}</span>`}${frameImgHTML(f.id, true)}<span class="rt-num">1</span></div><div class="rt-nm">${esc((S.cloud && S.cloud.user && S.cloud.user.name) || u.you || '')}</div></div>`;
+  return `<div class="row" style="gap:8px;align-items:center"><h2 class="grow" style="margin:0">${esc(f.name)}</h2>${rarPill(f)}</div>
+    <div class="hint" style="margin:2px 0 10px">${u.afLabel}${on ? ' · ' + u.afOn : ''}</div>
+    <div class="af-big">${frameWrap(frameMyAvatar('xl'), f.id)}</div>
+    <div class="af-at"><span class="hint" style="margin:0">${u.afPreview}</span>${seat}</div>
+    <p style="margin:12px 0 0;line-height:1.5">${esc(f.lore)}</p>${price}
+    <div class="btn-row" style="margin-top:12px">${btn}</div>`;
+}
+Object.assign(ACT, {
+  'frame-sheet'(el) { if (!FRAME[el.dataset.id]) return; S.ui.sheet = { type: 'frame', id: el.dataset.id }; render(); },
+  async 'frame-set'(el) {
+    const u = U(); const id = el.dataset.id || null; if (id && !frameOwned(id)) return; if ((myFrame() || null) === id) return;
+    if (typeof TG === 'undefined' || !TG.app || !apiBase()) { toast(u.skTgOnly); return; }
+    const prev = Object.assign({}, S.skins.equipped || {}); S.skins.equipped = Object.assign({}, prev); if (id) S.skins.equipped.frame = id; else delete S.skins.equipped.frame; render();
+    const d = await api('/api/skin/equip', { role: 'frame', skin: id });
+    if (!d || !d.ok) { S.skins.equipped = prev; render(); toast(u.skErr); return; }
+    S.skins.equipped = d.equipped || {}; save(); render(); toast(id ? tt(u.afSet, { name: FRAME[id].name }) : u.afOffToast); tgHaptic('success');
+  }
+});
+(function () {
+  const orig = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || sh.type !== 'frame') return orig.apply(this, arguments);
+    const body = frameSheetHTML(sh.id); if (!body) return orig.apply(this, arguments);
     return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
   };
 })();

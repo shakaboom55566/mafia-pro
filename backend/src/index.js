@@ -61,8 +61,8 @@ import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, r
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
-import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered, roomOf, isRoom } from './skins.js';
-import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, skinPrice, PACKS as EM_PACKS } from './emeralds.js';
+import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered, roomOf, isRoom, isFrame, framesOf } from './skins.js';
+import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, skinPrice, framePrice, PACKS as EM_PACKS } from './emeralds.js';
 import { tournamentView, joinTournament, openTournament, drawRound, setTableHost, closeTournament, setTournament, creditGame, borrowsSkins, runTournamentCron, tournamentStatusText, currentTournament, takeTable } from './tournament.js';
 
 const VERSION = '0.1.0';
@@ -803,10 +803,11 @@ async function mySerialsInfo(env, tgId) {
 async function apiSkinBuy(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const skin = String(body.skin || ''); if (!isSkin(skin)) return json({ ok: false, error: 'bad_skin' }, 400);
-  if (skinPrice(env, SKINS[skin].rarity) == null || SKINS[skin].season) return json({ ok: false, error: 'not_for_sale' }, 400); // Epic and Mythic are sold; the season's reward is earned
+  const itemPrice = isFrame(skin) ? framePrice(env) : skinPrice(env, SKINS[skin].rarity); // v74: frames have their own price
+  if (itemPrice == null || SKINS[skin].season) return json({ ok: false, error: 'not_for_sale' }, 400); // Epic and Mythic are sold; the season's reward is earned; rooms are not
   const admin = isAdmin(env, v.user.id);
   const own = (await ownedSkins(env, v.user.id, false)).includes(skin); if (own || admin) return json({ ok: true, owned: true, balance: await balanceOf(env, v.user.id), skins: Object.assign({ owned: await ownedSkins(env, v.user.id, admin, (await borrowsSkins(env, v.user.id)) ? epicSkinIds() : []), equipped: await equippedSkins(env, v.user.id) }, await mySerialsInfo(env, v.user.id)) });
-  const price = skinPrice(env, SKINS[skin].rarity); const balance = await balanceOf(env, v.user.id);
+  const price = itemPrice; const balance = await balanceOf(env, v.user.id);
   if (balance < price) return json({ ok: false, error: 'not_enough', price, balance, short: price - balance }, 402);
   const ts = now();
   try { await env.DB.batch([...changeStmts(env, v.user.id, -price, 'skin', skin, ts), ...buySkinStmts(env, v.user.id, skin, 'em_' + randomId(10), ts)]); }
@@ -825,7 +826,7 @@ async function giveSkins(env, bot, adminId, target, skins) {
   if (!add.length) return [];
   for (let i = 0; i < add.length; i += 40) await env.DB.batch(giftSkinStmts(env, target.tg_id, add.slice(i, i + 40), adminId, now(), randomId(4) + i));
   const lang = pickLang(target.lang);
-  const text = add.length === 1 ? t(lang, isRoom(add[0]) ? 'roomGift' : 'skinGift', { skin: esc(skinName(add[0], lang)) }) : t(lang, 'skinGiftMany', { n: add.length }); // v71: a room has its own words
+  const text = add.length === 1 ? t(lang, isRoom(add[0]) ? 'roomGift' : isFrame(add[0]) ? 'frameGift' : 'skinGift', { skin: esc(skinName(add[0], lang)) }) : t(lang, 'skinGiftMany', { n: add.length }); // v71: a room has its own words
   try { await bot.send(target.tg_id, text, bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) {}
   return add;
 }
@@ -1161,7 +1162,7 @@ async function apiLobbyStatus(env, bot, body) {
   const hostInvite = await env.DB.prepare('SELECT i.tg_id, i.status, u.first_name, u.last_name, u.username FROM table_invites i LEFT JOIN users u ON u.tg_id = i.tg_id WHERE i.code = ?1 AND i.kind = ?2 ORDER BY i.created_at DESC LIMIT 1').bind(lobby.code, 'host').first();
   const voice = await voiceInfo(env, lobby.code, v.user.id); const flag = flagOf(await lobbyLang(env, lobby.code));
   if (opts.online) bg(env, announceTable(env, bot, lobby.code, { seats: Math.round(Number(body.seats)) || null }));
-  return json({ ok: true, code: lobby.code, status: lobby.status, hostPlays: opts.hostPlays, online: opts.online, flag, voice, hostInvite: hostInvite ? { tgId: hostInvite.tg_id, name: rowName(hostInvite) || String(hostInvite.tg_id), status: hostInvite.status } : null, players: players.map(p => Object.assign({}, p, profiles[p.tgId] ? { photo: profiles[p.tgId].photo, points: profiles[p.tgId].points, games: profiles[p.tgId].games, hosted: profiles[p.tgId].hosted, city: profiles[p.tgId].city, club: profiles[p.tgId].club, online: profiles[p.tgId].online } : {})) });
+  return json({ ok: true, code: lobby.code, status: lobby.status, hostPlays: opts.hostPlays, online: opts.online, flag, voice, hostInvite: hostInvite ? { tgId: hostInvite.tg_id, name: rowName(hostInvite) || String(hostInvite.tg_id), status: hostInvite.status } : null, players: players.map(p => Object.assign({}, p, profiles[p.tgId] ? { photo: profiles[p.tgId].photo, points: profiles[p.tgId].points, games: profiles[p.tgId].games, hosted: profiles[p.tgId].hosted, city: profiles[p.tgId].city, club: profiles[p.tgId].club, online: profiles[p.tgId].online, frame: profiles[p.tgId].frame || '' } : {})) });
 }
 /* cards go to the app: each player's role is stored in their private table state; a short DM (no role text) pings those not looking at the table */
 async function apiLobbyDeal(env, bot, body) {
@@ -1205,6 +1206,7 @@ async function seatProfiles(env, ids) {
   const rows = (await env.DB.prepare(`SELECT u.tg_id, u.username, u.first_name, u.last_name, u.photo_url, u.seen_at, r.points, r.games, r.wins, r.hosted, uc.city, c.name AS club, c.logo AS clubLogo FROM users u LEFT JOIN ratings r ON r.tg_id = u.tg_id LEFT JOIN user_cities uc ON uc.tg_id = u.tg_id LEFT JOIN club_members m ON m.tg_id = u.tg_id LEFT JOIN clubs c ON c.id = m.club_id AND c.status = 'active' WHERE u.tg_id IN (${q})`).bind(...ids).all()).results || [];
   const ts = now(); const out = {};
   for (const r of rows) out[r.tg_id] = { tgId: r.tg_id, name: rowName(r) || String(r.tg_id), username: r.username || '', photo: r.photo_url || '', points: 1000 + (r.points || 0), games: r.games || 0, hosted: r.hosted || 0, wins: r.wins || 0, city: r.city || '', club: r.club || '', clubLogo: r.clubLogo || '', online: ts - (r.seen_at || 0) <= ONLINE_SEC };
+  const fr = await framesOf(env, ids); for (const id of Object.keys(fr)) if (out[id]) out[id].frame = fr[id]; // v74: the avatar frame everyone at the table sees
   return out;
 }
 async function pendingInvites(env, tgId) {

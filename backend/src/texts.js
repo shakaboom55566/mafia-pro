@@ -341,3 +341,10 @@ Object.assign(TEXTS.uk, { roomGift: '🎁 Адміністратор подар�
 Object.assign(TEXTS.en, { roomGift: '🎁 An admin gave you the table background <b>«{skin}»</b>. If you had none, it is already up: when you host an online game, every player at your table sees the room. Change it: «Cards» → «Skins» → «Table background».' });
 Object.assign(TEXTS.pl, { roomGift: '🎁 Administrator podarował Ci tło stołu <b>„{skin}”</b>. Jeśli nie miałeś tła — już stoi: gdy prowadzisz grę online, pokój widzą wszyscy gracze przy Twoim stole. Zmień: «Karty» → «Skórki» → «Tło stołu».' });
 Object.assign(TEXTS.hy, { roomGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց սեղանի ֆոն՝ <b>«{skin}»</b>։ Եթե ֆոն չունեիք, այն արդեն դրված է․ երբ վարում եք առցանց խաղ, սենյակը տեսնում են ձեր սեղանի բոլոր խաղացողները։ Փոխել՝ «Քարտեր» → «Սքիններ» → «Սեղանի ֆոն»։' });
+
+/* v74: an avatar frame as a gift */
+Object.assign(TEXTS.ru, { frameGift: '🎁 Администратор подарил вам рамку аватарки <b>«{skin}»</b>. Если рамки ещё не было — она уже надета: её видят все за столом и в вашем профиле. Сменить: «Карты» → «Скины» → «Рамки».' });
+Object.assign(TEXTS.uk, { frameGift: '🎁 Адміністратор подарував вам рамку аватарки <b>«{skin}»</b>. Якщо рамки ще не було — вона вже вдягнена: її бачать усі за столом і у вашому профілі. Змінити: «Карти» → «Скіни» → «Рамки».' });
+Object.assign(TEXTS.en, { frameGift: '🎁 An admin gave you the avatar frame <b>«{skin}»</b>. If you had none, it is already on: everyone sees it at the table and in your profile. Change it: «Cards» → «Skins» → «Frames».' });
+Object.assign(TEXTS.pl, { frameGift: '🎁 Administrator podarował Ci ramkę awatara <b>„{skin}”</b>. Jeśli nie miałeś ramki — już ją masz: widzą ją wszyscy przy stole i w Twoim profilu. Zmień: «Karty» → «Skórki» → «Ramki».' });
+Object.assign(TEXTS.hy, { frameGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց ավատարի շրջանակ՝ <b>«{skin}»</b>։ Եթե շրջանակ չունեիք, այն արդեն դրված է․ այն տեսնում են բոլորը սեղանի շուրջ և ձեր պրոֆիլում։ Փոխել՝ «Քարտեր» → «Սքիններ» → «Շրջանակներ»։' });

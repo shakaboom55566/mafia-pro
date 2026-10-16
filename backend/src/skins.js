@@ -44,8 +44,20 @@ export const SKINS = {
   // a reward or an admin's gift only (Legendary is not sold), not lent in the tournament (only Epic is)
   castelmar_club: { role: 'room', rarity: 'legendary' },
   khrushchevka_kitchen: { role: 'room', rarity: 'legendary' },
-  golden_palace: { role: 'room', rarity: 'legendary' }
+  golden_palace: { role: 'room', rarity: 'legendary' },
+  // v74: avatar frames — around the player's avatar wherever others see him (the table, his profile); bought for emeralds (EMERALDS_FRAME, 3 000)
+  // or given by an admin; one frame at a time (role 'frame'). Super Rare — not lent in the tournament (only Epic is)
+  hw_pumpkin_patch: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  hw_vampire_count: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  hw_witch_brew: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  hw_spider_queen: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  hw_bone_crown: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  hw_ghost_parade: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  hw_werewolf_moon: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  hw_grim_reaper: { role: 'frame', rarity: 'sr', series: 'halloween' }
 };
+export const FRAME_ROLE = 'frame';
+export const isFrame = id => isSkin(id) && SKINS[id].role === FRAME_ROLE;
 export const ROOM_ROLE = 'room';
 export const isRoom = id => isSkin(id) && SKINS[id].role === ROOM_ROLE;
 export const SEASON_SKIN = { 1: 'amethyst_don' };
@@ -86,7 +98,15 @@ export const SKIN_NAMES = {
   untouchable: { ru: 'Неуловимая', uk: 'Невловима', en: 'Untouchable', pl: 'Nieuchwytna', hy: 'Անհասանելին' },
   castelmar_club: { ru: 'Клуб «Кастельмар»', uk: 'Клуб «Кастельмар»', en: 'Castelmar Club', pl: 'Klub Castelmar', hy: '«Կաստելմար» ակումբ' },
   khrushchevka_kitchen: { ru: 'Кухня в хрущёвке', uk: 'Кухня в хрущовці', en: 'Khrushchyovka Kitchen', pl: 'Kuchnia w chruszczowce', hy: 'Խոհանոց խրուշչովկայում' },
-  golden_palace: { ru: 'Тронный зал', uk: 'Тронна зала', en: 'Throne Hall', pl: 'Sala tronowa', hy: 'Գահի սրահ' }
+  golden_palace: { ru: 'Тронный зал', uk: 'Тронна зала', en: 'Throne Hall', pl: 'Sala tronowa', hy: 'Գահի սրահ' },
+  hw_pumpkin_patch: { ru: 'Тыквенная грядка', uk: 'Гарбузова грядка', en: 'Pumpkin Patch', pl: 'Dyniowa grządka', hy: 'Դդմի մարգ' },
+  hw_vampire_count: { ru: 'Граф-вампир', uk: 'Граф-вампір', en: 'Vampire Count', pl: 'Hrabia wampir', hy: 'Կոմս-վամպիր' },
+  hw_witch_brew: { ru: 'Ведьмино зелье', uk: 'Відьмине зілля', en: 'Witch’s Brew', pl: 'Wiedźmi wywar', hy: 'Կախարդի եփուկ' },
+  hw_spider_queen: { ru: 'Королева пауков', uk: 'Королева павуків', en: 'Spider Queen', pl: 'Królowa pająków', hy: 'Սարդերի թագուհի' },
+  hw_bone_crown: { ru: 'Костяная корона', uk: 'Кістяна корона', en: 'Bone Crown', pl: 'Kościana korona', hy: 'Ոսկրե թագ' },
+  hw_ghost_parade: { ru: 'Парад призраков', uk: 'Парад привидів', en: 'Ghost Parade', pl: 'Parada duchów', hy: 'Ուրվականների շքերթ' },
+  hw_werewolf_moon: { ru: 'Луна оборотня', uk: 'Місяць перевертня', en: 'Werewolf Moon', pl: 'Księżyc wilkołaka', hy: 'Գայլամարդու լուսին' },
+  hw_grim_reaper: { ru: 'Жнец', uk: 'Жнець', en: 'Grim Reaper', pl: 'Żniwiarz', hy: 'Մահվան հնձվոր' }
 };
 export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_NAMES[id] || {}).ru) || id;
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;
@@ -142,6 +162,13 @@ export async function equippedOf(env, ids) {
   ids = [...new Set((ids || []).map(Number).filter(x => Number.isSafeInteger(x) && x > 0))].slice(0, 40); const out = {}; if (!ids.length) return out;
   const rows = (await env.DB.prepare(`SELECT tg_id, role, skin FROM user_skins WHERE tg_id IN (${ids.map((_, i) => '?' + (i + 1)).join(',')})`).bind(...ids).all()).results || [];
   for (const r of rows) if (isSkin(r.skin) && SKINS[r.skin].role === r.role) (out[r.tg_id] = out[r.tg_id] || {})[r.role] = r.skin;
+  return out;
+}
+/* v74: the frames several players wear: { tgId: frameId } (only frames they still own — taken-back gifts come off with the row) */
+export async function framesOf(env, ids) {
+  ids = [...new Set((ids || []).map(Number).filter(x => Number.isSafeInteger(x) && x > 0))].slice(0, 60); const out = {}; if (!ids.length) return out;
+  const rows = (await env.DB.prepare(`SELECT tg_id, skin FROM user_skins WHERE role = 'frame' AND tg_id IN (${ids.map((_, i) => '?' + (i + 1)).join(',')})`).bind(...ids).all()).results || [];
+  for (const r of rows) if (isFrame(r.skin)) out[r.tg_id] = r.skin;
   return out;
 }
 /* v71: the room a player has put up (the background of his table when he hosts) — null if none or no longer his */

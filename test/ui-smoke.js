@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -1092,11 +1092,11 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v66 ' + m); }
   S.game = null; S.lobby = null; S.screen = 'home'; S.ui.sheet = null; X.render(); console.log('v66 ok');
 } catch (e) { fails++; console.log('FAIL v66 crashed', e && e.stack || e); }
 // v68: an admin gives a player skins — the entry in the player's sheet, the stats screen and the admin panel; a tile gives, a gift is taken back, «Give all»
-try { const u = X.U(); const F = m => { fails++; console.log('FAIL v68 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const SK = E('SKINS').concat(E('ROOMS')); // v71: rooms are given the same way
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v68 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const SK = E('SKINS').concat(E('ROOMS'), E('FRAMES')); // v71/v74: rooms and frames are given the same way
   vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []; globalThis.__own = { owned: ["amethyst_don"], gifted: [] }', ctx);
   vm.runInContext(`api = async (p, b) => { __calls.push([p, b]); const view = () => ({ ok: true, user: { tgId: 777, name: 'Нина <b>', username: 'nina' }, owned: __own.owned.slice(), gifted: __own.gifted.slice(), equipped: { don: 'amethyst_don' } });
     if (p === '/api/admin/skins') return (b.q === '@nobody') ? { ok: false, error: 'not_found' } : view();
-    if (p === '/api/admin/skin') { const ids = b.skin === 'all' ? SKINS.concat(ROOMS).map(s => s.id).filter(id => !__own.owned.includes(id)) : [b.skin];
+    if (p === '/api/admin/skin') { const ids = b.skin === 'all' ? SKINS.concat(ROOMS, FRAMES).map(s => s.id).filter(id => !__own.owned.includes(id)) : [b.skin];
       if (b.give) ids.forEach(id => { if (!__own.owned.includes(id)) { __own.owned.push(id); __own.gifted.push(id); } }); else ids.forEach(id => { __own.owned = __own.owned.filter(x => x !== id); __own.gifted = __own.gifted.filter(x => x !== id); });
       return Object.assign(view(), { changed: ids, give: !!b.give }); }
     return { ok: false, error: 'not_found' }; }`, ctx);
@@ -1156,6 +1156,38 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v71 ' + m); }
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
   S.lobby = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v71 ok');
 } catch (e) { fails++; console.log('FAIL v71 crashed', e && e.stack || e); }
+// v74: avatar frames — the Skins tab section with my avatar, a frame's sheet (price, buy, put on, take off), the frame on the table and in a profile
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v74 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const FR = E('FRAMES'); const id = FR[0].id, id2 = FR[7].id;
+  vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []', ctx);
+  vm.runInContext(`api = async (p, b) => { __calls.push([p, b]); if (p === "/api/skin/equip") { const e = Object.assign({}, S.skins.equipped); if (b.skin) e[b.role] = b.skin; else delete e[b.role]; return { ok: true, equipped: e }; }
+    if (p === "/api/skin/buy") return { ok: true, bought: b.skin, price: 3000, balance: 1200, skins: { owned: S.skins.owned.concat([b.skin]), equipped: Object.assign({ frame: b.skin }, S.skins.equipped) } }; return { ok: false }; }`, ctx);
+  const calls = E('__calls'); const last = () => calls[calls.length - 1];
+  if (FR.length !== 8 || !FR.every(f => f.role === 'frame' && f.hole > 0.3 && f.hole < 0.7)) F('eight frames with their holes');
+  S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: [], equipped: {} }; S.em = { balance: 4200, bought: [], epic: 7500, mythic: 50000, frame: 3000 }; S.ui.sheet = null; S.ui.skinFilter = 'all'; S.ui.skinRar = 'all';
+  A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; X.render(); check('v74 skins tab frames'); let h = app.innerHTML;
+  if (!h.includes(u.afTitle) || (h.match(/data-a="frame-sheet"/g) || []).length !== 8 || (h.match(/class="av-frame"/g) || []).length < 8 || !h.includes('frame-hw-pumpkin-patch.webp') || !h.includes('3 000')) F('the section: eight frames around my avatar, with the price');
+  A['skin-rar'](el('skin-rar', { id: 'epic' })); if (app.innerHTML.includes('data-a="frame-sheet"')) F('the Epic filter hides the frames (Super Rare)'); A['skin-rar'](el('skin-rar', { id: 'sr' })); if (!app.innerHTML.includes('data-a="frame-sheet"')) F('SR shows them'); A['skin-rar'](el('skin-rar', { id: 'all' }));
+  // the sheet: a big preview, the seat at the table, the price; buy → on
+  A['frame-sheet'](el('frame-sheet', { id })); check('v74 frame sheet'); h = app.innerHTML;
+  if (!h.includes('af-big') || !h.includes('af-seat framed') || !h.includes(X.tt(u.emSkinBuy, { n: '3 000' })) || !h.includes(`data-a="em-skin-buy" data-id="${id}"`) || !h.includes(E('FRAME')[id].lore)) F('the sheet: the preview, the table seat, the buy button and the story');
+  await A['em-skin-buy'](el('em-skin-buy', { id })); if (last()[0] !== '/api/skin/buy' || last()[1].skin !== id || !S.skins.owned.includes(id) || S.skins.equipped.frame !== id || S.em.balance !== 1200) F('bought for emeralds and on');
+  X.render(); h = app.innerHTML; if (!h.includes(u.afOff) || h.includes(`data-a="em-skin-buy" data-id="${id}"`)) F('owned and on: «take off»');
+  await A['frame-set'](el('frame-set', { id: '' })); if (S.skins.equipped.frame || last()[1].role !== 'frame' || last()[1].skin !== null) F('taken off through the server');
+  await A['frame-set'](el('frame-set', { id: id2 })); if (S.skins.equipped.frame === id2) F('a frame not owned cannot be put on');
+  S.em.balance = 100; S.ui.sheet = { type: 'frame', id: id2 }; X.render(); if (!app.innerHTML.includes(X.tt(u.emSkinShort, { n: '2 900' }))) F('not enough emeralds: top up');
+  S.ui.sheet = null;
+  // the table: a player's frame over his avatar, his name on top
+  const rt = E('roundTableHTML')([{ seat: 1, tgId: 7, name: 'Нина' }, { seat: 2, tgId: 8, name: 'Борис' }], { 7: { tgId: 7, name: 'Нина', frame: id2 }, 8: { tgId: 8, name: 'Борис', frame: 'nope' } }, '', {});
+  if ((rt.match(/class="av-frame"/g) || []).length !== 1 || !rt.includes('rt-seat framed') || !rt.includes('frame-hw-grim-reaper.webp')) F('the table: the frame of a player, none for an unknown id');
+  // the host's lobby passes the frame of a seated player
+  S.lobby = { code: 'FR74', link: '', players: [{ tgId: 7, name: 'Нина', frame: id2 }], map: {}, sent: [], seats: { 7: 0 }, flag: '' };
+  if (!E('hostTableHTML')({ n: 7, names: [], seatProfiles: [] }).includes('frame-hw-grim-reaper.webp')) F('the host sees the frame in his lobby');
+  // a player's sheet: his frame around the avatar
+  vm.runInContext('FRP[7] = { user: { tgId: 7, name: "Нина" }, rating: { points: 1000, games: 0, wins: 0 }, roles: [], recent: [], skins: { frame: "' + id2 + '" }, isFriend: false, at: Date.now() }', ctx);
+  S.ui.sheet = { type: 'friend', id: 7 }; X.render(); check('v74 friend sheet frame'); if (!app.innerHTML.includes('av-fw') || !app.innerHTML.includes('frame-hw-grim-reaper.webp')) F('his sheet shows the frame');
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
+  S.lobby = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v74 ok');
+} catch (e) { fails++; console.log('FAIL v74 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

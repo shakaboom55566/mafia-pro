@@ -18,7 +18,7 @@ function hostGameTableHTML(g) {
   const head = hvHeaderHTML('hvTable', u.hvTable, `<span class="hint hv-sub">${tt(u.tbAtTable, { n: al.length })}</span>`);
   if (!open) return `<div class="panel hv-panel folded">${head}</div>`;
   const l = g.tg && g.tg.code ? g.tg : null; const profiles = {};
-  if (l) (l.players || []).forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online }; });
+  if (l) (l.players || []).forEach(pl => { profiles[pl.tgId] = { tgId: pl.tgId, name: pl.name, username: pl.username, photo: pl.photo || '', points: pl.points, games: pl.games, hosted: pl.hosted, city: pl.city || '', club: pl.club || '', online: !!pl.online, frame: pl.frame || '' }; });
   const seats = g.players.map(p => ({ seat: p.seat, name: p.name, tgId: l ? seatTg(g, p.seat) : null, alive: p.alive, fouls: p.fouls || 0 }));
   const marks = {}; const mk = (seat, m) => { if (seat) marks[seat] = Object.assign(marks[seat] || {}, m); };
   const seatOf = id => { const p = id ? P(g, id) : null; return p ? p.seat : 0; };

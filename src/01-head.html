@@ -682,6 +682,26 @@ html.lite .rt-room-haze { display: none; }
 .rm-lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; filter: drop-shadow(0 2px 6px #000); }
 .rm-plain { display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(240,205,122,.16), rgba(29,20,20,.9) 55%, #0b0a0e); color: var(--muted); font-size: 11px; text-align: center; padding: 8px; }
 .rm-preview { margin: 0 auto; max-width: 360px; }
+/* v74: avatar frames — over the avatar (the hole scaled to it), under the seat's number and fouls */
+.av-frame { position: absolute; left: 50%; top: 50%; width: calc(100% * var(--fs, 2)); max-width: none; height: auto; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; }
+.rt-seat .rt-av img.av-frame { width: calc(100% * var(--fs, 2)); height: auto; border-radius: 0; object-fit: contain; }
+.rt-seat .rt-num, .rt-seat .rt-foul { z-index: 2; }
+.rt-seat.framed .rt-nm { position: relative; z-index: 2; margin-top: 11px; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,.9); }
+.rt-seat.framed .rt-meta, .rt-seat.framed .rt-club { position: relative; z-index: 2; text-shadow: 0 1px 2px #000; }
+.rtable.sm .rt-seat.framed .rt-nm { margin-top: 7px; }
+.rtable:has(.rt-seat.framed) { margin-bottom: 14px; } .rt-stage .rtable:has(.rt-seat.framed) { margin-bottom: 0; }
+.av-fw { position: relative; display: inline-grid; flex: 0 0 auto; isolation: isolate; }
+.av-fw > .avatar { position: relative; z-index: 0; }
+.avatar.xl { width: 112px; height: 112px; font-size: 38px; }
+.af-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.af-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px 9px; border-radius: 14px; border: 1px solid rgba(255,140,40,.32); background: linear-gradient(180deg, rgba(255,120,30,.10), var(--bg-2)); cursor: pointer; text-align: center; }
+.af-tile.on { border-color: rgba(255,160,60,.95); box-shadow: 0 0 0 1px rgba(255,160,60,.45), 0 6px 22px -10px rgba(255,140,40,.8); }
+.af-prev { position: relative; width: 100%; aspect-ratio: 1.15; display: grid; place-items: center; overflow: hidden; }
+.af-prev .sk-badge { right: 4px; top: 4px; }
+.af-tile.locked .af-prev .av-frame { filter: saturate(.85); }
+.af-big { display: grid; place-items: center; padding: 64px 0 62px; }
+.af-at { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 14px; background: var(--bg-3); }
+.af-at .af-seat { position: relative; transform: none; width: 78px; margin: 14px 10px 4px; }
 
 /* results podium: scaled 3D cards with avatar, club badge, medal; plaque with points and the win streak in gold */
 .pod-panel { overflow: hidden; }

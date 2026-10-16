@@ -20,6 +20,7 @@ const EM_PACKS = [
 const firstBonusPct = usd => (usd <= 4.99 ? 100 : usd <= 40 ? 40 : 20);
 const EM_EPIC = 7500;
 const EM_MYTHIC = 50000; // v69: a Mythic skin, every copy numbered
+const EM_FRAME = 3000; // v74: an avatar frame (the server's EMERALDS_FRAME)
 const PRIZE_FUND = 10000;
 function prizeTable(n, fund) {
   n = Math.max(0, Math.floor(Number(n) || 0)); fund = Math.max(0, Math.floor(Number(fund) || 0));
@@ -43,6 +44,7 @@ const emUsd = usd => usd.toFixed(2).replace('.', L.code === 'en' ? '.' : ',');
 const emBalance = () => (S.em && Number(S.em.balance)) || 0;
 const emEpic = () => (S.em && Number(S.em.epic)) || EM_EPIC;
 const emMythic = () => (S.em && Number(S.em.mythic)) || EM_MYTHIC;
+const emFrame = () => (S.em && Number(S.em.frame)) || EM_FRAME;
 const emSkinPrice = s => (s && s.rarity === 'mythic' ? emMythic() : emEpic());
 const trnFund = () => (S.cloud && S.cloud.trn && Number(S.cloud.trn.fund)) || PRIZE_FUND;
 const emDate = ms => { try { return new Date(ms).toLocaleDateString(locale(), { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
@@ -77,7 +79,7 @@ function emeraldsTabHTML() {
 }
 function emLedgerLoad() {
   if (!emInTg() || EMR.busy || (EMR.at && Date.now() - EMR.at < 30000)) return;
-  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC, mythic: d.mythic || EM_MYTHIC }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
+  EMR.busy = true; api('/api/emeralds', {}).then(d => { EMR.busy = false; EMR.at = Date.now(); if (d && d.ok) { EMR.ledger = d.ledger || []; S.em = { balance: d.balance || 0, bought: d.bought || [], epic: d.epic || EM_EPIC, mythic: d.mythic || EM_MYTHIC, frame: d.frame || EM_FRAME }; if (S.screen === 'shop' && S.ui.shopTab === 'emeralds') render(); } }).catch(() => { EMR.busy = false; });
 }
 (function () {
   const orig = shopScreen;
@@ -105,7 +107,7 @@ function emLedgerLoad() {
   cloudSync = async function () {
     await origSync.apply(this, arguments);
     const d = CLOUD.me; if (!d || !d.ok) return;
-    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC, mythic: Number(d.emeralds.mythic) || EM_MYTHIC };
+    if (d.emeralds && typeof d.emeralds === 'object') S.em = { balance: Number(d.emeralds.balance) || 0, bought: Array.isArray(d.emeralds.bought) ? d.emeralds.bought.slice() : [], epic: Number(d.emeralds.epic) || EM_EPIC, mythic: Number(d.emeralds.mythic) || EM_MYTHIC, frame: Number(d.emeralds.frame) || EM_FRAME };
     if (d.skins && typeof d.skins === 'object') S.skins.borrowed = Number(d.skins.borrowed) || 0;
     S.cloud = S.cloud || {}; S.cloud.trn = d.tournament || null;
     save(); render();
@@ -252,7 +254,7 @@ Object.assign(ACT, {
   'em-topup'() { S.ui.sheet = null; S.ui.shopTab = 'emeralds'; go('shop'); },
   'em-buy'(el) { const id = el.dataset.id; if (!EM_PACK[id]) return; if (emInTg() && tgBuy('emeralds', id, () => {})) return; ACT['buy-confirm']({ dataset: { kind: 'emeralds', id } }); },
   async 'em-skin-buy'(el) {
-    const u = U(); const s = SKIN[el.dataset.id]; if (!s || !emInTg()) return;
+    const u = U(); const s = SKIN[el.dataset.id] || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!s || !emInTg()) return; // v74: frames too
     const d = await api('/api/skin/buy', { skin: s.id });
     if (d && d.ok) {
       if (d.skins) { S.skins.owned = d.skins.owned || S.skins.owned; S.skins.equipped = d.skins.equipped || S.skins.equipped; if (d.skins.serials) S.skins.serials = d.skins.serials; if (d.skins.sold) S.skins.sold = d.skins.sold; }
