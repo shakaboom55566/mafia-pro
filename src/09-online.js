@@ -236,7 +236,7 @@ const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat)
 /* the round table: seats around a ring, host and player count in the middle */
 function roundTableHTML(seats, profiles, center, marks = {}, room = null) { // v71: room — the table's background (the host's)
   const u = U(); const n = Math.max(1, seats.length); const rl = room && typeof roomLayerHTML === 'function' ? roomLayerHTML(room) : '';
-  const size = rl ? (n <= 8 ? 'lg' : n <= 12 ? 'md' : 'sm') : n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm'; // v71: in a room the table is narrower (it stands on the carpet)
+  const size = rl ? roomTableSize(room, n) : n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm'; // v71: in a room the table is narrower (it stands on the carpet)
   const items = seats.map((s, i) => {
     const ang = -Math.PI / 2 + 2 * Math.PI * i / n; const x = 50 + 43 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
     const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
@@ -247,7 +247,7 @@ function roundTableHTML(seats, profiles, center, marks = {}, room = null) { // v
     return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.city ? ' · ' + esc(pr.city) : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
   const table = `<div class="rtable ${size}${rl ? ' roomed' : ''}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
-  return rl ? `<div class="rt-stage">${rl}${table}</div>` : table;
+  return rl ? `<div class="rt-stage" ${roomStageAttr(room)}>${rl}${table}</div>` : table;
 }
 /* the mods of the table I sit at: the bomb hunt and the classic game change what the cards say */
 const tbMods = () => { const pub = TB.data && TB.data.pub; return { bombHunt: !!(pub && pub.bh), classic: !!(pub && pub.mode === 'classic') }; };

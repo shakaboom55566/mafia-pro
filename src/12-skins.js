@@ -49,8 +49,10 @@ const SKINS = [
 ];
 // v71: table backgrounds — the room around the round table (role «room» on the server; a reward or an admin's gift) — src/18-rooms.js
 const ROOMS = [
-  // rug: the round carpet's centre in the picture (0…1) and fit — the picture's size against the table, so the whole table with its seats stands on the carpet
-  { id: 'castelmar_club', role: 'room', rarity: 'legendary', file: 'room-castelmar-club', rug: { cx: 0.503, cy: 0.494, fit: 2.05 } }
+  // rug — where the table stands: cx, cy — the point of the picture under the table's centre (0…1); fit — the picture's size against the table
+  // (so the table with all its seats stays on the carpet / the free floor, never on the furniture); tw — the table's width in the stage; ar — the stage's height / width
+  { id: 'castelmar_club', role: 'room', rarity: 'legendary', file: 'room-castelmar-club', rug: { cx: 0.503, cy: 0.494, fit: 2.05, tw: 0.74, ar: 1.22 } },
+  { id: 'khrushchevka_kitchen', role: 'room', rarity: 'legendary', file: 'room-khrushchevka-kitchen', rug: { cx: 0.51, cy: 0.53, fit: 2.35, tw: 0.62, ar: 1.33 } }
 ];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));

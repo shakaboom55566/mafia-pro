@@ -42,7 +42,8 @@ export const SKINS = {
   untouchable: { role: 'ninja', rarity: 'mythic', numbered: true },
   // v71: table backgrounds — the room around the round table (role 'room': one per player, the host's is what everyone at his table sees);
   // a reward or an admin's gift only (Legendary is not sold), not lent in the tournament (only Epic is)
-  castelmar_club: { role: 'room', rarity: 'legendary' }
+  castelmar_club: { role: 'room', rarity: 'legendary' },
+  khrushchevka_kitchen: { role: 'room', rarity: 'legendary' }
 };
 export const ROOM_ROLE = 'room';
 export const isRoom = id => isSkin(id) && SKINS[id].role === ROOM_ROLE;
@@ -82,7 +83,8 @@ export const SKIN_NAMES = {
   silent_petal: { ru: 'Тихий лепесток', uk: 'Тиха пелюстка', en: 'Silent Petal', pl: 'Cichy Płatek', hy: 'Լուռ թերթիկ' },
   velvet_envelope: { ru: 'Бархатный конверт', uk: 'Оксамитовий конверт', en: 'Velvet Envelope', pl: 'Aksamitna Koperta', hy: 'Թավշյա ծրար' },
   untouchable: { ru: 'Неуловимая', uk: 'Невловима', en: 'Untouchable', pl: 'Nieuchwytna', hy: 'Անհասանելին' },
-  castelmar_club: { ru: 'Клуб «Кастельмар»', uk: 'Клуб «Кастельмар»', en: 'Castelmar Club', pl: 'Klub Castelmar', hy: '«Կաստելմար» ակումբ' }
+  castelmar_club: { ru: 'Клуб «Кастельмар»', uk: 'Клуб «Кастельмар»', en: 'Castelmar Club', pl: 'Klub Castelmar', hy: '«Կաստելմար» ակումբ' },
+  khrushchevka_kitchen: { ru: 'Кухня в хрущёвке', uk: 'Кухня в хрущовці', en: 'Khrushchyovka Kitchen', pl: 'Kuchnia w chruszczowce', hy: 'Խոհանոց խրուշչովկայում' }
 };
 export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_NAMES[id] || {}).ru) || id;
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;

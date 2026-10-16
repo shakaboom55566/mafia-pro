@@ -1146,7 +1146,7 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v71 ' + m); }
   // the host's lobby: the room under the table, the «Background» button
   S.lobby = { code: 'RM71', link: '', players: [], map: {}, sent: [], seats: {}, flag: '' }; const st = { n: 7, names: [], seatProfiles: [] };
   h = E('hostTableHTML')(st); if (!h.includes('rtable lg roomed') || !h.includes(`data-room="${id}"`) || !h.includes('data-a="room-pick"')) F('the host\'s lobby table stands in his room, with the picker');
-  A['room-pick'](); check('v71 room picker'); h = app.innerHTML; if ((h.match(/data-a="room-set"/g) || []).length !== RM.length + 1 || !h.includes(u.rmNone)) F('the picker: no background + his rooms');
+  A['room-pick'](); check('v71 room picker'); h = app.innerHTML; if ((h.match(/data-a="room-set"/g) || []).length !== RM.filter(r => S.skins.owned.includes(r.id)).length + 1 || h.includes(`data-a="room-set" data-id="${RM[1] ? RM[1].id : 'x'}"`) || !h.includes(u.rmNone)) F('the picker: no background + his rooms (only his)');
   await A['room-set'](el('room-set', { id: '' })); if (S.skins.equipped.room || last()[1].skin !== null || S.ui.sheet) F('«no background» takes it down and closes the picker');
   h = E('hostTableHTML')(st); if (h.includes('roomed') || h.includes('rt-room')) F('no room — the plain table');
   // the players see the host's room with the table (not their own)

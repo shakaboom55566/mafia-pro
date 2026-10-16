@@ -656,6 +656,7 @@ html.lite .rt-ring { box-shadow: none; background: var(--bg-2); }
 /* the stage: the room around, the table (narrower, --rt-w of the stage) in the middle on the carpet; the table with its seats never lies on the furniture */
 .rt-stage { --rt-w: 74%; position: relative; width: 100%; max-width: 520px; margin: 0 auto; aspect-ratio: 1 / 1.22; display: flex; align-items: center; justify-content: center; border-radius: 22px; overflow: hidden; isolation: isolate; }
 .rt-stage .rtable { width: var(--rt-w); padding-bottom: var(--rt-w); max-width: none; margin: 0; }
+.rt-stage .rt-center { width: 56%; } .rt-stage .rt-brand { font-size: 17px; white-space: nowrap; } .rt-stage .rtable.sm .rt-brand { font-size: 13px; } /* the table is narrower in a room: the title stays on one line */
 .rt-room { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; background: #0d0b10; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(240,205,122,.14); }
 .rt-room-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .rt-room-img { position: absolute; left: 50%; top: 50%; height: auto; aspect-ratio: 1; max-width: none; display: block; }

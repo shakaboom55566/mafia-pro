@@ -14,7 +14,9 @@ const myRoom = () => { const id = S.skins && S.skins.equipped && S.skins.equippe
 const tbRoom = () => { const id = typeof TB !== 'undefined' && TB.data && TB.data.room; return ROOM[id] ? id : null; };
 /* the stage: the room fills it, the table stands in the middle on the carpet (rug.fit — the picture against the table, rug.cx/cy — the carpet's centre).
    The still picture is placed by CSS the same way the 2.5D canvas draws it, so the canvas fades in without a jump. */
-const roomRug = r => Object.assign({ cx: 0.5, cy: 0.5, fit: 2 }, r && r.rug);
+const roomRug = r => Object.assign({ cx: 0.5, cy: 0.5, fit: 2, tw: 0.74, ar: 1.22 }, r && r.rug);
+const roomTableSize = (id, n) => { const big = roomRug(ROOM[id]).tw >= 0.7 ? 8 : 6; return n <= big ? 'lg' : n <= 12 ? 'md' : 'sm'; }; // a narrower table — smaller seats sooner
+const roomStageAttr = id => { const g = roomRug(ROOM[id]); return `style="--rt-w:${(g.tw * 100).toFixed(1)}%;aspect-ratio:1 / ${g.ar}"`; }; // each room sets its table's width and the stage's shape
 function roomLayerHTML(id) {
   const r = ROOM[id]; if (!r) return ''; const g = roomRug(r);
   const img = `width:calc(var(--rt-w) * ${g.fit});transform:translate(${(-g.cx * 100).toFixed(2)}%,${(-g.cy * 100).toFixed(2)}%)`;
