@@ -23,7 +23,7 @@ const MYTH_ART = {
     crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 },
     // v70: the Gemini cinematic (720×1280, 8.6 s; the card fills the first and the last frame); three generation bugs cut out (see skins/STYLE.md)
     // v70.3: her cut-out from the black-background Gemini clip (584×900, 7.958 s, 24 fps): her body centre and height in the first / last frame
-    hero: { file: 'hero', size: [584, 900], dur: 7.958, c0: [0.5616, 0.4598], c1: [0.5372, 0.4806], body0: 0.924, body1: 0.959, scale: 1.45, flash: -1 }
+    hero: { file: 'hero', size: [584, 900], dur: 7.958, c0: [0.5668, 0.468], c1: [0.5339, 0.4855], body0: 0.914, body1: 0.96, scale: 1.45, flash: -1 }
   }
 };
 const MYTH_POSES = ['stand', 'flip', 'crouch'];

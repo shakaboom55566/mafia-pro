@@ -29,23 +29,26 @@ def main():
     for f in frames:
         x = f.astype(np.float32)
         lum = x.max(axis=2)  # the brightest channel: dark red cloth still counts
-        a = np.clip((lum - 8) / 30.0, 0, 1)  # 8 → 0, 38+ → 1: a low threshold — black folds of the cape and hair stay hers
-        # her body: a filled, closed silhouette — the dark interior (black cloth, hair, the mask) is fully hers, whatever its brightness
-        hard = (a > 0.5).astype(np.uint8)
-        n, lab, st, _ = cv2.connectedComponentsWithStats(hard, 8)
+        # measured: the background never exceeds 6–8 after compression, her darkest cloth starts at ~10 with no gap between —
+        # so the key is a hard cut at 9 (nothing inside her is softened), and the soft edge comes only from a 1-px blur
+        a = (lum > 9).astype(np.float32)
+        # drop stray glow / specks far from her: keep what is connected to the main silhouette (plus big separate parts)
+        hard = a.astype(np.uint8); n, lab, st, _ = cv2.connectedComponentsWithStats(hard, 8)
         if n > 1:
             areas = st[1:, cv2.CC_STAT_AREA]; big = 1 + int(np.argmax(areas)); keep = lab == big
+            # only the main silhouette (and a part of her the compression split off right next to it) — sparks, embers and the
+            # frame's glow are separate blobs and never come along; the card's own living background draws embers
+            near = cv2.dilate(keep.astype(np.uint8), np.ones((25, 25), np.uint8)) > 0
             for k in range(1, n):
-                if k != big and areas[k - 1] > areas[big - 1] * 0.01: keep |= lab == k
-            hard = keep.astype(np.uint8)
-        body = cv2.morphologyEx(hard, cv2.MORPH_CLOSE, np.ones((31, 31), np.uint8))  # bridge the dark gaps between bright parts
-        inv = (1 - body).astype(np.uint8); n2, lab2, st2, _ = cv2.connectedComponentsWithStats(inv, 4)
-        for k in range(1, n2):  # every hole that does not reach the frame edge is inside her → hers (the biggest outside one is the background)
+                if k != big and areas[k - 1] > areas[big - 1] * 0.01 and (near & (lab == k)).any(): keep |= lab == k
+            a = a * keep
+        # pin-holes inside her (compression noise in black cloth, < 40 px²) → closed; real pockets stay open
+        hard = a.astype(np.uint8); inv = (1 - hard).astype(np.uint8); n2, lab2, st2, _ = cv2.connectedComponentsWithStats(inv, 4)
+        for k in range(1, n2):
             xk, yk, wk, hk, ak = st2[k]
-            if xk > 0 and yk > 0 and xk + wk < W and yk + hk < H: body[lab2 == k] = 1
-        core = cv2.erode(body, np.ones((7, 7), np.uint8))  # fully opaque inside; the soft key only in the 3-px rim
-        a = np.where(core > 0, 1.0, a); a = a * (cv2.dilate(body, np.ones((5, 5), np.uint8)) > 0)
-        a = cv2.GaussianBlur(a, (0, 0), 0.6)
+            if ak < 40 and xk > 0 and yk > 0 and xk + wk < W and yk + hk < H: a[lab2 == k] = 1.0
+        a = cv2.morphologyEx(a, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))  # 1-px cracks along the edge of black cloth
+        a = cv2.GaussianBlur(a, (0, 0), 0.8)
         alphas.append(np.clip(a, 0, 1).astype(np.float32)); colors.append(x)
     uni = np.max(np.stack([a > 0.08 for a in alphas]), axis=0); ys, xs = np.where(uni)
     pad = 14; x0, x1 = max(0, xs.min() - pad), min(W, xs.max() + pad + 1); y0, y1 = max(0, ys.min() - pad), min(H, ys.max() + pad + 1)
