@@ -88,3 +88,14 @@
   };
   Object.keys(UI).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, UI[code]); });
 })();
+/* v78: the frame in the profile form */
+(function () {
+  const UI = {
+    ru: { afPick: 'Рамка аватарки', afStd: 'Стандартная', afMore: 'Ещё рамки' },
+    uk: { afPick: 'Рамка аватарки', afStd: 'Стандартна', afMore: 'Більше рамок' },
+    en: { afPick: 'Avatar frame', afStd: 'Standard', afMore: 'More frames' },
+    pl: { afPick: 'Ramka awatara', afStd: 'Standardowa', afMore: 'Więcej ramek' },
+    hy: { afPick: 'Ավատարի շրջանակ', afStd: 'Ստանդարտ', afMore: 'Այլ շրջանակներ' }
+  };
+  Object.keys(UI).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, UI[code]); });
+})();

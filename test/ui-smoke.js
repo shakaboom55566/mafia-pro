@@ -1252,7 +1252,7 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v76 ' + m); }
   S.profiles = S.profiles.filter(p => p !== me); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.ui.skinCat = 'looks'; S.screen = 'home'; X.render(); console.log('v76 ok');
 } catch (e) { fails++; console.log('FAIL v76 crashed', e && e.stack || e); }
 // v77: official hosts — the home item, the screen on the web (how, rank values, examples, rules), and in Telegram: every state, the form, the licence, the admin's panel, the table's estimate, the results
-try { const u = X.U(); const F = m => { fails++; console.log('FAIL v77 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v78 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
   S.game = null; S.ui.sheet = null; S.screen = 'home'; X.render(); let h = app.innerHTML; if (!h.includes('data-to="official"') || !h.includes(u.ohMenu)) F('the home menu has «Official hosts»');
   A.go(el('go', { to: 'official' })); check('v77 official (web)'); h = app.innerHTML;
   const lim = E('OFFICIAL_LIMITS'); if (!h.includes(u.ohWhat) || !h.includes(u.ohNeedTg) || !u.ohRules.every(r => h.includes(X.tt(r, lim))) || (h.match(/class="oh-k"/g) || []).length !== 13) F('web: what it is, the rules with the limits, 8 rank values and 5 examples');
@@ -1268,7 +1268,7 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v77 ' + m); }
   if (!h.includes(X.tt(u.ohReq, { n: 50, have: 12 })) || h.includes('data-a="oh-form-open"') || !h.includes('data-code="OF7A"') || !h.includes('oh-badge') || !h.includes(X.tt(u.ohHostStats, { n: 80, m: 12 }))) F('12 games: the requirement and no form; the official\'s open table with ✔');
   if (!h.includes(u.ohAdmin) || !h.includes('Веду давно, свій клуб &lt;b&gt;x&lt;/b&gt;') || !h.includes('data-a="oh-decide" data-id="3" data-v="1"') || !h.includes(X.tt(u.ohPenLine, { reason: 'фейкові партії', em: '900', items: 1, date: E('ohDate')(OHs.d.admin.penalties[0].until) }))) F('the admin: the application (escaped), approve/decline, the penalties');
   OHs.d.me = Object.assign({}, meBase, { hosted: 60, eligible: true }); X.render(); h = app.innerHTML; if (!h.includes(X.tt(u.ohReqOk, { have: 60 })) || !h.includes('data-a="oh-form-open"')) F('60 games: «fill in the application»');
-  A['oh-form-open'](); check('v77 form'); h = app.innerHTML; if (!h.includes(u.ohFormTitle) || !h.includes('id="oh-about"') || !h.includes(u.ohFRules)) F('the form opens');
+  A['oh-form-open'](); check('v78 form'); h = app.innerHTML; if (!h.includes(u.ohFormTitle) || !h.includes('id="oh-about"') || !h.includes(u.ohFRules)) F('the form opens');
   A['oh-one'](el('oh-one', { k: 'exp', v: 'gt3' })); A['oh-chip'](el('oh-chip', { k: 'formats', v: 'online' })); A['oh-chip'](el('oh-chip', { k: 'games', v: 'classic' }));
   await A['oh-send'](); check('v77 form errors'); h = app.innerHTML; if (!h.includes('oh-bad') || !h.includes(u.ohFormErr)) F('a bad form marks the fields');
   A['oh-rules'](); E('ohInput')({ dataset: { k: 'about' }, value: 'Довго веду ігри в клубі, є канал.' }); E('ohInput')({ dataset: { k: 'schedule' }, value: 'пт, сб' });
@@ -1289,8 +1289,29 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v77 ' + m); }
   S.screen = 'table'; X.render(); check('v77 table estimate'); h = app.innerHTML; if (!h.includes(X.tt(u.ohTableEst, { n: 37 })) || !h.includes(X.tt(u.ohTableLeft, { n: 4, max: 5 }))) F('at the table: «about 37 💎», 4 of 5 left');
   TBs.data.official.left = 0; X.render(); if (!app.innerHTML.includes(u.ohTableNoLeft)) F('the limit reached is said');
   TBs.data.pub = { phase: 'end', winner: { side: 'city', title: 'Город', text: '' }, roles: [{ seat: 1, name: 'Ведущий', roleId: 'citizen', tgId: 500, won: true, alive: true, pts: 24, useful: 0, total: 24, place: 1, side: 'city', em: 42 }] }; X.render(); check('v77 table end'); if (!app.innerHTML.includes(X.tt(u.ohGot, { n: 42 }))) F('the results: +42 💎');
-  vm.runInContext('api = __api2; apiBase = __apiBase2; TG.app = null', ctx); TBs.data = null; TBs.code = null; S.cloud = null; S.screen = 'home'; OHs.d = null; OHs.at = 0; X.render(); console.log('v77 ok');
-} catch (e) { fails++; console.log('FAIL v77 crashed', e && e.stack || e); }
+  vm.runInContext('api = __api2; apiBase = __apiBase2; TG.app = null', ctx); TBs.data = null; TBs.code = null; S.cloud = null; S.screen = 'home'; OHs.d = null; OHs.at = 0; X.render(); console.log('v78 ok');
+} catch (e) { fails++; console.log('FAIL v78 crashed', e && e.stack || e); }
+// v78: the frame in the profile form — «Standard» always, then my frames and «More»; chosen on Save, cancelled with the form
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v78 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []', ctx);
+  vm.runInContext('api = async (p, b) => { __calls.push([p, b]); if (p === "/api/skin/equip") { const e = Object.assign({}, S.skins.equipped); if (b.skin) e[b.role] = b.skin; else delete e[b.role]; return { ok: true, equipped: e }; } return { ok: false }; }', ctx);
+  const calls = E('__calls'); const last = () => calls[calls.length - 1];
+  S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: ['hw_vampire_count', 'hw_grim_reaper'], equipped: { frame: 'hw_vampire_count' } };
+  const me = E('newProfile')({ name: 'Me', tgId: 500 }); S.profiles.unshift(me); S.meId = me.id; S.ui.profileId = me.id; S.screen = 'myprofile';
+  A['prof-edit'](el('prof-edit', { id: me.id })); check('v78 form'); let h = app.innerHTML;
+  if (!h.includes(u.afPick) || (h.match(/data-a="pf-frame"/g) || []).length !== 3 || !h.includes(u.afStd) || !h.includes('data-a="pf-frame-more"') || !h.includes('pf-fr on') || h.includes('frame-hw-spider-queen')) F('the picker: standard + my two frames + more, the worn one marked');
+  A['pf-frame'](el('pf-frame', { id: 'hw_spider_queen' })); if (S.ui.pf.frame === 'hw_spider_queen') F('a frame not owned cannot be chosen');
+  A['pf-frame'](el('pf-frame', { id: 'hw_grim_reaper' })); h = app.innerHTML; if (S.ui.pf.frame !== 'hw_grim_reaper' || S.skins.equipped.frame !== 'hw_vampire_count') F('chosen in the form, not worn yet');
+  A['sheet-close'](); if (S.skins.equipped.frame !== 'hw_vampire_count') F('cancel keeps the old frame');
+  A['prof-edit'](el('prof-edit', { id: me.id })); A['pf-frame'](el('pf-frame', { id: '' })); A['prof-save'](el('prof-save', { id: me.id })); await new Promise(r => setTimeout(r, 5));
+  const eqc = () => calls.filter(c => c[0] === '/api/skin/equip').pop() || [];
+  if (S.skins.equipped.frame || !eqc()[1] || eqc()[1].role !== 'frame' || eqc()[1].skin !== null) F('«Standard» + Save takes the frame off');
+  A['prof-edit'](el('prof-edit', { id: me.id })); A['pf-frame'](el('pf-frame', { id: 'hw_grim_reaper' })); A['prof-save'](el('prof-save', { id: me.id })); await new Promise(r => setTimeout(r, 5));
+  if (S.skins.equipped.frame !== 'hw_grim_reaper') F('a frame + Save puts it on');
+  A['prof-edit'](el('prof-edit', { id: me.id })); A['pf-frame-more'](); if (S.screen !== 'cards' || S.ui.cardsTab !== 'skins' || S.ui.skinCat !== 'frames' || S.ui.sheet) F('«More frames» opens the frames in Skins');
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
+  S.profiles = S.profiles.filter(p => p !== me); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.pf = null; S.ui.cardsTab = 'cards'; S.ui.skinCat = 'looks'; S.screen = 'home'; X.render(); console.log('v78 ok');
+} catch (e) { fails++; console.log('FAIL v78 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

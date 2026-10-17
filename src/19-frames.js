@@ -105,3 +105,37 @@ Object.assign(ACT, {
     return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${favPickHTML()}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
   };
 })();
+
+/* ---------- v78: the frame in the profile form — «Standard» (no frame) is always there, then the frames I have; chosen on Save ---------- */
+const pfFrameOn = () => { const d = S.ui.pf; return !!(d && d.me && typeof TG !== 'undefined' && TG.app && apiBase()); };
+const pfFrameDraft = () => { const d = S.ui.pf || {}; return d.frame !== undefined ? (d.frame && frameOwned(d.frame) ? d.frame : null) : myFrame(); };
+function pfFramesHTML() {
+  const u = U(); const cur = pfFrameDraft(); const mine = FRAMES.filter(f => frameOwned(f.id));
+  const av = typeof frameMyAvatar === 'function' ? frameMyAvatar('sm') : '';
+  const tile = (id, inner, label) => `<button class="pf-fr ${(cur || '') === id ? 'on' : ''}" data-a="pf-frame" data-id="${id}"><span class="pf-fr-av">${inner}</span><span class="pf-fr-n">${esc(label)}</span></button>`;
+  const tiles = [tile('', av, u.afStd)].concat(mine.map(f => tile(f.id, `<span class="av-fw">${av}${frameImgHTML(f.id, true)}</span>`, f.name)));
+  tiles.push(`<button class="pf-fr more" data-a="pf-frame-more"><span class="pf-fr-av">＋</span><span class="pf-fr-n">${u.afMore}</span></button>`);
+  return `<div class="field"><label>${u.afPick}</label><div class="pf-frames">${tiles.join('')}</div></div>`;
+}
+(function () {
+  const origForm = profEditHTML;
+  profEditHTML = function (id) {
+    let html = origForm.apply(this, arguments); if (!pfFrameOn()) return html;
+    const d = S.ui.pf || {}; const pr = id ? profById(id) : null; const prev = Object.assign({}, pr || newProfile(), d);
+    const av = avatarHTML(prev, 'lg'); const fr = pfFrameDraft();
+    if (fr) { const k = html.indexOf(av); if (k >= 0) html = html.slice(0, k) + frameWrap(av, fr, 84) + html.slice(k + av.length); } // the preview wears the chosen frame
+    const mark = '<div class="setting" style="border:0">'; const i = html.indexOf(mark);
+    return i < 0 ? html + pfFramesHTML() : html.slice(0, i) + pfFramesHTML() + html.slice(i);
+  };
+  const origSave = ACT['prof-save'];
+  ACT['prof-save'] = function (el) {
+    const d = S.ui.pf || {}; const want = d.me && d.frame !== undefined ? (d.frame || '') : null;
+    const r = origSave.apply(this, arguments);
+    if (want !== null && (myFrame() || '') !== want) ACT['frame-set']({ dataset: { id: want } }); // put on (or take off) through the server
+    return r;
+  };
+})();
+Object.assign(ACT, {
+  'pf-frame'(el) { if (!S.ui.pf) return; const id = el.dataset.id || ''; if (id && !frameOwned(id)) return; S.ui.pf.frame = id; render(); },
+  'pf-frame-more'() { S.ui.sheet = null; S.ui.pf = null; S.ui.cardsTab = 'skins'; S.ui.skinCat = 'frames'; go('cards'); }
+});

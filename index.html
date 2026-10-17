@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.54.0-0223904">
+<meta name="mafia-build" content="1.55.0-72373d3">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -773,6 +773,13 @@ html.lite .rt-room-haze { display: none; }
 .sk-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; overflow: visible; flex-wrap: wrap; }
 .sk-cats .sk-cat { justify-content: center; margin: 0; white-space: nowrap; } .sk-cat.active { box-shadow: 0 0 0 1px rgba(240,205,122,.55); }
 .sk-soon { text-align: center; padding: 26px 18px; }
+/* v77: the frame picker in the profile form */
+.pf-frames { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pf-fr { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 2px 7px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: inherit; font: inherit; cursor: pointer; min-width: 0; }
+.pf-fr.on { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(240,205,122,.5); background: rgba(240,205,122,.08); }
+.pf-fr-av { height: 62px; display: grid; place-items: center; overflow: visible; }
+.pf-fr.more .pf-fr-av { width: 36px; height: 36px; margin: 13px 0; border-radius: 50%; border: 1px dashed var(--gold-2); color: var(--gold-2); font-size: 18px; }
+.pf-fr-n { font-size: 10.5px; line-height: 1.15; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .fav-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .fav-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: inherit; font: inherit; font-size: 10.5px; line-height: 1.15; cursor: pointer; text-align: center; }
 .fav-tile.on { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(240,205,122,.45); }
@@ -7286,6 +7293,17 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
     hy: { skCatLooks: 'Կերպարներ', skCatRooms: 'Սենյակի ֆոներ', skCatTables: 'Սեղան', skCatFrames: 'Շրջանակներ', skTablesSoon: 'Շուտով այստեղ կհայտնվեն հենց սեղանի սքինները՝ մահուդ, մարմար, փայտ, ոսկի։ Սեղանը կմնա կլոր, իսկ շուրջը՝ ձեր սենյակի ֆոնը։',
       rmTitle: 'Սենյակի ֆոներ', rmLabel: 'Սենյակի ֆոն', rmOn: 'դրված է', rmSetBtn: 'Դարձնել սենյակի ֆոն', rmOffBtn: 'Հանել ֆոնը', rmNoneHint: 'սովորական մուգ ֆոն', rmSet: '«{name}»՝ այժմ ձեր սենյակի ֆոնն է', rmOff: 'Ֆոնը հանվեց՝ կրկին սովորական մուգ', rmPick: 'Ձեր սենյակի ֆոնը',
       favTitle: 'Սիրելի քարտ', favPick: 'Ընտրել սիրելի քարտը', favChange: 'Փոխել', favBest: 'Ցույց տալ լավագույն քարտը', favSheetHint: 'Բոլորը այն կտեսնեն ձեր պրոֆիլում լավագույն քարտի փոխարեն։', favSet: '«{name}»՝ ձեր սիրելի քարտն է', favOff: 'Պրոֆիլում կրկին լավագույն քարտն է' }
+  };
+  Object.keys(UI).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, UI[code]); });
+})();
+/* v78: the frame in the profile form */
+(function () {
+  const UI = {
+    ru: { afPick: 'Рамка аватарки', afStd: 'Стандартная', afMore: 'Ещё рамки' },
+    uk: { afPick: 'Рамка аватарки', afStd: 'Стандартна', afMore: 'Більше рамок' },
+    en: { afPick: 'Avatar frame', afStd: 'Standard', afMore: 'More frames' },
+    pl: { afPick: 'Ramka awatara', afStd: 'Standardowa', afMore: 'Więcej ramek' },
+    hy: { afPick: 'Ավատարի շրջանակ', afStd: 'Ստանդարտ', afMore: 'Այլ շրջանակներ' }
   };
   Object.keys(UI).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, UI[code]); });
 })();
@@ -14321,6 +14339,40 @@ Object.assign(ACT, {
     return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${favPickHTML()}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
   };
 })();
+
+/* ---------- v78: the frame in the profile form — «Standard» (no frame) is always there, then the frames I have; chosen on Save ---------- */
+const pfFrameOn = () => { const d = S.ui.pf; return !!(d && d.me && typeof TG !== 'undefined' && TG.app && apiBase()); };
+const pfFrameDraft = () => { const d = S.ui.pf || {}; return d.frame !== undefined ? (d.frame && frameOwned(d.frame) ? d.frame : null) : myFrame(); };
+function pfFramesHTML() {
+  const u = U(); const cur = pfFrameDraft(); const mine = FRAMES.filter(f => frameOwned(f.id));
+  const av = typeof frameMyAvatar === 'function' ? frameMyAvatar('sm') : '';
+  const tile = (id, inner, label) => `<button class="pf-fr ${(cur || '') === id ? 'on' : ''}" data-a="pf-frame" data-id="${id}"><span class="pf-fr-av">${inner}</span><span class="pf-fr-n">${esc(label)}</span></button>`;
+  const tiles = [tile('', av, u.afStd)].concat(mine.map(f => tile(f.id, `<span class="av-fw">${av}${frameImgHTML(f.id, true)}</span>`, f.name)));
+  tiles.push(`<button class="pf-fr more" data-a="pf-frame-more"><span class="pf-fr-av">＋</span><span class="pf-fr-n">${u.afMore}</span></button>`);
+  return `<div class="field"><label>${u.afPick}</label><div class="pf-frames">${tiles.join('')}</div></div>`;
+}
+(function () {
+  const origForm = profEditHTML;
+  profEditHTML = function (id) {
+    let html = origForm.apply(this, arguments); if (!pfFrameOn()) return html;
+    const d = S.ui.pf || {}; const pr = id ? profById(id) : null; const prev = Object.assign({}, pr || newProfile(), d);
+    const av = avatarHTML(prev, 'lg'); const fr = pfFrameDraft();
+    if (fr) { const k = html.indexOf(av); if (k >= 0) html = html.slice(0, k) + frameWrap(av, fr, 84) + html.slice(k + av.length); } // the preview wears the chosen frame
+    const mark = '<div class="setting" style="border:0">'; const i = html.indexOf(mark);
+    return i < 0 ? html + pfFramesHTML() : html.slice(0, i) + pfFramesHTML() + html.slice(i);
+  };
+  const origSave = ACT['prof-save'];
+  ACT['prof-save'] = function (el) {
+    const d = S.ui.pf || {}; const want = d.me && d.frame !== undefined ? (d.frame || '') : null;
+    const r = origSave.apply(this, arguments);
+    if (want !== null && (myFrame() || '') !== want) ACT['frame-set']({ dataset: { id: want } }); // put on (or take off) through the server
+    return r;
+  };
+})();
+Object.assign(ACT, {
+  'pf-frame'(el) { if (!S.ui.pf) return; const id = el.dataset.id || ''; if (id && !frameOwned(id)) return; S.ui.pf.frame = id; render(); },
+  'pf-frame-more'() { S.ui.sheet = null; S.ui.pf = null; S.ui.cardsTab = 'skins'; S.ui.skinCat = 'frames'; go('cards'); }
+});
 /* ============================================================
    v75 THE COUNTRY FROM THE NETWORK
    /api/me answers with `geo` — the country (ISO code) and the city Cloudflare sees for the phone's request. The player's
