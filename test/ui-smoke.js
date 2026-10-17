@@ -840,6 +840,10 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   g.dealIdx = pm.seat - 1; A.flip(); check('v56 deal me'); h = app.innerHTML; if (!h.includes('card skinned') || !h.includes('skin-layer') || !h.includes('amethyst-don.webp') || !h.includes('skin-gl')) F('my Don card at the deal is my skin (with the 3D canvas)');
   A.hide(); g.dealIdx = pf.seat - 1; A.flip(); check('v56 deal friend'); if (app.innerHTML.includes('skin-layer')) F('a sheriff card never shows a Don skin');
   A.hide(); pf.roleId = 'don'; pm.roleId = 'sheriff'; g.dealIdx = pf.seat - 1; A.flip(); check('v56 deal friend don'); if (!app.innerHTML.includes('skin-layer')) F('the friend dealt the Don shows the skin he wears');
+  // v79: the friend is the Ninja in «Untouchable» — the closed card at the deal shows the common back (a back of its own would tell everyone around the phone who got the Ninja)
+  A.hide(); pf.roleId = 'ninja'; const sko = g.skinsOf; g.skinsOf = { 600: { ninja: 'untouchable' } }; g.dealIdx = pf.seat - 1; X.render(); check('v79 deal closed'); h = app.innerHTML;
+  if (h.includes('skin-back') || h.includes('untouchable-back') || !h.includes('untouchable.webp')) F('v79: the deal keeps the common card back — the mythic back is on the 3D card only');
+  g.skinsOf = sko;
   pf.roleId = 'sheriff'; pm.roleId = 'don'; A.hide();
   g.dealIdx = g.players.length; A.start(); let gd = 0; while (g.steps[g.stepIdx] && gd++ < 30) A.next(); A.day0(); A.night(); check('v56 night');
   const famStep = g.steps.findIndex(st => st.roleId === 'don' && st.actorId === pm.id); if (famStep >= 0) { g.stepIdx = famStep; X.render(); check('v56 night don'); if (!app.innerHTML.includes('skin-seal')) F('the night step of my Don shows my skin'); }
@@ -899,6 +903,10 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   S.ui.sheet = null;
   const c3 = E('card3dFor(ROLE.ninja, "t68", "untouchable", false, 0)'); if (!c3.includes('№ <b>000000</b>') || c3.includes('class="skin-gl"') || !c3.includes('skin-layer mythic anim')) F('v69: an admin copy shows № 000000');
   if (E('card3dFor(ROLE.ninja, "t68", "untouchable", true, null)').includes('skin-serial') || E('card3dFor(ROLE.ninja, "t68", "silent_petal", true, 5)').includes('skin-serial')) F('v69: no number when it is unknown or the skin is not numbered');
+  // v79: the Season 1 mythic back — on the 3D card, in 3D by its depth map, with the copy's number on top
+  { const c = E('card3dFor(ROLE.ninja, "t79", "untouchable", true, 1)'); if (!c.includes('has-skin-back') || !c.includes('class="skin-layer skin-back mythic"') || !c.includes('untouchable-back.webp') || !c.includes('data-part="back" hidden') || (c.match(/№ <b>000001<\/b>/g) || []).length !== 2) F('v79: the 3D card of «Untouchable» has its own back in 3D with № 000001');
+    if (E('card3dFor(ROLE.ninja, "t79", "untouchable", false, 1)').includes('class="skin-gl"') || E('card3dFor(ROLE.ninja, "t79", "silent_petal", true, 1)').includes('skin-back') || !E('skinUrl(SKIN.untouchable, "back-depth")').endsWith('/untouchable-back-depth.png')) F('v79: no 3D canvas when it is off, no own back for other skins, the depth map\'s name');
+    if (!fs.existsSync(__dirname + '/../skins/untouchable-back.webp') || !fs.existsSync(__dirname + '/../skins/untouchable-back-depth.png')) F('v79: the back and its depth map are in skins/'); }
   vm.runInContext('SERIALS_OF[777123] = { untouchable: 42 }', ctx); if (E('serialOfTg(777123, "untouchable")') !== 42 || E('serialOfTg(777123, "silent_petal")') !== null || E('fmtSerial(42)') !== '000042' || E('fmtSerial(1234567)') !== '1234567') F('v69: the numbers of other players, six digits');
   // buying: the server answers with the number; the sheet updates and the toast names it
   S.ui.sheet = { type: 'skin', id: 'untouchable' }; S.skins = { owned: [], equipped: {}, serials: {}, sold: { untouchable: 9 } }; S.em = { balance: 60000, bought: [], epic: 7500, mythic: 50000 };

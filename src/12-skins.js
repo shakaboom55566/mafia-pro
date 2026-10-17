@@ -45,7 +45,8 @@ const SKINS = [
   { id: 'silent_petal', role: 'ninja', rarity: 'epic', file: 'silent-petal' },
   { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' },
   // v69: Mythic — 50 000 emeralds, every copy numbered (000001…), the card is animated: the ninja steps out and dodges kunai (src/17-mythic.js)
-  { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge' }
+  // v79: its own back — the Season 1 mythic back (untouchable-back.webp + its depth map), drawn on the 3D card only (src/12-skins.js skinBackHTML)
+  { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge', back: 's1' }
 ];
 // v71: table backgrounds — the room around the round table (role «room» on the server; a reward or an admin's gift) — src/18-rooms.js
 const ROOMS = [
@@ -80,7 +81,7 @@ const rarPill = (s, style = '') => `<span class="ss-epic rar-${s.rarity}"${style
 ['name', 'lore'].forEach(k => SKINS.forEach(s => Object.defineProperty(s, k, { get() { const p = (L.skins && L.skins[s.id]) || (I18N.ru.skins || {})[s.id] || {}; return p[k] || s.id; }, enumerable: true })));
 /* the pictures live on the app's site: the same origin in the app (WebGL may read them), the full address anywhere else */
 const SKIN_BASE = (() => { try { return /(^|\.)mafiapro\.app$/.test(location.hostname) ? '/skins/' : 'https://mafiapro.app/skins/'; } catch (e) { return 'https://mafiapro.app/skins/'; } })();
-const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : kind === 'thumb' ? '-thumb.webp' : kind ? '-' + kind + '.webp' : '.webp'); // v69: 'scene', 'pose-stand'… for animated skins
+const skinUrl = (s, kind) => SKIN_BASE + s.file + (kind === 'seal' ? '-seal.webp' : kind === 'depth' ? '-depth.png' : kind === 'back-depth' ? '-back-depth.png' : kind === 'thumb' ? '-thumb.webp' : kind ? '-' + kind + '.webp' : '.webp'); // v69: 'scene', 'pose-stand'… for animated skins
 S.skins = S.skins && typeof S.skins === 'object' ? S.skins : { owned: [], equipped: {} };
 
 /* ---------- who wears what ---------- */
@@ -138,10 +139,18 @@ async function skinsLoad(g) {
 function skinLayerHTML(id, gl, serial) {
   const s = SKIN[id]; if (!s) return '';
   // v69: a numbered copy shows its number on top ('x' — a copy not bought yet: dots); an animated skin carries its empty scene for the show
-  const plate = s.numbered && serial != null ? `<div class="skin-serial">№ <b>${serial === 'x' ? '······' : fmtSerial(serial)}</b></div>` : '';
+  const plate = skinSerialHTML(s, serial);
   const scene = s.anim ? `<img class="skin-scene" src="${skinUrl(s, 'scene')}" alt="" draggable="false" loading="lazy" onerror="this.remove()">` : '';
   const play = s.anim ? `<button class="myth-play" data-a="myth-play" aria-label="${esc(U().myPlay || 'Play')}" title="${esc(U().myPlay || 'Play')}"><svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="M9 6.5v11l9-5.5z" fill="currentColor"/></svg></button>` : '';
   return `<div class="skin-layer ${s.rarity}${s.anim ? ' anim' : ''}" data-skin="${s.id}"><img class="skin-img" src="${skinUrl(s)}" alt="${esc(s.name)}" draggable="false" onerror="this.parentNode.remove()">${gl ? `<canvas class="skin-gl" data-skin="${s.id}" hidden></canvas>` : ''}${scene}<div class="skin-foil"></div><div class="skin-glare"></div>${plate}${play}</div>`;
+}
+const skinSerialHTML = (s, serial) => (s.numbered && serial != null ? `<div class="skin-serial">№ <b>${serial === 'x' ? '······' : fmtSerial(serial)}</b></div>` : '');
+/* v79: a skin's own back (the mythic Season 1 back): the picture in 3D by its depth map, embers, foil, the copy's number on top.
+   Only on the 3D card (Skins tab, sheet, profile, my card at an online table, the podium) — never on the deal's card back,
+   which everyone around a shared phone sees before the card is opened. The plain premium back stays underneath if it cannot load. */
+function skinBackHTML(id, gl, serial) {
+  const s = SKIN[id]; if (!s || !s.back) return '';
+  return `<div class="skin-layer skin-back ${s.rarity}" data-skin="${s.id}" data-part="back"><img class="skin-img" src="${skinUrl(s, 'back')}" alt="" draggable="false" onerror="const f=this.closest('.cardback');if(f)f.classList.remove('has-skin-back');this.parentNode.remove()">${gl ? `<canvas class="skin-gl" data-skin="${s.id}" data-part="back" hidden></canvas>` : ''}<div class="back-embers"></div><div class="skin-foil"></div><div class="skin-glare"></div>${skinSerialHTML(s, serial)}</div>`;
 }
 const injectLast = (html, add) => { const k = html.lastIndexOf('</div>'); return k < 0 ? html : html.slice(0, k) + add + html.slice(k); };
 function skinCardHTML(role, opts, skinId, gl) {
@@ -154,7 +163,7 @@ function sealFor(role, skinId, cls = '') {
 }
 function card3dFor(role, key, skinId, gl, serial) {
   if (!validSkin(skinId, role.id)) return card3dHTML(role, key);
-  return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${skinCardHTML(role, { serial }, skinId, gl)}</div><div class="face back cardback premium">${cardBackHTML(true, SKIN[skinId].name)}</div></div></div>`;
+  return `<div class="card3d-wrap" data-key="${key}"><div class="card3d"><div class="face front">${skinCardHTML(role, { serial }, skinId, gl)}</div><div class="face back cardback premium${SKIN[skinId].back ? ' has-skin-back' : ''}">${cardBackHTML(true, SKIN[skinId].name)}${skinBackHTML(skinId, gl !== false, serial)}</div></div></div>`;
 }
 
 /* ---------- 3D: one WebGL canvas renders every visible skin canvas (the frame stays, the scene behind it moves) ---------- */
@@ -193,11 +202,12 @@ function skglFrame() {
   SKGL.raf = 0; const layers = document.querySelectorAll('.skin-layer'); if (!layers.length) return;
   const still = skinsStill(); let drew = 0;
   layers.forEach(layer => {
-    const [tx, ty] = still ? [0, 0] : skinTilt(layer);
+    const back = layer.dataset.part === 'back'; let [tx, ty] = still ? [0, 0] : skinTilt(layer); if (back) tx = -tx; // the back face turns the other way round
+    const face = layer.closest('.face'); if (face && face.style.visibility === 'hidden') return; // the turned-away side of a 3D card
     layer.style.setProperty('--gx', (50 + tx * 40).toFixed(1) + '%'); layer.style.setProperty('--gy', (35 + ty * 35).toFixed(1) + '%');
     layer.style.setProperty('--fx', (50 + tx * 50).toFixed(1) + '%'); layer.style.setProperty('--fy', (50 + ty * 50).toFixed(1) + '%');
     const cv = layer.querySelector('canvas.skin-gl'); if (!cv || still || drew >= 4 || !skglInit()) return;
-    const s = SKIN[cv.dataset.skin]; const a = skglTexture(skinUrl(s)), b = skglTexture(skinUrl(s, 'depth')); if (a.bad || b.bad) { cv.remove(); return; } if (!a.ready || !b.ready) return;
+    const s = SKIN[cv.dataset.skin]; const a = skglTexture(skinUrl(s, back ? 'back' : undefined)), b = skglTexture(skinUrl(s, back ? 'back-depth' : 'depth')); if (a.bad || b.bad) { cv.remove(); return; } if (!a.ready || !b.ready) return;
     const r = layer.getBoundingClientRect(); if (r.width < 40 || r.bottom < 0 || r.top > innerHeight) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1); const W = Math.round(layer.offsetWidth * dpr), H = Math.round(layer.offsetHeight * dpr); // the layout size: the box of a turned 3D card is not the card's shape
     const key = `${W}x${H}:${tx.toFixed(3)},${ty.toFixed(3)}`; if (SKGL.last.get(cv) === key) return; SKGL.last.set(cv, key);
