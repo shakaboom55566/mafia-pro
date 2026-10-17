@@ -3,9 +3,13 @@
 
 usage: python3 skins/tools/cutout_green.py <in.mp4> <out.mp4> <out.json> [height=900] [first_sec] [last_sec]
 
-A chroma key: alpha = 1 − how green the pixel is beyond its red/blue (G − max(R, B)), with a soft ramp so hair and the
-scarf's edge keep real transparency; despill removes the green cast at the edge; the static card frame Gemini may leave is
-removed as the per-pixel minimum over the clip (it never moves, she does). Only the silhouette connected to her body is kept.
+A chroma key measured against a CLEAN PLATE: for every pixel, the greenest it ever gets in the clip (she and her shadow only
+lower it) — Gemini's screen is not one green (the wall is ~90 greener than red/blue, the lit floor only ~60), so a fixed
+threshold leaves the floor half-opaque. alpha = 1 − how much of the plate's greenness this frame still shows, with a soft ramp
+so hair and motion blur keep real transparency. The floor shadow (the plate, only darker, far from her solid body) is screen.
+Despill removes the green cast at the edge. Only the silhouette connected to her body is kept.
+NO "static frame" mask: a per-pixel minimum over the clip mixes her colours with the screen's wherever she ever passed and
+erased her feet, hands and ponytail in those places (the owner's marks on v70, 17.10.2026).
 The output: top half her colour (edge filled with her own colour), bottom half the alpha; cropped to the union box.
 """
 import json, os, subprocess, sys, tempfile
@@ -15,25 +19,33 @@ import numpy as np, cv2
 def main():
     src, out_mp4, out_json = sys.argv[1:4]; target_h = int(sys.argv[4]) if len(sys.argv) > 4 else 900
     t0 = float(sys.argv[5]) if len(sys.argv) > 5 else 0; t1 = float(sys.argv[6]) if len(sys.argv) > 6 else 1e9
-    # pass 0: which frames, and the static non-green minimum (the card frame if Gemini drew one) — uint8, one frame in memory at a time
-    cap = cv2.VideoCapture(src); fps = cap.get(cv2.CAP_PROP_FPS) or 24; idx = []; mn = None; i = 0
+    # pass 0: which frames, and the clean plate — per pixel the greenest moment of the clip and its colour (one frame in memory at a time)
+    cap = cv2.VideoCapture(src); fps = cap.get(cv2.CAP_PROP_FPS) or 24; idx = []; gmax = None; col = None; i = 0
     while True:
         ok, f = cap.read()
         if not ok: break
         t = i / fps
         if t0 <= t <= t1:
-            idx.append(i); mn = f.copy() if mn is None else np.minimum(mn, f)
+            idx.append(i); fi = f.astype(np.int16); g = fi[..., 1] - np.maximum(fi[..., 0], fi[..., 2])
+            if gmax is None: gmax = g.copy(); col = f.copy()
+            else: up = g > gmax; gmax[up] = g[up]; col[up] = f[up]
         i += 1
-    H, W = mn.shape[:2]; print('frames', len(idx), W, H, 'fps', fps, flush=True)
-    mnf = mn.astype(np.float32); static_non_green = ((mnf.max(axis=2) > 40) & ((mnf[..., 1] - np.maximum(mnf[..., 0], mnf[..., 2])) < 60)).astype(np.uint8)
-    static_non_green = cv2.dilate(static_non_green, np.ones((7, 7), np.uint8)); print('static frame pixels:', int(static_non_green.sum()), flush=True)
-    del mnf
+    H, W = gmax.shape; print('frames', len(idx), W, H, 'fps', fps, flush=True)
+    gp = cv2.GaussianBlur(cv2.medianBlur(np.clip(gmax, 0, 255).astype(np.uint8), 5).astype(np.float32), (0, 0), 3)
+    cp = cv2.GaussianBlur(cv2.medianBlur(col, 5).astype(np.float32), (0, 0), 3); cp /= np.linalg.norm(cp, axis=2, keepdims=True) + 1e-3
+    hi = np.minimum(gp * 0.8, 55.0); lo = np.minimum(15.0, hi * 0.35)  # g ≤ lo → hers (dark hair with a green bounce stays hers), g ≥ hi → screen
+    floor = (gp < 72) & (np.arange(H)[:, None] > H * 0.55)  # the lit floor: the plate there is paler than the wall
+    print('plate greenness p1/p50/p99', np.percentile(gp, [1, 50, 99]).round(1), 'floor px', int(floor.sum()), flush=True)
+    del gmax, col
     # pass 1: the alpha of every frame (uint8) and the union box
     def key(f):
         x = f.astype(np.float32); R, G, B = x[..., 2], x[..., 1], x[..., 0]  # BGR in
         g = G - np.maximum(R, B)
-        a = 1 - np.clip((g - 15) / 40.0, 0, 1)  # g ≤ 15 → hers, g ≥ 55 → screen (Gemini's screen is ~82–94, her colours never go green)
-        a[static_non_green > 0] = 0
+        a = 1 - np.clip((g - lo) / (hi - lo), 0, 1)
+        core = cv2.morphologyEx((a > 0.9).astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+        dist = cv2.distanceTransform(1 - core, cv2.DIST_L2, 5)
+        cos = (x * cp).sum(2) / (np.linalg.norm(x, axis=2) + 1e-3)  # same colour direction as the plate = a shadow on it
+        a[floor & (cos > 0.985) & (dist > 8) & (a < 0.95)] = 0
         hard = (a > 0.5).astype(np.uint8); n, lab, st, _ = cv2.connectedComponentsWithStats(hard, 8)
         if n > 1:
             areas = st[1:, cv2.CC_STAT_AREA]; big = 1 + int(np.argmax(areas)); keep = lab == big

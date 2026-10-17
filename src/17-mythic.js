@@ -22,8 +22,9 @@ const MYTH_ART = {
     flip: { w: 1.0513, h: 0.6417, ax: 0.4912, ay: 0.4755 },
     crouch: { w: 1.175, h: 0.6425, ax: 0.5119, ay: 0.5058 },
     // v70: the Gemini cinematic (720×1280, 8.6 s; the card fills the first and the last frame); three generation bugs cut out (see skins/STYLE.md)
-    // v70.4: her cut-out from the GREEN-screen Gemini clip (620×900, 10.0 s, 24 fps; skins/tools/cutout_green.py): her body centre and height in the first / last frame
-    hero: { file: 'hero', size: [620, 900], dur: 10.0, c0: [0.5213, 0.4998], c1: [0.5074, 0.504], body0: 0.938, body1: 0.93, scale: 1.45, flash: -1 }
+    // v70.4: her cut-out from the GREEN-screen Gemini clip (skins/tools/cutout_green.py): her body centre and height in the first / last frame
+    // v70.5: keyed against a clean plate — the feet, hands and ponytail that the old «static frame» mask erased are back; the frame is taller (the flip's boots reach the top)
+    hero: { file: 'hero', size: [560, 900], dur: 10.0, c0: [0.5249, 0.5479], c1: [0.5098, 0.552], body0: 0.8455, body1: 0.8411, scale: 1.45, flash: -1 }
   }
 };
 const MYTH_POSES = ['stand', 'flip', 'crouch'];
