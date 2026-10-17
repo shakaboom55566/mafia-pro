@@ -1071,6 +1071,17 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 html.lite .skin-gl, html.lite .skin-foil { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .skin-gl { display: none !important; } }
 /* v69 Mythic: the number of the copy on top, the living card's ▶, the show over the whole screen (src/17-mythic.js) */
+/* v79: a skin's own back (the mythic Season 1 back) — over the premium back, which stays as the fallback (src/12-skins.js skinBackHTML) */
+.cardback .skin-back { position: absolute; inset: 0; z-index: 2; overflow: hidden; border-radius: inherit; container-type: inline-size; }
+.cardback.has-skin-back { border-color: rgba(255,84,104,.85); box-shadow: 0 0 0 1px #3a0610, 0 0 26px rgba(255,40,60,.45); }
+.cardback.has-skin-back .back-art, .cardback.has-skin-back .logo { visibility: hidden; }
+.skin-back .back-embers { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; opacity: .75;
+  background-image: radial-gradient(circle, rgba(255,180,110,.95) 0 .9px, rgba(255,90,60,0) 2.2px), radial-gradient(circle, rgba(255,120,90,.8) 0 1.3px, rgba(255,60,60,0) 3px), radial-gradient(circle, rgba(255,215,150,.7) 0 .7px, rgba(255,160,90,0) 1.8px);
+  background-size: 41px 53px, 67px 89px, 29px 37px; background-position: 0 0, 19px 31px, 11px 7px; animation: emberUp 9s linear infinite;
+  -webkit-mask-image: linear-gradient(to top, #000 0 35%, rgba(0,0,0,.4) 70%, transparent 92%); mask-image: linear-gradient(to top, #000 0 35%, rgba(0,0,0,.4) 70%, transparent 92%); }
+@keyframes emberUp { to { background-position: 0 -530px, 19px -859px, 11px -363px; } }
+html.lite .skin-back .back-embers { display: none; }
+@media (prefers-reduced-motion: reduce) { .skin-back .back-embers { animation: none; } }
 .card.skinned .skin-layer { container-type: inline-size; }
 .skin-layer.mythic { background: #1a0509; }
 .skin-item.mythic { border-color: rgba(255,84,104,.6); background: radial-gradient(120% 90% at 0% 0%, rgba(230,30,60,.24), var(--bg-2) 62%); box-shadow: 0 10px 34px -18px rgba(255,40,60,.7); }
