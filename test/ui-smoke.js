@@ -1404,6 +1404,28 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v82 ' + m); }
   A['cards-tab'](el('cards-tab', { v: 'cards' })); S.screen = 'home'; X.render();
   console.log('v82 hookah ok');
 } catch (e) { fails++; console.log('FAIL v82 crashed', e && e.stack || e); }
+// v83: the «Country» tab with the server — every country players play from (with how many), opens on my country, that country's top
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v83 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+  vm.runInContext('globalThis.__api3 = api; globalThis.__apiBase3 = apiBase; globalThis.__tg3 = TG.app; TG.app = { initData: "x" }; apiBase = () => "https://x.test"; globalThis.__gb = []', ctx);
+  vm.runInContext(`api = async (p, b) => { if (p === '/api/leaderboard/country') { __gb.push(b.country); const c = b.country || 'UA'; const tops = { UA: [{ rank: 1, tgId: 11, name: 'Mikael', username: 'm', photo: '', points: 1056, games: 2, wins: 2, hosted: 0 }, { rank: 2, tgId: 12, name: 'Viktoriia', username: 'v', photo: '', points: 1054, games: 3, wins: 2, hosted: 0 }], PL: [{ rank: 1, tgId: 21, name: 'Ania', username: 'a', photo: '', points: 1030, games: 2, wins: 1, hosted: 0 }] };
+    return { ok: true, countries: [{ country: 'UA', players: 9 }, { country: 'PL', players: 3 }, { country: 'AM', players: 1 }], country: c, mine: 'UA', top: tops[c] || [], at: Date.now(), every: 600000, final: false }; }
+    if (p === '/api/leaderboard') return { ok: true, top: [], at: Date.now() }; return { ok: false }; }`, ctx);
+  const tick = () => new Promise(r => setTimeout(r, 5));
+  S.profiles = S.profiles.filter(p => !p.__v83); S.ui.rtTab = 'rating'; S.ui.rt = { scope: 'country', period: 'all', city: null, country: null, role: 'sheriff' };
+  A.go(el('go', { to: 'ratings' })); await tick(); await tick(); await tick(); X.render(); let h = app.innerHTML; check('v83 country tab');
+  const gb = E('__gb'); if (!gb.length) F('the tab asks the server');
+  const opts = (h.match(/<select class="input" data-a="rt-pick" data-k="country">([\s\S]*?)<\/select>/) || [])[1] || '';
+  if (!opts.includes('value="UA"') || !opts.includes('value="PL"') || !opts.includes('value="AM"') || !opts.includes('· 9') || opts.indexOf('value="UA"') > opts.indexOf('value="PL"')) F('every server country in the picker, most players first: ' + opts.slice(0, 300));
+  if (S.ui.rt.country !== 'UA' || !/value="UA" selected/.test(opts)) F('it opens on my country');
+  if (!h.includes('geo-top') || !h.includes('Mikael') || !h.includes('Viktoriia') || !h.includes(u.geoTopHint)) F('the country panel lists that country\'s players');
+  if (h.includes(u.rtEmpty)) F('no «no games» line when the server panel is there');
+  A['rt-pick']({ dataset: { k: 'country' }, value: 'PL' }); await tick(); await tick(); X.render(); h = app.innerHTML;
+  if (!gb.includes('PL') || !h.includes('Ania') || h.includes('Mikael')) F('another country — its own top');
+  A['rt-pick']({ dataset: { k: 'country' }, value: 'AM' }); await tick(); await tick(); X.render(); h = app.innerHTML; if (!h.includes(u.geoTopEmpty)) F('a country with nobody on top says so');
+  vm.runInContext('api = __api3; apiBase = __apiBase3; TG.app = __tg3', ctx);
+  S.ui.rt = { scope: 'server', period: 'all', city: null, country: null, role: 'sheriff' }; S.screen = 'home'; X.render();
+  console.log('v83 country ok');
+} catch (e) { fails++; console.log('FAIL v83 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

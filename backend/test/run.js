@@ -92,6 +92,31 @@ console.log('geo (v75): the request\'s country and city come back as a hint, the
   await post('/api/me', { initData: hi, country: '' }); eq((await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = 4401').first()).country, '', 'the player may clear the country');
 }
 
+console.log('the rating by country (v83): every country with players, the top of the chosen one, signed, cached with the top');
+{ const t0 = now(); const put = async (id, name, pts, games, cc) => { await env.DB.prepare('INSERT INTO users (tg_id, first_name, username, created_at, seen_at) VALUES (?1, ?2, ?3, ?4, ?4) ON CONFLICT(tg_id) DO UPDATE SET first_name = ?2').bind(id, name, 'u' + id, t0).run(); await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, 1, 0, ?4) ON CONFLICT(tg_id) DO UPDATE SET points = ?2, games = ?3').bind(id, pts, games, t0).run(); if (cc !== null) await env.DB.prepare('INSERT INTO user_countries (tg_id, country, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET country = ?2').bind(id, cc, t0).run(); };
+  await put(4501, 'Oksana', 40, 3, 'UA'); await put(4502, 'Taras', 25, 2, 'UA'); await put(4503, 'Ania', 30, 2, 'PL'); await put(4504, 'Aram', 12, 1, 'AM'); await put(4505, 'NoGames', 0, 0, 'DE'); await put(4506, 'NoCountry', 99, 4, null); await put(4507, 'Cleared', 50, 2, '');
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:geo'").run();
+  const me = await initData(user(4501, 'uk', { first_name: 'Oksana' }));
+  eq((await post('/api/leaderboard/country', { country: 'UA' })).status, 401, 'unsigned → 401');
+  let d = await (await post('/api/leaderboard/country', { initData: me })).json();
+  ok(d.ok && d.mine === 'UA' && d.country === 'UA', 'no country asked → my own: ' + JSON.stringify([d.mine, d.country]));
+  const ua = d.countries.find(x => x.country === 'UA'); const pl = d.countries.find(x => x.country === 'PL');
+  ok(ua && pl && d.countries.some(x => x.country === 'AM') && !d.countries.some(x => x.country === 'DE') && d.countries.every(x => /^[A-Z]{2}$/.test(x.country)), 'every country with players who played, none without games or without a country: ' + JSON.stringify(d.countries));
+  ok(d.countries.indexOf(ua) < d.countries.indexOf(pl), 'countries with more players first');
+  const ids = d.top.map(x => x.tgId); ok(ids.indexOf(4501) >= 0 && ids.indexOf(4501) < ids.indexOf(4502) && !ids.includes(4503) && !ids.includes(4506) && !ids.includes(4507), 'the top of Ukraine only, by points: ' + JSON.stringify(ids));
+  const o = d.top.find(x => x.tgId === 4501); ok(o && o.points === 1040 && o.games === 3 && o.name === 'Oksana' && o.rank === ids.indexOf(4501) + 1 && 'hosted' in o && !('country' in o), 'a row like the overall top (rank within the country)');
+  ok(d.every === 600000 && d.at > 0 && d.season && typeof d.final === 'boolean', 'when built, how often, the season');
+  d = await (await post('/api/leaderboard/country', { initData: me, country: 'pl' })).json(); ok(d.country === 'PL' && d.top.length === 1 && d.top[0].tgId === 4503 && d.top[0].rank === 1, 'another country, lower case accepted');
+  d = await (await post('/api/leaderboard/country', { initData: me, country: "UA' OR 1=1" })).json(); ok(d.ok && d.country === 'UA', 'a bad code falls back to my country');
+  d = await (await post('/api/leaderboard/country', { initData: me, country: 'ZZ' })).json(); ok(d.ok && d.country === 'ZZ' && d.top.length === 0, 'a country nobody plays from: empty');
+  await env.DB.prepare('UPDATE ratings SET points = 100 WHERE tg_id = 4502').run();
+  d = await (await post('/api/leaderboard/country', { initData: me, country: 'UA' })).json(); ok(d.top.findIndex(x => x.tgId === 4501) < d.top.findIndex(x => x.tgId === 4502), 'served from the cache within 10 minutes');
+  await env.DB.prepare("UPDATE discord_cfg SET updated_at = updated_at - 700 WHERE key = 'lb:geo'").run();
+  d = await (await post('/api/leaderboard/country', { initData: me, country: 'UA' })).json(); ok(d.top.findIndex(x => x.tgId === 4502) < d.top.findIndex(x => x.tgId === 4501), 'an old cache is rebuilt on request');
+  const anon = await initData(user(4506)); d = await (await post('/api/leaderboard/country', { initData: anon })).json(); ok(d.ok && d.mine === '' && d.country === d.countries[0].country, 'a player without a country gets the biggest country');
+  for (const id of [4501, 4502, 4503, 4504, 4505, 4506, 4507]) { await env.DB.prepare('DELETE FROM ratings WHERE tg_id = ?1').bind(id).run(); await env.DB.prepare('DELETE FROM user_countries WHERE tg_id = ?1').bind(id).run(); }
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key IN ('lb:geo', 'lb:top')").run(); }
+
 console.log('Stars purchase flow');
 let payload;
 { const id = await initData(user(42)); const r = await post('/api/invoice', { initData: id, kind: 'role', id: 'arsonist', title: 'Поджигатель', description: 'Премиум-карта' }); const d = await r.json();

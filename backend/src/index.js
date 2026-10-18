@@ -48,6 +48,7 @@
    - POST /api/lobby/voice-confirm  host: everyone is on voice → the deal opens
    - POST /api/table/voice     player: "I'm on voice"
    - GET  /api/leaderboard    top ratings (public; cached, rebuilt every 10 minutes)
+   - POST /api/leaderboard/country  the rating of one country + the list of countries with players (signed; cached 10 minutes) — v83
    - GET  /                   health
    ============================================================ */
 import { Bot, verifyInitData, checkInitData, esc } from './tg.js';
@@ -2034,11 +2035,44 @@ async function cachedLeaderboard(env) {
   if (r && r.value && now() - r.updated_at < LB_EVERY + 60) { try { const v = JSON.parse(r.value); if (v && !Array.isArray(v) && v.n === sz.n && v.final === (sz.phase === 'break')) return { top: v.top, at: r.updated_at, final: v.final, season: seasonInfo(sz) }; } catch (e) {} } // another season or phase: rebuild
   return buildLeaderboard(env);
 }
-async function dropLeaderboard(env) { await env.DB.prepare('DELETE FROM discord_cfg WHERE key = ?1').bind(LB_KEY).run(); }
+async function dropLeaderboard(env) { await env.DB.prepare('DELETE FROM discord_cfg WHERE key IN (?1, ?2)').bind(LB_KEY, LB_GEO).run(); } // v83: the country board too
 async function apiLeaderboard(env, url) {
   const limit = Math.max(1, Math.min(LB_MAX, Number(url.searchParams.get('limit')) || 20));
   const { top, at, final, season } = await cachedLeaderboard(env);
   return json({ ok: true, top: top.slice(0, limit), at: at * 1000, every: LB_EVERY * 1000, final: !!final, season });
+}
+/* v83: the rating by country — the same points as the overall top (between seasons the finished season's results), grouped by the
+   profile's country (user_countries: set from the network at the first open since v75, the player may change or clear it).
+   Built on request, kept in discord_cfg 'lb:geo' for 10 minutes (a game result drops it with the top); up to 50 players a country. */
+const LB_GEO = 'lb:geo', LB_GEO_MAX = 50;
+async function buildGeoBoard(env) {
+  const sz = seasonNow(env); const final = sz.phase === 'break';
+  const rows = (await (final ? env.DB.prepare("SELECT s.tg_id, s.points, s.games, s.wins, r.hosted, u.first_name, u.username, u.photo_url, c.country FROM season_results s JOIN user_countries c ON c.tg_id = s.tg_id LEFT JOIN ratings r ON r.tg_id = s.tg_id LEFT JOIN users u ON u.tg_id = s.tg_id WHERE s.season = ?1 AND s.games > 0 AND c.country != '' ORDER BY s.points DESC, s.wins DESC").bind(sz.n)
+    : env.DB.prepare("SELECT r.tg_id, r.points, r.games, r.wins, r.hosted, u.first_name, u.username, u.photo_url, c.country FROM ratings r JOIN user_countries c ON c.tg_id = r.tg_id LEFT JOIN users u ON u.tg_id = r.tg_id WHERE r.games > 0 AND c.country != '' ORDER BY r.points DESC, r.wins DESC")).all()).results || [];
+  const by = {}, count = {};
+  for (const r of rows) {
+    const cc = String(r.country || ''); if (!CC_RE.test(cc)) continue;
+    count[cc] = (count[cc] || 0) + 1; const list = by[cc] = by[cc] || [];
+    if (list.length < LB_GEO_MAX) list.push({ rank: list.length + 1, tgId: r.tg_id, name: r.first_name || r.username || '—', username: r.username || '', photo: r.photo_url || '', points: 1000 + r.points, games: r.games, wins: r.wins, hosted: r.hosted || 0 });
+  }
+  const countries = Object.keys(count).map(c => ({ country: c, players: count[c] })).sort((a, b) => b.players - a.players || (a.country < b.country ? -1 : 1));
+  const at = now(); const v = { by, countries, n: sz.n, final };
+  await env.DB.prepare('INSERT INTO discord_cfg (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3').bind(LB_GEO, JSON.stringify(v), at).run();
+  return Object.assign(v, { at });
+}
+async function cachedGeoBoard(env) {
+  const r = await env.DB.prepare('SELECT value, updated_at FROM discord_cfg WHERE key = ?1').bind(LB_GEO).first(); const sz = seasonNow(env);
+  if (r && r.value && now() - r.updated_at < LB_EVERY + 60) { try { const v = JSON.parse(r.value); if (v && v.by && v.n === sz.n && v.final === (sz.phase === 'break')) return Object.assign(v, { at: r.updated_at }); } catch (e) {} }
+  return buildGeoBoard(env);
+}
+async function apiGeoBoard(env, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const b = await cachedGeoBoard(env); const sz = seasonNow(env);
+  const mineRow = await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = ?1').bind(v.user.id).first(); const mine = mineRow && CC_RE.test(mineRow.country || '') ? mineRow.country : '';
+  const want = typeof body.country === 'string' ? body.country.trim().toUpperCase() : '';
+  const country = CC_RE.test(want) ? want : mine || (b.countries[0] ? b.countries[0].country : '');
+  const limit = Math.max(1, Math.min(LB_GEO_MAX, Number(body.limit) || 30));
+  return json({ ok: true, countries: b.countries, country, mine, top: (b.by[country] || []).slice(0, limit), at: b.at * 1000, every: LB_EVERY * 1000, final: !!b.final, season: seasonInfo(sz) });
 }
 
 /* ---------- router ---------- */
@@ -2119,6 +2153,7 @@ export default {
           case '/api/ping': return wrap(apiPing(env, bot, body));
           case '/api/profile': return wrap(apiProfile(env, body));
           case '/api/profile/fav': return wrap(apiFavCard(env, body));
+          case '/api/leaderboard/country': return wrap(apiGeoBoard(env, body)); // v83
           case '/api/skin/equip': return wrap(apiSkinEquip(env, body));
           case '/api/skins': return wrap(apiSkinsOf(env, body));
           case '/api/skin/buy': return wrap(apiSkinBuy(env, bot, body)); // v63: an Epic skin for emeralds

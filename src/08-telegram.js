@@ -748,13 +748,17 @@ Object.assign(ACT, {
   async 'adm-revoke'(el) { const d = await api('/api/admin/revoke', { q: String(el.dataset.id) }); if (!d.ok) { toast(U().tgOffline); return; } ADM.grants = d.grants || []; toast(U().adminRevoked); render(); }
 });
 /* global rating panel on the ratings screen; Telegram rating line on my profile */
+/* one row of a server rating (the overall top, v83: a country's top) */
+function topRowHTML(r, i) {
+  const u = U(); const av = r.photo ? `<img class="avatar sm" src="${esc(r.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((r.name || '?').slice(0, 1).toUpperCase())}</div>`;
+  return `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av}<div class="mid"><div class="nm">${rankIco(r)}${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`;
+}
 function cloudTopHTML() {
   const u = U(); if (!TG.app || !apiBase()) return '';
-  const av = r => r.photo ? `<img class="avatar sm" src="${esc(r.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((r.name || '?').slice(0, 1).toUpperCase())}</div>`;
   // opening the ratings screen shows what is already loaded at once and quietly refreshes it in the background
   if (!CLOUD.onRatings) { CLOUD.onRatings = true; topPoll(!!CLOUD.topAt && Date.now() - CLOUD.topAt > 10000); } else topPoll();
   const when = CLOUD.topSrv ? new Date(CLOUD.topSrv).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) : '';
-  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${rankIco(r)}${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
   return `<div class="panel" style="margin-top:12px"><div class="eyebrow">${CLOUD.topFinal && typeof seasonAt === 'function' ? tt(u.rkFinalTop, { n: seasonAt(Date.now()).n }) : u.tgTop}</div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}${CLOUD.top ? `<div class="hint" style="margin-top:8px;font-size:11.5px">${when ? tt(u.tgTopAuto, { time: when }) : u.tgTopAutoNo}</div>` : ''}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
 }
 /* top of clubs by members (public endpoint), refreshed every minute while the ratings screen is open */

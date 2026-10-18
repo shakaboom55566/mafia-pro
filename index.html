@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.59.0-37e5a5c">
+<meta name="mafia-build" content="1.60.0-4c2e7b8">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -7367,6 +7367,12 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
     pl: { geoHint: 'Kraj i miasto rozpoznane po sieci — popraw, jeśli to nie tak.', geoHintCountry: 'Kraj rozpoznany po sieci — popraw, jeśli to nie tak.', geoHintCity: 'Miasto rozpoznane po sieci — popraw, jeśli to nie tak.' },
     hy: { geoHint: 'Երկիրն ու քաղաքը որոշվել են ցանցով․ ուղղեք, եթե սխալ է։', geoHintCountry: 'Երկիրը որոշվել է ցանցով․ ուղղեք, եթե սխալ է։', geoHintCity: 'Քաղաքը որոշվել է ցանցով․ ուղղեք, եթե սխալ է։' }
   };
+  // v83: the rating by country from the server (20-geo.js)
+  Object.assign(R.ru, { geoTopTitle: 'Рейтинг страны · {country}', geoTopAny: 'Рейтинг страны', geoTopHint: 'Игроки из этой страны, которые играют через Telegram. Очки — как в общем рейтинге; страна — из профиля игрока.', geoTopEmpty: 'Из этой страны пока никто не играл.', geoLocalTitle: 'На этом телефоне' });
+  Object.assign(R.uk, { geoTopTitle: 'Рейтинг країни · {country}', geoTopAny: 'Рейтинг країни', geoTopHint: 'Гравці з цієї країни, які грають через Telegram. Очки — як у загальному рейтингу; країна — з профілю гравця.', geoTopEmpty: 'З цієї країни поки ніхто не грав.', geoLocalTitle: 'На цьому телефоні' });
+  Object.assign(R.en, { geoTopTitle: 'Country rating · {country}', geoTopAny: 'Country rating', geoTopHint: 'Players from this country who play through Telegram. Points as in the overall rating; the country comes from the player’s profile.', geoTopEmpty: 'Nobody from this country has played yet.', geoLocalTitle: 'On this phone' });
+  Object.assign(R.pl, { geoTopTitle: 'Ranking kraju · {country}', geoTopAny: 'Ranking kraju', geoTopHint: 'Gracze z tego kraju, którzy grają przez Telegram. Punkty jak w rankingu ogólnym; kraj pochodzi z profilu gracza.', geoTopEmpty: 'Z tego kraju nikt jeszcze nie grał.', geoLocalTitle: 'Na tym telefonie' });
+  Object.assign(R.hy, { geoTopTitle: 'Երկրի վարկանիշ · {country}', geoTopAny: 'Երկրի վարկանիշ', geoTopHint: 'Այս երկրի խաղացողները, ովքեր խաղում են Telegram-ով։ Միավորները՝ ինչպես ընդհանուր վարկանիշում, երկիրը՝ խաղացողի պրոֆիլից։', geoTopEmpty: 'Այս երկրից դեռ ոչ ոք չի խաղացել։', geoLocalTitle: 'Այս հեռախոսում' });
   Object.keys(R).forEach(l => { if (I18N[l] && I18N[l].ui) Object.assign(I18N[l].ui, R[l]); });
 })();
 /* ============================================================
@@ -10675,7 +10681,7 @@ function ratingsScreen() {
   const seg = (cls, items, key) => `<div class="segment ${cls}">${items.map(([id, lbl]) => `<button class="${rt[key] === id ? 'active' : ''}" data-a="rt-set" data-k="${key}" data-v="${id}">${lbl}</button>`).join('')}</div>`;
   const scopeSeg = seg('n4', [['server', u.rtServer], ['city', u.rtCity], ['country', u.rtCountry], ['roles', u.rtRoles]], 'scope');
   const periodSeg = seg('n3', [['all', u.rtAll], ['week', u.rtWeek], ['month', u.rtMonth]], 'period');
-  let pool = S.profiles.slice(); let picker = '';
+  let pool = S.profiles.slice(); let picker = ''; let srvPanel = '';
   if (rt.scope === 'city') {
     const cities = [...new Set(S.profiles.map(p => p.city).filter(Boolean))].sort();
     if (!rt.city || !cities.includes(rt.city)) rt.city = (me && me.city && cities.includes(me.city)) ? me.city : cities[0] || null;
@@ -10683,10 +10689,14 @@ function ratingsScreen() {
     pool = pool.filter(p => p.city && p.city === rt.city);
   }
   if (rt.scope === 'country') {
-    const cs = [...new Set(S.profiles.map(p => p.country).filter(Boolean))].sort();
-    if (!rt.country || !cs.includes(rt.country)) rt.country = (me && me.country && cs.includes(me.country)) ? me.country : cs[0] || null;
-    picker = cs.length ? `<select class="input" data-a="rt-pick" data-k="country">${cs.map(c => `<option value="${c}" ${rt.country === c ? 'selected' : ''}>${flagOf(c)} ${esc(countryName(c))}</option>`).join('')}</select>` : `<p class="hint">${u.rtNoCity}</p>`;
+    // v83: with the bot's server the countries are every country players play from (geoBoard* in 20-geo.js), not only this phone's profiles
+    const srv = typeof geoBoardCountries === 'function' ? geoBoardCountries() : null; const nOf = {}; (srv || []).forEach(x => { nOf[x.country] = x.players; });
+    const cs = [...new Set(S.profiles.map(p => p.country).filter(Boolean).concat(Object.keys(nOf)))].sort((a, b) => (nOf[b] || 0) - (nOf[a] || 0) || countryName(a).localeCompare(countryName(b)));
+    const mine = (me && me.country) || (typeof geoBoardMine === 'function' ? geoBoardMine() : '');
+    if (!rt.country || !cs.includes(rt.country)) rt.country = mine && cs.includes(mine) ? mine : cs[0] || null;
+    picker = cs.length ? `<select class="input" data-a="rt-pick" data-k="country">${cs.map(c => `<option value="${c}" ${rt.country === c ? 'selected' : ''}>${flagOf(c)} ${esc(countryName(c))}${nOf[c] ? ' · ' + nOf[c] : ''}</option>`).join('')}</select>` : srv === null && typeof geoBoardCountries === 'function' && geoBoardOn() ? '' : `<p class="hint">${u.rtNoCity}</p>`;
     pool = pool.filter(p => p.country === rt.country);
+    srvPanel = typeof geoBoardHTML === 'function' ? geoBoardHTML(rt.country) : '';
   }
   let rows = [];
   if (rt.scope === 'roles') {
@@ -10695,10 +10705,10 @@ function ratingsScreen() {
   } else {
     rows = pool.map(p => { const st = profStats(p, since); return { p, g: st.games, w: st.wins, pts: rt.period === 'all' ? st.rating : st.points, show: rt.period === 'all' ? String(st.rating) : (st.points > 0 ? '+' : '') + st.points }; }).filter(x => x.g > 0).sort((a, b) => b.pts - a.pts || b.w - a.w);
   }
-  const list = rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${rankIco(profRank(x.p))}${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`;
+  const list = !rows.length && srvPanel ? '' : (srvPanel ? `<div class="eyebrow" style="margin-top:6px">${u.geoLocalTitle}</div>` : '') + (rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${rankIco(profRank(x.p))}${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`);
   return `${topbar(u.tabRatings, u.ratingsD, false)}
   <div class="stack">
-    ${scopeSeg}${periodSeg}${picker}
+    ${scopeSeg}${periodSeg}${picker}${srvPanel}
     <div class="stack-s">${list}</div>
   </div>`;
 }
@@ -11687,13 +11697,17 @@ Object.assign(ACT, {
   async 'adm-revoke'(el) { const d = await api('/api/admin/revoke', { q: String(el.dataset.id) }); if (!d.ok) { toast(U().tgOffline); return; } ADM.grants = d.grants || []; toast(U().adminRevoked); render(); }
 });
 /* global rating panel on the ratings screen; Telegram rating line on my profile */
+/* one row of a server rating (the overall top, v83: a country's top) */
+function topRowHTML(r, i) {
+  const u = U(); const av = r.photo ? `<img class="avatar sm" src="${esc(r.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((r.name || '?').slice(0, 1).toUpperCase())}</div>`;
+  return `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av}<div class="mid"><div class="nm">${rankIco(r)}${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`;
+}
 function cloudTopHTML() {
   const u = U(); if (!TG.app || !apiBase()) return '';
-  const av = r => r.photo ? `<img class="avatar sm" src="${esc(r.photo)}" alt="" style="object-fit:cover">` : `<div class="avatar sm" style="--av-bg:var(--bg-3);--av-fg:var(--gold-2)">${esc((r.name || '?').slice(0, 1).toUpperCase())}</div>`;
   // opening the ratings screen shows what is already loaded at once and quietly refreshes it in the background
   if (!CLOUD.onRatings) { CLOUD.onRatings = true; topPoll(!!CLOUD.topAt && Date.now() - CLOUD.topAt > 10000); } else topPoll();
   const when = CLOUD.topSrv ? new Date(CLOUD.topSrv).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) : '';
-  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map((r, i) => `<div class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${S.cloud && S.cloud.user && r.tgId === S.cloud.user.id ? 'me' : ''}" role="button" data-a="fr-open" data-id="${r.tgId}"><span class="pos">${r.rank}</span>${av(r)}<div class="mid"><div class="nm">${rankIco(r)}${esc(r.name)}</div><div class="sub">${r.username ? '@' + esc(r.username) + ' · ' : ''}${tt(u.rtGW, { g: r.games, w: r.wins })}</div></div><span class="pts">${r.points}<span class="k">${u.rtPoints}</span></span></div>`).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  const rows = CLOUD.top ? (CLOUD.top.length ? `<div class="stack-s" style="margin-top:10px">${CLOUD.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.tgTopEmpty}</div>`) : `<div class="hint" style="margin-top:8px">${CLOUD.topFail ? u.tgTopFail : u.tgTopLoading}</div>`;
   return `<div class="panel" style="margin-top:12px"><div class="eyebrow">${CLOUD.topFinal && typeof seasonAt === 'function' ? tt(u.rkFinalTop, { n: seasonAt(Date.now()).n }) : u.tgTop}</div><div class="hint" style="margin-top:4px">${u.tgTopHint}</div>${rows}${CLOUD.top ? `<div class="hint" style="margin-top:8px;font-size:11.5px">${when ? tt(u.tgTopAuto, { time: when }) : u.tgTopAutoNo}</div>` : ''}</div>${clubsTopHTML()}<div class="panel" style="margin-top:12px"><div class="stack-s">${playersDirectoryHTML()}</div></div>`;
 }
 /* top of clubs by members (public endpoint), refreshed every minute while the ratings screen is open */
@@ -14674,6 +14688,41 @@ function geoSend() {
   const origPf = ACT.pf;
   ACT.pf = function (el) { origPf.call(this, el); if (S.ui.pf && S.ui.pf.geo && (el.dataset.k === 'city' || el.dataset.k === 'country')) { S.ui.pf.geo = ''; const h = document.querySelector('.geo-hint'); if (h) h.remove(); } }; // edited by hand — the hint is no longer true
 })();
+/* ============================================================
+   v83 THE RATING BY COUNTRY FROM THE SERVER
+   The «Country» tab of the ratings listed only the countries of the profiles saved on this phone. With the bot's server it lists
+   every country players play from (with how many), opens on my country and shows that country's top
+   (POST /api/leaderboard/country: the same points as the overall rating, the profile's country, cached 10 minutes on the server).
+   The players saved on this phone stay below it under «On this phone».
+   ============================================================ */
+const GB = { list: null, mine: '', by: {}, busy: false };
+const GB_EVERY = 2 * 60 * 1000;
+function geoBoardOn() { return !!(TG.app && apiBase()); }
+function geoBoardCountries() { if (!geoBoardOn()) return null; geoBoardPoll(''); return GB.list; }
+function geoBoardMine() { return GB.mine || ''; }
+function geoBoardPoll(cc) {
+  if (!geoBoardOn() || GB.busy) return;
+  const key = cc || ''; const have = GB.by[key];
+  if (!key && GB.list) return; // the list of countries comes with every country's answer
+  if (have && Date.now() - have.t < (have.fail ? 30000 : GB_EVERY)) return;
+  GB.busy = true;
+  setTimeout(async () => {
+    let d = null; try { d = await api('/api/leaderboard/country', { country: key, limit: 30 }); } catch (e) { d = null; }
+    GB.busy = false;
+    if (d && d.ok) { GB.list = Array.isArray(d.countries) ? d.countries.filter(x => x && geoCountryOk(x.country)) : []; GB.mine = geoCountryOk(d.mine) ? d.mine : ''; if (geoCountryOk(d.country)) GB.by[d.country] = { top: Array.isArray(d.top) ? d.top : [], at: d.at || Date.now(), t: Date.now() }; }
+    else GB.by[key] = Object.assign({}, GB.by[key] || {}, { fail: true, t: Date.now() });
+    if (S.screen === 'ratings') render();
+  }, 0);
+}
+/* the panel under the country picker: that country's players on the server */
+function geoBoardHTML(cc) {
+  if (!geoBoardOn()) return '';
+  const u = U(); if (cc) geoBoardPoll(cc);
+  const b = cc ? GB.by[cc] : null; const name = cc ? `${flagOf(cc)} ${esc(countryName(cc))}` : '';
+  const rows = b && b.top ? (b.top.length ? `<div class="stack-s" style="margin-top:10px">${b.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.geoTopEmpty}</div>`)
+    : `<div class="hint" style="margin-top:8px">${b && b.fail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  return `<div class="panel geo-top"><div class="eyebrow">${cc ? tt(u.geoTopTitle, { country: name }) : u.geoTopAny}</div><div class="hint" style="margin-top:4px">${u.geoTopHint}</div>${rows}</div>`;
+}
 /* ============================================================
    v77 OFFICIAL HOSTS — verified hosts with a licence; every game at their tables brings the players emeralds (up to 100 a game).
    The screen «Official hosts»: how the reward is counted, the officials' open tables, my way to the status (the application,

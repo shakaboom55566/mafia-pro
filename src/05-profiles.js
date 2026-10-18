@@ -174,7 +174,7 @@ function ratingsScreen() {
   const seg = (cls, items, key) => `<div class="segment ${cls}">${items.map(([id, lbl]) => `<button class="${rt[key] === id ? 'active' : ''}" data-a="rt-set" data-k="${key}" data-v="${id}">${lbl}</button>`).join('')}</div>`;
   const scopeSeg = seg('n4', [['server', u.rtServer], ['city', u.rtCity], ['country', u.rtCountry], ['roles', u.rtRoles]], 'scope');
   const periodSeg = seg('n3', [['all', u.rtAll], ['week', u.rtWeek], ['month', u.rtMonth]], 'period');
-  let pool = S.profiles.slice(); let picker = '';
+  let pool = S.profiles.slice(); let picker = ''; let srvPanel = '';
   if (rt.scope === 'city') {
     const cities = [...new Set(S.profiles.map(p => p.city).filter(Boolean))].sort();
     if (!rt.city || !cities.includes(rt.city)) rt.city = (me && me.city && cities.includes(me.city)) ? me.city : cities[0] || null;
@@ -182,10 +182,14 @@ function ratingsScreen() {
     pool = pool.filter(p => p.city && p.city === rt.city);
   }
   if (rt.scope === 'country') {
-    const cs = [...new Set(S.profiles.map(p => p.country).filter(Boolean))].sort();
-    if (!rt.country || !cs.includes(rt.country)) rt.country = (me && me.country && cs.includes(me.country)) ? me.country : cs[0] || null;
-    picker = cs.length ? `<select class="input" data-a="rt-pick" data-k="country">${cs.map(c => `<option value="${c}" ${rt.country === c ? 'selected' : ''}>${flagOf(c)} ${esc(countryName(c))}</option>`).join('')}</select>` : `<p class="hint">${u.rtNoCity}</p>`;
+    // v83: with the bot's server the countries are every country players play from (geoBoard* in 20-geo.js), not only this phone's profiles
+    const srv = typeof geoBoardCountries === 'function' ? geoBoardCountries() : null; const nOf = {}; (srv || []).forEach(x => { nOf[x.country] = x.players; });
+    const cs = [...new Set(S.profiles.map(p => p.country).filter(Boolean).concat(Object.keys(nOf)))].sort((a, b) => (nOf[b] || 0) - (nOf[a] || 0) || countryName(a).localeCompare(countryName(b)));
+    const mine = (me && me.country) || (typeof geoBoardMine === 'function' ? geoBoardMine() : '');
+    if (!rt.country || !cs.includes(rt.country)) rt.country = mine && cs.includes(mine) ? mine : cs[0] || null;
+    picker = cs.length ? `<select class="input" data-a="rt-pick" data-k="country">${cs.map(c => `<option value="${c}" ${rt.country === c ? 'selected' : ''}>${flagOf(c)} ${esc(countryName(c))}${nOf[c] ? ' · ' + nOf[c] : ''}</option>`).join('')}</select>` : srv === null && typeof geoBoardCountries === 'function' && geoBoardOn() ? '' : `<p class="hint">${u.rtNoCity}</p>`;
     pool = pool.filter(p => p.country === rt.country);
+    srvPanel = typeof geoBoardHTML === 'function' ? geoBoardHTML(rt.country) : '';
   }
   let rows = [];
   if (rt.scope === 'roles') {
@@ -194,10 +198,10 @@ function ratingsScreen() {
   } else {
     rows = pool.map(p => { const st = profStats(p, since); return { p, g: st.games, w: st.wins, pts: rt.period === 'all' ? st.rating : st.points, show: rt.period === 'all' ? String(st.rating) : (st.points > 0 ? '+' : '') + st.points }; }).filter(x => x.g > 0).sort((a, b) => b.pts - a.pts || b.w - a.w);
   }
-  const list = rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${rankIco(profRank(x.p))}${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`;
+  const list = !rows.length && srvPanel ? '' : (srvPanel ? `<div class="eyebrow" style="margin-top:6px">${u.geoLocalTitle}</div>` : '') + (rows.length ? rows.map((x, i) => `<button class="rank-row ${i < 3 ? 'top' + (i + 1) : ''} ${x.p.id === S.meId ? 'me' : ''}" data-a="prof-open" data-id="${x.p.id}"><span class="pos">${i + 1}</span>${avatarHTML(x.p, 'sm')}<div class="mid"><div class="nm">${rankIco(profRank(x.p))}${esc(x.p.name)}</div><div class="sub">${[flagOf(x.p.country), esc(x.p.city)].filter(Boolean).join(' ')}${x.p.city ? ' · ' : ''}${tt(u.rtGW, { g: x.g, w: x.w })}</div></div><span class="pts">${x.show}<span class="k">${rt.scope === 'roles' ? u.winRate : rt.period === 'all' ? u.rtPoints : u.rtDelta}</span></span></button>`).join('') : `<p class="hint">${u.rtEmpty}</p>`);
   return `${topbar(u.tabRatings, u.ratingsD, false)}
   <div class="stack">
-    ${scopeSeg}${periodSeg}${picker}
+    ${scopeSeg}${periodSeg}${picker}${srvPanel}
     <div class="stack-s">${list}</div>
   </div>`;
 }

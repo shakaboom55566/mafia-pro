@@ -50,3 +50,38 @@ function geoSend() {
   const origPf = ACT.pf;
   ACT.pf = function (el) { origPf.call(this, el); if (S.ui.pf && S.ui.pf.geo && (el.dataset.k === 'city' || el.dataset.k === 'country')) { S.ui.pf.geo = ''; const h = document.querySelector('.geo-hint'); if (h) h.remove(); } }; // edited by hand — the hint is no longer true
 })();
+/* ============================================================
+   v83 THE RATING BY COUNTRY FROM THE SERVER
+   The «Country» tab of the ratings listed only the countries of the profiles saved on this phone. With the bot's server it lists
+   every country players play from (with how many), opens on my country and shows that country's top
+   (POST /api/leaderboard/country: the same points as the overall rating, the profile's country, cached 10 minutes on the server).
+   The players saved on this phone stay below it under «On this phone».
+   ============================================================ */
+const GB = { list: null, mine: '', by: {}, busy: false };
+const GB_EVERY = 2 * 60 * 1000;
+function geoBoardOn() { return !!(TG.app && apiBase()); }
+function geoBoardCountries() { if (!geoBoardOn()) return null; geoBoardPoll(''); return GB.list; }
+function geoBoardMine() { return GB.mine || ''; }
+function geoBoardPoll(cc) {
+  if (!geoBoardOn() || GB.busy) return;
+  const key = cc || ''; const have = GB.by[key];
+  if (!key && GB.list) return; // the list of countries comes with every country's answer
+  if (have && Date.now() - have.t < (have.fail ? 30000 : GB_EVERY)) return;
+  GB.busy = true;
+  setTimeout(async () => {
+    let d = null; try { d = await api('/api/leaderboard/country', { country: key, limit: 30 }); } catch (e) { d = null; }
+    GB.busy = false;
+    if (d && d.ok) { GB.list = Array.isArray(d.countries) ? d.countries.filter(x => x && geoCountryOk(x.country)) : []; GB.mine = geoCountryOk(d.mine) ? d.mine : ''; if (geoCountryOk(d.country)) GB.by[d.country] = { top: Array.isArray(d.top) ? d.top : [], at: d.at || Date.now(), t: Date.now() }; }
+    else GB.by[key] = Object.assign({}, GB.by[key] || {}, { fail: true, t: Date.now() });
+    if (S.screen === 'ratings') render();
+  }, 0);
+}
+/* the panel under the country picker: that country's players on the server */
+function geoBoardHTML(cc) {
+  if (!geoBoardOn()) return '';
+  const u = U(); if (cc) geoBoardPoll(cc);
+  const b = cc ? GB.by[cc] : null; const name = cc ? `${flagOf(cc)} ${esc(countryName(cc))}` : '';
+  const rows = b && b.top ? (b.top.length ? `<div class="stack-s" style="margin-top:10px">${b.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.geoTopEmpty}</div>`)
+    : `<div class="hint" style="margin-top:8px">${b && b.fail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  return `<div class="panel geo-top"><div class="eyebrow">${cc ? tt(u.geoTopTitle, { country: name }) : u.geoTopAny}</div><div class="hint" style="margin-top:4px">${u.geoTopHint}</div>${rows}</div>`;
+}
