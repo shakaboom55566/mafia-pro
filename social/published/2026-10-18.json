@@ -1,0 +1,32 @@
+{
+  "id": "2026-10-18",
+  "date": "2026-10-18",
+  "rubric": "Новинка",
+  "hook": "без",
+  "model": "veo-3.1-fast-generate-preview",
+  "resolution": "1080p",
+  "image": null,
+  "refs": [
+    "citizen"
+  ],
+  "title": "Мафія як у клубі",
+  "voice": {
+    "seconds": 7.2,
+    "tempo": 1
+  },
+  "costUsd": 0.98,
+  "seconds": 10.2,
+  "bytes": 4448012,
+  "at": "2026-10-18T15:52:41.546Z",
+  "results": {
+    "instagram": {
+      "error": "container: Any of the pages_read_engagement, pages_manage_metadata,\n        pages_read_user_content, pages_manage_ads, pages_show_list or\n        pages_messaging permission(s) must be granted before impersonating a\n        user's page. (#190)"
+    },
+    "facebook": {
+      "error": "start: Any of the pages_read_engagement, pages_manage_metadata,\n        pages_read_user_content, pages_manage_ads, pages_show_list or\n        pages_messaging permission(s) must be granted before impersonating a\n        user's page. (#190)"
+    },
+    "tiktok": {
+      "status": "telegram"
+    }
+  }
+}
