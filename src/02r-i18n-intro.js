@@ -64,3 +64,35 @@ I18N.hy.intro = {
   trumps: { name: 'Մաֆիայի հաղթաթղթերը', lore: 'Մաֆիան հատուկ քարտերով. Զինագործ, Կամիկաձե, Մաֆիայի բժիշկ, Դահիճ։' },
   third: { name: 'Երրորդ ուժ', lore: 'Մաֆիայից ու քաղաքից բացի՝ Մոլագար, իսկ մեծ սեղաններին՝ Ծաղրածու և Գայլամարդ։' }
 };
+
+/* ---------------- v80: the «With Citizens» tab — role mafia as clubs play it, all languages ---------------- */
+(function () {
+  const T = {
+    ru: { ui: { scenFreeTabS: 'Бесплатные', scenPaidTabS: 'Платные', scenCitTab: 'С мирными', citPill: 'С мирными', citTitle: 'Ролевая мафия с мирными жителями',
+      citHint: 'Как обычно играют в клубах: Дон и мафия против Шерифа и Доктора, с 9 игроков в городе Азазель, с 11 есть вариант с Маньяком — все остальные мирные жители. Число мафии на каждый стол подобрано симуляцией; где одна лишняя мафия перевешивает, баланс выравнивает второй Доктор или Шериф, а на 8 игроков и в паре составов с Маньяком играют без Доктора. Каждый состав проверен на 4000 партиях.',
+      okSimCit: ' Состав с мирными «{name}». По симуляции: мафия {m}%, город {c}%{x}.' },
+      cit: { town: { name: 'Классический город', lore: 'Дон и мафия против Шерифа и Доктора, с 9 игроков — ещё Азазель. Все остальные — мирные жители.' },
+        maniac: { name: 'Город и Маньяк', lore: 'То же, но ночью охотится ещё и Маньяк — он играет сам за себя.' } } },
+    uk: { ui: { scenFreeTabS: 'Безплатні', scenPaidTabS: 'Платні', scenCitTab: 'З мирними', citPill: 'З мирними', citTitle: 'Рольова мафія з мирними жителями',
+      citHint: 'Як зазвичай грають у клубах: Дон і мафія проти Шерифа й Лікаря, з 9 гравців у місті Азазель, з 11 є варіант із Маніяком — усі інші мирні жителі. Кількість мафії на кожен стіл підібрано симуляцією; де одна зайва мафія переважує, баланс вирівнює другий Лікар або Шериф, а на 8 гравців і в парі складів із Маніяком грають без Лікаря. Кожен склад перевірено на 4000 партіях.',
+      okSimCit: ' Склад із мирними «{name}». За симуляцією: мафія {m}%, місто {c}%{x}.' },
+      cit: { town: { name: 'Класичне місто', lore: 'Дон і мафія проти Шерифа й Лікаря, з 9 гравців — ще Азазель. Усі інші — мирні жителі.' },
+        maniac: { name: 'Місто й Маніяк', lore: 'Те саме, але вночі полює ще й Маніяк — він грає сам за себе.' } } },
+    en: { ui: { scenFreeTabS: 'Free', scenPaidTabS: 'Paid', scenCitTab: 'With Citizens', citPill: 'Citizens', citTitle: 'Role mafia with Citizens',
+      citHint: 'The way clubs usually play: the Don and the mafia against the Sheriff and the Doctor, Azazel joins the town from 9 players, from 11 there is a version with the Maniac — everyone else is a Citizen. The number of mafiosi for each table was picked by simulation; where one more mafioso tips the scales, a second Doctor or Sheriff evens it out, and at 8 players and in a couple of Maniac line-ups there is no Doctor. Every line-up was checked on 4,000 games.',
+      okSimCit: ' Line-up with Citizens “{name}”. Simulated: mafia {m}%, town {c}%{x}.' },
+      cit: { town: { name: 'Classic town', lore: 'The Don and the mafia against the Sheriff and the Doctor, plus Azazel from 9 players. Everyone else is a Citizen.' },
+        maniac: { name: 'Town and the Maniac', lore: 'The same, but the Maniac hunts at night too — he plays for himself.' } } },
+    pl: { ui: { scenFreeTabS: 'Darmowe', scenPaidTabS: 'Płatne', scenCitTab: 'Mieszkańcy', citPill: 'Mieszkańcy', citTitle: 'Mafia z rolami i mieszkańcami',
+      citHint: 'Tak zwykle gra się w klubach: Don i mafia przeciw Szeryfowi i Lekarzowi, od 9 graczy w mieście jest Azazel, od 11 — wariant z Maniakiem; wszyscy pozostali to mieszkańcy. Liczbę mafiosów na każdy stół dobrała symulacja; gdzie jeden mafioso więcej przechyla szalę, wyrównuje ją drugi Lekarz lub Szeryf, a przy 8 graczach i w paru składach z Maniakiem gra się bez Lekarza. Każdy skład sprawdzono na 4000 partiach.',
+      okSimCit: ' Skład z mieszkańcami „{name}”. Według symulacji: mafia {m}%, miasto {c}%{x}.' },
+      cit: { town: { name: 'Klasyczne miasto', lore: 'Don i mafia przeciw Szeryfowi i Lekarzowi, od 9 graczy także Azazel. Wszyscy pozostali to mieszkańcy.' },
+        maniac: { name: 'Miasto i Maniak', lore: 'To samo, ale nocą poluje też Maniak — gra sam za siebie.' } } },
+    hy: { ui: { scenFreeTabS: 'Անվճար', scenPaidTabS: 'Վճարովի', scenCitTab: 'Բնակիչներով', citPill: 'Բնակիչներով', citTitle: 'Դերային մաֆիա խաղաղ բնակիչներով',
+      citHint: 'Ինչպես սովորաբար խաղում են ակումբներում՝ Դոնն ու մաֆիան Շերիֆի և Բժշկի դեմ, 9 խաղացողից քաղաքում կա Ազազել, 11-ից՝ Մոլագարով տարբերակ, մնացած բոլորը խաղաղ բնակիչներ են։ Յուրաքանչյուր սեղանի մաֆիայի թիվը ընտրվել է սիմուլյացիայով․ որտեղ մեկ ավելորդ մաֆիոզը խախտում է հավասարակշռությունը, այն հարթում է երկրորդ Բժիշկը կամ Շերիֆը, իսկ 8 խաղացողի և Մոլագարով մի քանի կազմերում Բժիշկ չկա։ Յուրաքանչյուր կազմ ստուգվել է 4000 խաղով։',
+      okSimCit: ' Կազմ խաղաղ բնակիչներով «{name}»։ Ըստ սիմուլյացիայի՝ մաֆիա {m}%, քաղաք {c}%{x}։' },
+      cit: { town: { name: 'Դասական քաղաք', lore: 'Դոնն ու մաֆիան Շերիֆի և Բժշկի դեմ, 9 խաղացողից՝ նաև Ազազել։ Մնացած բոլորը խաղաղ բնակիչներ են։' },
+        maniac: { name: 'Քաղաքն ու Մոլագարը', lore: 'Նույնը, բայց գիշերը որսում է նաև Մոլագարը՝ նա խաղում է ինքն իր համար։' } } }
+  };
+  Object.keys(T).forEach(code => { const p = I18N[code]; if (!p) return; Object.assign(p.ui, T[code].ui); p.cit = T[code].cit; });
+})();

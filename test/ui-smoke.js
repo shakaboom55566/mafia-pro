@@ -70,7 +70,7 @@ A.filter(el('filter', { id: 'black' })); check('cards black');
 A.role(el('role', { id: 'rabbi' })); check('role sheet');
 A['sheet-close']();
 A.go(el('go', { to: 'scenarios' })); check('scenarios (free tab)');
-{ const h = app.innerHTML; const u = X.U(); if (!h.includes(u.scenFreeTab) || !h.includes(u.scenPaidTab)) { fails++; console.log('FAIL scenario tabs missing'); } if (h.includes('scen-card classic') === false) { fails++; console.log('FAIL free tab must show the classic card'); } if (/баланса|балансу/i.test(h.split('<div class="stack">')[0])) { fails++; console.log('FAIL title still says "баланса"'); }
+{ const h = app.innerHTML; const u = X.U(); if (!h.includes(u.scenFreeTabS) || !h.includes(u.scenPaidTabS) || !h.includes(u.scenCitTab) || !h.includes('segment n3 scen-tabs')) { fails++; console.log('FAIL scenario tabs missing (free · with Citizens · paid)'); } if (h.includes('scen-card classic') === false) { fails++; console.log('FAIL free tab must show the classic card'); } if (/баланса|балансу/i.test(h.split('<div class="stack">')[0])) { fails++; console.log('FAIL title still says "баланса"'); }
   if (X.S().ui.scenTab !== 'free') { fails++; console.log('FAIL scenarios must open on the free tab'); } }
 A['scen-tab'](el('scen-tab', { id: 'paid' })); check('scenarios (paid tab)');
 { const h = app.innerHTML; if (!h.includes('scen-card premium') || h.includes('scen-card classic')) { fails++; console.log('FAIL paid tab must list premium scenarios only'); } }
@@ -88,6 +88,24 @@ A.go(el('go', { to: 'home' })); A.go(el('go', { to: 'scenarios' })); if (X.S().u
   if (!app.innerHTML.includes('okbox') || !app.innerHTML.includes(X.tt(u.okSimIntro, { name: introFor(15)[2].name, m: introFor(15)[2].mafia, c: introFor(15)[2].city, x: '' }))) { fails++; console.log('FAIL setup must show the intro line-up balance note'); }
   A.comp(el('comp', { id: 'mafia', d: '1' })); if (app.innerHTML.includes('okbox') || app.innerHTML.includes(u.okSimIntro.slice(1, 12))) { fails++; console.log('FAIL changed intro line-up must lose its balance note'); }
   A.go(el('go', { to: 'scenarios' })); }
+// v80: the «With Citizens» tab — every table 7–24: the classic town (and the Maniac version from 11): the Don (two from 20), the mafia,
+// the Sheriff, the Doctor (the classic town from 9; a few Maniac versions and 8 go without), Azazel from 9, Citizens — most of the town from 13, at least 3 from 9; the setup keeps the line-up's simulated balance
+{ const u = X.U(); const citFor = vm.runInContext('citFor', ctx); const ROLE = X.ROLE; const OK = ['don', 'mafia', 'sheriff', 'doctor', 'azazel', 'maniac', 'citizen'];
+  for (let n = 7; n <= 24; n++) { const list = citFor(n); const ids = list.map(s => s.id).join();
+    if (ids !== (n >= 11 ? 'town,maniac' : 'town')) { fails++; console.log('FAIL v80 citizens: versions for', n, ids); }
+    list.forEach(s => { const c = s.comp; const cnt = id => c.filter(x => x === id).length; const town = c.filter(id => ROLE[id] && ROLE[id].team === 'red').length;
+      if (c.length !== n || c.some(id => !OK.includes(id)) || cnt('don') !== (n >= 20 ? 2 : 1) || cnt('mafia') < 1 || cnt('sheriff') < 1 || (n >= 9 && cnt('azazel') !== 1) || (n >= 9 && s.id === 'town' && cnt('doctor') < 1) || cnt('citizen') < (n >= 13 ? Math.ceil(town / 2) : n >= 9 ? 3 : 2) || (s.id === 'maniac') !== (cnt('maniac') === 1)) { fails++; console.log('FAIL v80 citizens: bad composition', n, s.id, c.join()); }
+      if (!s.name || !s.lore || Math.abs(s.mafia + s.city + s.maniac - 100) > 1.5) { fails++; console.log('FAIL v80 citizens: text or balance missing', n, s.id); } }); }
+  if (citFor(10)[0].comp.slice().sort().join() !== 'azazel,citizen,citizen,citizen,citizen,doctor,don,mafia,mafia,sheriff') { fails++; console.log('FAIL v80 citizens: 10 is the owner\'s example — Don, Mafia ×2, Sheriff, Doctor, Azazel, Citizens'); }
+  A['scen-tab'](el('scen-tab', { id: 'cit' })); check('v80 scenarios (citizens tab)');
+  A['cit-n'](el('cit-n', { n: '19' })); check('v80 citizens 19'); let h = app.innerHTML;
+  if (!h.includes(u.citTitle) || (h.match(/scen-card intro cit/g) || []).length !== 2 || !h.includes(citFor(19)[1].name) || h.includes('scen-card classic') || h.includes('scen-card premium') || !h.includes('data-a="cit-use" data-n="19" data-id="maniac"')) { fails++; console.log('FAIL v80 citizens tab: the title, two cards for 19, nothing from the other tabs'); }
+  A['cit-n'](el('cit-n', { n: '8' })); h = app.innerHTML; if ((h.match(/scen-card intro cit/g) || []).length !== 1) { fails++; console.log('FAIL v80 citizens: one version below 11'); }
+  A['cit-use'](el('cit-use', { n: '19', id: 'maniac' })); check('v80 setup from citizens 19'); const sc = citFor(19)[1];
+  const st = X.S().setup; if (X.S().screen !== 'setup' || st.n !== 19 || st.scenario || st.comp.join() !== sc.comp.join()) { fails++; console.log('FAIL v80 cit-use must open setup with that line-up'); }
+  if (!app.innerHTML.includes('okbox') || !app.innerHTML.includes(X.tt(u.okSimCit, { name: sc.name, m: sc.mafia, c: sc.city, x: X.tt(u.okSimManiac, { v: sc.maniac }) }))) { fails++; console.log('FAIL v80 setup must show the line-up with Citizens and its balance'); }
+  for (let n = 7; n <= 24; n++) citFor(n).forEach(x => { A.go(el('go', { to: 'scenarios' })); A['cit-use'](el('cit-use', { n: String(n), id: x.id })); const hh = app.innerHTML; if (!hh.includes('okbox') || hh.includes('warnbox')) { fails++; console.log('FAIL v80: the line-up with Citizens opens setup without warnings', n, x.id); } });
+  A.go(el('go', { to: 'home' })); A.go(el('go', { to: 'scenarios' })); }
 A.go(el('go', { to: 'myprofile' })); check('my profile (none yet)');
 { const h = app.innerHTML; if (!h.includes('data-a="prof-new"')) { fails++; console.log('FAIL my profile should offer to create one'); } }
 A.go(el('go', { to: 'clubs' })); check('clubs (outside Telegram)');

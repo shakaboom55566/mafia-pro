@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.56.0-0f4f0c6">
+<meta name="mafia-build" content="1.57.0-f1879f6">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -4419,6 +4419,38 @@ I18N.hy.intro = {
   trumps: { name: 'Մաֆիայի հաղթաթղթերը', lore: 'Մաֆիան հատուկ քարտերով. Զինագործ, Կամիկաձե, Մաֆիայի բժիշկ, Դահիճ։' },
   third: { name: 'Երրորդ ուժ', lore: 'Մաֆիայից ու քաղաքից բացի՝ Մոլագար, իսկ մեծ սեղաններին՝ Ծաղրածու և Գայլամարդ։' }
 };
+
+/* ---------------- v80: the «With Citizens» tab — role mafia as clubs play it, all languages ---------------- */
+(function () {
+  const T = {
+    ru: { ui: { scenFreeTabS: 'Бесплатные', scenPaidTabS: 'Платные', scenCitTab: 'С мирными', citPill: 'С мирными', citTitle: 'Ролевая мафия с мирными жителями',
+      citHint: 'Как обычно играют в клубах: Дон и мафия против Шерифа и Доктора, с 9 игроков в городе Азазель, с 11 есть вариант с Маньяком — все остальные мирные жители. Число мафии на каждый стол подобрано симуляцией; где одна лишняя мафия перевешивает, баланс выравнивает второй Доктор или Шериф, а на 8 игроков и в паре составов с Маньяком играют без Доктора. Каждый состав проверен на 4000 партиях.',
+      okSimCit: ' Состав с мирными «{name}». По симуляции: мафия {m}%, город {c}%{x}.' },
+      cit: { town: { name: 'Классический город', lore: 'Дон и мафия против Шерифа и Доктора, с 9 игроков — ещё Азазель. Все остальные — мирные жители.' },
+        maniac: { name: 'Город и Маньяк', lore: 'То же, но ночью охотится ещё и Маньяк — он играет сам за себя.' } } },
+    uk: { ui: { scenFreeTabS: 'Безплатні', scenPaidTabS: 'Платні', scenCitTab: 'З мирними', citPill: 'З мирними', citTitle: 'Рольова мафія з мирними жителями',
+      citHint: 'Як зазвичай грають у клубах: Дон і мафія проти Шерифа й Лікаря, з 9 гравців у місті Азазель, з 11 є варіант із Маніяком — усі інші мирні жителі. Кількість мафії на кожен стіл підібрано симуляцією; де одна зайва мафія переважує, баланс вирівнює другий Лікар або Шериф, а на 8 гравців і в парі складів із Маніяком грають без Лікаря. Кожен склад перевірено на 4000 партіях.',
+      okSimCit: ' Склад із мирними «{name}». За симуляцією: мафія {m}%, місто {c}%{x}.' },
+      cit: { town: { name: 'Класичне місто', lore: 'Дон і мафія проти Шерифа й Лікаря, з 9 гравців — ще Азазель. Усі інші — мирні жителі.' },
+        maniac: { name: 'Місто й Маніяк', lore: 'Те саме, але вночі полює ще й Маніяк — він грає сам за себе.' } } },
+    en: { ui: { scenFreeTabS: 'Free', scenPaidTabS: 'Paid', scenCitTab: 'With Citizens', citPill: 'Citizens', citTitle: 'Role mafia with Citizens',
+      citHint: 'The way clubs usually play: the Don and the mafia against the Sheriff and the Doctor, Azazel joins the town from 9 players, from 11 there is a version with the Maniac — everyone else is a Citizen. The number of mafiosi for each table was picked by simulation; where one more mafioso tips the scales, a second Doctor or Sheriff evens it out, and at 8 players and in a couple of Maniac line-ups there is no Doctor. Every line-up was checked on 4,000 games.',
+      okSimCit: ' Line-up with Citizens “{name}”. Simulated: mafia {m}%, town {c}%{x}.' },
+      cit: { town: { name: 'Classic town', lore: 'The Don and the mafia against the Sheriff and the Doctor, plus Azazel from 9 players. Everyone else is a Citizen.' },
+        maniac: { name: 'Town and the Maniac', lore: 'The same, but the Maniac hunts at night too — he plays for himself.' } } },
+    pl: { ui: { scenFreeTabS: 'Darmowe', scenPaidTabS: 'Płatne', scenCitTab: 'Mieszkańcy', citPill: 'Mieszkańcy', citTitle: 'Mafia z rolami i mieszkańcami',
+      citHint: 'Tak zwykle gra się w klubach: Don i mafia przeciw Szeryfowi i Lekarzowi, od 9 graczy w mieście jest Azazel, od 11 — wariant z Maniakiem; wszyscy pozostali to mieszkańcy. Liczbę mafiosów na każdy stół dobrała symulacja; gdzie jeden mafioso więcej przechyla szalę, wyrównuje ją drugi Lekarz lub Szeryf, a przy 8 graczach i w paru składach z Maniakiem gra się bez Lekarza. Każdy skład sprawdzono na 4000 partiach.',
+      okSimCit: ' Skład z mieszkańcami „{name}”. Według symulacji: mafia {m}%, miasto {c}%{x}.' },
+      cit: { town: { name: 'Klasyczne miasto', lore: 'Don i mafia przeciw Szeryfowi i Lekarzowi, od 9 graczy także Azazel. Wszyscy pozostali to mieszkańcy.' },
+        maniac: { name: 'Miasto i Maniak', lore: 'To samo, ale nocą poluje też Maniak — gra sam za siebie.' } } },
+    hy: { ui: { scenFreeTabS: 'Անվճար', scenPaidTabS: 'Վճարովի', scenCitTab: 'Բնակիչներով', citPill: 'Բնակիչներով', citTitle: 'Դերային մաֆիա խաղաղ բնակիչներով',
+      citHint: 'Ինչպես սովորաբար խաղում են ակումբներում՝ Դոնն ու մաֆիան Շերիֆի և Բժշկի դեմ, 9 խաղացողից քաղաքում կա Ազազել, 11-ից՝ Մոլագարով տարբերակ, մնացած բոլորը խաղաղ բնակիչներ են։ Յուրաքանչյուր սեղանի մաֆիայի թիվը ընտրվել է սիմուլյացիայով․ որտեղ մեկ ավելորդ մաֆիոզը խախտում է հավասարակշռությունը, այն հարթում է երկրորդ Բժիշկը կամ Շերիֆը, իսկ 8 խաղացողի և Մոլագարով մի քանի կազմերում Բժիշկ չկա։ Յուրաքանչյուր կազմ ստուգվել է 4000 խաղով։',
+      okSimCit: ' Կազմ խաղաղ բնակիչներով «{name}»։ Ըստ սիմուլյացիայի՝ մաֆիա {m}%, քաղաք {c}%{x}։' },
+      cit: { town: { name: 'Դասական քաղաք', lore: 'Դոնն ու մաֆիան Շերիֆի և Բժշկի դեմ, 9 խաղացողից՝ նաև Ազազել։ Մնացած բոլորը խաղաղ բնակիչներ են։' },
+        maniac: { name: 'Քաղաքն ու Մոլագարը', lore: 'Նույնը, բայց գիշերը որսում է նաև Մոլագարը՝ նա խաղում է ինքն իր համար։' } } }
+  };
+  Object.keys(T).forEach(code => { const p = I18N[code]; if (!p) return; Object.assign(p.ui, T[code].ui); p.cit = T[code].cit; });
+})();
 /* ============================================================
    SMALL TABLE (v50): scenarios for 5–6 players — "Sapper and Bomb" and "Corruption";
    two new free cards: Ninja (city, dodges one shot a night) and Corrupter (mafia, recruits instead of shooting).
@@ -8179,6 +8211,91 @@ function introFor(n) {
 }
 /* the intro scenario whose composition is exactly this one (order-free), or null */
 function introMatch(n, comp) { const k = comp.slice().sort().join(); return introFor(n).find(s => s.comp.slice().sort().join() === k) || null; }
+
+/* ---------- v80: line-ups with Citizens (the «With Citizens» tab of the scenarios) — role mafia as clubs play it: the Don and
+   the mafia against the Sheriff and the Doctor, Azazel from 9 players, the Maniac in the second version from 11, two Dons from 20
+   (two families), everyone else a Citizen. The mafia's size per table is picked by simulation (test/montecarlo.js bots); where one
+   more mafioso tips the table over, a second Doctor or Sheriff (or no Azazel) evens it out. Each line-up checked on a fresh 4000
+   games: [version, composition, mafia %, city %, maniac %, average nights]. ---------- */
+const CIT_THEMES = ['town', 'maniac'];
+const CIT = {
+  7: [
+    ['town', 'don,mafia,sheriff,doctor,citizen,citizen,citizen', 47.7, 52.3, 0, 2.3]
+  ],
+  8: [
+    ['town', 'don,mafia,sheriff,citizen,citizen,citizen,citizen,citizen', 38.8, 61.2, 0, 2.5]
+  ],
+  9: [
+    ['town', 'don,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen', 52.2, 47.8, 0, 2.7]
+  ],
+  10: [
+    ['town', 'don,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen', 38.4, 61.6, 0, 3.3]
+  ],
+  11: [
+    ['town', 'don,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen', 53.8, 46.2, 0, 3.4],
+    ['maniac', 'don,mafia,mafia,sheriff,azazel,maniac,citizen,citizen,citizen,citizen,citizen', 40.5, 52.7, 6.8, 2.7]
+  ],
+  12: [
+    ['town', 'don,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen', 47.9, 52.2, 0, 3.8],
+    ['maniac', 'don,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen', 46.8, 48.3, 4.9, 3]
+  ],
+  13: [
+    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen', 52.5, 47.5, 0, 3.7],
+    ['maniac', 'don,mafia,mafia,mafia,sheriff,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 47.6, 48.4, 4, 3.2]
+  ],
+  14: [
+    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen', 47.1, 52.9, 0, 4.6],
+    ['maniac', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen', 47.5, 49.6, 3, 3.7]
+  ],
+  15: [
+    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47, 53, 0, 4.8],
+    ['maniac', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 44.9, 52.4, 2.7, 3.9]
+  ],
+  16: [
+    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 53.2, 0, 4.8],
+    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen', 45.7, 51.5, 2.8, 3.9]
+  ],
+  17: [
+    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.1, 53.9, 0, 5.6],
+    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 52, 46, 2.1, 4.3]
+  ],
+  18: [
+    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 53.1, 0, 5.9],
+    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 52.6, 45.7, 1.7, 4.2]
+  ],
+  19: [
+    ['town', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 45.4, 54.7, 0, 5.9],
+    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.8, 48.1, 1.2, 4.9]
+  ],
+  20: [
+    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 49.3, 50.7, 0, 7.1],
+    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.1, 45.7, 3.2, 5.5]
+  ],
+  21: [
+    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.6, 49.5, 0, 7.7],
+    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.2, 47.3, 2.5, 6]
+  ],
+  22: [
+    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.5, 48.6, 0, 7.8],
+    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.5, 50.3, 3.2, 6.4]
+  ],
+  23: [
+    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.3, 49.7, 0, 8.3],
+    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48.1, 49.7, 2.2, 6.9]
+  ],
+  24: [
+    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.6, 48.4, 0, 8.9],
+    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47.7, 50, 2.3, 7]
+  ]
+};
+const citText = theme => (L.cit && L.cit[theme]) || I18N.ru.cit[theme];
+function citFor(n) {
+  return (CIT[n] || []).map(([id, comp, mafia, city, maniac, nights]) => ({
+    id, n, comp: comp.split(','), mafia, city, maniac, nights, cit: true,
+    get name() { return citText(id).name; }, get lore() { return citText(id).lore; }
+  }));
+}
+function citMatch(n, comp) { const k = comp.slice().sort().join(); return citFor(n).find(s => s.comp.slice().sort().join() === k) || null; }
 /* ============================================================
    ENGINE: game state, night resolution, voting, triggers, win check
    ============================================================ */
@@ -9361,11 +9478,11 @@ function setupScreen() {
   else if (mini) { const s5 = miniSim(sc, st.n, st.comp); warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n, st.comp) }) : ''}</div>`; }
   else if (two2 && dons !== 2) warn = `<div class="warnbox">${tt(u.warnTwoDons, { n: twoFrom })}</div>`;
   else if (!two2 && dons !== 1) warn = `<div class="warnbox">${u.warnOneDon}</div>`;
-  else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
+  else if ((stats.blackShare < 22 || stats.blackShare > 40) && !(!sc && (introMatch(st.n, st.comp) || citMatch(st.n, st.comp)))) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`; // v80: a checked line-up (many Citizens at 22–24) is not «too many mafia»
   else {
     const isPreset = !sc && st.comp.slice().sort().join() === presetFor(st.n).sort().join(); const b = BALANCE[st.n];
-    const intro = !sc && !isPreset ? introMatch(st.n, st.comp) : null; // a beginners' line-up keeps its simulated balance note
-    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : intro ? tt(u.okSimIntro, { name: intro.name, m: intro.mafia, c: intro.city, x: intro.maniac ? tt(u.okSimManiac, { v: intro.maniac }) : '' }) : u.okChanged;
+    const intro = !sc && !isPreset ? introMatch(st.n, st.comp) || citMatch(st.n, st.comp) : null; // a beginners' line-up (v80: or one with Citizens) keeps its simulated balance note
+    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : intro ? tt(intro.cit ? u.okSimCit : u.okSimIntro, { name: intro.name, m: intro.mafia, c: intro.city, x: intro.maniac ? tt(u.okSimManiac, { v: intro.maniac }) : '' }) : u.okChanged;
     const neut = st.comp.includes('maniac') ? u.okManiac : stats.neutral ? tt(u.okNeutralN, { n: stats.neutral }) : '';
     warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc || intro ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
   }
@@ -9952,13 +10069,13 @@ function introCardHTML(sc) {
   const counts = {}; sc.comp.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
   const names = Object.keys(counts).map(id => ROLE[id].name + (counts[id] > 1 ? ` ×${counts[id]}` : '')).join(', ');
   const sim = tt(u.introSim, { m: sc.mafia, c: sc.city, n: sc.nights, x: sc.maniac ? tt(u.introSimManiac, { v: sc.maniac }) : '' });
-  return `<div class="scen-card intro"><div class="row"><span class="premium-pill classic">${u.introPill}</span><div class="t grow">${sc.name}</div></div>
+  return `<div class="scen-card intro${sc.cit ? ' cit' : ''}"><div class="row"><span class="premium-pill classic">${sc.cit ? u.citPill : u.introPill}</span><div class="t grow">${sc.name}</div></div>
     <div class="l">${sc.lore}</div>
     <div class="m">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: sc.n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div>
     ${statsBar(st)}
     <div class="m">${names}</div>
     <div class="m sim">${sim}</div>
-    <div class="btn-row" style="margin-top:10px"><button class="btn primary sm grow" data-a="intro-use" data-n="${sc.n}" data-id="${sc.id}">${u.introUse}</button></div></div>`;
+    <div class="btn-row" style="margin-top:10px"><button class="btn primary sm grow" data-a="${sc.cit ? 'cit-use' : 'intro-use'}" data-n="${sc.n}" data-id="${sc.id}">${u.introUse}</button></div></div>`;
 }
 function introSectionHTML() {
   const u = U(); const n = introN(); const list = introFor(n);
@@ -9970,6 +10087,17 @@ function introSectionHTML() {
   <div class="filters intro-n">${chips.join('')}</div>
   <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
 }
+/* v80: line-ups with Citizens — a player-count chooser and the classic town (and the town with the Maniac from 11) for that table */
+function citN() { const n = S.ui.citN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
+function citSectionHTML() {
+  const u = U(); const n = citN(); const list = citFor(n);
+  const chips = []; for (let k = MIN_PLAYERS; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="cit-n" data-n="${k}">${k}</button>`);
+  return `<h2>${u.citTitle}</h2>
+  <p class="hint">${u.citHint}</p>
+  <div class="eyebrow">${u.introPick}</div>
+  <div class="filters cit-n">${chips.join('')}</div>
+  <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
+}
 function scenariosScreen() {
   const u = U(); const rows = [];
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
@@ -9979,8 +10107,8 @@ function scenariosScreen() {
     const sim = b ? `<div class="d wrap" style="margin-top:4px;color:var(--fg-2)"><span style="color:var(--steel-2)">${tt(u.simMafia, { v: b.mafia })}</span> · <span style="color:var(--crimson-2)">${tt(u.simCity, { v: b.city })}</span>${b.maniac ? ` · <span style="color:#d3bdf5">${tt(u.simManiac, { v: b.maniac })}</span>` : ''} · ${tt(u.simNights, { v: b.nights })}</div>` : '';
     rows.push(`<button class="scen-row" data-a="scen" data-n="${n}"><span class="n num">${n}</span><div class="m"><div class="t">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div><div class="d">${names.join(', ')}</div>${sim}${statsBar(st)}</div><span class="chev">${I.chev}</span></button>`);
   }
-  const tab = S.ui.scenTab === 'paid' ? 'paid' : 'free';
-  const seg = `<div class="segment n2 scen-tabs"><button class="${tab === 'free' ? 'active' : ''}" data-a="scen-tab" data-id="free">${u.scenFreeTab}</button><button class="${tab === 'paid' ? 'active' : ''}" data-a="scen-tab" data-id="paid">${u.scenPaidTab}</button></div>`;
+  const tab = S.ui.scenTab === 'paid' || S.ui.scenTab === 'cit' ? S.ui.scenTab : 'free';
+  const seg = `<div class="segment n3 scen-tabs">${[['free', u.scenFreeTabS], ['cit', u.scenCitTab], ['paid', u.scenPaidTabS]].map(([id, t]) => `<button class="${tab === id ? 'active' : ''}" data-a="scen-tab" data-id="${id}">${t}</button>`).join('')}</div>`;
   const free = `${classicCardHTML()}
   ${introSectionHTML()}
   <h2>${u.scenStd}</h2>
@@ -9992,7 +10120,7 @@ function scenariosScreen() {
   return `${topbar(u.scenTitle, u.scenSub, false)}
   <div class="stack">
   ${seg}
-  ${tab === 'paid' ? paid : free}</div>`;
+  ${tab === 'paid' ? paid : tab === 'cit' ? citSectionHTML() : free}</div>`;
 }
 
 /* ---------- Settings ---------- */
@@ -10080,7 +10208,9 @@ const ACT = {
   'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN(), { bombs: +el.dataset.bombs || miniBombs(+el.dataset.n || miniN()) }); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
   'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
-  'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
+  'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' || el.dataset.id === 'cit' ? el.dataset.id : 'free'; window.scrollTo(0, 0); render(); },
+  'cit-n'(el) { S.ui.citN = +el.dataset.n; render(); const c = $('.cit-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
+  'cit-use'(el) { const sc = citFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   deal() {
     S.ui.reseatOn = false; S.ui.reseat = null; // the deal button is hidden while re-seating; a deal started otherwise drops the unfinished draft
     if (typeof creatorPlays === 'function' && creatorPlays()) { toast(U().dealNeedsHost); return; }

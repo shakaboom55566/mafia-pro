@@ -279,11 +279,11 @@ function setupScreen() {
   else if (mini) { const s5 = miniSim(sc, st.n, st.comp); warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: st.comp.includes('maniac') ? u.okManiac : '', red: stats.red, note: '' })}${s5 ? tt(u.okSimMini, { name: sc.name, line: miniSimLine(sc, st.n, st.comp) }) : ''}</div>`; }
   else if (two2 && dons !== 2) warn = `<div class="warnbox">${tt(u.warnTwoDons, { n: twoFrom })}</div>`;
   else if (!two2 && dons !== 1) warn = `<div class="warnbox">${u.warnOneDon}</div>`;
-  else if (stats.blackShare < 22 || stats.blackShare > 40) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`;
+  else if ((stats.blackShare < 22 || stats.blackShare > 40) && !(!sc && (introMatch(st.n, st.comp) || citMatch(st.n, st.comp)))) warn = `<div class="warnbox">${tt(u.warnShare, { pct: stats.blackShare })}</div>`; // v80: a checked line-up (many Citizens at 22–24) is not «too many mafia»
   else {
     const isPreset = !sc && st.comp.slice().sort().join() === presetFor(st.n).sort().join(); const b = BALANCE[st.n];
-    const intro = !sc && !isPreset ? introMatch(st.n, st.comp) : null; // a beginners' line-up keeps its simulated balance note
-    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : intro ? tt(u.okSimIntro, { name: intro.name, m: intro.mafia, c: intro.city, x: intro.maniac ? tt(u.okSimManiac, { v: intro.maniac }) : '' }) : u.okChanged;
+    const intro = !sc && !isPreset ? introMatch(st.n, st.comp) || citMatch(st.n, st.comp) : null; // a beginners' line-up (v80: or one with Citizens) keeps its simulated balance note
+    const sim = sc && sc.free ? u.classicSub : isPreset && b ? tt(u.okSim, { m: b.mafia, c: b.city, x: b.maniac ? tt(u.okSimManiac, { v: b.maniac }) : '' }) : intro ? tt(intro.cit ? u.okSimCit : u.okSimIntro, { name: intro.name, m: intro.mafia, c: intro.city, x: intro.maniac ? tt(u.okSimManiac, { v: intro.maniac }) : '' }) : u.okChanged;
     const neut = st.comp.includes('maniac') ? u.okManiac : stats.neutral ? tt(u.okNeutralN, { n: stats.neutral }) : '';
     warn = `<div class="okbox">${tt(u.okComp, { black: stats.black, ww: stats.ww ? u.okWW : '', maniac: neut, red: stats.red, note: sc || intro ? '' : (PRESET_NOTES[st.n] || '') })}${sim}</div>`;
   }
@@ -870,13 +870,13 @@ function introCardHTML(sc) {
   const counts = {}; sc.comp.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
   const names = Object.keys(counts).map(id => ROLE[id].name + (counts[id] > 1 ? ` ×${counts[id]}` : '')).join(', ');
   const sim = tt(u.introSim, { m: sc.mafia, c: sc.city, n: sc.nights, x: sc.maniac ? tt(u.introSimManiac, { v: sc.maniac }) : '' });
-  return `<div class="scen-card intro"><div class="row"><span class="premium-pill classic">${u.introPill}</span><div class="t grow">${sc.name}</div></div>
+  return `<div class="scen-card intro${sc.cit ? ' cit' : ''}"><div class="row"><span class="premium-pill classic">${sc.cit ? u.citPill : u.introPill}</span><div class="t grow">${sc.name}</div></div>
     <div class="l">${sc.lore}</div>
     <div class="m">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: sc.n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div>
     ${statsBar(st)}
     <div class="m">${names}</div>
     <div class="m sim">${sim}</div>
-    <div class="btn-row" style="margin-top:10px"><button class="btn primary sm grow" data-a="intro-use" data-n="${sc.n}" data-id="${sc.id}">${u.introUse}</button></div></div>`;
+    <div class="btn-row" style="margin-top:10px"><button class="btn primary sm grow" data-a="${sc.cit ? 'cit-use' : 'intro-use'}" data-n="${sc.n}" data-id="${sc.id}">${u.introUse}</button></div></div>`;
 }
 function introSectionHTML() {
   const u = U(); const n = introN(); const list = introFor(n);
@@ -888,6 +888,17 @@ function introSectionHTML() {
   <div class="filters intro-n">${chips.join('')}</div>
   <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
 }
+/* v80: line-ups with Citizens — a player-count chooser and the classic town (and the town with the Maniac from 11) for that table */
+function citN() { const n = S.ui.citN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
+function citSectionHTML() {
+  const u = U(); const n = citN(); const list = citFor(n);
+  const chips = []; for (let k = MIN_PLAYERS; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="cit-n" data-n="${k}">${k}</button>`);
+  return `<h2>${u.citTitle}</h2>
+  <p class="hint">${u.citHint}</p>
+  <div class="eyebrow">${u.introPick}</div>
+  <div class="filters cit-n">${chips.join('')}</div>
+  <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
+}
 function scenariosScreen() {
   const u = U(); const rows = [];
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
@@ -897,8 +908,8 @@ function scenariosScreen() {
     const sim = b ? `<div class="d wrap" style="margin-top:4px;color:var(--fg-2)"><span style="color:var(--steel-2)">${tt(u.simMafia, { v: b.mafia })}</span> · <span style="color:var(--crimson-2)">${tt(u.simCity, { v: b.city })}</span>${b.maniac ? ` · <span style="color:#d3bdf5">${tt(u.simManiac, { v: b.maniac })}</span>` : ''} · ${tt(u.simNights, { v: b.nights })}</div>` : '';
     rows.push(`<button class="scen-row" data-a="scen" data-n="${n}"><span class="n num">${n}</span><div class="m"><div class="t">${tt(u.scenRow, { black: st.black, ww: st.ww ? u.scenWW : '', maniac: st.neutral ? u.scenManiac : '', red: st.red, two: n >= TWO_FAMILIES_FROM ? u.scenTwo : '' })}</div><div class="d">${names.join(', ')}</div>${sim}${statsBar(st)}</div><span class="chev">${I.chev}</span></button>`);
   }
-  const tab = S.ui.scenTab === 'paid' ? 'paid' : 'free';
-  const seg = `<div class="segment n2 scen-tabs"><button class="${tab === 'free' ? 'active' : ''}" data-a="scen-tab" data-id="free">${u.scenFreeTab}</button><button class="${tab === 'paid' ? 'active' : ''}" data-a="scen-tab" data-id="paid">${u.scenPaidTab}</button></div>`;
+  const tab = S.ui.scenTab === 'paid' || S.ui.scenTab === 'cit' ? S.ui.scenTab : 'free';
+  const seg = `<div class="segment n3 scen-tabs">${[['free', u.scenFreeTabS], ['cit', u.scenCitTab], ['paid', u.scenPaidTabS]].map(([id, t]) => `<button class="${tab === id ? 'active' : ''}" data-a="scen-tab" data-id="${id}">${t}</button>`).join('')}</div>`;
   const free = `${classicCardHTML()}
   ${introSectionHTML()}
   <h2>${u.scenStd}</h2>
@@ -910,7 +921,7 @@ function scenariosScreen() {
   return `${topbar(u.scenTitle, u.scenSub, false)}
   <div class="stack">
   ${seg}
-  ${tab === 'paid' ? paid : free}</div>`;
+  ${tab === 'paid' ? paid : tab === 'cit' ? citSectionHTML() : free}</div>`;
 }
 
 /* ---------- Settings ---------- */
@@ -998,7 +1009,9 @@ const ACT = {
   'mini-use'(el) { const sc = SCENARIO[el.dataset.id]; if (!sc || !sc.mini) return; applyScenario(sc.id, +el.dataset.n || miniN(), { bombs: +el.dataset.bombs || miniBombs(+el.dataset.n || miniN()) }); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   'intro-n'(el) { S.ui.introN = +el.dataset.n; render(); const c = $('.intro-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
   'intro-use'(el) { const sc = introFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
-  'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' ? 'paid' : 'free'; window.scrollTo(0, 0); render(); },
+  'scen-tab'(el) { S.ui.scenTab = el.dataset.id === 'paid' || el.dataset.id === 'cit' ? el.dataset.id : 'free'; window.scrollTo(0, 0); render(); },
+  'cit-n'(el) { S.ui.citN = +el.dataset.n; render(); const c = $('.cit-n .chip.active'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', inline: 'center' }); },
+  'cit-use'(el) { const sc = citFor(+el.dataset.n).find(x => x.id === el.dataset.id); if (!sc) return; S.setup.scenario = null; S.setup.n = sc.n; S.setup.comp = sc.comp.slice(); S.ui.showAll = false; if (S.game && S.game.tg) clearTableSeats(); go('setup'); },
   deal() {
     S.ui.reseatOn = false; S.ui.reseat = null; // the deal button is hidden while re-seating; a deal started otherwise drops the unfinished draft
     if (typeof creatorPlays === 'function' && creatorPlays()) { toast(U().dealNeedsHost); return; }
