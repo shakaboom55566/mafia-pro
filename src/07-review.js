@@ -111,7 +111,7 @@ function reviewGame(g) {
       else push(actor.id, when, act, rvLabel(g, t), V.good, 1, u.rConfirmedRed);
       return;
     }
-    if (ab === 'compare' || ab === 'track') { push(actor.id, when, act, a.targets.map(t => rvLabel(g, t)).join(' · '), V.good, 1, u.rInfo); return; }
+    if (ab === 'compare' || ab === 'track' || ab === 'hookah') { push(actor.id, when, act, a.targets.map(t => rvLabel(g, t)).join(' · '), V.good, 1, u.rInfo); return; }
     if (ab === 'drunk' || ab === 'altruist') {
       const t = a.targets[0]; const rel = relationTo(g, actor, P(g, t), a.roleId); const wantEnemy = ab === 'drunk';
       const good = wantEnemy ? rel === 'enemy' : rel === 'ally'; const bad = wantEnemy ? rel === 'ally' : rel === 'enemy';

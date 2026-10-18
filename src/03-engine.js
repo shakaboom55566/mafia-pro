@@ -148,6 +148,7 @@ function buildNightSteps(g) {
   one('sheriff', { modes: isClassic(g) ? ['check'] : ['check', 'shoot'], script: isClassic(g) ? L.e.script2.sheriffClassic : L.e.script.sheriff }); // v65: the classic Sheriff only checks
   one('doctor', { script: L.e.script.doctor });
   one('journalist', { targets: 2, script: L.e.script.journalist });
+  one('hookah', { targets: 2, script: L.e.hkScript }); // v82
   one('drunk', { script: L.e.script.drunk });
   one('altruist', { script: L.e.script.altruist });
   one('rabbi', { targets: 2, script: L.e.script.rabbi });
@@ -211,6 +212,20 @@ function compareResult(g, a, b) {
   const ta = effectiveTarget(g, a), tb = effectiveTarget(g, b);
   return { same: colorOf(g, ta) === colorOf(g, tb), ta, tb };
 }
+/* v82 Hookah master: was anyone of the mafia's color among his two guests? A guest in the Jailer's cell never came (does not count);
+   the Monk's redirect and the Balamut's repaint work as for the Sheriff */
+function hookahResult(g, ids) {
+  const jailed = g.actions.filter(a => a.ability === 'jail' && !a.voided).map(a => a.targets[0]);
+  const guests = ids.map(id => effectiveTarget(g, id)).filter(t => !jailed.includes(t));
+  return { yes: guests.some(t => colorOf(g, t) === 'black'), guests };
+}
+/* the same pair two nights in a row is not allowed */
+function hookahLastPair(g, step) {
+  if (!step || step.roleId !== 'hookah') return null;
+  const last = (P(g, step.actorId) || {}).lastHookah;
+  return last && last.night === g.night - 1 && last.ids.length === 2 ? last.ids : null;
+}
+function hookahPairBanned(g, step, ids) { const last = hookahLastPair(g, step); return !!(last && ids && ids.length === 2 && ids.every(id => last.includes(id))); }
 
 /* Record an action from a step; returns an inline result for the host to show */
 function recordAction(g, step, targets, mode) {
@@ -223,7 +238,7 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'steal') {
     const victim = P(g, targets[0]);
     a.stolen = activeAbilityOf(g, victim);
-    if (a.stolen === 'compare') a.stolen = 'check';
+    if (a.stolen === 'compare' || a.stolen === 'hookah') a.stolen = 'check';
     if (a.stolen === 'check') { const r = checkResult(g, targets[1]); result = { kind: 'color', color: r.color, who: P(g, r.target) }; }
     else if (a.stolen === 'spy') { const t = P(g, effectiveTarget(g, targets[1])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
     else if (!a.stolen) result = { kind: 'none', text: tt(L.e.thiefNone, { victim: label(victim) }) };
@@ -234,6 +249,7 @@ function recordAction(g, step, targets, mode) {
   }
   if (ability === 'check') { const r = checkResult(g, targets[0]); result = { kind: 'color', color: r.color, who: P(g, r.target) }; }
   if (ability === 'compare') { const r = compareResult(g, targets[0], targets[1]); result = { kind: 'same', same: r.same }; }
+  if (ability === 'hookah') { const r = hookahResult(g, targets); result = { kind: 'smoke', yes: r.yes }; }
   if (ability === 'spy') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
   if (ability === 'findSheriff') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'sheriff', yes: t.roleId === 'sheriff', who: t }; }
   // v53: the Corrupter buys any card at the table; with two families the bought player plays for the Corrupter's family
@@ -247,7 +263,7 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'remember') {
     const dead = P(g, targets[0]); const newRole = ROLE[dead.roleId];
     actor.roleId = dead.roleId; actor.remembered = true; actor.family = dead.family || (newRole.team === 'black' && g.twoFamilies ? 'A' : null);
-    actor.executeUsed = false; actor.snipeUsed = false; actor.igniteUsed = false; actor.judgeUsed = false; actor.kamikazeUsed = false; actor.healedSelf = false; actor.lastHeal = null; actor.lastRabbi = []; actor.lastJail = null;
+    actor.executeUsed = false; actor.snipeUsed = false; actor.igniteUsed = false; actor.judgeUsed = false; actor.kamikazeUsed = false; actor.healedSelf = false; actor.lastHeal = null; actor.lastRabbi = []; actor.lastJail = null; actor.lastHookah = null;
     result = { kind: 'role', role: newRole, who: actor };
     g.actions.push(a);
     addLog(g, tt(L.e.rememberLog, { player: label(actor), role: newRole.name }));
@@ -256,7 +272,7 @@ function recordAction(g, step, targets, mode) {
   if (result) a.res = { kind: result.kind, color: result.color || null, yes: result.yes === undefined ? null : result.yes, same: result.same === undefined ? null : result.same, roleId: result.role ? result.role.id : null, who: result.who ? result.who.id : null };
   g.actions.push(a);
   const names = targets.map(t => label(P(g, t))).join(L.e.and);
-  addLog(g, tt(L.e.logAction, { role: ROLE[step.roleId].name, actor: label(actor), ability: ABILITY_LABEL[ability], targets: names }) + (result && result.kind === 'color' ? tt(L.e.eqColor, { color: COLOR_LABEL[result.color] }) : '') + (result && result.kind === 'same' ? (result.same ? L.e.eqSame : L.e.eqDiff) : '') + (result && result.kind === 'sheriff' ? ' = ' + (result.yes ? L.ui.isSheriff : L.ui.notSheriff) : ''), true);
+  addLog(g, tt(L.e.logAction, { role: ROLE[step.roleId].name, actor: label(actor), ability: ABILITY_LABEL[ability], targets: names }) + (result && result.kind === 'color' ? tt(L.e.eqColor, { color: COLOR_LABEL[result.color] }) : '') + (result && result.kind === 'same' ? (result.same ? L.e.eqSame : L.e.eqDiff) : '') + (result && result.kind === 'sheriff' ? ' = ' + (result.yes ? L.ui.isSheriff : L.ui.notSheriff) : '') + (result && result.kind === 'smoke' ? (result.yes ? L.e.hkEqYes : L.e.hkEqNo) : ''), true);
   return result;
 }
 
@@ -320,6 +336,8 @@ function resolveNight(g) {
   const protectedIds = rabbi ? rabbi.targets.slice() : [];
   const rabbiId = rabbi ? rabbi.actorId : null;
   if (rabbi) { const rp = P(g, rabbi.actorId); rp.lastRabbi = rabbi.targets.slice(); }
+  // 3a. v82 Hookah master: remember tonight's pair (not the same pair tomorrow); a night without guests clears it
+  g.players.filter(p => p.roleId === 'hookah').forEach(p => { const h = list.find(a => a.ability === 'hookah' && a.actorId === p.id && !a.viaThief); p.lastHookah = h ? { night: g.night, ids: h.targets.slice() } : null; });
   // 3b. Bodyguard
   const guard = list.find(a => a.ability === 'guard');
   const guardId = guard ? guard.actorId : null, guardedId = guard ? guard.targets[0] : null;

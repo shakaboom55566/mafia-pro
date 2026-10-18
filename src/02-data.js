@@ -64,7 +64,8 @@ const ROLES = [
   {"id":"auditor","team":"red","color":"red","side":"city","wake":34,"ability":"audit"},
   {"id":"thug","team":"black","color":"black","side":"mafia","wake":35,"ability":"intimidate"},
   {"id":"ninja","team":"red","color":"red","side":"city","wake":null,"ability":null},
-  {"id":"corrupter","team":"black","color":"black","side":"mafia","wake":36,"ability":"recruit"}
+  {"id":"corrupter","team":"black","color":"black","side":"mafia","wake":36,"ability":"recruit"},
+  {"id":"hookah","team":"red","color":"red","side":"city","wake":37,"ability":"hookah"}
 ];
 const PREMIUM_PRICE = 2, SCENARIO_PRICE = 9.99, PACK_PRICE = 35;
 /* Localized text fields resolve through the active language pack */
@@ -81,7 +82,7 @@ const HOOKS = new Proxy({}, { get: (_, k) => L.hooks[k] });
 const SHOOTER_ORDER = ['don', 'gunsmith', 'executioner', 'spy', 'arsonist', 'hypnotist', 'saboteur', 'lawyer', 'mafia_doctor', 'balamut', 'blackmailer', 'provocateur', 'treasurer', 'ambassador', 'thug', 'mafia'];
 
 /* Wake order on the acquaintance night: the family together, then everyone else one by one */
-const NIGHT0_ORDER = ['maniac', 'jester', 'witch', 'amnesiac', 'survivor', 'contractor', 'jailer', 'thief', 'monk', 'sheriff', 'doctor', 'journalist', 'mayor', 'drunk', 'altruist', 'miller', 'azazel', 'morpheus', 'rabbi', 'bomb', 'bodyguard', 'judge', 'sniper', 'tracker', 'avenger', 'chairman', 'prosecutor', 'notary', 'pastor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer', 'sapper', 'bailiff', 'auditor', 'ninja'];
+const NIGHT0_ORDER = ['maniac', 'jester', 'witch', 'amnesiac', 'survivor', 'contractor', 'jailer', 'thief', 'monk', 'sheriff', 'doctor', 'journalist', 'hookah', 'mayor', 'drunk', 'altruist', 'miller', 'azazel', 'morpheus', 'rabbi', 'bomb', 'bodyguard', 'judge', 'sniper', 'tracker', 'avenger', 'chairman', 'prosecutor', 'notary', 'pastor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer', 'sapper', 'bailiff', 'auditor', 'ninja'];
 
 /* ---------- Balance presets by player count ---------- */
 const PRESETS = {
@@ -181,7 +182,7 @@ const COUNTERS = {
   don: ['sheriff', 'doctor', 'bodyguard', 'rabbi', 'jailer', 'thief', 'avenger', 'monk', 'ninja'], gunsmith: ['doctor', 'rabbi', 'bodyguard', 'jailer', 'thief'], kamikaze: ['sapper', 'thug', 'sheriff', 'sniper'],
   mafia_doctor: ['jailer', 'thief', 'tracker', 'sheriff'], balamut: ['journalist', 'tracker', 'jailer', 'thief'], executioner: ['rabbi', 'jailer', 'bodyguard', 'thief'], spy: ['thief', 'jailer', 'monk', 'tracker'],
   arsonist: ['sapper', 'jailer', 'tracker', 'thief'], hypnotist: ['notary', 'tracker', 'jailer', 'thief'], saboteur: ['jailer', 'thief', 'tracker'], lawyer: ['bailiff', 'sheriff', 'sniper'], werewolf: ['spy', 'don'],
-  mafia: ['sheriff', 'doctor', 'journalist', 'tracker'], blackmailer: ['auditor', 'notary', 'tracker', 'jailer', 'thief'], ambassador: ['bailiff', 'sheriff', 'sniper'], provocateur: ['pastor', 'miller', 'tracker', 'jailer', 'thief'],
+  mafia: ['sheriff', 'doctor', 'journalist', 'tracker', 'hookah'], blackmailer: ['auditor', 'notary', 'tracker', 'jailer', 'thief'], ambassador: ['bailiff', 'sheriff', 'sniper'], provocateur: ['pastor', 'miller', 'tracker', 'jailer', 'thief'],
   treasurer: ['auditor', 'pastor', 'miller', 'jailer', 'thief', 'tracker'], thug: ['jailer', 'thief', 'tracker', 'sheriff'],
   jailer: ['saboteur', 'spy', 'witch'], thief: ['saboteur', 'witch', 'spy'], monk: ['saboteur', 'witch', 'spy', 'gunsmith'], sheriff: ['don', 'spy', 'balamut', 'saboteur', 'corrupter'], doctor: ['executioner', 'arsonist', 'saboteur', 'spy', 'witch'],
   journalist: ['balamut', 'saboteur', 'spy'], mayor: ['hypnotist', 'blackmailer', 'puppeteer', 'kamikaze'], drunk: ['notary', 'saboteur', 'witch'], altruist: ['blackmailer', 'hypnotist', 'saboteur'], miller: ['provocateur', 'treasurer', 'kamikaze'],
@@ -191,7 +192,8 @@ const COUNTERS = {
   maniac: ['jailer', 'thief', 'doctor', 'rabbi', 'bodyguard', 'tracker', 'ninja'], jester: ['judge', 'peacemaker', 'pastor', 'kamikaze', 'don'], witch: ['jailer', 'thief', 'spy', 'tracker'], amnesiac: ['jailer', 'thief', 'spy', 'kamikaze'],
   survivor: ['kamikaze', 'don', 'maniac', 'executioner'], contractor: ['pastor', 'peacemaker', 'judge', 'lawyer'], lobbyist: ['judge', 'lawyer', 'ambassador', 'peacemaker', 'pastor', 'drunk'], gambler: ['judge', 'lawyer', 'ambassador', 'peacemaker', 'pastor', 'drunk'],
   peacemaker: ['bailiff', 'kamikaze', 'don', 'saboteur', 'witch'], puppeteer: ['notary', 'drunk', 'saboteur', 'witch', 'tracker', 'jailer'],
-  ninja: ['executioner', 'arsonist', 'kamikaze', 'gunsmith'], corrupter: ['sheriff', 'tracker', 'journalist']
+  ninja: ['executioner', 'arsonist', 'kamikaze', 'gunsmith'], corrupter: ['sheriff', 'tracker', 'journalist', 'hookah'],
+  hookah: ['balamut', 'saboteur', 'spy', 'jailer'] // v82: the Balamut repaints a guest, the Saboteur blocks him, the Spy finds him; a guest in the Jailer's cell never came
 };
 const COUNTERED_BY = {}; Object.keys(COUNTERS).forEach(id => COUNTERS[id].forEach(c => { (COUNTERED_BY[c] = COUNTERED_BY[c] || []).push(id); }));
 /* ---------- Small table (v50): free scenarios for 5–6 players, a fixed line-up per table size (home menu → «Малый стол»).

@@ -44,6 +44,8 @@ const SKINS = [
   { id: 'purple_knuckles', role: 'thug', rarity: 'epic', file: 'purple-knuckles' },
   { id: 'silent_petal', role: 'ninja', rarity: 'epic', file: 'silent-petal' },
   { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' },
+  // v82: the first Common skin — «Silver Smoke» for the Hookah Master (texts: src/02zg-i18n-hookah.js); shown under «Other looks»
+  { id: 'silver_smoke', role: 'hookah', rarity: 'common', file: 'silver-smoke' },
   // v69: Mythic — 50 000 emeralds, every copy numbered (000001…), the card is animated: the ninja steps out and dodges kunai (src/17-mythic.js)
   // v79: its own back — the Season 1 mythic back (untouchable-back.webp + its depth map), drawn on the 3D card only (src/12-skins.js skinBackHTML)
   { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge', back: 's1' }
@@ -159,7 +161,7 @@ function skinCardHTML(role, opts, skinId, gl) {
 }
 function sealFor(role, skinId, cls = '') {
   const html = sealHTML(role, cls); if (!validSkin(skinId, role.id)) return html;
-  return injectLast(html.replace('class="seal ', 'class="seal skinned '), `<img class="skin-seal" src="${skinUrl(SKIN[skinId], 'seal')}" alt="" draggable="false" onerror="this.remove()">`);
+  return injectLast(html.replace('class="seal ', `class="seal skinned skr-${SKIN[skinId].rarity} `), `<img class="skin-seal" src="${skinUrl(SKIN[skinId], 'seal')}" alt="" draggable="false" onerror="this.remove()">`);
 }
 function card3dFor(role, key, skinId, gl, serial) {
   if (!validSkin(skinId, role.id)) return card3dHTML(role, key);
@@ -272,6 +274,7 @@ function skinsLooksHTML() {
   const team = s => { const t = ROLE[s.role].team; return t === 'red' || t === 'ww' ? 'city' : t; };
   const rarOk = s => rf === 'all' || s.rarity === rf;
   const season = SKINS.filter(s => s.season && rarOk(s)), series = SKINS.filter(s => !s.season && s.rarity === 'epic');
+  const others = SKINS.filter(s => !s.season && !['epic', 'mythic'].includes(s.rarity) && rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f))); // v82: Common and the other rarities, apart from the Epic series
   const mythic = SKINS.filter(s => s.rarity === 'mythic' && rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f))); // v69: Mythic skins on top, each in full
   const list = series.filter(s => rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f)));
   const chip = (id, t) => `<button class="chip ${f === id ? 'active' : ''}" data-a="skin-filter" data-id="${id}">${t}</button>`;
@@ -284,7 +287,8 @@ function skinsLooksHTML() {
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
     <div class="filters">${chip('all', u.fAll)}${mine ? chip('mine', u.skMine + ' · ' + mine) : ''}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div>
-    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : mythic.length ? '' : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}`;
+    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : mythic.length || others.length ? '' : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}
+    ${others.length ? `<div class="eyebrow gold" style="margin-top:12px">${tt(u.skOtherTitle, { n: others.length })}</div><div class="sk-grid">${others.map(skinTileHTML).join('')}</div>` : ''}`;
 }
 /* the rarity row scrolls sideways: after each render the chosen rarity is brought into view */
 function skinRarScroll() {

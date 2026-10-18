@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02zg-i18n-hookah.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -891,7 +891,8 @@ const v56 = (async () => { const u = X.U(); const F = m => { fails++; console.lo
   if (nSeries < 7 || !SK.every(x => free.some(r => r.id === x.role)) || new Set(EP.map(x => x.role)).size !== EP.length) F('v57: the series — free cards only, one Epic skin per card (' + SK.length + ')');
   if (SK.some(x => !x.name || x.name === x.id || !x.lore || x.lore === x.id)) F('v57: every skin has a name and a story in this language');
   S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.skinFilter = 'all'; A.go(el('go', { to: 'cards' })); A['cards-tab'](el('cards-tab', { v: 'skins' })); check('v57 skins tab'); h = app.innerHTML;
-  if ((h.match(/class="sk-tile /g) || []).length !== nSeries || !h.includes('lilac-doctor-thumb.webp') || !h.includes(X.tt(u.skSeriesTitle, { n: nSeries })) || !h.includes('skin-item')) F('v57: the season skin on top and a tile with a thumbnail for every skin of the series');
+  const nOther = SK.filter(x => !x.season && !['epic', 'mythic'].includes(x.rarity)).length; // v82: Common and other rarities under «Other looks»
+  if ((h.match(/class="sk-tile /g) || []).length !== nSeries + nOther || !h.includes('lilac-doctor-thumb.webp') || !h.includes(X.tt(u.skSeriesTitle, { n: nSeries })) || !h.includes('skin-item')) F('v57: the season skin on top and a tile with a thumbnail for every skin of the series');
   A['skin-filter'](el('skin-filter', { id: 'black' })); check('v57 filter mafia'); h = app.innerHTML;
   if (h.includes('data-id="lilac_doctor"') || !h.includes('data-id="orchid_surgeon"') || h.includes('skin-item')) F('v57: the Mafia filter keeps only mafia skins');
   // v60: the rarity filter — nine rarities plus «all»; works together with the team filter
@@ -1340,6 +1341,69 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v78 ' + m); }
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
   S.profiles = S.profiles.filter(p => p !== me); S.meId = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.pf = null; S.ui.cardsTab = 'cards'; S.ui.skinCat = 'looks'; S.screen = 'home'; X.render(); console.log('v78 ok');
 } catch (e) { fails++; console.log('FAIL v78 crashed', e && e.stack || e); }
+// v82: the Hookah master — two guests, 👍 if the mafia's color is among them; the Jailer's guest never came, the Balamut's repaint counts;
+// not the same pair two nights in a row (host and online); the card, its texts, the result on the player's phone; the Common skin «Silver Smoke»
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v82 ' + m); }; const E = name => vm.runInContext(name, ctx); let S = X.S();
+  const hk = X.ROLE.hookah; const Lx = E('L');
+  if (!hk || hk.team !== 'red' || hk.color !== 'red' || hk.side !== 'city' || hk.premium || hk.ability !== 'hookah') F('the card: a free city card that checks for red');
+  if (!Lx.roles.hookah || !hk.name || !hk.short || !hk.lore || !hk.tip || !Array.isArray(hk.rules) || hk.rules.length < 5 || !Lx.e.hkScript || !Lx.e.hkYes || !Lx.e.hkNo || !Lx.e.hkSamePair || !Lx.abilities.hookah || !Lx.hooks.hookah) F('texts in this language');
+  if ((process.env.LANG_CODE || 'ru') !== 'ru' && hk.name === E('I18N').ru.roles.hookah.name) F('the name is translated');
+  if (!E('NIGHT0_ORDER').includes('hookah') || !(E('COUNTERS').hookah || []).length || !(E('COUNTERED_BY').hookah || []).length) F('night 0 order and counter-picks');
+  if (!E('roleArt')('hookah').includes('<svg') || E('roleArt')('hookah') === E('roleArt')('sheriff')) F('its own card art');
+  A.go(el('go', { to: 'cards' })); A.role(el('role', { id: 'hookah' })); check('v82 role sheet'); if (!app.innerHTML.includes(hk.short) || !app.innerHTML.includes('silver_smoke')) F('the role sheet shows the card and its skin'); A['sheet-close']();
+  A.new(); S = X.S(); S.setup.n = 10; S.setup.scenario = null;
+  S.setup.comp = ['don', 'mafia', 'balamut', 'sheriff', 'doctor', 'jailer', 'hookah', 'citizen', 'citizen', 'citizen'];
+  X.render(); A.deal(); for (let i = 0; i < 10; i++) { A.flip(); A.hide(); }
+  A.start(); const g = S.game; let gd = 0; while (g.steps[g.stepIdx] && gd++ < 40) A.next();
+  A.day0(); gd = 0; while (X.alive(g)[g.speechIdx] && gd++ < 40) A.speech(el('speech', { d: '1' }));
+  const by = id => g.players.find(p => p.roleId === id); const cits = g.players.filter(p => p.roleId === 'citizen');
+  const don = by('don'), hook = by('hookah'), c1 = cits[0], c2 = cits[1], c3 = cits[2];
+  A.night(); gd = 0; let seen = 0;
+  while (g.steps[g.stepIdx] && gd++ < 60) {
+    const st = g.steps[g.stepIdx];
+    if (st.type === 'act' && st.roleId === 'jailer') { A.pick(el('pick', { id: don.id })); A.confirm(); }
+    else if (st.type === 'act' && st.roleId === 'balamut') { A.pick(el('pick', { id: c1.id })); A.confirm(); }
+    else if (st.type === 'act' && st.roleId === 'hookah') {
+      seen++; if (st.targets !== 2 || st.actorId !== hook.id || !st.script.includes(hk.name)) F('the night step: two guests, his own script');
+      if (E('stepTargets')(g, st).find(x => x.p.id === hook.id).ok) F('he cannot invite himself');
+      A.pick(el('pick', { id: don.id })); A.pick(el('pick', { id: c2.id })); A.confirm(); check('v82 hookah jailed');
+      let r = S.ui.result; if (!r || r.kind !== 'smoke' || r.yes !== false) F('the Don in the Jailer\'s cell never came — 👎 (' + JSON.stringify(r) + ')');
+      if (!app.innerHTML.includes(Lx.e.hkNo) || !app.innerHTML.includes(Lx.e.hkGestNo)) F('the host sees «clean» and the 👎 gesture');
+      A.undo(); A.pick(el('pick', { id: c2.id })); A.pick(el('pick', { id: c3.id })); A.confirm(); r = S.ui.result; if (!r || r.yes !== false) F('two Citizens — clean');
+      A.undo(); A.pick(el('pick', { id: c1.id })); A.pick(el('pick', { id: c2.id })); A.confirm(); r = S.ui.result; if (!r || r.yes !== true) F('a Citizen repainted by the Balamut shows as the mafia — 👍');
+      if (!app.innerHTML.includes(Lx.e.hkYes) || !app.innerHTML.includes(Lx.e.hkGestYes)) F('the host sees «the mafia was there» and the 👍 gesture');
+      A.undo(); const maf = by('mafia'); A.pick(el('pick', { id: maf.id })); A.pick(el('pick', { id: c3.id })); A.confirm(); r = S.ui.result; if (!r || r.yes !== true) F('a mafioso among the guests — 👍');
+      if (!g.log.some(x => String(x.text || x).includes(Lx.e.hkEqYes.trim()))) F('the log notes the answer');
+      E('tbResultHTML')({ kind: 'smoke', yes: true, night: 1 }).includes(Lx.e.hkYes) || F('the player\'s phone shows the answer');
+      const pr = E('plainResult')(g, r); if (pr.kind !== 'smoke' || pr.yes !== true) F('the online result keeps the answer');
+    } else if (st.type === 'act') { A.skip(); continue; }
+    A.next();
+  }
+  if (seen !== 1) F('the Hookah master wakes once a night (' + seen + ')');
+  A.resolve(); const last = hook.lastHookah; if (!last || last.night !== g.night || last.ids.length !== 2 || !last.ids.includes(by('mafia').id)) F('tonight\'s pair is remembered');
+  // the next night: the same pair is refused, one guest changed is fine
+  g.night += 1; const step = { id: 'hk-test', type: 'act', roleId: 'hookah', actorId: hook.id, ability: 'hookah', targets: 2, allowSelf: false, script: '' };
+  if (!E('hookahPairBanned')(g, step, [c3.id, by('mafia').id]) || E('hookahPairBanned')(g, step, [c3.id, c2.id])) F('the same pair two nights in a row is refused, a new pair is not');
+  g.steps.splice(g.stepIdx, 0, step); S.screen = 'game'; g.phase = 'night'; S.ui.result = null; S.ui.pick = []; A.pick(el('pick', { id: by('mafia').id })); A.pick(el('pick', { id: c3.id })); X.render(); let h = app.innerHTML;
+  if (!h.includes(Lx.e.hkSamePair) || !/data-a="confirm" disabled/.test(h)) F('the host cannot confirm last night\'s pair');
+  A.pick(el('pick', { id: c3.id })); A.pick(el('pick', { id: c2.id })); X.render(); h = app.innerHTML; if (h.includes(Lx.e.hkSamePair) || /data-a="confirm" disabled/.test(h)) F('a changed guest can be confirmed');
+  S.ui.pick = [];
+  g.online = true; g.tg = { code: 'HK', map: { 9001: hook.seat } };
+  const ask = E('buildAsks')(g)[9001]; if (!ask || ask.ban.length !== 2 || !ask.ban.includes(c3.seat)) F('the phone knows last night\'s pair');
+  if (E('applyTableAction')({ tgId: 9001, key: ask.key, payload: { pick: [by('mafia').seat, c3.seat] } })) F('online: last night\'s pair is refused');
+  if (!E('applyTableAction')({ tgId: 9001, key: ask.key, payload: { pick: [c2.seat, c3.seat] } }) || !g.actions.find(a => a.stepId === 'hk-test')) F('online: a new pair is taken');
+  delete g.online; delete g.tg; S.game = null; S.screen = 'home'; S.ui.result = null;
+  // the Common skin
+  const sk = E('SKIN').silver_smoke; const fs2 = require('fs');
+  if (!sk || sk.role !== 'hookah' || sk.rarity !== 'common' || !sk.name || sk.name === 'silver_smoke' || !sk.lore) F('the skin «Silver Smoke»: Common, for the Hookah master, named');
+  ['', '-thumb', '-seal'].forEach(x => { if (!fs2.existsSync(__dirname + '/../skins/silver-smoke' + x + '.webp')) F('skin file ' + x); }); if (!fs2.existsSync(__dirname + '/../skins/silver-smoke-depth.png')) F('skin depth map');
+  S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.skinFilter = 'all'; S.ui.skinRar = 'all'; A.go(el('go', { to: 'cards' })); A['cards-tab'](el('cards-tab', { v: 'skins' })); h = app.innerHTML;
+  if (!h.includes(X.tt(u.skOtherTitle, { n: 1 })) || !h.includes('sk-tile common') || !h.includes('silver-smoke-thumb.webp')) F('the Skins tab lists it under «Other looks»');
+  A['skin-rar'](el('skin-rar', { id: 'common' })); h = app.innerHTML; if (!h.includes('silver-smoke-thumb.webp') || h.includes('lilac-doctor-thumb.webp')) F('the Common filter keeps only it');
+  A['skin-rar'](el('skin-rar', { id: 'all' })); if (!E('sealFor')(hk, 'silver_smoke').includes('skr-common')) F('its seal is silver');
+  A['cards-tab'](el('cards-tab', { v: 'cards' })); S.screen = 'home'; X.render();
+  console.log('v82 hookah ok');
+} catch (e) { fails++; console.log('FAIL v82 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

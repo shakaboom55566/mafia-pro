@@ -22,7 +22,7 @@ function buildAsks(g) {
     const recorded = g.actions.find(a => a.stepId === step.id);
     const blocked = !recorded && (!actor.alive || step.disabled || !!stolenFrom(g, step.actorId) || !!g.actions.find(a => (a.ability === 'block' || a.ability === 'jail') && a.targets[0] === step.actorId));
     const targets = stepTargets(g, step).map(({ p, ok }) => ({ seat: p.seat, ok }));
-    const base = { key, need: step.targets, targets, modes: step.modes || null, targetsByMode: step.targetsByMode || null, roleId: step.roleId, ability: step.ability, done: !!recorded, picked: recorded ? recorded.targets.map(id => P(g, id).seat) : null, blocked };
+    const base = { key, need: step.targets, targets, modes: step.modes || null, targetsByMode: step.targetsByMode || null, roleId: step.roleId, ability: step.ability, ban: (hookahLastPair(g, step) || []).map(id => P(g, id).seat), done: !!recorded, picked: recorded ? recorded.targets.map(id => P(g, id).seat) : null, blocked };
     if (step.ability === 'shoot' && step.members) { // the family proposes, the shooter decides
       const props = onl.proposals[key] || {};
       const proposals = Object.entries(props).map(([id, seat]) => ({ seat: Number(seat), by: Number(g.tg.map[id]) || 0 }));
@@ -68,6 +68,7 @@ function applyTableAction(a) {
       const need = step.targetsByMode ? step.targetsByMode[S.ui.mode] : step.targets;
       if (ids.length !== need) return false;
       const ok = stepTargets(g, step); if (ids.some(id => !ok.find(x => x.p.id === id && x.ok))) return false;
+      if (hookahPairBanned(g, step, ids)) return false; // v82
       S.ui.pick = ids.slice(); S.ui.result = recordAction(g, step, S.ui.pick, S.ui.mode); S.ui.pick = [];
       if (S.ui.result) (onl.results[tgId] = onl.results[tgId] || []).push(plainResult(g, S.ui.result));
       scheduleAdvance(g, step.id); return true;
@@ -261,6 +262,7 @@ function tbResultHTML(x) {
   const u = U(); const role = x.roleId ? ROLE[x.roleId] : null;
   if (x.kind === 'color') return `<div class="result ${x.color}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${tt(u.tbResColor, { seat: x.seat, color: COLOR_LABEL[x.color] })}</div></div>`;
   if (x.kind === 'sheriff') return `<div class="result ${x.yes ? 'red' : 'black'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${tt(u.tbResSheriff, { seat: x.seat, v: x.yes ? u.isSheriff : u.notSheriff })}</div></div>`;
+  if (x.kind === 'smoke') return `<div class="result ${x.yes ? 'black' : 'red'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${x.yes ? L.e.hkYes : L.e.hkNo}</div></div>`;
   if (x.kind === 'same') return `<div class="result ${x.same ? 'same' : 'diff'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${x.same ? u.tbResSame : u.tbResDiff}</div></div>`;
   if (x.kind === 'role' && role) return `<div class="result ${role.team === 'black' ? 'black' : 'red'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${tt(u.tbResRole, { seat: x.seat, role: role.name })}</div></div>`;
   return x.text ? `<div class="quiet">${esc(x.text)}</div>` : '';
@@ -284,11 +286,12 @@ function tbAskHTML(ask, seats) {
   const modes = ask.modes ? `<div class="segment n${ask.modes.length}" style="margin:8px 0">${ask.modes.map(m => `<button class="${(TB.mode || ask.modes[0]) === m ? 'active' : ''}" data-a="tb-mode" data-id="${m}">${{ check: u.modeCheck, shoot: u.modeShoot, douse: L.e.modeDouse, ignite: L.e.modeIgnite }[m] || m}</button>`).join('')}</div>` : '';
   const mode = TB.mode || (ask.modes ? ask.modes[0] : null); const need = ask.targetsByMode && mode ? ask.targetsByMode[mode] : ask.need;
   const pk = (ask.targets || []).map(tg => { const i = TB.pick.indexOf(tg.seat); return `<button class="pk ${i >= 0 ? 'sel' : ''} ${i === 1 ? 'n2' : ''} ${tg.ok ? '' : 'dis'}" data-a="tb-pick" data-seat="${tg.seat}" ${tg.ok ? '' : 'disabled'}><span class="seat">${tg.seat}</span><span class="nm">${esc((seats.find(s => s.seat === tg.seat) || {}).name || '')}</span>${i >= 0 && need > 1 ? `<span class="mark ${i === 1 ? 'c' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
-  const ready = ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need;
+  const samePair = need === 2 && ask.ban && ask.ban.length === 2 && TB.pick.length === 2 && TB.pick.every(x => ask.ban.includes(x)); // v82: the Hookah master's pair from last night
+  const ready = (ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need) && !samePair;
   const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : ask.kind === 'trig' && ask.optional ? `<button class="btn ghost" data-a="tb-skip">${u.trigSkip}</button>` : '';
   const myRole = TB.data && TB.data.me && TB.data.me.roleId; // v56: my own skin when the step is my card
   return `<div class="panel raised tb-ask"><div class="row">${role ? sealFor(role, myRole === role.id ? mySkin(role.id) : null) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? (ask.trig === 'morpheus' ? u.tbMorpheusNight : u.tbAzazelNight) : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
-    ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}
+    ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}${samePair ? `<div class="warnbox" style="margin-top:10px">${L.e.hkSamePair}</div>` : ''}
     <div class="btn-row" style="margin-top:10px">${skip}<button class="btn primary" data-a="tb-confirm" ${ready ? '' : 'disabled'}>${ask.kind === 'bestmove' ? u.tbBestSave : u.confirm}</button></div></div>`;
 }
 function tbChatHTML(pub, me) {

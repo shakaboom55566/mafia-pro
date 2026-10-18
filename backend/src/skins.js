@@ -38,6 +38,8 @@ export const SKINS = {
   purple_knuckles: { role: 'thug', rarity: 'epic' },
   silent_petal: { role: 'ninja', rarity: 'epic' },
   velvet_envelope: { role: 'corrupter', rarity: 'epic' },
+  // v82: the first Common skin — the Hookah Master's «Silver Smoke» (how to get it is decided later; admins own it and can give it)
+  silver_smoke: { role: 'hookah', rarity: 'common' },
   // v69: Mythic — for emeralds (EMERALDS_MYTHIC, 50 000), every copy numbered 000001, 000002… in the order of purchase; the card is animated in the app
   untouchable: { role: 'ninja', rarity: 'mythic', numbered: true },
   // v71: table backgrounds — the room around the round table (role 'room': one per player, the host's is what everyone at his table sees);
@@ -95,6 +97,7 @@ export const SKIN_NAMES = {
   purple_knuckles: { ru: 'Фиолетовый кастет', uk: 'Фіолетовий кастет', en: 'Purple Knuckles', pl: 'Fioletowy Kastet', hy: 'Մանուշակագույն կաստետ' },
   silent_petal: { ru: 'Тихий лепесток', uk: 'Тиха пелюстка', en: 'Silent Petal', pl: 'Cichy Płatek', hy: 'Լուռ թերթիկ' },
   velvet_envelope: { ru: 'Бархатный конверт', uk: 'Оксамитовий конверт', en: 'Velvet Envelope', pl: 'Aksamitna Koperta', hy: 'Թավշյա ծրար' },
+  silver_smoke: { ru: 'Серебряный дым', uk: 'Срібний дим', en: 'Silver Smoke', pl: 'Srebrny Dym', hy: 'Արծաթե ծուխ' },
   untouchable: { ru: 'Неуловимая', uk: 'Невловима', en: 'Untouchable', pl: 'Nieuchwytna', hy: 'Անհասանելին' },
   castelmar_club: { ru: 'Клуб «Кастельмар»', uk: 'Клуб «Кастельмар»', en: 'Castelmar Club', pl: 'Klub Castelmar', hy: '«Կաստելմար» ակումբ' },
   khrushchevka_kitchen: { ru: 'Кухня в хрущёвке', uk: 'Кухня в хрущовці', en: 'Khrushchyovka Kitchen', pl: 'Kuchnia w chruszczowce', hy: 'Խոհանոց խրուշչովկայում' },

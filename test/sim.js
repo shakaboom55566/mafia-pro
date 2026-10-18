@@ -1,6 +1,6 @@
 // Engine simulation: runs data + engine in node and plays scripted scenarios.
 const fs = require('fs');
-const I18N_FILES = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02t-i18n-v53.js', '02y-i18n-fouls.js', '02f-icons.js'];
+const I18N_FILES = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02t-i18n-v53.js', '02y-i18n-fouls.js', '02zg-i18n-hookah.js', '02f-icons.js'];
 const src = I18N_FILES.map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n') + '\n' + fs.readFileSync(__dirname + '/../src/02-data.js', 'utf8') + '\n' + fs.readFileSync(__dirname + '/../src/03-engine.js', 'utf8');
 const vm = require('vm');
 const ctx = { console, Math, Date, Object, Array, Set, Number, String, JSON };

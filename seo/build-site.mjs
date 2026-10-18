@@ -4,7 +4,7 @@
    The app itself (index.html at the site root) is a script-rendered Telegram Mini App: a search engine sees an empty page.
    This script writes plain, fast, crawlable HTML pages next to it, in the five languages of the app, from the app's own data:
      <lang>/                 landing: what Mafia Pro is, features, formats, roles, FAQ
-     <lang>/roles/           all 57 role cards by team
+     <lang>/roles/           all 58 role cards by team
      <lang>/roles/<id>/      one page per role: rules, tip, story, card image
      <lang>/rules/           how a game goes, classic tournament rules, online, open / closed game, points
      <lang>/scenarios/       roles by number of players (7–24), the classic 10 and the scenarios

@@ -458,15 +458,17 @@ function actStep(g, step) {
   }).join('')}</div>`;
   const modeLbl = { check: u.modeCheck, shoot: u.modeShoot, douse: L.e.modeDouse, ignite: L.e.modeIgnite };
   const modes = step.modes ? `<div class="segment">${step.modes.map(m => `<button class="${S.ui.mode === m ? 'active' : ''}" data-a="mode" data-id="${m}">${modeLbl[m]}</button>`).join('')}</div>` : '';
-  const ready = sel.length === need;
+  const samePair = hookahPairBanned(g, step, sel); // v82: the Hookah master cannot invite the same pair two nights in a row
+  const ready = sel.length === need && !samePair;
   return `${head}</div>${modes}<div class="hint">${need === 0 ? '' : need === 2 ? (thief ? u.pickThief : u.pickTwo) : u.pickOne}</div>${need === 0 ? '' : pick}
-    <div class="btn-row"><button class="btn ghost" data-a="skip">${u.skip}</button><button class="btn primary" data-a="confirm" ${ready ? '' : 'disabled'}>${u.confirm}</button></div>`;
+    ${samePair ? `<div class="warnbox" style="margin-top:10px">${L.e.hkSamePair}</div>` : ''}<div class="btn-row"><button class="btn ghost" data-a="skip">${u.skip}</button><button class="btn primary" data-a="confirm" ${ready ? '' : 'disabled'}>${u.confirm}</button></div>`;
 }
 function resultHTML(res) {
   const u = U();
   if (res.kind === 'color') return `<div class="result ${res.color}"><div class="eyebrow">${u.hostAnswer}${res.who ? ` · ${esc(label(res.who))}` : ''}</div><div class="big">${COLOR_LABEL[res.color]}</div><div class="gesture">${res.color === 'red' ? u.showRed : u.showBlack}</div></div>`;
   if (res.kind === 'role') return `<div class="result ${res.role.team === 'black' ? 'black' : 'red'}"><div class="eyebrow">${tt(u.playerCard, { player: esc(label(res.who)) })}</div><div class="big">${res.role.name}</div><div class="gesture">${tt(u.showSpy, { team: TEAM_LABEL[res.role.team] })}</div></div>`;
   if (res.kind === 'sheriff') return `<div class="result ${res.yes ? 'red' : 'black'}"><div class="eyebrow">${u.hostAnswer} · ${esc(label(res.who))}</div><div class="big">${res.yes ? u.isSheriff : u.notSheriff}</div><div class="gesture">${res.yes ? u.gestureYes : u.gestureNo}</div></div>`;
+  if (res.kind === 'smoke') return `<div class="result ${res.yes ? 'black' : 'red'}"><div class="eyebrow">${u.hostAnswer}</div><div class="big">${res.yes ? L.e.hkYes : L.e.hkNo}</div><div class="gesture">${res.yes ? L.e.hkGestYes : L.e.hkGestNo}</div></div>`;
   if (res.kind === 'same') return `<div class="result ${res.same ? 'same' : 'diff'}"><div class="eyebrow">${u.hostAnswer}</div><div class="big">${res.same ? u.sameColor : u.diffColor}</div><div class="gesture">${res.same ? u.gestureSame : u.gestureDiff}</div></div>`;
   return `<div class="quiet">${esc(res.text)}</div>`;
 }

@@ -1024,6 +1024,12 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .seal.skinned { --seal-ring: #b98cff; box-shadow: 0 0 0 1px rgba(185,140,255,.5), 0 0 14px -2px rgba(157,92,240,.75); }
 .seal .skin-seal { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; z-index: 1; }
 .seal.skinned::after { z-index: 2; border-color: #b98cff; }
+/* v82: a Common skin is steel and silver, not amethyst — its seal, tile and sheet title */
+.seal.skinned.skr-common { --seal-ring: #c3cad4; box-shadow: 0 0 0 1px rgba(195,202,212,.55), 0 0 12px -3px rgba(210,218,230,.6); }
+.seal.skinned.skr-common::after { border-color: #c3cad4; }
+.sk-tile.common { border-color: rgba(195,202,212,.38); background: linear-gradient(180deg, rgba(195,202,212,.12), var(--bg-2)); }
+.sk-tile.common.worn { border-color: rgba(214,220,230,.9); box-shadow: 0 0 0 1px rgba(214,220,230,.45), 0 6px 22px -10px rgba(200,208,220,.8); }
+.sk-sheet .sk-name.common { text-shadow: 0 0 18px rgba(200,208,220,.5); }
 .seal.ss-skin { width: 64px; height: 64px; }
 .ss-reward[role="button"] { cursor: pointer; }
 .ss-see { margin-top: 8px; font-weight: 700; font-size: 13px; color: #d9c2ff; display: flex; align-items: center; gap: 6px; }

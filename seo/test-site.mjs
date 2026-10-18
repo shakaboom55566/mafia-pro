@@ -29,7 +29,7 @@ for (const f of landings) {
   ok(!/undefined|\[object |NaN/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), rel + ': no undefined in the text');
   for (const m of h.matchAll(/href="([^"]+)"/g)) if (m[1].startsWith('/')) ok(exists(m[1]), `${rel}: broken link ${m[1]}`);
 }
-ok(files.length === r.pages && r.pages === LANGS.length * (5 + 57), `pages: ${files.length} / ${r.pages}`);
+ok(files.length === r.pages && r.pages === LANGS.length * (5 + 58), `pages: ${files.length} / ${r.pages}`);
 const titles = new Map(), descs = new Map();
 for (const f of files) {
   const h = fs.readFileSync(f, 'utf8'); const rel = path.relative(out, f);

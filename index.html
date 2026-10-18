@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.58.0-327454a">
+<meta name="mafia-build" content="1.59.0-37e5a5c">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -1093,6 +1093,12 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .seal.skinned { --seal-ring: #b98cff; box-shadow: 0 0 0 1px rgba(185,140,255,.5), 0 0 14px -2px rgba(157,92,240,.75); }
 .seal .skin-seal { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; z-index: 1; }
 .seal.skinned::after { z-index: 2; border-color: #b98cff; }
+/* v82: a Common skin is steel and silver, not amethyst — its seal, tile and sheet title */
+.seal.skinned.skr-common { --seal-ring: #c3cad4; box-shadow: 0 0 0 1px rgba(195,202,212,.55), 0 0 12px -3px rgba(210,218,230,.6); }
+.seal.skinned.skr-common::after { border-color: #c3cad4; }
+.sk-tile.common { border-color: rgba(195,202,212,.38); background: linear-gradient(180deg, rgba(195,202,212,.12), var(--bg-2)); }
+.sk-tile.common.worn { border-color: rgba(214,220,230,.9); box-shadow: 0 0 0 1px rgba(214,220,230,.45), 0 6px 22px -10px rgba(200,208,220,.8); }
+.sk-sheet .sk-name.common { text-shadow: 0 0 18px rgba(200,208,220,.5); }
 .seal.ss-skin { width: 64px; height: 64px; }
 .ss-reward[role="button"] { cursor: pointer; }
 .ss-see { margin-top: 8px; font-weight: 700; font-size: 13px; color: #d9c2ff; display: flex; align-items: center; gap: 6px; }
@@ -3895,7 +3901,7 @@ Object.assign(I18N.ru.ui, {
   ptOffer: '<b>20 % в Stars</b> со всех покупок игроков, которых вы привели, в течение 12 месяцев. От 50 активных игроков — <b>30 %</b>. Пока у вас 10+ активных игроков — <b>полный доступ бесплатно</b>. Выплаты раз в месяц от 1000 ⭐ (≈ 13 $) на карту или USDT, либо в Stars-эквиваленте.',
   ptWho: 'Кому подходит', ptWhoText: 'Ведущим и клубам живой мафии, авторам Telegram-каналов и TikTok/Reels, организаторам квизов и игротек. Ваша ссылка ведёт на бота, каждому новому игроку даёт 7 дней полного доступа — её удобно ставить в закреп, описание канала и на столы.',
   ptApply: 'Подать заявку', ptName: 'Название клуба / канала', ptChannel: 'Ссылка на канал, клуб или профиль', ptAudience: 'Аудитория (сколько человек, город)', ptSend: 'Отправить заявку', ptPending: 'Заявка на рассмотрении — ответим в течение 1–2 дней.', ptRejected: 'Заявка отклонена. Напишите нам, если это ошибка.',
-  ptActive: 'Вы партнёр · {share} %', ptLink: 'Партнёрская ссылка', ptLinkApp: 'Прямая ссылка в приложение', ptInvited: 'Пришли', ptQualified: 'Играли', ptPurchases: 'Покупок', ptEarned: 'Заработано', ptBalance: 'К выплате', ptPaid: 'Выплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Выплата от 1000 ⭐ раз в месяц. Для выплаты напишите @{admin} или ответьте боту.', ptMaterials: 'Материалы', ptMaterialsText: 'Текст поста: «Играем в живую мафию с Mafia Pro: 57 карт, раздача в личку, рейтинг. По моей ссылке — 7 дней полного доступа бесплатно». Картинки — обложка и аватар бота есть в репозитории проекта.',
+  ptActive: 'Вы партнёр · {share} %', ptLink: 'Партнёрская ссылка', ptLinkApp: 'Прямая ссылка в приложение', ptInvited: 'Пришли', ptQualified: 'Играли', ptPurchases: 'Покупок', ptEarned: 'Заработано', ptBalance: 'К выплате', ptPaid: 'Выплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Выплата от 1000 ⭐ раз в месяц. Для выплаты напишите @{admin} или ответьте боту.', ptMaterials: 'Материалы', ptMaterialsText: 'Текст поста: «Играем в живую мафию с Mafia Pro: 58 карт, раздача в личку, рейтинг. По моей ссылке — 7 дней полного доступа бесплатно». Картинки — обложка и аватар бота есть в репозитории проекта.',
   admPartners: 'Партнёры', admApprove: 'Подтвердить', admReject: 'Отклонить', admPending: 'заявка', admActive: 'партнёр', admRejected: 'отклонён'
 });
 Object.assign(I18N.uk.ui, {
@@ -3909,7 +3915,7 @@ Object.assign(I18N.uk.ui, {
   ptOffer: '<b>20 % у Stars</b> з усіх покупок гравців, яких ви привели, протягом 12 місяців. Від 50 активних гравців — <b>30 %</b>. Поки у вас 10+ активних гравців — <b>повний доступ безкоштовно</b>. Виплати раз на місяць від 1000 ⭐ (≈ 13 $) на картку або USDT, або в Stars-еквіваленті.',
   ptWho: 'Кому підходить', ptWhoText: 'Ведучим і клубам живої мафії, авторам Telegram-каналів і TikTok/Reels, організаторам квізів та ігротек. Ваше посилання веде на бота, кожному новому гравцю дає 7 днів повного доступу — його зручно ставити в закріп, опис каналу та на столи.',
   ptApply: 'Подати заявку', ptName: 'Назва клубу / каналу', ptChannel: 'Посилання на канал, клуб або профіль', ptAudience: 'Аудиторія (скільки людей, місто)', ptSend: 'Надіслати заявку', ptPending: 'Заявка на розгляді — відповімо протягом 1–2 днів.', ptRejected: 'Заявку відхилено. Напишіть нам, якщо це помилка.',
-  ptActive: 'Ви партнер · {share} %', ptLink: 'Партнерське посилання', ptLinkApp: 'Пряме посилання в застосунок', ptInvited: 'Прийшли', ptQualified: 'Грали', ptPurchases: 'Покупок', ptEarned: 'Зароблено', ptBalance: 'До виплати', ptPaid: 'Виплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Виплата від 1000 ⭐ раз на місяць. Для виплати напишіть @{admin} або відповідьте боту.', ptMaterials: 'Матеріали', ptMaterialsText: 'Текст поста: «Граємо в живу мафію з Mafia Pro: 57 карт, роздача в особисті, рейтинг. За моїм посиланням — 7 днів повного доступу безкоштовно». Картинки — обкладинка та аватар бота є в репозиторії проєкту.',
+  ptActive: 'Ви партнер · {share} %', ptLink: 'Партнерське посилання', ptLinkApp: 'Пряме посилання в застосунок', ptInvited: 'Прийшли', ptQualified: 'Грали', ptPurchases: 'Покупок', ptEarned: 'Зароблено', ptBalance: 'До виплати', ptPaid: 'Виплачено', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Виплата від 1000 ⭐ раз на місяць. Для виплати напишіть @{admin} або відповідьте боту.', ptMaterials: 'Матеріали', ptMaterialsText: 'Текст поста: «Граємо в живу мафію з Mafia Pro: 58 карт, роздача в особисті, рейтинг. За моїм посиланням — 7 днів повного доступу безкоштовно». Картинки — обкладинка та аватар бота є в репозиторії проєкту.',
   admPartners: 'Партнери', admApprove: 'Підтвердити', admReject: 'Відхилити', admPending: 'заявка', admActive: 'партнер', admRejected: 'відхилено'
 });
 Object.assign(I18N.en.ui, {
@@ -3923,7 +3929,7 @@ Object.assign(I18N.en.ui, {
   ptOffer: '<b>20% in Stars</b> of every purchase by the players you bring, for 12 months. From 50 active players — <b>30%</b>. While you have 10+ active players — <b>full access for free</b>. Payouts monthly from 1000 ⭐ (≈ $13) to a card or USDT, or as Stars-equivalent.',
   ptWho: 'Who it is for', ptWhoText: 'Live Mafia hosts and clubs, Telegram channel and TikTok/Reels authors, quiz and board-game organisers. Your link opens the bot and gives every new player 7 days of full access — pin it, put it in the channel description and on the tables.',
   ptApply: 'Apply', ptName: 'Club / channel name', ptChannel: 'Link to the channel, club or profile', ptAudience: 'Audience (how many people, city)', ptSend: 'Send application', ptPending: 'Application under review — we reply within 1–2 days.', ptRejected: 'Application declined. Message us if this is a mistake.',
-  ptActive: 'You are a partner · {share}%', ptLink: 'Partner link', ptLinkApp: 'Direct app link', ptInvited: 'Joined', ptQualified: 'Played', ptPurchases: 'Purchases', ptEarned: 'Earned', ptBalance: 'Payable', ptPaid: 'Paid out', ptStars: '⭐', ptApprox: '≈ ${usd}', ptPayoutNote: 'Payout from 1000 ⭐ once a month. To request one, message @{admin} or reply to the bot.', ptMaterials: 'Materials', ptMaterialsText: 'Post text: “We play live Mafia with Mafia Pro: 57 cards, cards dealt privately, ratings. My link gives 7 days of full access for free.” Images — the cover and the bot avatar are in the project repository.',
+  ptActive: 'You are a partner · {share}%', ptLink: 'Partner link', ptLinkApp: 'Direct app link', ptInvited: 'Joined', ptQualified: 'Played', ptPurchases: 'Purchases', ptEarned: 'Earned', ptBalance: 'Payable', ptPaid: 'Paid out', ptStars: '⭐', ptApprox: '≈ ${usd}', ptPayoutNote: 'Payout from 1000 ⭐ once a month. To request one, message @{admin} or reply to the bot.', ptMaterials: 'Materials', ptMaterialsText: 'Post text: “We play live Mafia with Mafia Pro: 58 cards, cards dealt privately, ratings. My link gives 7 days of full access for free.” Images — the cover and the bot avatar are in the project repository.',
   admPartners: 'Partners', admApprove: 'Approve', admReject: 'Decline', admPending: 'application', admActive: 'partner', admRejected: 'declined'
 });
 Object.assign(I18N.pl.ui, {
@@ -3937,7 +3943,7 @@ Object.assign(I18N.pl.ui, {
   ptOffer: '<b>20% w Stars</b> ze wszystkich zakupów graczy, których przyprowadzisz, przez 12 miesięcy. Od 50 aktywnych graczy — <b>30%</b>. Dopóki masz 10+ aktywnych graczy — <b>pełny dostęp za darmo</b>. Wypłaty raz w miesiącu od 1000 ⭐ (≈ 13 $) na kartę lub USDT, albo w ekwiwalencie Stars.',
   ptWho: 'Dla kogo', ptWhoText: 'Prowadzący i kluby mafii na żywo, autorzy kanałów Telegram i TikTok/Reels, organizatorzy quizów i planszówek. Twój link otwiera bota i daje każdemu nowemu graczowi 7 dni pełnego dostępu — przypnij go, wstaw do opisu kanału i na stoły.',
   ptApply: 'Złóż wniosek', ptName: 'Nazwa klubu / kanału', ptChannel: 'Link do kanału, klubu lub profilu', ptAudience: 'Publiczność (ile osób, miasto)', ptSend: 'Wyślij wniosek', ptPending: 'Wniosek w trakcie rozpatrywania — odpowiemy w 1–2 dni.', ptRejected: 'Wniosek odrzucony. Napisz do nas, jeśli to pomyłka.',
-  ptActive: 'Jesteś partnerem · {share}%', ptLink: 'Link partnerski', ptLinkApp: 'Bezpośredni link do aplikacji', ptInvited: 'Dołączyli', ptQualified: 'Grali', ptPurchases: 'Zakupów', ptEarned: 'Zarobione', ptBalance: 'Do wypłaty', ptPaid: 'Wypłacono', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Wypłata od 1000 ⭐ raz w miesiącu. Aby ją zlecić, napisz do @{admin} lub odpowiedz botowi.', ptMaterials: 'Materiały', ptMaterialsText: 'Tekst posta: „Gramy w mafię na żywo z Mafia Pro: 57 kart, karty prywatnie, ranking. Mój link daje 7 dni pełnego dostępu za darmo”. Grafiki — okładka i awatar bota są w repozytorium projektu.',
+  ptActive: 'Jesteś partnerem · {share}%', ptLink: 'Link partnerski', ptLinkApp: 'Bezpośredni link do aplikacji', ptInvited: 'Dołączyli', ptQualified: 'Grali', ptPurchases: 'Zakupów', ptEarned: 'Zarobione', ptBalance: 'Do wypłaty', ptPaid: 'Wypłacono', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Wypłata od 1000 ⭐ raz w miesiącu. Aby ją zlecić, napisz do @{admin} lub odpowiedz botowi.', ptMaterials: 'Materiały', ptMaterialsText: 'Tekst posta: „Gramy w mafię na żywo z Mafia Pro: 58 kart, karty prywatnie, ranking. Mój link daje 7 dni pełnego dostępu za darmo”. Grafiki — okładka i awatar bota są w repozytorium projektu.',
   admPartners: 'Partnerzy', admApprove: 'Zatwierdź', admReject: 'Odrzuć', admPending: 'wniosek', admActive: 'partner', admRejected: 'odrzucony'
 });
 Object.assign(I18N.hy.ui, {
@@ -3951,7 +3957,7 @@ Object.assign(I18N.hy.ui, {
   ptOffer: '<b>20 % Stars-ով</b> ձեր բերած խաղացողների բոլոր գնումներից 12 ամիս։ 50 ակտիվ խաղացողից՝ <b>30 %</b>։ Քանի դեռ ունեք 10+ ակտիվ խաղացող՝ <b>լիարժեք հասանելիություն անվճար</b>։ Վճարումներ ամիսը մեկ՝ 1000 ⭐-ից (≈ 13 $) քարտին կամ USDT-ով, կամ Stars-համարժեքով։',
   ptWho: 'Ում է հարմար', ptWhoText: 'Կենդանի մաֆիայի վարողներին և ակումբներին, Telegram-ալիքների և TikTok/Reels-ի հեղինակներին, վիկտորինաների և խաղերի կազմակերպիչներին։ Ձեր հղումը բացում է բոտը և յուրաքանչյուր նոր խաղացողի տալիս 7 օր լիարժեք հասանելիություն — ամրացրեք այն, դրեք ալիքի նկարագրության մեջ և սեղանների վրա։',
   ptApply: 'Հայտ ներկայացնել', ptName: 'Ակումբի / ալիքի անունը', ptChannel: 'Ալիքի, ակումբի կամ պրոֆիլի հղում', ptAudience: 'Լսարան (քանի մարդ, քաղաք)', ptSend: 'Ուղարկել հայտը', ptPending: 'Հայտը դիտարկվում է — կպատասխանենք 1–2 օրվա ընթացքում։', ptRejected: 'Հայտը մերժված է։ Գրեք մեզ, եթե սա սխալ է։',
-  ptActive: 'Դուք գործընկեր եք · {share} %', ptLink: 'Գործընկերային հղում', ptLinkApp: 'Ուղիղ հղում դեպի հավելված', ptInvited: 'Եկել են', ptQualified: 'Խաղացել են', ptPurchases: 'Գնումներ', ptEarned: 'Վաստակած', ptBalance: 'Վճարման', ptPaid: 'Վճարված', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Վճարում 1000 ⭐-ից ամիսը մեկ։ Վճարման համար գրեք @{admin}-ին կամ պատասխանեք բոտին։', ptMaterials: 'Նյութեր', ptMaterialsText: 'Գրառման տեքստ․ «Կենդանի մաֆիա ենք խաղում Mafia Pro-ով՝ 57 քարտ, քարտերը անձնական, վարկանիշ։ Իմ հղումով՝ 7 օր լիարժեք հասանելիություն անվճար»։ Նկարները՝ շապիկը և բոտի ավատարը նախագծի պահոցում են։',
+  ptActive: 'Դուք գործընկեր եք · {share} %', ptLink: 'Գործընկերային հղում', ptLinkApp: 'Ուղիղ հղում դեպի հավելված', ptInvited: 'Եկել են', ptQualified: 'Խաղացել են', ptPurchases: 'Գնումներ', ptEarned: 'Վաստակած', ptBalance: 'Վճարման', ptPaid: 'Վճարված', ptStars: '⭐', ptApprox: '≈ {usd} $', ptPayoutNote: 'Վճարում 1000 ⭐-ից ամիսը մեկ։ Վճարման համար գրեք @{admin}-ին կամ պատասխանեք բոտին։', ptMaterials: 'Նյութեր', ptMaterialsText: 'Գրառման տեքստ․ «Կենդանի մաֆիա ենք խաղում Mafia Pro-ով՝ 58 քարտ, քարտերը անձնական, վարկանիշ։ Իմ հղումով՝ 7 օր լիարժեք հասանելիություն անվճար»։ Նկարները՝ շապիկը և բոտի ավատարը նախագծի պահոցում են։',
   admPartners: 'Գործընկերներ', admApprove: 'Հաստատել', admReject: 'Մերժել', admPending: 'հայտ', admActive: 'գործընկեր', admRejected: 'մերժված'
 });
 /* ---------------- Clubs ---------------- */
@@ -5340,11 +5346,11 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['home', 'Главный экран приложения: «Ролевая мафия» — та игра, о которой этот гид']],
         r: ['Если вы играете впервые — попросите ведущего выбрать состав «Для новичков» (главный экран → {scenTitle}): в нём только простые карты.'] },
       { t: 'Карты и роли',
-        p: ['В приложении 57 карт, но в одной партии их обычно 7–12. **Чёрные** (мафия) — Дон, Мафия, Оружейник и другие: ночью они вместе выбирают жертву. **Красные** (город) — Шериф, Доктор, Мэр, Журналист, Телохранитель…: у каждого своя способность ночью или днём. **Нейтралы** — Маньяк, Шут и другие: у них своя цель.',
+        p: ['В приложении 58 карт, но в одной партии их обычно 7–12. **Чёрные** (мафия) — Дон, Мафия, Оружейник и другие: ночью они вместе выбирают жертву. **Красные** (город) — Шериф, Доктор, Мэр, Журналист, Телохранитель…: у каждого своя способность ночью или днём. **Нейтралы** — Маньяк, Шут и другие: у них своя цель.',
           'Посмотреть любую карту можно заранее: вкладка {tabCards} внизу экрана → нажмите на карту. Откроется описание: сторона, цвет для проверок, порядок пробуждения, {howWorks}, {tip} и {counters} — какие карты против неё сильны.'],
         s: ['Откройте вкладку {tabCards}.', 'Фильтры сверху: {fAll}, {fMafia}, {fCity}, {fNeutral}.', 'Нажмите на карту — прочитайте «Как работает». Карту можно повернуть пальцем.'],
         i: [['cards', 'Вкладка «Карты»: все роли по командам'], ['role-sheet', 'Описание роли: сторона, порядок, правила и совет']],
-        r: ['Перед первой партией прочитайте карты из своего состава — ведущий скажет, какие роли в игре.', 'Не пытайтесь выучить все 57 ролей: ночью ведущий сам называет, кто просыпается.'] },
+        r: ['Перед первой партией прочитайте карты из своего состава — ведущий скажет, какие роли в игре.', 'Не пытайтесь выучить все 58 ролей: ночью ведущий сам называет, кто просыпается.'] },
       { t: 'Два способа играть: за столом и онлайн',
         p: ['**За живым столом.** Все сидят вместе, у ведущего телефон. Карты раздаются с его телефона по кругу или приходят вам в приложение. Ночью вы показываете ходы жестами, днём говорите и голосуете рукой.',
           '**Онлайн.** Каждый у себя дома со своим телефоном. Ведущий открывает стол в приложении, вы садитесь за него, карта появляется у вас на экране, ночью ходите кнопками, днём пишете в чат стола и голосуете кнопкой. Голосом можно общаться в Discord — ведущий включает это по желанию.',
@@ -5673,11 +5679,11 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['home', 'Головний екран застосунку: «Рольова мафія» — та гра, про яку цей гід']],
         r: ['Якщо ви граєте вперше — попросіть ведучого обрати склад «Для новачків» (головний екран → {scenTitle}): у ньому лише прості карти.'] },
       { t: 'Карти та ролі',
-        p: ['У застосунку 57 карт, але в одній партії їх зазвичай 7–12. **Чорні** (мафія) — Дон, Мафія, Зброяр та інші: вночі вони разом обирають жертву. **Червоні** (місто) — Шериф, Лікар, Мер, Журналіст, Охоронець…: у кожного своя здібність уночі або вдень. **Нейтрали** — Маніяк, Блазень та інші: у них своя мета.',
+        p: ['У застосунку 58 карт, але в одній партії їх зазвичай 7–12. **Чорні** (мафія) — Дон, Мафія, Зброяр та інші: вночі вони разом обирають жертву. **Червоні** (місто) — Шериф, Лікар, Мер, Журналіст, Охоронець…: у кожного своя здібність уночі або вдень. **Нейтрали** — Маніяк, Блазень та інші: у них своя мета.',
           'Подивитися будь-яку карту можна заздалегідь: вкладка {tabCards} унизу екрана → натисніть на карту. Відкриється опис: сторона, колір для перевірок, порядок пробудження, {howWorks}, {tip} і {counters} — які карти проти неї сильні.'],
         s: ['Відкрийте вкладку {tabCards}.', 'Фільтри зверху: {fAll}, {fMafia}, {fCity}, {fNeutral}.', 'Натисніть на карту — прочитайте «Як працює». Карту можна повернути пальцем.'],
         i: [['cards', 'Вкладка «Карти»: усі ролі за командами'], ['role-sheet', 'Опис ролі: сторона, порядок, правила й порада']],
-        r: ['Перед першою партією прочитайте карти зі свого складу — ведучий скаже, які ролі в грі.', 'Не намагайтеся вивчити всі 57 ролей: уночі ведучий сам називає, хто прокидається.'] },
+        r: ['Перед першою партією прочитайте карти зі свого складу — ведучий скаже, які ролі в грі.', 'Не намагайтеся вивчити всі 58 ролей: уночі ведучий сам називає, хто прокидається.'] },
       { t: 'Два способи грати: за столом і онлайн',
         p: ['**За живим столом.** Усі сидять разом, у ведучого телефон. Карти роздаються з його телефона по колу або приходять вам у застосунок. Уночі ви показуєте ходи жестами, удень говорите й голосуєте рукою.',
           '**Онлайн.** Кожен у себе вдома зі своїм телефоном. Ведучий відкриває стіл у застосунку, ви сідаєте за нього, карта з’являється у вас на екрані, уночі ходите кнопками, удень пишете в чат столу й голосуєте кнопкою. Голосом можна спілкуватися в Discord — ведучий вмикає це за бажанням.',
@@ -6005,11 +6011,11 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['home', 'The app’s home screen: “Role game” is the game this guide is about']],
         r: ['Playing for the first time? Ask the host to pick a “For beginners” line-up (home screen → {scenTitle}): simple cards only.'] },
       { t: 'Cards and roles',
-        p: ['The app has 57 cards, but a game usually uses 7–12. **Black** (mafia) — the Don, Mafia, the Armorer and others: at night they pick a victim together. **Red** (town) — the Sheriff, the Doctor, the Mayor, the Journalist, the Bodyguard…: each has an ability at night or by day. **Neutrals** — the Maniac, the Jester and others: they have goals of their own.',
+        p: ['The app has 58 cards, but a game usually uses 7–12. **Black** (mafia) — the Don, Mafia, the Armorer and others: at night they pick a victim together. **Red** (town) — the Sheriff, the Doctor, the Mayor, the Journalist, the Bodyguard…: each has an ability at night or by day. **Neutrals** — the Maniac, the Jester and others: they have goals of their own.',
           'You can read any card in advance: the {tabCards} tab at the bottom → tap a card. You get the side, the colour for checks, the waking order, {howWorks}, {tip} and {counters} — which cards are strong against it.'],
         s: ['Open the {tabCards} tab.', 'Filters at the top: {fAll}, {fMafia}, {fCity}, {fNeutral}.', 'Tap a card and read “How it works”. Swipe to turn the card.'],
         i: [['cards', 'The Cards tab: every role by team'], ['role-sheet', 'A role’s page: side, order, rules and a tip']],
-        r: ['Before your first game read the cards of your line-up — the host will say which roles are in play.', 'Don’t try to learn all 57 roles: at night the host names who wakes up.'] },
+        r: ['Before your first game read the cards of your line-up — the host will say which roles are in play.', 'Don’t try to learn all 58 roles: at night the host names who wakes up.'] },
       { t: 'Two ways to play: at a table and online',
         p: ['**At a live table.** Everyone sits together and the host holds the phone. Cards are dealt from the host’s phone passed around, or they arrive in your app. At night you show your moves with gestures, by day you talk and vote by hand.',
           '**Online.** Everyone at home with their own phone. The host opens a table in the app, you sit down at it, your card appears on your screen, at night you act with buttons, by day you write in the table chat and vote with a button. Voice goes through Discord if the host turns it on.',
@@ -6337,11 +6343,11 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['home', 'Ekran główny aplikacji: „Mafia z rolami” to gra, o której jest ten przewodnik']],
         r: ['Grasz pierwszy raz? Poproś prowadzącego o skład „Dla początkujących” (ekran główny → {scenTitle}): tylko proste karty.'] },
       { t: 'Karty i role',
-        p: ['W aplikacji jest 57 kart, ale w jednej partii gra zwykle 7–12. **Czarne** (mafia) — Don, Mafia, Rusznikarz i inni: w nocy razem wybierają ofiarę. **Czerwone** (miasto) — Szeryf, Lekarz, Burmistrz, Dziennikarz, Ochroniarz…: każdy ma zdolność w nocy lub w dzień. **Neutralni** — Maniak, Błazen i inni: mają własny cel.',
+        p: ['W aplikacji jest 58 kart, ale w jednej partii gra zwykle 7–12. **Czarne** (mafia) — Don, Mafia, Rusznikarz i inni: w nocy razem wybierają ofiarę. **Czerwone** (miasto) — Szeryf, Lekarz, Burmistrz, Dziennikarz, Ochroniarz…: każdy ma zdolność w nocy lub w dzień. **Neutralni** — Maniak, Błazen i inni: mają własny cel.',
           'Każdą kartę można obejrzeć wcześniej: zakładka {tabCards} na dole ekranu → dotknij karty. Zobaczysz stronę, kolor do sprawdzeń, kolejność budzenia, {howWorks}, {tip} i {counters} — które karty są przeciw niej silne.'],
         s: ['Otwórz zakładkę {tabCards}.', 'Filtry u góry: {fAll}, {fMafia}, {fCity}, {fNeutral}.', 'Dotknij karty — przeczytaj „Jak działa”. Kartę można obrócić palcem.'],
         i: [['cards', 'Zakładka „Karty”: wszystkie role według drużyn'], ['role-sheet', 'Opis roli: strona, kolejność, zasady i rada']],
-        r: ['Przed pierwszą partią przeczytaj karty ze swojego składu — prowadzący powie, jakie role są w grze.', 'Nie ucz się wszystkich 57 ról: w nocy prowadzący sam mówi, kto się budzi.'] },
+        r: ['Przed pierwszą partią przeczytaj karty ze swojego składu — prowadzący powie, jakie role są w grze.', 'Nie ucz się wszystkich 58 ról: w nocy prowadzący sam mówi, kto się budzi.'] },
       { t: 'Dwa sposoby gry: przy stole i online',
         p: ['**Przy żywym stole.** Wszyscy siedzą razem, prowadzący ma telefon. Karty rozdaje się z jego telefonu podawanego w kółko albo przychodzą do twojej aplikacji. W nocy pokazujesz ruchy gestami, w dzień mówisz i głosujesz ręką.',
           '**Online.** Każdy u siebie ze swoim telefonem. Prowadzący otwiera stół w aplikacji, siadasz przy nim, karta pojawia się na twoim ekranie, w nocy grasz przyciskami, w dzień piszesz na czacie stołu i głosujesz przyciskiem. Głosem można rozmawiać w Discordzie — prowadzący włącza to według uznania.',
@@ -6669,11 +6675,11 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['home', 'Հավելվածի գլխավոր էկրանը. «Դերային մաֆիա»՝ այն խաղը, որի մասին այս ուղեցույցն է']],
         r: ['Եթե խաղում եք առաջին անգամ՝ խնդրեք վարողին ընտրել «Սկսնակների համար» կազմը (գլխավոր էկրան → {scenTitle}). այնտեղ միայն պարզ քարտեր են։'] },
       { t: 'Քարտեր և դերեր',
-        p: ['Հավելվածում 57 քարտ կա, բայց մեկ խաղում սովորաբար 7–12-ն են։ **Սևերը** (մաֆիա)՝ Դոն, Մաֆիա, Զինագործ և այլք. գիշերը նրանք միասին ընտրում են զոհ։ **Կարմիրները** (քաղաք)՝ Շերիֆ, Բժիշկ, Քաղաքապետ, Լրագրող, Թիկնապահ…. յուրաքանչյուրն ունի իր ունակությունը գիշերը կամ ցերեկը։ **Չեզոքները**՝ Մոլագար, Խեղկատակ և այլք. նրանք ունեն իրենց նպատակը։',
+        p: ['Հավելվածում 58 քարտ կա, բայց մեկ խաղում սովորաբար 7–12-ն են։ **Սևերը** (մաֆիա)՝ Դոն, Մաֆիա, Զինագործ և այլք. գիշերը նրանք միասին ընտրում են զոհ։ **Կարմիրները** (քաղաք)՝ Շերիֆ, Բժիշկ, Քաղաքապետ, Լրագրող, Թիկնապահ…. յուրաքանչյուրն ունի իր ունակությունը գիշերը կամ ցերեկը։ **Չեզոքները**՝ Մոլագար, Խեղկատակ և այլք. նրանք ունեն իրենց նպատակը։',
           'Ցանկացած քարտ կարելի է դիտել նախապես. էկրանի ներքևի {tabCards} ներդիր → սեղմեք քարտի վրա։ Կբացվի նկարագրությունը՝ կողմը, գույնը ստուգումների համար, արթնանալու հերթականությունը, {howWorks}, {tip} և {counters}՝ որ քարտերն են ուժեղ նրա դեմ։'],
         s: ['Բացեք {tabCards} ներդիրը։', 'Զտիչները վերևում՝ {fAll}, {fMafia}, {fCity}, {fNeutral}։', 'Սեղմեք քարտի վրա՝ կարդացեք «Ինչպես է աշխատում»։ Քարտը կարելի է պտտել մատով։'],
         i: [['cards', '«Քարտեր» ներդիրը. բոլոր դերերն ըստ թիմերի'], ['role-sheet', 'Դերի նկարագրությունը. կողմ, հերթականություն, կանոններ և խորհուրդ']],
-        r: ['Առաջին խաղից առաջ կարդացեք ձեր կազմի քարտերը. վարողը կասի, թե որ դերերն են խաղում։', 'Մի փորձեք սովորել բոլոր 57 դերերը. գիշերը վարողն ինքն է ասում, թե ով է արթնանում։'] },
+        r: ['Առաջին խաղից առաջ կարդացեք ձեր կազմի քարտերը. վարողը կասի, թե որ դերերն են խաղում։', 'Մի փորձեք սովորել բոլոր 58 դերերը. գիշերը վարողն ինքն է ասում, թե ով է արթնանում։'] },
       { t: 'Խաղալու երկու եղանակ՝ սեղանի շուրջ և առցանց',
         p: ['**Կենդանի սեղանի շուրջ։** Բոլորը նստած են միասին, հեռախոսը վարողի մոտ է։ Քարտերը բաժանվում են նրա հեռախոսից՝ փոխանցելով շրջանով, կամ գալիս են ձեր հավելվածի մեջ։ Գիշերը ձեր քայլերը ցույց եք տալիս ժեստերով, ցերեկը խոսում եք և քվեարկում ձեռքով։',
           '**Առցանց։** Յուրաքանչյուրը տանն է՝ իր հեռախոսով։ Վարողը բացում է սեղան հավելվածում, դուք նստում եք դրա շուրջ, քարտը հայտնվում է ձեր էկրանին, գիշերը քայլ եք անում կոճակներով, ցերեկը գրում եք սեղանի չաթում և քվեարկում կոճակով։ Ձայնով կարելի է շփվել Discord-ում. վարողը միացնում է դա ըստ ցանկության։',
@@ -7527,6 +7533,70 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
 })();
 /* ============================================================
+   v82 HOOKAH MASTER — a free city card: at night he invites two guests and learns whether the mafia was among them
+   (engine: hookahResult / hookahPairBanned in 03-engine.js) + his first skin, «Silver Smoke» (Common).
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      role: { name: 'Кальянщик', mono: 'Кл', kind: 'Активная · ночь', short: 'Зовёт двоих на кальян и узнаёт, есть ли среди них мафия.',
+        rules: ['Ночью показывает ведущему двух игроков — своих гостей.', 'Ведущий отвечает жестом: 👍 — среди гостей есть мафия, 👎 — компания чистая. Кто именно и сколько их, Кальянщик не узнаёт.', 'Себя не зовёт. Ту же пару нельзя звать две ночи подряд — хотя бы один гость должен смениться.', 'Гостя, которого запер Тюремщик, за кальяном не было: он не считается.', 'Мафия — те, кто чёрный для Шерифа: гость, перекрашенный Баламутом, виден с новым цветом, Маньяк и Оборотень — чистые.', 'Для проверок — красный.'],
+        lore: 'В его кальянной за Портовой улицей дым густой, а языки длинные. После третьей чаши люди говорят то, чего не сказали бы и на исповеди. Он только слушает и подкладывает угли.',
+        tip: 'Зовите вместе подозрительного и того, кому доверяете: тогда 👍 почти наверняка указывает на первого.' },
+      hook: 'Кальянщик узнаёт, есть ли мафия в паре', ability: 'кальян',
+      e: { hkScript: 'Просыпается <b>Кальянщик</b> и показывает двух гостей. Если среди них есть мафия — покажите 👍, если нет — 👎.', hkYes: 'За кальяном была мафия', hkNo: 'Компания чистая', hkGestYes: 'Жест: большой палец вверх 👍', hkGestNo: 'Жест: большой палец вниз 👎', hkEqYes: ' = есть мафия', hkEqNo: ' = чисто', hkSamePair: 'Эту пару Кальянщик звал прошлой ночью — смените хотя бы одного гостя.' },
+      skin: ['Серебряный дым', 'Кальянная за Портовой улицей, дождь по высокому окну, серебряный дым колечками. Хозяин улыбается гостям и молчит — он уже знает, кто из них врёт.'],
+      ui: { skOtherTitle: 'Другие облики · {n}' }
+    },
+    uk: {
+      role: { name: 'Кальянник', mono: 'Кл', kind: 'Активна · ніч', short: 'Кличе двох на кальян і дізнається, чи є серед них мафія.',
+        rules: ['Уночі показує ведучому двох гравців — своїх гостей.', 'Ведучий відповідає жестом: 👍 — серед гостей є мафія, 👎 — компанія чиста. Хто саме і скільки їх, Кальянник не дізнається.', 'Себе не кличе. Ту саму пару не можна кликати дві ночі поспіль — хоча б один гість має змінитися.', 'Гостя, якого замкнув Тюремник, за кальяном не було: він не рахується.', 'Мафія — ті, хто чорний для Шерифа: гість, перефарбований Баламутом, видно з новим кольором, Маніяк і Перевертень — чисті.', 'Для перевірок — червоний.'],
+        lore: 'У його кальянній за Портовою вулицею дим густий, а язики довгі. Після третьої чаші люди кажуть те, чого не сказали б і на сповіді. Він лише слухає й підкладає вугілля.',
+        tip: 'Кличте разом підозрілого й того, кому довіряєте: тоді 👍 майже напевно вказує на першого.' },
+      hook: 'Кальянник дізнається, чи є мафія в парі', ability: 'кальян',
+      e: { hkScript: 'Прокидається <b>Кальянник</b> і показує двох гостей. Якщо серед них є мафія — покажіть 👍, якщо ні — 👎.', hkYes: 'За кальяном була мафія', hkNo: 'Компанія чиста', hkGestYes: 'Жест: великий палець угору 👍', hkGestNo: 'Жест: великий палець униз 👎', hkEqYes: ' = є мафія', hkEqNo: ' = чисто', hkSamePair: 'Цю пару Кальянник кликав минулої ночі — змініть хоча б одного гостя.' },
+      skin: ['Срібний дим', 'Кальянна за Портовою вулицею, дощ по високому вікну, срібний дим кільцями. Господар усміхається гостям і мовчить — він уже знає, хто з них бреше.'],
+      ui: { skOtherTitle: 'Інші образи · {n}' }
+    },
+    en: {
+      role: { name: 'Hookah Master', mono: 'Hk', kind: 'Active · night', short: 'Invites two guests for a hookah and learns whether the mafia is among them.',
+        rules: ['At night points the host to two players: his guests.', 'The host answers with a gesture: 👍 means the mafia is among the guests, 👎 means the company is clean. Who exactly, and how many, the Hookah Master does not learn.', 'Cannot invite himself. The same pair cannot be invited two nights in a row: at least one guest must change.', 'A guest locked up by the Jailer never came to the hookah: he does not count.', 'The mafia means black for the Sheriff: a guest repainted by the Trickster shows his new color; the Maniac and the Werewolf are clean.', 'Counts as red for checks.'],
+        lore: 'In his hookah lounge behind Harbor Street the smoke is thick and tongues are loose. After the third bowl people say what they wouldn’t say at confession. He only listens and adds coals.',
+        tip: 'Invite a suspect together with someone you trust: then a 👍 almost surely points at the first one.' },
+      hook: 'the Hookah Master learns whether a pair hides the mafia', ability: 'hookah',
+      e: { hkScript: 'The <b>Hookah Master</b> wakes up and points to two guests. If the mafia is among them, show 👍; if not, 👎.', hkYes: 'The mafia was at the hookah', hkNo: 'The company is clean', hkGestYes: 'Gesture: thumb up 👍', hkGestNo: 'Gesture: thumb down 👎', hkEqYes: ' = mafia there', hkEqNo: ' = clean', hkSamePair: 'The Hookah Master invited this pair last night: change at least one guest.' },
+      skin: ['Silver Smoke', 'A hookah lounge behind Harbor Street, rain on a tall window, rings of silver smoke. The host smiles at his guests and says nothing: he already knows which of them is lying.'],
+      ui: { skOtherTitle: 'Other looks · {n}' }
+    },
+    pl: {
+      role: { name: 'Mistrz sziszy', mono: 'Ms', kind: 'Aktywna · noc', short: 'Zaprasza dwóch gości na sziszę i dowiaduje się, czy jest wśród nich mafia.',
+        rules: ['W nocy wskazuje prowadzącemu dwóch graczy — swoich gości.', 'Prowadzący odpowiada gestem: 👍 — wśród gości jest mafia, 👎 — towarzystwo jest czyste. Kto dokładnie i ilu ich jest, Mistrz sziszy się nie dowiaduje.', 'Nie zaprasza siebie. Tej samej pary nie można zaprosić dwie noce z rzędu — co najmniej jeden gość musi się zmienić.', 'Gościa zamkniętego przez Strażnika nie było przy sziszy: nie liczy się.', 'Mafia to ci, którzy są czarni dla Szeryfa: gość przemalowany przez Mąciciela ma nowy kolor, Maniak i Wilkołak są czyści.', 'Dla sprawdzeń — czerwony.'],
+        lore: 'W jego palarni za ulicą Portową dym jest gęsty, a języki rozwiązane. Po trzeciej misce ludzie mówią to, czego nie powiedzieliby nawet na spowiedzi. On tylko słucha i dokłada węgielków.',
+        tip: 'Zaproś razem podejrzanego i kogoś, komu ufasz: wtedy 👍 prawie na pewno wskazuje na pierwszego.' },
+      hook: 'Mistrz sziszy sprawdza, czy w parze jest mafia', ability: 'szisza',
+      e: { hkScript: 'Budzi się <b>Mistrz sziszy</b> i wskazuje dwóch gości. Jeśli jest wśród nich mafia — pokaż 👍, jeśli nie — 👎.', hkYes: 'Przy sziszy była mafia', hkNo: 'Towarzystwo jest czyste', hkGestYes: 'Gest: kciuk w górę 👍', hkGestNo: 'Gest: kciuk w dół 👎', hkEqYes: ' = jest mafia', hkEqNo: ' = czysto', hkSamePair: 'Tę parę Mistrz sziszy zaprosił ostatniej nocy — zmień co najmniej jednego gościa.' },
+      skin: ['Srebrny Dym', 'Palarnia za ulicą Portową, deszcz na wysokim oknie, kółka srebrnego dymu. Gospodarz uśmiecha się do gości i milczy — już wie, który z nich kłamie.'],
+      ui: { skOtherTitle: 'Inne wizerunki · {n}' }
+    },
+    hy: {
+      role: { name: 'Ղալյանչի', mono: 'Ղլ', kind: 'Ակտիվ · գիշեր', short: 'Երկու հյուրի կանչում է ղալյանի և իմանում, արդյոք նրանց մեջ մաֆիա կա։',
+        rules: ['Գիշերը վարողին ցույց է տալիս երկու խաղացողի՝ իր հյուրերին։', 'Վարողը պատասխանում է ժեստով. 👍՝ հյուրերի մեջ մաֆիա կա, 👎՝ ընկերությունը մաքուր է։ Թե կոնկրետ ով և քանիսը, Ղալյանչին չի իմանում։', 'Իրեն չի կանչում։ Նույն զույգին չի կարելի կանչել երկու գիշեր անընդմեջ՝ գոնե մեկ հյուրը պետք է փոխվի։', 'Բանտապահի փակած հյուրը ղալյանի մոտ չի եղել՝ նա չի հաշվվում։', 'Մաֆիան նրանք են, ովքեր սև են Շերիֆի համար. Խառնակչի ներկած հյուրը երևում է նոր գույնով, Մոլագարն ու Գայլամարդը մաքուր են։', 'Ստուգումների համար՝ կարմիր։'],
+        lore: 'Նավահանգստային փողոցի հետևում գտնվող նրա ղալյանատանը ծուխը թանձր է, իսկ լեզուները՝ երկար։ Երրորդ թասից հետո մարդիկ ասում են այն, ինչ խոստովանանքի ժամանակ էլ չէին ասի։ Նա միայն լսում է և ածուխ ավելացնում։',
+        tip: 'Միասին կանչեք կասկածելիին և նրան, ում վստահում եք. այդ դեպքում 👍-ը գրեթե հաստատ ցույց է տալիս առաջինին։' },
+      hook: 'Ղալյանչին իմանում է, արդյոք զույգում մաֆիա կա', ability: 'ղալյան',
+      e: { hkScript: 'Արթնանում է <b>Ղալյանչին</b> և ցույց տալիս երկու հյուրի։ Եթե նրանց մեջ մաֆիա կա՝ ցույց տվեք 👍, եթե ոչ՝ 👎։', hkYes: 'Ղալյանի մոտ մաֆիա կար', hkNo: 'Ընկերությունը մաքուր է', hkGestYes: 'Ժեստ՝ բութ մատը վերև 👍', hkGestNo: 'Ժեստ՝ բութ մատը ներքև 👎', hkEqYes: ' = մաֆիա կա', hkEqNo: ' = մաքուր', hkSamePair: 'Այս զույգին Ղալյանչին կանչել է անցած գիշեր՝ փոխեք գոնե մեկ հյուրին։' },
+      skin: ['Արծաթե ծուխ', 'Ղալյանատուն Նավահանգստային փողոցի հետևում, անձրև բարձր պատուհանին, արծաթե ծխի օղակներ։ Տերը ժպտում է հյուրերին և լռում. նա արդեն գիտի, թե նրանցից ով է ստում։'],
+      ui: { skOtherTitle: 'Այլ կերպարներ · {n}' }
+    }
+  };
+  Object.keys(R).forEach(code => {
+    const p = I18N[code], d = R[code]; if (!p) return;
+    p.roles.hookah = d.role; p.hooks.hookah = d.hook; p.abilities.hookah = d.ability;
+    Object.assign(p.e, d.e); Object.assign(p.ui, d.ui);
+    p.skins = p.skins || {}; p.skins.silver_smoke = { name: d.skin[0], lore: d.skin[1] };
+  });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -7568,6 +7638,7 @@ const ART = (() => {
     prison(id) { return sky(id, '#15171c', '#0a0b0e') + `${[16, 44, 72, 100, 128, 156, 184].map(x => `<rect x="${x - 3}" y="0" width="6" height="200" fill="#3a3f4d"/><rect x="${x - 3}" y="0" width="2" height="200" fill="#5a6070"/>`).join('')}<rect x="0" y="60" width="200" height="5" fill="#3a3f4d"/>${glow(id, 100, 20, 60)}`; },
     herbs(id) { return sky(id, '#0e1a12', '#070d09') + `${[40, 80].map(y => `<rect x="0" y="${y}" width="200" height="5" fill="#2a3a26"/>` + [10, 44, 78, 112, 146, 176].map((x, i) => `<rect x="${x}" y="${y - 22}" width="14" height="22" rx="3" fill="${['#3b8a84', '#8a6a2b', '#6b45b0', '#2e6b4a', '#7a2e1f'][i % 5]}" opacity=".9"/><rect x="${x + 2}" y="${y - 26}" width="10" height="5" fill="#2a1d14"/>`).join('')).join('')}<defs><radialGradient id="cg${id}" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#5fd38a" stop-opacity=".6"/><stop offset="1" stop-color="#5fd38a" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="150" r="70" fill="url(#cg${id})"/>`; },
     station(id) { return sky(id, '#101420', '#1b2236') + `${skyline(120, '#0a0d18')}<path d="M0 170q100-10 200 0v30H0z" fill="#1a1e2a"/><path d="M0 178h200M0 188h200" stroke="#4a4f5c" stroke-width="3"/>${[20, 60, 100, 140, 180].map(x => `<rect x="${x}" y="174" width="8" height="18" fill="#2a2e3a"/>`).join('')}<rect x="150" y="40" width="4" height="130" fill="#141826"/><rect x="140" y="34" width="24" height="10" rx="2" fill="#1d2335"/>${glow(id, 152, 46, 36)}`; },
+    lounge(id) { return sky(id, '#1e1522', '#0d0a10') + `${[0, 1, 2, 3, 4, 5].map(r => [0, 1, 2, 3, 4, 5, 6].map(c => `<path d="M${c * 32 + (r % 2 ? 16 : 0)} ${r * 26 + 6}l8 8-8 8-8-8z" fill="#2a1d2e" opacity=".7"/>`).join('')).join('')}<path d="M14 152V66a32 32 0 0 1 64 0v86z" fill="#2a1d2e"/><path d="M20 152V68a26 26 0 0 1 52 0v84z" fill="#16223a"/><path d="M46 42v110M20 98h52" stroke="#2a1d2e" stroke-width="3"/>${[[28, 70], [56, 60], [36, 112], [62, 120]].map(([x, y]) => `<path d="M${x} ${y}l-3 12" stroke="#9fd3f5" stroke-width="1.2" opacity=".45"/>`).join('')}${glow(id, 152, 34, 34)}<path d="M152 0v16" stroke="#8a6a2b" stroke-width="2"/><path d="M144 16h16l4 10-4 14h-16l-4-14z" fill="#8a6a2b"/><rect x="147" y="21" width="10" height="16" rx="2" fill="#f5c76a" opacity=".85"/><path d="M0 168q50-8 100-4t100 4v32H0z" fill="#3a1f2e"/>`; },
     plaza(id) { return sky(id, '#1b2a3a', '#0e1620') + `${glow(id, 100, 30, 90)}<circle cx="100" cy="30" r="18" fill="${C.gold}" opacity=".9"/>${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<path d="M100 30l${Math.cos(i / 8 * 6.283) * 90} ${Math.sin(i / 8 * 6.283) * 90}" stroke="${C.gold}" stroke-opacity=".18" stroke-width="6"/>`).join('')}${skyline(140, '#0a1420')}`; }
   };
 
@@ -7724,6 +7795,8 @@ const ART = (() => {
     thug: id => BG.alley(id) + coat('#2a2a30', '#1b1a20') + `<path d="M60 150q40-14 80 0v12q-40-10-80 0z" fill="#1b1620"/>` + neck(SKIN.tan) + head(SKIN.tan) + `<path d="M70 66q30-22 60 0v10H70z" fill="${SKIN.tan}"/>` + brows('#1b1620', 1) + eyes('narrow') + scar() + stubble() + mouth('frown') + `<rect x="54" y="168" width="14" height="22" rx="4" fill="${SKIN.tan}"/><rect x="132" y="168" width="14" height="22" rx="4" fill="${SKIN.tan}"/><path d="M134 176h10M134 182h10" stroke="${C.gold}" stroke-width="2"/>`,
     ninja: id => BG.rooftop(id) + `<path d="M40 182L150 34" stroke="#c9ccd3" stroke-width="5" stroke-linecap="round"/><path d="M34 190l18-22" stroke="#2a1d14" stroke-width="9" stroke-linecap="round"/><path d="M44 164l14 10" stroke="${C.gold}" stroke-width="4" stroke-linecap="round"/>` + coat('#1b1620', '#111') + neck('#1b1620') + head(SKIN.tan) + `<path d="M68 88q0-36 32-36t32 36z" fill="#1b1620"/><path d="M70 80h60" stroke="${C.crimson}" stroke-width="5"/><path d="M130 78q14 2 24-8M130 82q16 8 28 2" stroke="${C.crimson}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M68 96h64v10q0 22-32 22t-32-22z" fill="#1b1620"/>` + brows('#1b1620', 1) + eyes('narrow') + `<g class="fx-drift"><path d="M14 92h28M8 106h32M16 120h24" stroke="#cfd3dc" stroke-width="2" opacity=".55" stroke-linecap="round"/></g>`,
     corrupter: id => BG.office(id) + coat('#2b2a30', '#1b1a20') + shirt(C.cream) + tie(C.gold) + neck(SKIN.light) + head(SKIN.light) + hairSlick('#2a1d14') + brows('#2a1d14', -1) + eyes('narrow') + mustache('#2a1d14') + mouth('grin') + hand(156, 174, SKIN.light) + `<g transform="rotate(-12 156 168)"><rect x="130" y="150" width="48" height="30" rx="3" fill="${C.cream}"/><path d="M130 150l24 17 24-17" stroke="#9a9088" stroke-width="2" fill="none"/><rect x="138" y="142" width="32" height="10" rx="2" fill="#3f7a4a"/><path d="M146 147h16" stroke="#cfe3c9" stroke-width="2"/></g>`,
+    // v82 Hookah master: his lounge behind Harbor Street — salt-and-pepper beard, a waistcoat over rolled-up sleeves, the hose in his hand, a smoke ring
+    hookah: id => BG.lounge(id) + coat(C.cream) + `<path d="M40 200q4-38 34-52l26 52z" fill="#2e2c36"/><path d="M160 200q-4-38-34-52l-26 52z" fill="#2e2c36"/><path d="M74 154q8 22 20 42M126 154q-8 22-20 42" stroke="#b9b5ad" stroke-width="1.4" fill="none" opacity=".8"/>${[164, 176, 188].map(y => `<circle cx="${100 - (200 - y) * .16}" cy="${y}" r="1.8" fill="#b9b5ad"/>`).join('')}<path d="M62 184q14 9 28 0" stroke="#c9ccd3" stroke-width="1.6" stroke-dasharray="3 2" fill="none"/>` + neck(SKIN.tan) + head(SKIN.tan) + hairSide('#26262c') + `<path d="M70 86q-1-12 4-18l2 18zM130 86q1-12-4-18l-2 18z" fill="#a9a59e"/>` + brows('#2a2a30', -1) + eyes('dot') + `<path d="M72 100q4 28 28 30t28-30q-8 12-28 12t-28-12z" fill="#5f5b57"/><path d="M80 108q4 10 10 14M120 108q-4 10-10 14" stroke="#8f8a84" stroke-width="1.6" fill="none" opacity=".8"/>` + mustache('#4a4744') + `<path d="M93 111q8 4 15-3" stroke="#7a3a2e" stroke-width="2.2" fill="none" stroke-linecap="round"/>` + `<path d="M150 200q-14-6-12-20q2-12 14-14h12q12 2 14 14q2 14-12 20z" fill="#5d6b7c" opacity=".92"/><path d="M146 182q2-8 8-11" stroke="#c9ccd3" stroke-width="2" fill="none" opacity=".6"/><rect x="155" y="120" width="6" height="48" fill="#c9ccd3"/><ellipse cx="158" cy="140" rx="6" ry="3" fill="#9aa4b8"/><ellipse cx="158" cy="154" rx="5" ry="2.5" fill="#9aa4b8"/><ellipse cx="158" cy="121" rx="17" ry="4" fill="#9aa4b8"/><path d="M150 104h16l-3 14h-10z" fill="#5a3a1a"/><rect class="fx-pulse" x="151" y="100" width="6" height="5" rx="1" fill="#e67e22"/><rect class="fx-pulse" style="animation-delay:-.7s" x="159" y="100" width="6" height="5" rx="1" fill="#f5a142"/><path d="M146 172q-6 16-18 10q-6-4-4-14" stroke="#2a2a30" stroke-width="4" fill="none" stroke-linecap="round"/>` + hand(124, 172, SKIN.tan) + `<g transform="rotate(-14 124 160)"><rect x="121" y="138" width="5" height="26" rx="2" fill="#c9ccd3"/></g><path d="M108 110q14-4 30-22" stroke="#dcd6cc" stroke-width="2" fill="none" opacity=".55"/><g class="fx-drift"><ellipse cx="146" cy="82" rx="8" ry="5.5" fill="none" stroke="#dcd6cc" stroke-width="2.6" opacity=".75"/></g>${[[156, 96, 0], [161, 92, 1.2]].map(([x, y, d]) => `<path class="fx-rise" style="animation-delay:-${d}s" d="M${x} ${y}q4-6 0-12q-3-5 2-10" stroke="#b9b5ad" stroke-width="2" fill="none" opacity=".6"/>`).join('')}`,
     citizen: id => BG.plaza(id) + coat('#3b4e7a', '#2a3a5a') + scarfW('#c9b0ff') + neck(SKIN.light) + head(SKIN.light) + flatcap('#5a4a30') + brows('#4a2f1d') + eyes('dot') + mouth('grin') + hand(156, 176, SKIN.light) + `<rect x="136" y="164" width="38" height="26" rx="4" fill="#8a6a2b"/><path d="M142 164q13-18 26 0" stroke="#5a4a30" stroke-width="3" fill="none"/><path d="M140 160l30-8" stroke="#e9c58a" stroke-width="7" stroke-linecap="round"/>`,
     judge: id => BG.court(id) + coat('#1b1620', '#2a2a30') + `<path d="M84 150h32l-6 50h-20z" fill="${C.white}"/>` + neck(SKIN.light) + head(SKIN.light) + hairGray() + glasses('#2a2a2e') + brows('#8a8580', 1) + eyes('dot') + mouth('frown') + gavel()
   };
@@ -7875,7 +7948,8 @@ const ROLES = [
   {"id":"auditor","team":"red","color":"red","side":"city","wake":34,"ability":"audit"},
   {"id":"thug","team":"black","color":"black","side":"mafia","wake":35,"ability":"intimidate"},
   {"id":"ninja","team":"red","color":"red","side":"city","wake":null,"ability":null},
-  {"id":"corrupter","team":"black","color":"black","side":"mafia","wake":36,"ability":"recruit"}
+  {"id":"corrupter","team":"black","color":"black","side":"mafia","wake":36,"ability":"recruit"},
+  {"id":"hookah","team":"red","color":"red","side":"city","wake":37,"ability":"hookah"}
 ];
 const PREMIUM_PRICE = 2, SCENARIO_PRICE = 9.99, PACK_PRICE = 35;
 /* Localized text fields resolve through the active language pack */
@@ -7892,7 +7966,7 @@ const HOOKS = new Proxy({}, { get: (_, k) => L.hooks[k] });
 const SHOOTER_ORDER = ['don', 'gunsmith', 'executioner', 'spy', 'arsonist', 'hypnotist', 'saboteur', 'lawyer', 'mafia_doctor', 'balamut', 'blackmailer', 'provocateur', 'treasurer', 'ambassador', 'thug', 'mafia'];
 
 /* Wake order on the acquaintance night: the family together, then everyone else one by one */
-const NIGHT0_ORDER = ['maniac', 'jester', 'witch', 'amnesiac', 'survivor', 'contractor', 'jailer', 'thief', 'monk', 'sheriff', 'doctor', 'journalist', 'mayor', 'drunk', 'altruist', 'miller', 'azazel', 'morpheus', 'rabbi', 'bomb', 'bodyguard', 'judge', 'sniper', 'tracker', 'avenger', 'chairman', 'prosecutor', 'notary', 'pastor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer', 'sapper', 'bailiff', 'auditor', 'ninja'];
+const NIGHT0_ORDER = ['maniac', 'jester', 'witch', 'amnesiac', 'survivor', 'contractor', 'jailer', 'thief', 'monk', 'sheriff', 'doctor', 'journalist', 'hookah', 'mayor', 'drunk', 'altruist', 'miller', 'azazel', 'morpheus', 'rabbi', 'bomb', 'bodyguard', 'judge', 'sniper', 'tracker', 'avenger', 'chairman', 'prosecutor', 'notary', 'pastor', 'lobbyist', 'gambler', 'peacemaker', 'puppeteer', 'sapper', 'bailiff', 'auditor', 'ninja'];
 
 /* ---------- Balance presets by player count ---------- */
 const PRESETS = {
@@ -7992,7 +8066,7 @@ const COUNTERS = {
   don: ['sheriff', 'doctor', 'bodyguard', 'rabbi', 'jailer', 'thief', 'avenger', 'monk', 'ninja'], gunsmith: ['doctor', 'rabbi', 'bodyguard', 'jailer', 'thief'], kamikaze: ['sapper', 'thug', 'sheriff', 'sniper'],
   mafia_doctor: ['jailer', 'thief', 'tracker', 'sheriff'], balamut: ['journalist', 'tracker', 'jailer', 'thief'], executioner: ['rabbi', 'jailer', 'bodyguard', 'thief'], spy: ['thief', 'jailer', 'monk', 'tracker'],
   arsonist: ['sapper', 'jailer', 'tracker', 'thief'], hypnotist: ['notary', 'tracker', 'jailer', 'thief'], saboteur: ['jailer', 'thief', 'tracker'], lawyer: ['bailiff', 'sheriff', 'sniper'], werewolf: ['spy', 'don'],
-  mafia: ['sheriff', 'doctor', 'journalist', 'tracker'], blackmailer: ['auditor', 'notary', 'tracker', 'jailer', 'thief'], ambassador: ['bailiff', 'sheriff', 'sniper'], provocateur: ['pastor', 'miller', 'tracker', 'jailer', 'thief'],
+  mafia: ['sheriff', 'doctor', 'journalist', 'tracker', 'hookah'], blackmailer: ['auditor', 'notary', 'tracker', 'jailer', 'thief'], ambassador: ['bailiff', 'sheriff', 'sniper'], provocateur: ['pastor', 'miller', 'tracker', 'jailer', 'thief'],
   treasurer: ['auditor', 'pastor', 'miller', 'jailer', 'thief', 'tracker'], thug: ['jailer', 'thief', 'tracker', 'sheriff'],
   jailer: ['saboteur', 'spy', 'witch'], thief: ['saboteur', 'witch', 'spy'], monk: ['saboteur', 'witch', 'spy', 'gunsmith'], sheriff: ['don', 'spy', 'balamut', 'saboteur', 'corrupter'], doctor: ['executioner', 'arsonist', 'saboteur', 'spy', 'witch'],
   journalist: ['balamut', 'saboteur', 'spy'], mayor: ['hypnotist', 'blackmailer', 'puppeteer', 'kamikaze'], drunk: ['notary', 'saboteur', 'witch'], altruist: ['blackmailer', 'hypnotist', 'saboteur'], miller: ['provocateur', 'treasurer', 'kamikaze'],
@@ -8002,7 +8076,8 @@ const COUNTERS = {
   maniac: ['jailer', 'thief', 'doctor', 'rabbi', 'bodyguard', 'tracker', 'ninja'], jester: ['judge', 'peacemaker', 'pastor', 'kamikaze', 'don'], witch: ['jailer', 'thief', 'spy', 'tracker'], amnesiac: ['jailer', 'thief', 'spy', 'kamikaze'],
   survivor: ['kamikaze', 'don', 'maniac', 'executioner'], contractor: ['pastor', 'peacemaker', 'judge', 'lawyer'], lobbyist: ['judge', 'lawyer', 'ambassador', 'peacemaker', 'pastor', 'drunk'], gambler: ['judge', 'lawyer', 'ambassador', 'peacemaker', 'pastor', 'drunk'],
   peacemaker: ['bailiff', 'kamikaze', 'don', 'saboteur', 'witch'], puppeteer: ['notary', 'drunk', 'saboteur', 'witch', 'tracker', 'jailer'],
-  ninja: ['executioner', 'arsonist', 'kamikaze', 'gunsmith'], corrupter: ['sheriff', 'tracker', 'journalist']
+  ninja: ['executioner', 'arsonist', 'kamikaze', 'gunsmith'], corrupter: ['sheriff', 'tracker', 'journalist', 'hookah'],
+  hookah: ['balamut', 'saboteur', 'spy', 'jailer'] // v82: the Balamut repaints a guest, the Saboteur blocks him, the Spy finds him; a guest in the Jailer's cell never came
 };
 const COUNTERED_BY = {}; Object.keys(COUNTERS).forEach(id => COUNTERS[id].forEach(c => { (COUNTERED_BY[c] = COUNTERED_BY[c] || []).push(id); }));
 /* ---------- Small table (v50): free scenarios for 5–6 players, a fixed line-up per table size (home menu → «Малый стол»).
@@ -8442,6 +8517,7 @@ function buildNightSteps(g) {
   one('sheriff', { modes: isClassic(g) ? ['check'] : ['check', 'shoot'], script: isClassic(g) ? L.e.script2.sheriffClassic : L.e.script.sheriff }); // v65: the classic Sheriff only checks
   one('doctor', { script: L.e.script.doctor });
   one('journalist', { targets: 2, script: L.e.script.journalist });
+  one('hookah', { targets: 2, script: L.e.hkScript }); // v82
   one('drunk', { script: L.e.script.drunk });
   one('altruist', { script: L.e.script.altruist });
   one('rabbi', { targets: 2, script: L.e.script.rabbi });
@@ -8505,6 +8581,20 @@ function compareResult(g, a, b) {
   const ta = effectiveTarget(g, a), tb = effectiveTarget(g, b);
   return { same: colorOf(g, ta) === colorOf(g, tb), ta, tb };
 }
+/* v82 Hookah master: was anyone of the mafia's color among his two guests? A guest in the Jailer's cell never came (does not count);
+   the Monk's redirect and the Balamut's repaint work as for the Sheriff */
+function hookahResult(g, ids) {
+  const jailed = g.actions.filter(a => a.ability === 'jail' && !a.voided).map(a => a.targets[0]);
+  const guests = ids.map(id => effectiveTarget(g, id)).filter(t => !jailed.includes(t));
+  return { yes: guests.some(t => colorOf(g, t) === 'black'), guests };
+}
+/* the same pair two nights in a row is not allowed */
+function hookahLastPair(g, step) {
+  if (!step || step.roleId !== 'hookah') return null;
+  const last = (P(g, step.actorId) || {}).lastHookah;
+  return last && last.night === g.night - 1 && last.ids.length === 2 ? last.ids : null;
+}
+function hookahPairBanned(g, step, ids) { const last = hookahLastPair(g, step); return !!(last && ids && ids.length === 2 && ids.every(id => last.includes(id))); }
 
 /* Record an action from a step; returns an inline result for the host to show */
 function recordAction(g, step, targets, mode) {
@@ -8517,7 +8607,7 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'steal') {
     const victim = P(g, targets[0]);
     a.stolen = activeAbilityOf(g, victim);
-    if (a.stolen === 'compare') a.stolen = 'check';
+    if (a.stolen === 'compare' || a.stolen === 'hookah') a.stolen = 'check';
     if (a.stolen === 'check') { const r = checkResult(g, targets[1]); result = { kind: 'color', color: r.color, who: P(g, r.target) }; }
     else if (a.stolen === 'spy') { const t = P(g, effectiveTarget(g, targets[1])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
     else if (!a.stolen) result = { kind: 'none', text: tt(L.e.thiefNone, { victim: label(victim) }) };
@@ -8528,6 +8618,7 @@ function recordAction(g, step, targets, mode) {
   }
   if (ability === 'check') { const r = checkResult(g, targets[0]); result = { kind: 'color', color: r.color, who: P(g, r.target) }; }
   if (ability === 'compare') { const r = compareResult(g, targets[0], targets[1]); result = { kind: 'same', same: r.same }; }
+  if (ability === 'hookah') { const r = hookahResult(g, targets); result = { kind: 'smoke', yes: r.yes }; }
   if (ability === 'spy') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'role', role: ROLE[t.roleId], who: t }; }
   if (ability === 'findSheriff') { const t = P(g, effectiveTarget(g, targets[0])); result = { kind: 'sheriff', yes: t.roleId === 'sheriff', who: t }; }
   // v53: the Corrupter buys any card at the table; with two families the bought player plays for the Corrupter's family
@@ -8541,7 +8632,7 @@ function recordAction(g, step, targets, mode) {
   if (ability === 'remember') {
     const dead = P(g, targets[0]); const newRole = ROLE[dead.roleId];
     actor.roleId = dead.roleId; actor.remembered = true; actor.family = dead.family || (newRole.team === 'black' && g.twoFamilies ? 'A' : null);
-    actor.executeUsed = false; actor.snipeUsed = false; actor.igniteUsed = false; actor.judgeUsed = false; actor.kamikazeUsed = false; actor.healedSelf = false; actor.lastHeal = null; actor.lastRabbi = []; actor.lastJail = null;
+    actor.executeUsed = false; actor.snipeUsed = false; actor.igniteUsed = false; actor.judgeUsed = false; actor.kamikazeUsed = false; actor.healedSelf = false; actor.lastHeal = null; actor.lastRabbi = []; actor.lastJail = null; actor.lastHookah = null;
     result = { kind: 'role', role: newRole, who: actor };
     g.actions.push(a);
     addLog(g, tt(L.e.rememberLog, { player: label(actor), role: newRole.name }));
@@ -8550,7 +8641,7 @@ function recordAction(g, step, targets, mode) {
   if (result) a.res = { kind: result.kind, color: result.color || null, yes: result.yes === undefined ? null : result.yes, same: result.same === undefined ? null : result.same, roleId: result.role ? result.role.id : null, who: result.who ? result.who.id : null };
   g.actions.push(a);
   const names = targets.map(t => label(P(g, t))).join(L.e.and);
-  addLog(g, tt(L.e.logAction, { role: ROLE[step.roleId].name, actor: label(actor), ability: ABILITY_LABEL[ability], targets: names }) + (result && result.kind === 'color' ? tt(L.e.eqColor, { color: COLOR_LABEL[result.color] }) : '') + (result && result.kind === 'same' ? (result.same ? L.e.eqSame : L.e.eqDiff) : '') + (result && result.kind === 'sheriff' ? ' = ' + (result.yes ? L.ui.isSheriff : L.ui.notSheriff) : ''), true);
+  addLog(g, tt(L.e.logAction, { role: ROLE[step.roleId].name, actor: label(actor), ability: ABILITY_LABEL[ability], targets: names }) + (result && result.kind === 'color' ? tt(L.e.eqColor, { color: COLOR_LABEL[result.color] }) : '') + (result && result.kind === 'same' ? (result.same ? L.e.eqSame : L.e.eqDiff) : '') + (result && result.kind === 'sheriff' ? ' = ' + (result.yes ? L.ui.isSheriff : L.ui.notSheriff) : '') + (result && result.kind === 'smoke' ? (result.yes ? L.e.hkEqYes : L.e.hkEqNo) : ''), true);
   return result;
 }
 
@@ -8614,6 +8705,8 @@ function resolveNight(g) {
   const protectedIds = rabbi ? rabbi.targets.slice() : [];
   const rabbiId = rabbi ? rabbi.actorId : null;
   if (rabbi) { const rp = P(g, rabbi.actorId); rp.lastRabbi = rabbi.targets.slice(); }
+  // 3a. v82 Hookah master: remember tonight's pair (not the same pair tomorrow); a night without guests clears it
+  g.players.filter(p => p.roleId === 'hookah').forEach(p => { const h = list.find(a => a.ability === 'hookah' && a.actorId === p.id && !a.viaThief); p.lastHookah = h ? { night: g.night, ids: h.targets.slice() } : null; });
   // 3b. Bodyguard
   const guard = list.find(a => a.ability === 'guard');
   const guardId = guard ? guard.actorId : null, guardedId = guard ? guard.targets[0] : null;
@@ -9653,15 +9746,17 @@ function actStep(g, step) {
   }).join('')}</div>`;
   const modeLbl = { check: u.modeCheck, shoot: u.modeShoot, douse: L.e.modeDouse, ignite: L.e.modeIgnite };
   const modes = step.modes ? `<div class="segment">${step.modes.map(m => `<button class="${S.ui.mode === m ? 'active' : ''}" data-a="mode" data-id="${m}">${modeLbl[m]}</button>`).join('')}</div>` : '';
-  const ready = sel.length === need;
+  const samePair = hookahPairBanned(g, step, sel); // v82: the Hookah master cannot invite the same pair two nights in a row
+  const ready = sel.length === need && !samePair;
   return `${head}</div>${modes}<div class="hint">${need === 0 ? '' : need === 2 ? (thief ? u.pickThief : u.pickTwo) : u.pickOne}</div>${need === 0 ? '' : pick}
-    <div class="btn-row"><button class="btn ghost" data-a="skip">${u.skip}</button><button class="btn primary" data-a="confirm" ${ready ? '' : 'disabled'}>${u.confirm}</button></div>`;
+    ${samePair ? `<div class="warnbox" style="margin-top:10px">${L.e.hkSamePair}</div>` : ''}<div class="btn-row"><button class="btn ghost" data-a="skip">${u.skip}</button><button class="btn primary" data-a="confirm" ${ready ? '' : 'disabled'}>${u.confirm}</button></div>`;
 }
 function resultHTML(res) {
   const u = U();
   if (res.kind === 'color') return `<div class="result ${res.color}"><div class="eyebrow">${u.hostAnswer}${res.who ? ` · ${esc(label(res.who))}` : ''}</div><div class="big">${COLOR_LABEL[res.color]}</div><div class="gesture">${res.color === 'red' ? u.showRed : u.showBlack}</div></div>`;
   if (res.kind === 'role') return `<div class="result ${res.role.team === 'black' ? 'black' : 'red'}"><div class="eyebrow">${tt(u.playerCard, { player: esc(label(res.who)) })}</div><div class="big">${res.role.name}</div><div class="gesture">${tt(u.showSpy, { team: TEAM_LABEL[res.role.team] })}</div></div>`;
   if (res.kind === 'sheriff') return `<div class="result ${res.yes ? 'red' : 'black'}"><div class="eyebrow">${u.hostAnswer} · ${esc(label(res.who))}</div><div class="big">${res.yes ? u.isSheriff : u.notSheriff}</div><div class="gesture">${res.yes ? u.gestureYes : u.gestureNo}</div></div>`;
+  if (res.kind === 'smoke') return `<div class="result ${res.yes ? 'black' : 'red'}"><div class="eyebrow">${u.hostAnswer}</div><div class="big">${res.yes ? L.e.hkYes : L.e.hkNo}</div><div class="gesture">${res.yes ? L.e.hkGestYes : L.e.hkGestNo}</div></div>`;
   if (res.kind === 'same') return `<div class="result ${res.same ? 'same' : 'diff'}"><div class="eyebrow">${u.hostAnswer}</div><div class="big">${res.same ? u.sameColor : u.diffColor}</div><div class="gesture">${res.same ? u.gestureSame : u.gestureDiff}</div></div>`;
   return `<div class="quiet">${esc(res.text)}</div>`;
 }
@@ -10798,7 +10893,7 @@ function reviewGame(g) {
       else push(actor.id, when, act, rvLabel(g, t), V.good, 1, u.rConfirmedRed);
       return;
     }
-    if (ab === 'compare' || ab === 'track') { push(actor.id, when, act, a.targets.map(t => rvLabel(g, t)).join(' · '), V.good, 1, u.rInfo); return; }
+    if (ab === 'compare' || ab === 'track' || ab === 'hookah') { push(actor.id, when, act, a.targets.map(t => rvLabel(g, t)).join(' · '), V.good, 1, u.rInfo); return; }
     if (ab === 'drunk' || ab === 'altruist') {
       const t = a.targets[0]; const rel = relationTo(g, actor, P(g, t), a.roleId); const wantEnemy = ab === 'drunk';
       const good = wantEnemy ? rel === 'enemy' : rel === 'ally'; const bad = wantEnemy ? rel === 'ally' : rel === 'enemy';
@@ -11686,7 +11781,7 @@ function buildAsks(g) {
     const recorded = g.actions.find(a => a.stepId === step.id);
     const blocked = !recorded && (!actor.alive || step.disabled || !!stolenFrom(g, step.actorId) || !!g.actions.find(a => (a.ability === 'block' || a.ability === 'jail') && a.targets[0] === step.actorId));
     const targets = stepTargets(g, step).map(({ p, ok }) => ({ seat: p.seat, ok }));
-    const base = { key, need: step.targets, targets, modes: step.modes || null, targetsByMode: step.targetsByMode || null, roleId: step.roleId, ability: step.ability, done: !!recorded, picked: recorded ? recorded.targets.map(id => P(g, id).seat) : null, blocked };
+    const base = { key, need: step.targets, targets, modes: step.modes || null, targetsByMode: step.targetsByMode || null, roleId: step.roleId, ability: step.ability, ban: (hookahLastPair(g, step) || []).map(id => P(g, id).seat), done: !!recorded, picked: recorded ? recorded.targets.map(id => P(g, id).seat) : null, blocked };
     if (step.ability === 'shoot' && step.members) { // the family proposes, the shooter decides
       const props = onl.proposals[key] || {};
       const proposals = Object.entries(props).map(([id, seat]) => ({ seat: Number(seat), by: Number(g.tg.map[id]) || 0 }));
@@ -11732,6 +11827,7 @@ function applyTableAction(a) {
       const need = step.targetsByMode ? step.targetsByMode[S.ui.mode] : step.targets;
       if (ids.length !== need) return false;
       const ok = stepTargets(g, step); if (ids.some(id => !ok.find(x => x.p.id === id && x.ok))) return false;
+      if (hookahPairBanned(g, step, ids)) return false; // v82
       S.ui.pick = ids.slice(); S.ui.result = recordAction(g, step, S.ui.pick, S.ui.mode); S.ui.pick = [];
       if (S.ui.result) (onl.results[tgId] = onl.results[tgId] || []).push(plainResult(g, S.ui.result));
       scheduleAdvance(g, step.id); return true;
@@ -11925,6 +12021,7 @@ function tbResultHTML(x) {
   const u = U(); const role = x.roleId ? ROLE[x.roleId] : null;
   if (x.kind === 'color') return `<div class="result ${x.color}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${tt(u.tbResColor, { seat: x.seat, color: COLOR_LABEL[x.color] })}</div></div>`;
   if (x.kind === 'sheriff') return `<div class="result ${x.yes ? 'red' : 'black'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${tt(u.tbResSheriff, { seat: x.seat, v: x.yes ? u.isSheriff : u.notSheriff })}</div></div>`;
+  if (x.kind === 'smoke') return `<div class="result ${x.yes ? 'black' : 'red'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${x.yes ? L.e.hkYes : L.e.hkNo}</div></div>`;
   if (x.kind === 'same') return `<div class="result ${x.same ? 'same' : 'diff'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${x.same ? u.tbResSame : u.tbResDiff}</div></div>`;
   if (x.kind === 'role' && role) return `<div class="result ${role.team === 'black' ? 'black' : 'red'}"><div class="eyebrow">${tt(u.tbNight, { n: x.night })}</div><div class="big">${tt(u.tbResRole, { seat: x.seat, role: role.name })}</div></div>`;
   return x.text ? `<div class="quiet">${esc(x.text)}</div>` : '';
@@ -11948,11 +12045,12 @@ function tbAskHTML(ask, seats) {
   const modes = ask.modes ? `<div class="segment n${ask.modes.length}" style="margin:8px 0">${ask.modes.map(m => `<button class="${(TB.mode || ask.modes[0]) === m ? 'active' : ''}" data-a="tb-mode" data-id="${m}">${{ check: u.modeCheck, shoot: u.modeShoot, douse: L.e.modeDouse, ignite: L.e.modeIgnite }[m] || m}</button>`).join('')}</div>` : '';
   const mode = TB.mode || (ask.modes ? ask.modes[0] : null); const need = ask.targetsByMode && mode ? ask.targetsByMode[mode] : ask.need;
   const pk = (ask.targets || []).map(tg => { const i = TB.pick.indexOf(tg.seat); return `<button class="pk ${i >= 0 ? 'sel' : ''} ${i === 1 ? 'n2' : ''} ${tg.ok ? '' : 'dis'}" data-a="tb-pick" data-seat="${tg.seat}" ${tg.ok ? '' : 'disabled'}><span class="seat">${tg.seat}</span><span class="nm">${esc((seats.find(s => s.seat === tg.seat) || {}).name || '')}</span>${i >= 0 && need > 1 ? `<span class="mark ${i === 1 ? 'c' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
-  const ready = ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need;
+  const samePair = need === 2 && ask.ban && ask.ban.length === 2 && TB.pick.length === 2 && TB.pick.every(x => ask.ban.includes(x)); // v82: the Hookah master's pair from last night
+  const ready = (ask.kind === 'bestmove' ? TB.pick.length > 0 : TB.pick.length === need) && !samePair;
   const skip = ask.kind === 'nominate' ? `<button class="btn ghost" data-a="tb-skip">${u.tbNoNominate}</button>` : ask.kind === 'bestmove' ? `<button class="btn ghost" data-a="tb-skip">${u.tbBestSkip}</button>` : (ask.kind === 'act' || ask.kind === 'shoot') ? `<button class="btn ghost" data-a="tb-skip">${u.tbSkipTurn}</button>` : ask.kind === 'trig' && ask.optional ? `<button class="btn ghost" data-a="tb-skip">${u.trigSkip}</button>` : '';
   const myRole = TB.data && TB.data.me && TB.data.me.roleId; // v56: my own skin when the step is my card
   return `<div class="panel raised tb-ask"><div class="row">${role ? sealFor(role, myRole === role.id ? mySkin(role.id) : null) : ''}<div class="grow"><div class="eyebrow gold">${title}</div><div class="hint" style="margin:0">${ask.kind === 'trig' && ask.optional ? (ask.trig === 'morpheus' ? u.tbMorpheusNight : u.tbAzazelNight) : need === 0 ? '' : need > 1 ? tt(u.tbPickN, { n: ask.kind === 'bestmove' ? '1–3' : need }) : u.pickOne}</div></div></div>${proposals}${modes}
-    ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}
+    ${need === 0 ? '' : `<div class="picker" style="margin-top:10px">${pk}</div>`}${samePair ? `<div class="warnbox" style="margin-top:10px">${L.e.hkSamePair}</div>` : ''}
     <div class="btn-row" style="margin-top:10px">${skip}<button class="btn primary" data-a="tb-confirm" ${ready ? '' : 'disabled'}>${ask.kind === 'bestmove' ? u.tbBestSave : u.confirm}</button></div></div>`;
 }
 function tbChatHTML(pub, me) {
@@ -12949,6 +13047,8 @@ const SKINS = [
   { id: 'purple_knuckles', role: 'thug', rarity: 'epic', file: 'purple-knuckles' },
   { id: 'silent_petal', role: 'ninja', rarity: 'epic', file: 'silent-petal' },
   { id: 'velvet_envelope', role: 'corrupter', rarity: 'epic', file: 'velvet-envelope' },
+  // v82: the first Common skin — «Silver Smoke» for the Hookah Master (texts: src/02zg-i18n-hookah.js); shown under «Other looks»
+  { id: 'silver_smoke', role: 'hookah', rarity: 'common', file: 'silver-smoke' },
   // v69: Mythic — 50 000 emeralds, every copy numbered (000001…), the card is animated: the ninja steps out and dodges kunai (src/17-mythic.js)
   // v79: its own back — the Season 1 mythic back (untouchable-back.webp + its depth map), drawn on the 3D card only (src/12-skins.js skinBackHTML)
   { id: 'untouchable', role: 'ninja', rarity: 'mythic', numbered: true, file: 'untouchable', anim: 'dodge', back: 's1' }
@@ -13064,7 +13164,7 @@ function skinCardHTML(role, opts, skinId, gl) {
 }
 function sealFor(role, skinId, cls = '') {
   const html = sealHTML(role, cls); if (!validSkin(skinId, role.id)) return html;
-  return injectLast(html.replace('class="seal ', 'class="seal skinned '), `<img class="skin-seal" src="${skinUrl(SKIN[skinId], 'seal')}" alt="" draggable="false" onerror="this.remove()">`);
+  return injectLast(html.replace('class="seal ', `class="seal skinned skr-${SKIN[skinId].rarity} `), `<img class="skin-seal" src="${skinUrl(SKIN[skinId], 'seal')}" alt="" draggable="false" onerror="this.remove()">`);
 }
 function card3dFor(role, key, skinId, gl, serial) {
   if (!validSkin(skinId, role.id)) return card3dHTML(role, key);
@@ -13177,6 +13277,7 @@ function skinsLooksHTML() {
   const team = s => { const t = ROLE[s.role].team; return t === 'red' || t === 'ww' ? 'city' : t; };
   const rarOk = s => rf === 'all' || s.rarity === rf;
   const season = SKINS.filter(s => s.season && rarOk(s)), series = SKINS.filter(s => !s.season && s.rarity === 'epic');
+  const others = SKINS.filter(s => !s.season && !['epic', 'mythic'].includes(s.rarity) && rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f))); // v82: Common and the other rarities, apart from the Epic series
   const mythic = SKINS.filter(s => s.rarity === 'mythic' && rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f))); // v69: Mythic skins on top, each in full
   const list = series.filter(s => rarOk(s) && (f === 'all' || (f === 'mine' ? own(s.id) : team(s) === f)));
   const chip = (id, t) => `<button class="chip ${f === id ? 'active' : ''}" data-a="skin-filter" data-id="${id}">${t}</button>`;
@@ -13189,7 +13290,8 @@ function skinsLooksHTML() {
     ${season.length && (f === 'all' || (f === 'mine' && season.some(s => own(s.id)))) ? `<div class="eyebrow gold">${u.skSeasonTitle}</div><div class="stack">${season.map(skinItemHTML).join('')}</div>` : ''}
     <div class="eyebrow gold" style="margin-top:6px">${tt(u.skSeriesTitle, { n: series.length })}${rf !== 'all' ? ` · ${esc((u.skRar || {})[rf] || rf)}` : ''}</div>
     <div class="filters">${chip('all', u.fAll)}${mine ? chip('mine', u.skMine + ' · ' + mine) : ''}${chip('black', u.fMafia)}${chip('city', u.fCity)}${chip('neutral', u.fNeutral)}</div>
-    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : mythic.length ? '' : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}`;
+    ${list.length ? `<div class="sk-grid">${list.map(skinTileHTML).join('')}</div>` : mythic.length || others.length ? '' : `<p class="hint">${rf !== 'all' ? tt(u.skRarNone, { r: (u.skRar || {})[rf] || rf }) : u.skNone}</p>`}
+    ${others.length ? `<div class="eyebrow gold" style="margin-top:12px">${tt(u.skOtherTitle, { n: others.length })}</div><div class="sk-grid">${others.map(skinTileHTML).join('')}</div>` : ''}`;
 }
 /* the rarity row scrolls sideways: after each render the chosen rarity is brought into view */
 function skinRarScroll() {
