@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.57.0-f1879f6">
+<meta name="mafia-build" content="1.58.0-327454a">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -4424,29 +4424,29 @@ I18N.hy.intro = {
 (function () {
   const T = {
     ru: { ui: { scenFreeTabS: 'Бесплатные', scenPaidTabS: 'Платные', scenCitTab: 'С мирными', citPill: 'С мирными', citTitle: 'Ролевая мафия с мирными жителями',
-      citHint: 'Как обычно играют в клубах: Дон и мафия против Шерифа и Доктора, с 9 игроков в городе Азазель, с 11 есть вариант с Маньяком — все остальные мирные жители. Число мафии на каждый стол подобрано симуляцией; где одна лишняя мафия перевешивает, баланс выравнивает второй Доктор или Шериф, а на 8 игроков и в паре составов с Маньяком играют без Доктора. Каждый состав проверен на 4000 партиях.',
+      citHint: 'Как обычно играют в клубах: Дон и мафия против города, где всегда есть Шериф, Доктор, Азазель, Морфей и Ниндзя (иногда Мэр), а все остальные — мирные жители. У мафии на 9–10 игроков Баламут или Камикадзе, с 11 — Баламут вместо одной мафии, на столах побольше ещё Оружейник и Камикадзе; с 11 есть вариант с Маньяком. Состав на каждый стол подобран симуляцией и проверен на 4000 партиях.',
       okSimCit: ' Состав с мирными «{name}». По симуляции: мафия {m}%, город {c}%{x}.' },
-      cit: { town: { name: 'Классический город', lore: 'Дон и мафия против Шерифа и Доктора, с 9 игроков — ещё Азазель. Все остальные — мирные жители.' },
+      cit: { town: { name: 'Классический город', lore: 'Мафия против Шерифа, Доктора, Азазеля, Морфея и Ниндзя. Все остальные — мирные жители.' },
         maniac: { name: 'Город и Маньяк', lore: 'То же, но ночью охотится ещё и Маньяк — он играет сам за себя.' } } },
     uk: { ui: { scenFreeTabS: 'Безплатні', scenPaidTabS: 'Платні', scenCitTab: 'З мирними', citPill: 'З мирними', citTitle: 'Рольова мафія з мирними жителями',
-      citHint: 'Як зазвичай грають у клубах: Дон і мафія проти Шерифа й Лікаря, з 9 гравців у місті Азазель, з 11 є варіант із Маніяком — усі інші мирні жителі. Кількість мафії на кожен стіл підібрано симуляцією; де одна зайва мафія переважує, баланс вирівнює другий Лікар або Шериф, а на 8 гравців і в парі складів із Маніяком грають без Лікаря. Кожен склад перевірено на 4000 партіях.',
+      citHint: 'Як зазвичай грають у клубах: Дон і мафія проти міста, де завжди є Шериф, Лікар, Азазель, Морфей і Ніндзя (інколи Мер), а всі інші — мирні жителі. У мафії на 9–10 гравців Баламут або Камікадзе, з 11 — Баламут замість однієї мафії, на більших столах ще Зброяр і Камікадзе; з 11 є варіант із Маніяком. Склад на кожен стіл підібрано симуляцією й перевірено на 4000 партіях.',
       okSimCit: ' Склад із мирними «{name}». За симуляцією: мафія {m}%, місто {c}%{x}.' },
-      cit: { town: { name: 'Класичне місто', lore: 'Дон і мафія проти Шерифа й Лікаря, з 9 гравців — ще Азазель. Усі інші — мирні жителі.' },
+      cit: { town: { name: 'Класичне місто', lore: 'Мафія проти Шерифа, Лікаря, Азазеля, Морфея й Ніндзя. Усі інші — мирні жителі.' },
         maniac: { name: 'Місто й Маніяк', lore: 'Те саме, але вночі полює ще й Маніяк — він грає сам за себе.' } } },
     en: { ui: { scenFreeTabS: 'Free', scenPaidTabS: 'Paid', scenCitTab: 'With Citizens', citPill: 'Citizens', citTitle: 'Role mafia with Citizens',
-      citHint: 'The way clubs usually play: the Don and the mafia against the Sheriff and the Doctor, Azazel joins the town from 9 players, from 11 there is a version with the Maniac — everyone else is a Citizen. The number of mafiosi for each table was picked by simulation; where one more mafioso tips the scales, a second Doctor or Sheriff evens it out, and at 8 players and in a couple of Maniac line-ups there is no Doctor. Every line-up was checked on 4,000 games.',
+      citHint: 'The way clubs usually play: the Don and the mafia against a town that always has the Sheriff, the Doctor, Azazel, Morpheus and the Ninja (sometimes the Mayor), everyone else a Citizen. At 9–10 players the mafia has the Trickster or the Kamikaze, from 11 the Trickster stands in for one mafioso, and bigger tables add the Gunsmith and the Kamikaze; from 11 there is a version with the Maniac. Every table’s line-up was picked by simulation and checked on 4,000 games.',
       okSimCit: ' Line-up with Citizens “{name}”. Simulated: mafia {m}%, town {c}%{x}.' },
-      cit: { town: { name: 'Classic town', lore: 'The Don and the mafia against the Sheriff and the Doctor, plus Azazel from 9 players. Everyone else is a Citizen.' },
+      cit: { town: { name: 'Classic town', lore: 'The mafia against the Sheriff, the Doctor, Azazel, Morpheus and the Ninja. Everyone else is a Citizen.' },
         maniac: { name: 'Town and the Maniac', lore: 'The same, but the Maniac hunts at night too — he plays for himself.' } } },
     pl: { ui: { scenFreeTabS: 'Darmowe', scenPaidTabS: 'Płatne', scenCitTab: 'Mieszkańcy', citPill: 'Mieszkańcy', citTitle: 'Mafia z rolami i mieszkańcami',
-      citHint: 'Tak zwykle gra się w klubach: Don i mafia przeciw Szeryfowi i Lekarzowi, od 9 graczy w mieście jest Azazel, od 11 — wariant z Maniakiem; wszyscy pozostali to mieszkańcy. Liczbę mafiosów na każdy stół dobrała symulacja; gdzie jeden mafioso więcej przechyla szalę, wyrównuje ją drugi Lekarz lub Szeryf, a przy 8 graczach i w paru składach z Maniakiem gra się bez Lekarza. Każdy skład sprawdzono na 4000 partiach.',
+      citHint: 'Tak zwykle gra się w klubach: Don i mafia przeciw miastu, w którym zawsze są Szeryf, Lekarz, Azazel, Morfeusz i Ninja (czasem Burmistrz), a wszyscy pozostali to mieszkańcy. Mafia przy 9–10 graczach ma Mąciciela albo Kamikadze, od 11 Mąciciel zastępuje jednego mafiosa, a przy większych stołach dochodzą Rusznikarz i Kamikadze; od 11 jest wariant z Maniakiem. Skład na każdy stół dobrała symulacja i sprawdzono go na 4000 partiach.',
       okSimCit: ' Skład z mieszkańcami „{name}”. Według symulacji: mafia {m}%, miasto {c}%{x}.' },
-      cit: { town: { name: 'Klasyczne miasto', lore: 'Don i mafia przeciw Szeryfowi i Lekarzowi, od 9 graczy także Azazel. Wszyscy pozostali to mieszkańcy.' },
+      cit: { town: { name: 'Klasyczne miasto', lore: 'Mafia przeciw Szeryfowi, Lekarzowi, Azazelowi, Morfeuszowi i Ninja. Wszyscy pozostali to mieszkańcy.' },
         maniac: { name: 'Miasto i Maniak', lore: 'To samo, ale nocą poluje też Maniak — gra sam za siebie.' } } },
     hy: { ui: { scenFreeTabS: 'Անվճար', scenPaidTabS: 'Վճարովի', scenCitTab: 'Բնակիչներով', citPill: 'Բնակիչներով', citTitle: 'Դերային մաֆիա խաղաղ բնակիչներով',
-      citHint: 'Ինչպես սովորաբար խաղում են ակումբներում՝ Դոնն ու մաֆիան Շերիֆի և Բժշկի դեմ, 9 խաղացողից քաղաքում կա Ազազել, 11-ից՝ Մոլագարով տարբերակ, մնացած բոլորը խաղաղ բնակիչներ են։ Յուրաքանչյուր սեղանի մաֆիայի թիվը ընտրվել է սիմուլյացիայով․ որտեղ մեկ ավելորդ մաֆիոզը խախտում է հավասարակշռությունը, այն հարթում է երկրորդ Բժիշկը կամ Շերիֆը, իսկ 8 խաղացողի և Մոլագարով մի քանի կազմերում Բժիշկ չկա։ Յուրաքանչյուր կազմ ստուգվել է 4000 խաղով։',
+      citHint: 'Ինչպես սովորաբար խաղում են ակումբներում՝ Դոնն ու մաֆիան քաղաքի դեմ, որտեղ միշտ կան Շերիֆ, Բժիշկ, Ազազել, Մորփեոս և Նինձա (երբեմն՝ Քաղաքապետ), իսկ մնացած բոլորը խաղաղ բնակիչներ են։ 9–10 խաղացողի դեպքում մաֆիան ունի Խառնակիչ կամ Կամիկաձե, 11-ից Խառնակիչը փոխարինում է մեկ մաֆիոզին, մեծ սեղաններին ավելանում են Զինագործն ու Կամիկաձեն․ 11-ից կա Մոլագարով տարբերակ։ Յուրաքանչյուր սեղանի կազմն ընտրվել է սիմուլյացիայով և ստուգվել 4000 խաղով։',
       okSimCit: ' Կազմ խաղաղ բնակիչներով «{name}»։ Ըստ սիմուլյացիայի՝ մաֆիա {m}%, քաղաք {c}%{x}։' },
-      cit: { town: { name: 'Դասական քաղաք', lore: 'Դոնն ու մաֆիան Շերիֆի և Բժշկի դեմ, 9 խաղացողից՝ նաև Ազազել։ Մնացած բոլորը խաղաղ բնակիչներ են։' },
+      cit: { town: { name: 'Դասական քաղաք', lore: 'Մաֆիան Շերիֆի, Բժշկի, Ազազելի, Մորփեոսի և Նինձայի դեմ։ Մնացած բոլորը խաղաղ բնակիչներ են։' },
         maniac: { name: 'Քաղաքն ու Մոլագարը', lore: 'Նույնը, բայց գիշերը որսում է նաև Մոլագարը՝ նա խաղում է ինքն իր համար։' } } }
   };
   Object.keys(T).forEach(code => { const p = I18N[code]; if (!p) return; Object.assign(p.ui, T[code].ui); p.cit = T[code].cit; });
@@ -8212,80 +8212,76 @@ function introFor(n) {
 /* the intro scenario whose composition is exactly this one (order-free), or null */
 function introMatch(n, comp) { const k = comp.slice().sort().join(); return introFor(n).find(s => s.comp.slice().sort().join() === k) || null; }
 
-/* ---------- v80: line-ups with Citizens (the «With Citizens» tab of the scenarios) — role mafia as clubs play it: the Don and
-   the mafia against the Sheriff and the Doctor, Azazel from 9 players, the Maniac in the second version from 11, two Dons from 20
-   (two families), everyone else a Citizen. The mafia's size per table is picked by simulation (test/montecarlo.js bots); where one
-   more mafioso tips the table over, a second Doctor or Sheriff (or no Azazel) evens it out. Each line-up checked on a fresh 4000
-   games: [version, composition, mafia %, city %, maniac %, average nights]. ---------- */
+/* ---------- v80–v81: line-ups with Citizens (the «With Citizens» tab of the scenarios) — role mafia as clubs play it.
+   v81 (the owner, 18.10): every game has the Sheriff, the Doctor, Azazel, Morpheus and the Ninja (the Mayor may join); at 9–10 the
+   mafia has the Balamut or the Kamikaze, from 11 the Balamut stands in for a plain mafioso and the Gunsmith / Kamikaze may join;
+   the Maniac version from 11; two Dons from 20 (two families); everyone else a Citizen. 7–8 are not here: the five town roles
+   would leave no Citizens. The mafia's size and its special cards per table picked by simulation (test/montecarlo.js bots), each
+   line-up checked on a fresh 4000 games: [version, composition, mafia %, city %, maniac %, average nights]. ---------- */
+const CIT_MIN = 9;
 const CIT_THEMES = ['town', 'maniac'];
 const CIT = {
-  7: [
-    ['town', 'don,mafia,sheriff,doctor,citizen,citizen,citizen', 47.7, 52.3, 0, 2.3]
-  ],
-  8: [
-    ['town', 'don,mafia,sheriff,citizen,citizen,citizen,citizen,citizen', 38.8, 61.2, 0, 2.5]
-  ],
   9: [
-    ['town', 'don,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen', 52.2, 47.8, 0, 2.7]
+    ['town', 'don,balamut,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen', 57.8, 42.2, 0, 2.9]
   ],
   10: [
-    ['town', 'don,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen', 38.4, 61.6, 0, 3.3]
+    ['town', 'don,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen', 45.9, 54.1, 0, 3.2]
   ],
   11: [
-    ['town', 'don,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen', 53.8, 46.2, 0, 3.4],
-    ['maniac', 'don,mafia,mafia,sheriff,azazel,maniac,citizen,citizen,citizen,citizen,citizen', 40.5, 52.7, 6.8, 2.7]
+    ['town', 'don,balamut,kamikaze,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen', 44.2, 55.9, 0, 3.7],
+    ['maniac', 'don,balamut,kamikaze,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen', 39.2, 57, 3.9, 3]
   ],
   12: [
-    ['town', 'don,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen', 47.9, 52.2, 0, 3.8],
-    ['maniac', 'don,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen', 46.8, 48.3, 4.9, 3]
+    ['town', 'don,balamut,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen', 55.4, 44.6, 0, 3.9],
+    ['maniac', 'don,balamut,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen', 45.6, 51.1, 3.3, 3.3]
   ],
   13: [
-    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen', 52.5, 47.5, 0, 3.7],
-    ['maniac', 'don,mafia,mafia,mafia,sheriff,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 47.6, 48.4, 4, 3.2]
+    ['town', 'don,balamut,gunsmith,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen', 56.3, 43.7, 0, 4.1],
+    ['maniac', 'don,balamut,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen', 44.7, 52.9, 2.5, 3.5]
   ],
   14: [
-    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen', 47.1, 52.9, 0, 4.6],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen', 47.5, 49.6, 3, 3.7]
+    ['town', 'don,balamut,gunsmith,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen', 47.7, 52.4, 0, 4.6],
+    ['maniac', 'don,balamut,gunsmith,kamikaze,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen', 47.8, 49.5, 2.7, 3.6]
   ],
   15: [
-    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47, 53, 0, 4.8],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 44.9, 52.4, 2.7, 3.9]
+    ['town', 'don,balamut,gunsmith,kamikaze,sheriff,doctor,azazel,morpheus,ninja,mayor,citizen,citizen,citizen,citizen,citizen', 46.4, 53.6, 0, 4.8],
+    ['maniac', 'don,balamut,kamikaze,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen', 52.9, 44.6, 2.6, 3.9]
   ],
   16: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 53.2, 0, 4.8],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen', 45.7, 51.5, 2.8, 3.9]
+    ['town', 'don,balamut,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen', 46.7, 53.3, 0, 5.6],
+    ['maniac', 'don,balamut,gunsmith,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen', 47.2, 51.1, 1.7, 4.2]
   ],
   17: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.1, 53.9, 0, 5.6],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 52, 46, 2.1, 4.3]
+    ['town', 'don,balamut,gunsmith,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.3, 48.7, 0, 5.4],
+    ['maniac', 'don,balamut,gunsmith,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 50.1, 48.2, 1.8, 4.4]
   ],
   18: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 53.1, 0, 5.9],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 52.6, 45.7, 1.7, 4.2]
+    ['town', 'don,balamut,gunsmith,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 52.2, 47.8, 0, 5.5],
+    ['maniac', 'don,balamut,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 50.8, 47.7, 1.5, 4.7]
   ],
   19: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 45.4, 54.7, 0, 5.9],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.8, 48.1, 1.2, 4.9]
+    ['town', 'don,balamut,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48, 52.1, 0, 6.6],
+    ['maniac', 'don,balamut,gunsmith,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48, 50.6, 1.4, 5]
   ],
   20: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 49.3, 50.7, 0, 7.1],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.1, 45.7, 3.2, 5.5]
+    ['town', 'don,don,balamut,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 49.7, 50.3, 0, 7.2],
+    ['maniac', 'don,don,balamut,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47, 50.6, 2.5, 5.8]
   ],
   21: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.6, 49.5, 0, 7.7],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.2, 47.3, 2.5, 6]
+    ['town', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 49.4, 50.6, 0, 7.7],
+    ['maniac', 'don,don,balamut,gunsmith,kamikaze,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 50.8, 2.4, 5.9]
   ],
   22: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.5, 48.6, 0, 7.8],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.5, 50.3, 3.2, 6.4]
+    ['town', 'don,don,balamut,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48.9, 51.1, 0, 7.5],
+    ['maniac', 'don,don,balamut,kamikaze,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51, 46.7, 2.4, 6.4]
   ],
   23: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.3, 49.7, 0, 8.3],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48.1, 49.7, 2.2, 6.9]
+    ['town', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.3, 48.8, 0, 8.3],
+    ['maniac', 'don,don,balamut,gunsmith,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.4, 46.6, 2.1, 6.4]
   ],
   24: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.6, 48.4, 0, 8.9],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47.7, 50, 2.3, 7]
+    ['town', 'don,don,balamut,kamikaze,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.4, 49.6, 0, 8.6],
+    ['maniac', 'don,don,balamut,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.1, 48.4, 1.6, 6.7]
   ]
 };
 const citText = theme => (L.cit && L.cit[theme]) || I18N.ru.cit[theme];
@@ -10088,10 +10084,10 @@ function introSectionHTML() {
   <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
 }
 /* v80: line-ups with Citizens — a player-count chooser and the classic town (and the town with the Maniac from 11) for that table */
-function citN() { const n = S.ui.citN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
+function citN() { const n = S.ui.citN || S.setup.n || 10; return Math.max(CIT_MIN, Math.min(MAX_PLAYERS, n)); } // v81: from 9 (the five town roles)
 function citSectionHTML() {
   const u = U(); const n = citN(); const list = citFor(n);
-  const chips = []; for (let k = MIN_PLAYERS; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="cit-n" data-n="${k}">${k}</button>`);
+  const chips = []; for (let k = CIT_MIN; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="cit-n" data-n="${k}">${k}</button>`);
   return `<h2>${u.citTitle}</h2>
   <p class="hint">${u.citHint}</p>
   <div class="eyebrow">${u.introPick}</div>

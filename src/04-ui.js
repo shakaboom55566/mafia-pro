@@ -889,10 +889,10 @@ function introSectionHTML() {
   <div class="stack-s">${list.map(introCardHTML).join('')}</div>`;
 }
 /* v80: line-ups with Citizens — a player-count chooser and the classic town (and the town with the Maniac from 11) for that table */
-function citN() { const n = S.ui.citN || S.setup.n || 10; return Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, n)); }
+function citN() { const n = S.ui.citN || S.setup.n || 10; return Math.max(CIT_MIN, Math.min(MAX_PLAYERS, n)); } // v81: from 9 (the five town roles)
 function citSectionHTML() {
   const u = U(); const n = citN(); const list = citFor(n);
-  const chips = []; for (let k = MIN_PLAYERS; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="cit-n" data-n="${k}">${k}</button>`);
+  const chips = []; for (let k = CIT_MIN; k <= MAX_PLAYERS; k++) chips.push(`<button class="chip ${k === n ? 'active' : ''}" data-a="cit-n" data-n="${k}">${k}</button>`);
   return `<h2>${u.citTitle}</h2>
   <p class="hint">${u.citHint}</p>
   <div class="eyebrow">${u.introPick}</div>

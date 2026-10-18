@@ -401,80 +401,76 @@ function introFor(n) {
 /* the intro scenario whose composition is exactly this one (order-free), or null */
 function introMatch(n, comp) { const k = comp.slice().sort().join(); return introFor(n).find(s => s.comp.slice().sort().join() === k) || null; }
 
-/* ---------- v80: line-ups with Citizens (the «With Citizens» tab of the scenarios) — role mafia as clubs play it: the Don and
-   the mafia against the Sheriff and the Doctor, Azazel from 9 players, the Maniac in the second version from 11, two Dons from 20
-   (two families), everyone else a Citizen. The mafia's size per table is picked by simulation (test/montecarlo.js bots); where one
-   more mafioso tips the table over, a second Doctor or Sheriff (or no Azazel) evens it out. Each line-up checked on a fresh 4000
-   games: [version, composition, mafia %, city %, maniac %, average nights]. ---------- */
+/* ---------- v80–v81: line-ups with Citizens (the «With Citizens» tab of the scenarios) — role mafia as clubs play it.
+   v81 (the owner, 18.10): every game has the Sheriff, the Doctor, Azazel, Morpheus and the Ninja (the Mayor may join); at 9–10 the
+   mafia has the Balamut or the Kamikaze, from 11 the Balamut stands in for a plain mafioso and the Gunsmith / Kamikaze may join;
+   the Maniac version from 11; two Dons from 20 (two families); everyone else a Citizen. 7–8 are not here: the five town roles
+   would leave no Citizens. The mafia's size and its special cards per table picked by simulation (test/montecarlo.js bots), each
+   line-up checked on a fresh 4000 games: [version, composition, mafia %, city %, maniac %, average nights]. ---------- */
+const CIT_MIN = 9;
 const CIT_THEMES = ['town', 'maniac'];
 const CIT = {
-  7: [
-    ['town', 'don,mafia,sheriff,doctor,citizen,citizen,citizen', 47.7, 52.3, 0, 2.3]
-  ],
-  8: [
-    ['town', 'don,mafia,sheriff,citizen,citizen,citizen,citizen,citizen', 38.8, 61.2, 0, 2.5]
-  ],
   9: [
-    ['town', 'don,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen', 52.2, 47.8, 0, 2.7]
+    ['town', 'don,balamut,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen', 57.8, 42.2, 0, 2.9]
   ],
   10: [
-    ['town', 'don,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen', 38.4, 61.6, 0, 3.3]
+    ['town', 'don,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen', 45.9, 54.1, 0, 3.2]
   ],
   11: [
-    ['town', 'don,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen', 53.8, 46.2, 0, 3.4],
-    ['maniac', 'don,mafia,mafia,sheriff,azazel,maniac,citizen,citizen,citizen,citizen,citizen', 40.5, 52.7, 6.8, 2.7]
+    ['town', 'don,balamut,kamikaze,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen', 44.2, 55.9, 0, 3.7],
+    ['maniac', 'don,balamut,kamikaze,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen', 39.2, 57, 3.9, 3]
   ],
   12: [
-    ['town', 'don,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen', 47.9, 52.2, 0, 3.8],
-    ['maniac', 'don,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen', 46.8, 48.3, 4.9, 3]
+    ['town', 'don,balamut,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen', 55.4, 44.6, 0, 3.9],
+    ['maniac', 'don,balamut,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen', 45.6, 51.1, 3.3, 3.3]
   ],
   13: [
-    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen', 52.5, 47.5, 0, 3.7],
-    ['maniac', 'don,mafia,mafia,mafia,sheriff,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 47.6, 48.4, 4, 3.2]
+    ['town', 'don,balamut,gunsmith,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen', 56.3, 43.7, 0, 4.1],
+    ['maniac', 'don,balamut,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen', 44.7, 52.9, 2.5, 3.5]
   ],
   14: [
-    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen', 47.1, 52.9, 0, 4.6],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen', 47.5, 49.6, 3, 3.7]
+    ['town', 'don,balamut,gunsmith,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen', 47.7, 52.4, 0, 4.6],
+    ['maniac', 'don,balamut,gunsmith,kamikaze,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen', 47.8, 49.5, 2.7, 3.6]
   ],
   15: [
-    ['town', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47, 53, 0, 4.8],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 44.9, 52.4, 2.7, 3.9]
+    ['town', 'don,balamut,gunsmith,kamikaze,sheriff,doctor,azazel,morpheus,ninja,mayor,citizen,citizen,citizen,citizen,citizen', 46.4, 53.6, 0, 4.8],
+    ['maniac', 'don,balamut,kamikaze,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen', 52.9, 44.6, 2.6, 3.9]
   ],
   16: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 53.2, 0, 4.8],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen', 45.7, 51.5, 2.8, 3.9]
+    ['town', 'don,balamut,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen', 46.7, 53.3, 0, 5.6],
+    ['maniac', 'don,balamut,gunsmith,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen', 47.2, 51.1, 1.7, 4.2]
   ],
   17: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.1, 53.9, 0, 5.6],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 52, 46, 2.1, 4.3]
+    ['town', 'don,balamut,gunsmith,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.3, 48.7, 0, 5.4],
+    ['maniac', 'don,balamut,gunsmith,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 50.1, 48.2, 1.8, 4.4]
   ],
   18: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 53.1, 0, 5.9],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 52.6, 45.7, 1.7, 4.2]
+    ['town', 'don,balamut,gunsmith,kamikaze,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 52.2, 47.8, 0, 5.5],
+    ['maniac', 'don,balamut,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen', 50.8, 47.7, 1.5, 4.7]
   ],
   19: [
-    ['town', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 45.4, 54.7, 0, 5.9],
-    ['maniac', 'don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.8, 48.1, 1.2, 4.9]
+    ['town', 'don,balamut,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48, 52.1, 0, 6.6],
+    ['maniac', 'don,balamut,gunsmith,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48, 50.6, 1.4, 5]
   ],
   20: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 49.3, 50.7, 0, 7.1],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.1, 45.7, 3.2, 5.5]
+    ['town', 'don,don,balamut,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 49.7, 50.3, 0, 7.2],
+    ['maniac', 'don,don,balamut,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47, 50.6, 2.5, 5.8]
   ],
   21: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.6, 49.5, 0, 7.7],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.2, 47.3, 2.5, 6]
+    ['town', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 49.4, 50.6, 0, 7.7],
+    ['maniac', 'don,don,balamut,gunsmith,kamikaze,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.9, 50.8, 2.4, 5.9]
   ],
   22: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.5, 48.6, 0, 7.8],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 46.5, 50.3, 3.2, 6.4]
+    ['town', 'don,don,balamut,gunsmith,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48.9, 51.1, 0, 7.5],
+    ['maniac', 'don,don,balamut,kamikaze,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51, 46.7, 2.4, 6.4]
   ],
   23: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.3, 49.7, 0, 8.3],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 48.1, 49.7, 2.2, 6.9]
+    ['town', 'don,don,balamut,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.3, 48.8, 0, 8.3],
+    ['maniac', 'don,don,balamut,gunsmith,kamikaze,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.4, 46.6, 2.1, 6.4]
   ],
   24: [
-    ['town', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,doctor,azazel,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 51.6, 48.4, 0, 8.9],
-    ['maniac', 'don,don,mafia,mafia,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 47.7, 50, 2.3, 7]
+    ['town', 'don,don,balamut,kamikaze,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.4, 49.6, 0, 8.6],
+    ['maniac', 'don,don,balamut,gunsmith,mafia,mafia,mafia,mafia,mafia,sheriff,doctor,azazel,morpheus,ninja,maniac,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen,citizen', 50.1, 48.4, 1.6, 6.7]
   ]
 };
 const citText = theme => (L.cit && L.cit[theme]) || I18N.ru.cit[theme];

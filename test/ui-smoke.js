@@ -88,19 +88,21 @@ A.go(el('go', { to: 'home' })); A.go(el('go', { to: 'scenarios' })); if (X.S().u
   if (!app.innerHTML.includes('okbox') || !app.innerHTML.includes(X.tt(u.okSimIntro, { name: introFor(15)[2].name, m: introFor(15)[2].mafia, c: introFor(15)[2].city, x: '' }))) { fails++; console.log('FAIL setup must show the intro line-up balance note'); }
   A.comp(el('comp', { id: 'mafia', d: '1' })); if (app.innerHTML.includes('okbox') || app.innerHTML.includes(u.okSimIntro.slice(1, 12))) { fails++; console.log('FAIL changed intro line-up must lose its balance note'); }
   A.go(el('go', { to: 'scenarios' })); }
-// v80: the «With Citizens» tab — every table 7–24: the classic town (and the Maniac version from 11): the Don (two from 20), the mafia,
-// the Sheriff, the Doctor (the classic town from 9; a few Maniac versions and 8 go without), Azazel from 9, Citizens — most of the town from 13, at least 3 from 9; the setup keeps the line-up's simulated balance
-{ const u = X.U(); const citFor = vm.runInContext('citFor', ctx); const ROLE = X.ROLE; const OK = ['don', 'mafia', 'sheriff', 'doctor', 'azazel', 'maniac', 'citizen'];
+// v80–v81: the «With Citizens» tab — tables 9–24: the classic town (and the Maniac version from 11); every game has the Sheriff, the Doctor,
+// Azazel, Morpheus and the Ninja (the Mayor may join); the mafia — the Don (two from 20), the Balamut or the Kamikaze at 9–10, the Balamut
+// from 11, the Gunsmith / Kamikaze may join; at least one Citizen; the setup keeps the line-up's simulated balance
+{ const u = X.U(); const citFor = vm.runInContext('citFor', ctx); const ROLE = X.ROLE;
+  const OK = ['don', 'mafia', 'balamut', 'gunsmith', 'kamikaze', 'sheriff', 'doctor', 'azazel', 'morpheus', 'ninja', 'mayor', 'maniac', 'citizen'];
   for (let n = 7; n <= 24; n++) { const list = citFor(n); const ids = list.map(s => s.id).join();
-    if (ids !== (n >= 11 ? 'town,maniac' : 'town')) { fails++; console.log('FAIL v80 citizens: versions for', n, ids); }
-    list.forEach(s => { const c = s.comp; const cnt = id => c.filter(x => x === id).length; const town = c.filter(id => ROLE[id] && ROLE[id].team === 'red').length;
-      if (c.length !== n || c.some(id => !OK.includes(id)) || cnt('don') !== (n >= 20 ? 2 : 1) || cnt('mafia') < 1 || cnt('sheriff') < 1 || (n >= 9 && cnt('azazel') !== 1) || (n >= 9 && s.id === 'town' && cnt('doctor') < 1) || cnt('citizen') < (n >= 13 ? Math.ceil(town / 2) : n >= 9 ? 3 : 2) || (s.id === 'maniac') !== (cnt('maniac') === 1)) { fails++; console.log('FAIL v80 citizens: bad composition', n, s.id, c.join()); }
-      if (!s.name || !s.lore || Math.abs(s.mafia + s.city + s.maniac - 100) > 1.5) { fails++; console.log('FAIL v80 citizens: text or balance missing', n, s.id); } }); }
-  if (citFor(10)[0].comp.slice().sort().join() !== 'azazel,citizen,citizen,citizen,citizen,doctor,don,mafia,mafia,sheriff') { fails++; console.log('FAIL v80 citizens: 10 is the owner\'s example — Don, Mafia ×2, Sheriff, Doctor, Azazel, Citizens'); }
+    if (ids !== (n >= 11 ? 'town,maniac' : n >= 9 ? 'town' : '')) { fails++; console.log('FAIL v81 citizens: versions for', n, ids); }
+    list.forEach(s => { const c = s.comp; const cnt = id => c.filter(x => x === id).length;
+      if (c.length !== n || c.some(id => !OK.includes(id)) || cnt('don') !== (n >= 20 ? 2 : 1) || ['sheriff', 'doctor', 'azazel', 'morpheus', 'ninja'].some(id => cnt(id) !== 1) || cnt('mayor') > 1 || cnt('gunsmith') > 1 || cnt('kamikaze') > 1 || cnt('balamut') > 1
+        || (n <= 10 && cnt('balamut') + cnt('kamikaze') < 1) || (n >= 11 && cnt('balamut') !== 1) || cnt('citizen') < 1 || (s.id === 'maniac') !== (cnt('maniac') === 1)) { fails++; console.log('FAIL v81 citizens: bad composition', n, s.id, c.join()); }
+      if (!s.name || !s.lore || Math.abs(s.mafia + s.city + s.maniac - 100) > 1.5) { fails++; console.log('FAIL v81 citizens: text or balance missing', n, s.id); } }); }
   A['scen-tab'](el('scen-tab', { id: 'cit' })); check('v80 scenarios (citizens tab)');
   A['cit-n'](el('cit-n', { n: '19' })); check('v80 citizens 19'); let h = app.innerHTML;
   if (!h.includes(u.citTitle) || (h.match(/scen-card intro cit/g) || []).length !== 2 || !h.includes(citFor(19)[1].name) || h.includes('scen-card classic') || h.includes('scen-card premium') || !h.includes('data-a="cit-use" data-n="19" data-id="maniac"')) { fails++; console.log('FAIL v80 citizens tab: the title, two cards for 19, nothing from the other tabs'); }
-  A['cit-n'](el('cit-n', { n: '8' })); h = app.innerHTML; if ((h.match(/scen-card intro cit/g) || []).length !== 1) { fails++; console.log('FAIL v80 citizens: one version below 11'); }
+  A['cit-n'](el('cit-n', { n: '10' })); h = app.innerHTML; if ((h.match(/scen-card intro cit/g) || []).length !== 1 || h.includes('data-a="cit-n" data-n="8"') || !h.includes('data-a="cit-n" data-n="9"')) { fails++; console.log('FAIL v81 citizens: one version below 11, the chooser starts at 9'); }
   A['cit-use'](el('cit-use', { n: '19', id: 'maniac' })); check('v80 setup from citizens 19'); const sc = citFor(19)[1];
   const st = X.S().setup; if (X.S().screen !== 'setup' || st.n !== 19 || st.scenario || st.comp.join() !== sc.comp.join()) { fails++; console.log('FAIL v80 cit-use must open setup with that line-up'); }
   if (!app.innerHTML.includes('okbox') || !app.innerHTML.includes(X.tt(u.okSimCit, { name: sc.name, m: sc.mafia, c: sc.city, x: X.tt(u.okSimManiac, { v: sc.maniac }) }))) { fails++; console.log('FAIL v80 setup must show the line-up with Citizens and its balance'); }
