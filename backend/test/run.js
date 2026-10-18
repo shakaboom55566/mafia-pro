@@ -92,7 +92,7 @@ console.log('geo (v75): the request\'s country and city come back as a hint, the
   await post('/api/me', { initData: hi, country: '' }); eq((await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = 4401').first()).country, '', 'the player may clear the country');
 }
 
-console.log('the rating by country (v83): every country with players, the top of the chosen one, signed, cached with the top');
+console.log('the rating by country (v84): every country with players, the top of the chosen one, signed, cached with the top');
 { const t0 = now(); const put = async (id, name, pts, games, cc) => { await env.DB.prepare('INSERT INTO users (tg_id, first_name, username, created_at, seen_at) VALUES (?1, ?2, ?3, ?4, ?4) ON CONFLICT(tg_id) DO UPDATE SET first_name = ?2').bind(id, name, 'u' + id, t0).run(); await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, 1, 0, ?4) ON CONFLICT(tg_id) DO UPDATE SET points = ?2, games = ?3').bind(id, pts, games, t0).run(); if (cc !== null) await env.DB.prepare('INSERT INTO user_countries (tg_id, country, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET country = ?2').bind(id, cc, t0).run(); };
   await put(4501, 'Oksana', 40, 3, 'UA'); await put(4502, 'Taras', 25, 2, 'UA'); await put(4503, 'Ania', 30, 2, 'PL'); await put(4504, 'Aram', 12, 1, 'AM'); await put(4505, 'NoGames', 0, 0, 'DE'); await put(4506, 'NoCountry', 99, 4, null); await put(4507, 'Cleared', 50, 2, '');
   await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:geo'").run();
@@ -1637,10 +1637,10 @@ console.log('seasons (v55): one calendar in the app and the server, the best of 
 console.log('skins (v56): the same catalog in the app and the server');
 { const fs = await import('node:fs'); const vm = await import('node:vm'); const SK = await import('../src/skins.js');
   const app = fs.readFileSync(path.join(here, '..', '..', 'src', '12-skins.js'), 'utf8'); const block = app.slice(app.indexOf('/* skins:begin'), app.indexOf('/* skins:end */'));
-  const c = vm.createContext({}); vm.runInContext(block + '; this.SKINS = SKINS.concat(ROOMS, FRAMES); this.ROOMS = ROOMS;', c); // v71: the rooms are skins of the role «room» on the server
+  const c = vm.createContext({}); vm.runInContext(block + '; this.SKINS = SKINS.concat(ROOMS, FRAMES, TABLES); this.ROOMS = ROOMS;', c); // v71/v74/v84: the rooms, frames and tables are skins of their own roles on the server
   eq(c.SKINS.map(x => [x.id, x.role, x.rarity, x.season || 0, !!x.numbered]), Object.entries(SK.SKINS).map(([id, x]) => [id, x.role, x.rarity, x.season || 0, !!x.numbered]), 'every skin has the same id, card, rarity, season and numbering');
   ok(Object.entries(SK.SEASON_SKIN).every(([n, id]) => SK.SKINS[id] && SK.SKINS[id].season === Number(n)), 'a season reward is a skin of that season');
-  const files = c.SKINS.flatMap(x => x.role === 'room' ? [x.file + '.webp', x.file + '-depth.png', x.file + '-thumb.webp'] : x.role === 'frame' ? [x.file + '.webp'] : [x.file + '.webp', x.file + '-depth.png', x.file + '-seal.webp']); ok(files.every(f => fs.existsSync(path.join(here, '..', '..', 'skins', f))), 'every skin has its face, depth map and portrait in skins/');
+  const files = c.SKINS.flatMap(x => x.role === 'room' ? [x.file + '.webp', x.file + '-depth.png', x.file + '-thumb.webp'] : x.role === 'frame' ? [x.file + '.webp'] : x.role === 'table' ? [x.file + '.webp', x.file + '-thumb.webp'] : [x.file + '.webp', x.file + '-depth.png', x.file + '-seal.webp']); ok(files.every(f => fs.existsSync(path.join(here, '..', '..', 'skins', f))), 'every skin has its face, depth map and portrait in skins/');
   ok(Object.keys(SK.SKINS).every(id => ['ru', 'uk', 'en', 'pl', 'hy'].every(l => SK.skinName(id, l) && SK.skinName(id, l) !== id)), 'every skin is named in five languages'); }
 
 
@@ -1761,6 +1761,24 @@ console.log('table backgrounds (v71): a room is a reward or a gift, the host put
   d = await (await post('/api/admin/skin', { initData: adm, tgId: 1700, skin: 'castelmar_club', give: false })).json(); ok(d.ok && !d.equipped.room, 'the gift taken back comes down');
   st = await (await post('/api/table/state', { initData: hid, code: lob.code })).json(); eq(st.room, null, 'and the table is plain again');
   ok((await post('/api/admin/skin', { initData: adm, tgId: 1701, skin: 'castelmar_club' })).status === 200 && (await (await post('/api/me', { initData: pid })).json()).skins.equipped.room === 'castelmar_club', 'a player gets one too (his own tables)'); }
+
+console.log('table skins (v84): the table top is a reward or a gift, the host puts it up, everyone at his table gets it with the table');
+{ const SK = await import('../src/skins.js'); ok(SK.isTable('don_table') && !SK.isTable('castelmar_club') && !SK.isRoom('don_table') && SK.SKINS.don_table.rarity !== 'epic', 'the Don\'s table is a table skin, not a room, not Epic (not lent in the tournament)');
+  const H = user(1750, 'uk', { username: 'table_host' }); await hook(msg(H, '/start')); const hid = await initData(H); const adm = await initData(user(777, 'ru', { first_name: 'Admin' }));
+  eq((await post('/api/skin/buy', { initData: hid, skin: 'don_table' })).status, 400, 'a table is not sold');
+  eq((await post('/api/skin/equip', { initData: hid, role: 'table', skin: 'don_table' })).status, 400, 'not his — cannot be put up');
+  eq((await post('/api/skin/equip', { initData: hid, role: 'room', skin: 'don_table' })).status, 400, 'a table is not a room');
+  let d = await (await post('/api/admin/skin', { initData: adm, tgId: 1750, skin: 'don_table' })).json(); ok(d.ok && d.equipped.table === 'don_table', 'the admin gives the table — it is up at once');
+  ok(lastTo(1750).params.text.includes('Стіл Дона') && lastTo(1750).params.text.includes('стіл'), 'the host is told in his language, with the table\'s own words');
+  const lob = await (await post('/api/lobby', { initData: hid, fresh: true })).json();
+  await post('/api/table/publish', { initData: hid, code: lob.code, pub: { phase: 'lobby', code: lob.code, n: 7, seats: [] }, priv: {} });
+  let st = await (await post('/api/table/state', { initData: hid, code: lob.code })).json(); eq(st.tableSkin, 'don_table', 'the table state carries the host\'s table skin'); eq(st.room, null, 'and no room — they are separate');
+  const me = await (await post('/api/me', { initData: hid })).json(); ok(me.skins.owned.includes('don_table') && me.skins.equipped.table === 'don_table', 'his app knows it');
+  eq((await (await post('/api/skin/equip', { initData: hid, role: 'table', skin: null })).json()).equipped.table, undefined, 'taken down');
+  st = await (await post('/api/table/state', { initData: hid, code: lob.code })).json(); eq(st.tableSkin, null, 'no skin — the plain table');
+  await post('/api/skin/equip', { initData: hid, role: 'table', skin: 'don_table' });
+  d = await (await post('/api/admin/skin', { initData: adm, tgId: 1750, skin: 'don_table', give: false })).json(); ok(d.ok && !d.equipped.table, 'the gift taken back comes down');
+  st = await (await post('/api/table/state', { initData: hid, code: lob.code })).json(); eq(st.tableSkin, null, 'and the table is plain again'); }
 
 console.log('avatar frames (v74): bought for emeralds, one at a time, everyone at the table sees it, a gift has its own words');
 { const SK = await import('../src/skins.js'); const EM = await import('../src/emeralds.js'); const F = Object.keys(SK.SKINS).filter(SK.isFrame);

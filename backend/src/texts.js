@@ -348,6 +348,12 @@ Object.assign(TEXTS.uk, { frameGift: '🎁 Адміністратор подар
 Object.assign(TEXTS.en, { frameGift: '🎁 An admin gave you the avatar frame <b>«{skin}»</b>. If you had none, it is already on: everyone sees it at the table and in your profile. Change it: «Cards» → «Skins» → «Frames».' });
 Object.assign(TEXTS.pl, { frameGift: '🎁 Administrator podarował Ci ramkę awatara <b>„{skin}”</b>. Jeśli nie miałeś ramki — już ją masz: widzą ją wszyscy przy stole i w Twoim profilu. Zmień: «Karty» → «Skórki» → «Ramki».' });
 Object.assign(TEXTS.hy, { frameGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց ավատարի շրջանակ՝ <b>«{skin}»</b>։ Եթե շրջանակ չունեիք, այն արդեն դրված է․ այն տեսնում են բոլորը սեղանի շուրջ և ձեր պրոֆիլում։ Փոխել՝ «Քարտեր» → «Սքիններ» → «Շրջանակներ»։' });
+/* v84: a table skin given by an admin — its own words */
+Object.assign(TEXTS.ru, { tableGift: '🎁 Администратор подарил вам стол <b>«{skin}»</b>. Если скина стола ещё не было — он уже стоит: когда вы ведёте онлайн-игру, стол видят все игроки за ним. Сменить: «Карты» → «Скины» → «Стол».' });
+Object.assign(TEXTS.uk, { tableGift: '🎁 Адміністратор подарував вам стіл <b>«{skin}»</b>. Якщо скіна столу ще не було — він уже стоїть: коли ви ведете онлайн-гру, стіл бачать усі гравці за ним. Змінити: «Карти» → «Скіни» → «Стіл».' });
+Object.assign(TEXTS.en, { tableGift: '🎁 An admin gave you the table <b>«{skin}»</b>. If you had no table skin, it is already up: when you host an online game, every player at the table sees it. Change it: «Cards» → «Skins» → «Table».' });
+Object.assign(TEXTS.pl, { tableGift: '🎁 Administrator podarował Ci stół <b>„{skin}”</b>. Jeśli nie miałeś skórki stołu — już stoi: gdy prowadzisz grę online, stół widzą wszyscy gracze przy nim. Zmień: «Karty» → «Skórki» → «Stół».' });
+Object.assign(TEXTS.hy, { tableGift: '🎁 Ադմինիստրատորը ձեզ նվիրեց սեղան՝ <b>«{skin}»</b>։ Եթե սեղանի սքին չունեիք, այն արդեն դրված է․ երբ վարում եք առցանց խաղ, սեղանը տեսնում են նրա շուրջ բոլոր խաղացողները։ Փոխել՝ «Քարտեր» → «Սքիններ» → «Սեղան»։' });
 
 /* v77 official hosts (official.js) */
 Object.assign(TEXTS.ru, {

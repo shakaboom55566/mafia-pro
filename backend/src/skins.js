@@ -56,12 +56,17 @@ export const SKINS = {
   hw_bone_crown: { role: 'frame', rarity: 'sr', series: 'halloween' },
   hw_ghost_parade: { role: 'frame', rarity: 'sr', series: 'halloween' },
   hw_werewolf_moon: { role: 'frame', rarity: 'sr', series: 'halloween' },
-  hw_grim_reaper: { role: 'frame', rarity: 'sr', series: 'halloween' }
+  hw_grim_reaper: { role: 'frame', rarity: 'sr', series: 'halloween' },
+  // v84: table skins — the table top itself (role 'table': one per player, the host's is what everyone at his table sees);
+  // a reward or an admin's gift only (Legendary is not sold), not lent in the tournament (only Epic is)
+  don_table: { role: 'table', rarity: 'legendary' }
 };
 export const FRAME_ROLE = 'frame';
 export const isFrame = id => isSkin(id) && SKINS[id].role === FRAME_ROLE;
 export const ROOM_ROLE = 'room';
 export const isRoom = id => isSkin(id) && SKINS[id].role === ROOM_ROLE;
+export const TABLE_ROLE = 'table';
+export const isTable = id => isSkin(id) && SKINS[id].role === TABLE_ROLE;
 export const SEASON_SKIN = { 1: 'amethyst_don' };
 export const SKIN_NAMES = {
   amethyst_don: { ru: 'Аметистовый Дон', uk: 'Аметистовий Дон', en: 'Amethyst Don', pl: 'Ametystowy Don', hy: 'Ամեթիստե Դոն' },
@@ -109,7 +114,8 @@ export const SKIN_NAMES = {
   hw_bone_crown: { ru: 'Костяная корона', uk: 'Кістяна корона', en: 'Bone Crown', pl: 'Kościana korona', hy: 'Ոսկրե թագ' },
   hw_ghost_parade: { ru: 'Парад призраков', uk: 'Парад привидів', en: 'Ghost Parade', pl: 'Parada duchów', hy: 'Ուրվականների շքերթ' },
   hw_werewolf_moon: { ru: 'Луна оборотня', uk: 'Місяць перевертня', en: 'Werewolf Moon', pl: 'Księżyc wilkołaka', hy: 'Գայլամարդու լուսին' },
-  hw_grim_reaper: { ru: 'Жнец', uk: 'Жнець', en: 'Grim Reaper', pl: 'Żniwiarz', hy: 'Մահվան հնձվոր' }
+  hw_grim_reaper: { ru: 'Жнец', uk: 'Жнець', en: 'Grim Reaper', pl: 'Żniwiarz', hy: 'Մահվան հնձվոր' },
+  don_table: { ru: 'Стол Дона', uk: 'Стіл Дона', en: 'The Don’s Table', pl: 'Stół Dona', hy: 'Դոնի սեղանը' }
 };
 export const skinName = (id, lang) => ((SKIN_NAMES[id] || {})[lang]) || ((SKIN_NAMES[id] || {}).ru) || id;
 const SKIN_RE = /^[a-z0-9_]{2,40}$/;
@@ -178,6 +184,11 @@ export async function framesOf(env, ids) {
 export async function roomOf(env, tgId) {
   const r = await env.DB.prepare('SELECT skin FROM user_skins WHERE tg_id = ?1 AND role = ?2').bind(tgId, ROOM_ROLE).first();
   return r && isRoom(r.skin) ? r.skin : null;
+}
+/* v84: the table skin a player has put up (the look of his table when he hosts) — null if none or no longer his */
+export async function tableSkinOf(env, tgId) {
+  const r = await env.DB.prepare('SELECT skin FROM user_skins WHERE tg_id = ?1 AND role = ?2').bind(tgId, TABLE_ROLE).first();
+  return r && isTable(r.skin) ? r.skin : null;
 }
 /* put a skin on (skin = id) or take the role's skin off (skin = null); the player must own it */
 export async function equipSkin(env, tgId, role, skin, admin, ts, extra) {

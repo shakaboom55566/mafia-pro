@@ -682,6 +682,18 @@ html.lite .rt-room-haze { display: none; }
 .rm-lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; filter: drop-shadow(0 2px 6px #000); }
 .rm-plain { display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(240,205,122,.16), rgba(29,20,20,.9) 55%, #0b0a0e); color: var(--muted); font-size: 11px; text-align: center; padding: 8px; }
 .rm-preview { margin: 0 auto; max-width: 360px; }
+/* v84: table skins — the table top is a picture of its own shape in the ring's box; the seats stand along it (22-tables.js) */
+.rtable .rt-ring.ts, .rtable.roomed .rt-ring.ts { left: 15%; top: 15%; width: 70%; height: 70%; background: none; border: 0; box-shadow: none; border-radius: 0; } /* a little wider than the plain disc: the rim is the point */
+.rt-ring.ts::after { display: none; }
+.ts-pic { --tx: 0; --ty: 0; position: absolute; left: 50%; top: 50%; aspect-ratio: 1; transform: translate(-50%, -50%) perspective(900px) rotateX(calc(var(--ty) * -4deg)) rotateY(calc(var(--tx) * 4deg)); filter: drop-shadow(0 14px 26px rgba(0,0,0,.62)); will-change: transform; }
+.ts-img { display: block; width: 100%; height: 100%; max-width: none; }
+.ts-glare { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 38%), rgba(255,236,205,.3), rgba(255,236,205,.09) 22%, transparent 56%); }
+html.lite .ts-pic { transform: translate(-50%, -50%); filter: none; } html.lite .ts-glare { display: none; }
+@media (prefers-reduced-motion: reduce) { .ts-pic { transform: translate(-50%, -50%); } }
+.rtable.skinned .rt-nm, .rtable.skinned .rt-meta, .rtable.skinned .rt-club { text-shadow: 0 1px 2px #000, 0 0 8px rgba(0,0,0,.9); }
+.ts-thumb { background: radial-gradient(circle at 50% 45%, #241a2c, #0f0b12 70%); } .ts-thumb img { object-fit: contain; padding: 6%; }
+.ts-shape { color: var(--muted); font-size: 10.5px; }
 /* v74: avatar frames — over the avatar (the hole scaled to it), under the seat's number and fouls */
 .av-frame { position: absolute; left: 50%; top: 50%; width: calc(100% * var(--fs, 2)); max-width: none; height: auto; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; }
 .rt-seat .rt-av img.av-frame { width: calc(100% * var(--fs, 2)); height: auto; border-radius: 0; object-fit: contain; }

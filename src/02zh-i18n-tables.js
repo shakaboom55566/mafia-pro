@@ -1,0 +1,28 @@
+/* ============================================================
+   v84 table skins — texts (screens: 22-tables.js; the catalog: TABLES in 12-skins.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      skins: { don_table: { name: 'Стол Дона', lore: 'Восьмиугольный стол из кабинета Дона в Кастельмаре: бордовый бархат, чёрная кожа борта, латунь и аметисты, которые светятся в темноте. За этим столом семья решала, кто доживёт до утра.' } },
+      ui: { tsTitle: 'Стол', tsHint: 'Вид самого стола: покрытие, борт, форма. Места игроков встают по его контуру. Когда вы ведёте онлайн-игру, стол видят все игроки за ним — вместе с фоном комнаты.', tsLabel: 'Скин стола', tsOn: 'на столе', tsSetBtn: 'Поставить мой стол', tsOffBtn: 'Вернуть обычный стол', tsNone: 'Обычный стол', tsNoneHint: 'круглый, тёмный', tsHow: 'Этот стол — награда: его дарит администрация Mafia Pro.', tsSet: '«{name}» — теперь ваш стол', tsOff: 'Стол снова обычный', tsPick: 'Стол', tsPickBtn: 'Вид стола', tsTilt: 'Наклоните телефон — борт блеснёт', tsWho: 'Так ваш стол увидят игроки', tsShapeLine: 'Форма: {shape}', tsShape: { circle: 'круглый', octagon: 'восьмиугольный', oval: 'овальный', rect: 'прямоугольный' } }
+    },
+    uk: {
+      skins: { don_table: { name: 'Стіл Дона', lore: 'Восьмикутний стіл із кабінету Дона в Кастельмарі: бордовий оксамит, чорна шкіра борту, латунь і аметисти, що світяться в темряві. За цим столом родина вирішувала, хто доживе до ранку.' } },
+      ui: { tsTitle: 'Стіл', tsHint: 'Вигляд самого столу: покриття, борт, форма. Місця гравців стають по його контуру. Коли ви ведете онлайн-гру, стіл бачать усі гравці за ним — разом із фоном кімнати.', tsLabel: 'Скін столу', tsOn: 'на столі', tsSetBtn: 'Поставити мій стіл', tsOffBtn: 'Повернути звичайний стіл', tsNone: 'Звичайний стіл', tsNoneHint: 'круглий, темний', tsHow: 'Цей стіл — нагорода: його дарує адміністрація Mafia Pro.', tsSet: '«{name}» — тепер ваш стіл', tsOff: 'Стіл знову звичайний', tsPick: 'Стіл', tsPickBtn: 'Вигляд столу', tsTilt: 'Нахиліть телефон — борт блисне', tsWho: 'Так ваш стіл побачать гравці', tsShapeLine: 'Форма: {shape}', tsShape: { circle: 'круглий', octagon: 'восьмикутний', oval: 'овальний', rect: 'прямокутний' } }
+    },
+    en: {
+      skins: { don_table: { name: 'The Don’s Table', lore: 'The octagonal table from the Don’s study in Castelmar: burgundy velvet, a black leather rail, brass and amethysts that glow in the dark. At this table the family decided who would live to see the morning.' } },
+      ui: { tsTitle: 'Table', tsHint: 'The look of the table itself: surface, rail, shape. The seats stand along its outline. When you host an online game, every player at your table sees it — together with the room background.', tsLabel: 'Table skin', tsOn: 'on the table', tsSetBtn: 'Make it my table', tsOffBtn: 'Back to the plain table', tsNone: 'Plain table', tsNoneHint: 'round and dark', tsHow: 'This table is a reward: Mafia Pro’s admins give it.', tsSet: '«{name}» is now your table', tsOff: 'The plain table again', tsPick: 'Table', tsPickBtn: 'Table look', tsTilt: 'Tilt the phone — the rail catches the light', tsWho: 'This is how players will see your table', tsShapeLine: 'Shape: {shape}', tsShape: { circle: 'round', octagon: 'octagonal', oval: 'oval', rect: 'rectangular' } }
+    },
+    pl: {
+      skins: { don_table: { name: 'Stół Dona', lore: 'Ośmiokątny stół z gabinetu Dona w Castelmar: bordowy aksamit, czarna skóra bandy, mosiądz i ametysty, które świecą w ciemności. Przy tym stole rodzina decydowała, kto dożyje poranka.' } },
+      ui: { tsTitle: 'Stół', tsHint: 'Wygląd samego stołu: blat, banda, kształt. Miejsca graczy ustawiają się wzdłuż jego obrysu. Gdy prowadzisz grę online, stół widzą wszyscy gracze przy nim — razem z tłem pokoju.', tsLabel: 'Skórka stołu', tsOn: 'na stole', tsSetBtn: 'Ustaw jako mój stół', tsOffBtn: 'Wróć do zwykłego stołu', tsNone: 'Zwykły stół', tsNoneHint: 'okrągły, ciemny', tsHow: 'Ten stół jest nagrodą: przyznaje go administracja Mafia Pro.', tsSet: '„{name}” — teraz to Twój stół', tsOff: 'Stół znów zwykły', tsPick: 'Stół', tsPickBtn: 'Wygląd stołu', tsTilt: 'Przechyl telefon — banda zabłyśnie', tsWho: 'Tak gracze zobaczą Twój stół', tsShapeLine: 'Kształt: {shape}', tsShape: { circle: 'okrągły', octagon: 'ośmiokątny', oval: 'owalny', rect: 'prostokątny' } }
+    },
+    hy: {
+      skins: { don_table: { name: 'Դոնի սեղանը', lore: 'Ութանկյուն սեղան Կաստելմարի Դոնի աշխատասենյակից՝ բորդո թավիշ, սև կաշվե եզր, արույր և ամեթիստներ, որոնք փայլում են մթության մեջ։ Այս սեղանի շուրջ ընտանիքը որոշում էր, թե ով կապրի մինչև առավոտ։' } },
+      ui: { tsTitle: 'Սեղան', tsHint: 'Հենց սեղանի տեսքը՝ ծածկույթ, եզր, ձև։ Խաղացողների տեղերը դասավորվում են նրա ուրվագծով։ Երբ վարում եք առցանց խաղ, սեղանը տեսնում են նրա շուրջ բոլոր խաղացողները՝ սենյակի ֆոնի հետ միասին։', tsLabel: 'Սեղանի սքին', tsOn: 'սեղանին', tsSetBtn: 'Դարձնել իմ սեղանը', tsOffBtn: 'Վերադարձնել սովորական սեղանը', tsNone: 'Սովորական սեղան', tsNoneHint: 'կլոր, մուգ', tsHow: 'Այս սեղանը պարգև է՝ այն նվիրում է Mafia Pro-ի ադմինիստրացիան։', tsSet: '«{name}»՝ այժմ ձեր սեղանն է', tsOff: 'Սեղանը կրկին սովորական է', tsPick: 'Սեղան', tsPickBtn: 'Սեղանի տեսք', tsTilt: 'Թեքեք հեռախոսը՝ եզրը կփայլի', tsWho: 'Այսպես խաղացողները կտեսնեն ձեր սեղանը', tsShapeLine: 'Ձև՝ {shape}', tsShape: { circle: 'կլոր', octagon: 'ութանկյուն', oval: 'ձվաձև', rect: 'ուղղանկյուն' } }
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (!p) return; p.skins = Object.assign(p.skins || {}, R[code].skins); Object.assign(p.ui, R[code].ui); });
+})();

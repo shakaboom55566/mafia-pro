@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.60.0-4c2e7b8">
+<meta name="mafia-build" content="1.61.0-73622ae">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -751,6 +751,18 @@ html.lite .rt-room-haze { display: none; }
 .rm-lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; filter: drop-shadow(0 2px 6px #000); }
 .rm-plain { display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(240,205,122,.16), rgba(29,20,20,.9) 55%, #0b0a0e); color: var(--muted); font-size: 11px; text-align: center; padding: 8px; }
 .rm-preview { margin: 0 auto; max-width: 360px; }
+/* v84: table skins — the table top is a picture of its own shape in the ring's box; the seats stand along it (22-tables.js) */
+.rtable .rt-ring.ts, .rtable.roomed .rt-ring.ts { left: 15%; top: 15%; width: 70%; height: 70%; background: none; border: 0; box-shadow: none; border-radius: 0; } /* a little wider than the plain disc: the rim is the point */
+.rt-ring.ts::after { display: none; }
+.ts-pic { --tx: 0; --ty: 0; position: absolute; left: 50%; top: 50%; aspect-ratio: 1; transform: translate(-50%, -50%) perspective(900px) rotateX(calc(var(--ty) * -4deg)) rotateY(calc(var(--tx) * 4deg)); filter: drop-shadow(0 14px 26px rgba(0,0,0,.62)); will-change: transform; }
+.ts-img { display: block; width: 100%; height: 100%; max-width: none; }
+.ts-glare { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 38%), rgba(255,236,205,.3), rgba(255,236,205,.09) 22%, transparent 56%); }
+html.lite .ts-pic { transform: translate(-50%, -50%); filter: none; } html.lite .ts-glare { display: none; }
+@media (prefers-reduced-motion: reduce) { .ts-pic { transform: translate(-50%, -50%); } }
+.rtable.skinned .rt-nm, .rtable.skinned .rt-meta, .rtable.skinned .rt-club { text-shadow: 0 1px 2px #000, 0 0 8px rgba(0,0,0,.9); }
+.ts-thumb { background: radial-gradient(circle at 50% 45%, #241a2c, #0f0b12 70%); } .ts-thumb img { object-fit: contain; padding: 6%; }
+.ts-shape { color: var(--muted); font-size: 10.5px; }
 /* v74: avatar frames — over the avatar (the hole scaled to it), under the seat's number and fouls */
 .av-frame { position: absolute; left: 50%; top: 50%; width: calc(100% * var(--fs, 2)); max-width: none; height: auto; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; }
 .rt-seat .rt-av img.av-frame { width: calc(100% * var(--fs, 2)); height: auto; border-radius: 0; object-fit: contain; }
@@ -7603,6 +7615,34 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   });
 })();
 /* ============================================================
+   v84 table skins — texts (screens: 22-tables.js; the catalog: TABLES in 12-skins.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      skins: { don_table: { name: 'Стол Дона', lore: 'Восьмиугольный стол из кабинета Дона в Кастельмаре: бордовый бархат, чёрная кожа борта, латунь и аметисты, которые светятся в темноте. За этим столом семья решала, кто доживёт до утра.' } },
+      ui: { tsTitle: 'Стол', tsHint: 'Вид самого стола: покрытие, борт, форма. Места игроков встают по его контуру. Когда вы ведёте онлайн-игру, стол видят все игроки за ним — вместе с фоном комнаты.', tsLabel: 'Скин стола', tsOn: 'на столе', tsSetBtn: 'Поставить мой стол', tsOffBtn: 'Вернуть обычный стол', tsNone: 'Обычный стол', tsNoneHint: 'круглый, тёмный', tsHow: 'Этот стол — награда: его дарит администрация Mafia Pro.', tsSet: '«{name}» — теперь ваш стол', tsOff: 'Стол снова обычный', tsPick: 'Стол', tsPickBtn: 'Вид стола', tsTilt: 'Наклоните телефон — борт блеснёт', tsWho: 'Так ваш стол увидят игроки', tsShapeLine: 'Форма: {shape}', tsShape: { circle: 'круглый', octagon: 'восьмиугольный', oval: 'овальный', rect: 'прямоугольный' } }
+    },
+    uk: {
+      skins: { don_table: { name: 'Стіл Дона', lore: 'Восьмикутний стіл із кабінету Дона в Кастельмарі: бордовий оксамит, чорна шкіра борту, латунь і аметисти, що світяться в темряві. За цим столом родина вирішувала, хто доживе до ранку.' } },
+      ui: { tsTitle: 'Стіл', tsHint: 'Вигляд самого столу: покриття, борт, форма. Місця гравців стають по його контуру. Коли ви ведете онлайн-гру, стіл бачать усі гравці за ним — разом із фоном кімнати.', tsLabel: 'Скін столу', tsOn: 'на столі', tsSetBtn: 'Поставити мій стіл', tsOffBtn: 'Повернути звичайний стіл', tsNone: 'Звичайний стіл', tsNoneHint: 'круглий, темний', tsHow: 'Цей стіл — нагорода: його дарує адміністрація Mafia Pro.', tsSet: '«{name}» — тепер ваш стіл', tsOff: 'Стіл знову звичайний', tsPick: 'Стіл', tsPickBtn: 'Вигляд столу', tsTilt: 'Нахиліть телефон — борт блисне', tsWho: 'Так ваш стіл побачать гравці', tsShapeLine: 'Форма: {shape}', tsShape: { circle: 'круглий', octagon: 'восьмикутний', oval: 'овальний', rect: 'прямокутний' } }
+    },
+    en: {
+      skins: { don_table: { name: 'The Don’s Table', lore: 'The octagonal table from the Don’s study in Castelmar: burgundy velvet, a black leather rail, brass and amethysts that glow in the dark. At this table the family decided who would live to see the morning.' } },
+      ui: { tsTitle: 'Table', tsHint: 'The look of the table itself: surface, rail, shape. The seats stand along its outline. When you host an online game, every player at your table sees it — together with the room background.', tsLabel: 'Table skin', tsOn: 'on the table', tsSetBtn: 'Make it my table', tsOffBtn: 'Back to the plain table', tsNone: 'Plain table', tsNoneHint: 'round and dark', tsHow: 'This table is a reward: Mafia Pro’s admins give it.', tsSet: '«{name}» is now your table', tsOff: 'The plain table again', tsPick: 'Table', tsPickBtn: 'Table look', tsTilt: 'Tilt the phone — the rail catches the light', tsWho: 'This is how players will see your table', tsShapeLine: 'Shape: {shape}', tsShape: { circle: 'round', octagon: 'octagonal', oval: 'oval', rect: 'rectangular' } }
+    },
+    pl: {
+      skins: { don_table: { name: 'Stół Dona', lore: 'Ośmiokątny stół z gabinetu Dona w Castelmar: bordowy aksamit, czarna skóra bandy, mosiądz i ametysty, które świecą w ciemności. Przy tym stole rodzina decydowała, kto dożyje poranka.' } },
+      ui: { tsTitle: 'Stół', tsHint: 'Wygląd samego stołu: blat, banda, kształt. Miejsca graczy ustawiają się wzdłuż jego obrysu. Gdy prowadzisz grę online, stół widzą wszyscy gracze przy nim — razem z tłem pokoju.', tsLabel: 'Skórka stołu', tsOn: 'na stole', tsSetBtn: 'Ustaw jako mój stół', tsOffBtn: 'Wróć do zwykłego stołu', tsNone: 'Zwykły stół', tsNoneHint: 'okrągły, ciemny', tsHow: 'Ten stół jest nagrodą: przyznaje go administracja Mafia Pro.', tsSet: '„{name}” — teraz to Twój stół', tsOff: 'Stół znów zwykły', tsPick: 'Stół', tsPickBtn: 'Wygląd stołu', tsTilt: 'Przechyl telefon — banda zabłyśnie', tsWho: 'Tak gracze zobaczą Twój stół', tsShapeLine: 'Kształt: {shape}', tsShape: { circle: 'okrągły', octagon: 'ośmiokątny', oval: 'owalny', rect: 'prostokątny' } }
+    },
+    hy: {
+      skins: { don_table: { name: 'Դոնի սեղանը', lore: 'Ութանկյուն սեղան Կաստելմարի Դոնի աշխատասենյակից՝ բորդո թավիշ, սև կաշվե եզր, արույր և ամեթիստներ, որոնք փայլում են մթության մեջ։ Այս սեղանի շուրջ ընտանիքը որոշում էր, թե ով կապրի մինչև առավոտ։' } },
+      ui: { tsTitle: 'Սեղան', tsHint: 'Հենց սեղանի տեսքը՝ ծածկույթ, եզր, ձև։ Խաղացողների տեղերը դասավորվում են նրա ուրվագծով։ Երբ վարում եք առցանց խաղ, սեղանը տեսնում են նրա շուրջ բոլոր խաղացողները՝ սենյակի ֆոնի հետ միասին։', tsLabel: 'Սեղանի սքին', tsOn: 'սեղանին', tsSetBtn: 'Դարձնել իմ սեղանը', tsOffBtn: 'Վերադարձնել սովորական սեղանը', tsNone: 'Սովորական սեղան', tsNoneHint: 'կլոր, մուգ', tsHow: 'Այս սեղանը պարգև է՝ այն նվիրում է Mafia Pro-ի ադմինիստրացիան։', tsSet: '«{name}»՝ այժմ ձեր սեղանն է', tsOff: 'Սեղանը կրկին սովորական է', tsPick: 'Սեղան', tsPickBtn: 'Սեղանի տեսք', tsTilt: 'Թեքեք հեռախոսը՝ եզրը կփայլի', tsWho: 'Այսպես խաղացողները կտեսնեն ձեր սեղանը', tsShapeLine: 'Ձև՝ {shape}', tsShape: { circle: 'կլոր', octagon: 'ութանկյուն', oval: 'ձվաձև', rect: 'ուղղանկյուն' } }
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (!p) return; p.skins = Object.assign(p.skins || {}, R[code].skins); Object.assign(p.ui, R[code].ui); });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -11966,7 +12006,7 @@ function hostTableHTML(st) {
   const sel = S.ui.seatSel || 0; seats.forEach(sx => { const m = marks[sx.seat] = marks[sx.seat] || {}; m.act = `data-a="host-seat" data-seat="${sx.seat}"`; if (sx.seat === sel) m.picked = true; if (sel && sx.seat !== sel) m.pick = true; });
   const selPl = sel ? l.players.find(p => l.seats && l.seats[p.tgId] === sel - 1) : null;
   const rows = l.players.map(pl => { const seated = l.seats && l.seats[pl.tgId] !== undefined && l.seats[pl.tgId] < st.n; const watching = ONL.watching.includes(pl.tgId) || !!pl.online; return `<div class="fr-row" role="button" data-a="fr-open" data-id="${pl.tgId}" style="padding:8px 10px"><span style="width:0"></span>${friendAvatar(pl)}<div class="grow" style="min-width:0"><div class="nm" style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${rankIco(pl)}${esc(pl.name)}${pl.username ? ` <span style="color:var(--muted);font-weight:500">@${esc(pl.username)}</span>` : ''}</div><div class="sub" style="font-size:12px;color:var(--fg-2)">${seated ? tt(u.tgSeated, { seat: l.seats[pl.tgId] + 1 }) : u.tbNoSeat}${pl.points ? ` · ${pl.points}` : ''}${pl.country || pl.city ? ` · ${[pl.country ? flagOf(pl.country) : '', pl.city ? esc(pl.city) : ''].filter(Boolean).join(' ')}` : ''}${pl.club ? ` · ${esc(pl.club)}` : ''}${watching ? ` · <span class="fr-on">${u.tbInApp}</span>` : ''}</div></div>${seated ? '' : `<button class="btn xs" data-a="tg-seat-one" data-tg="${pl.tgId}">${u.tgSeatOne}</button>`}</div>`; }).join('');
-  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button>${typeof roomPickBtnHTML === 'function' ? roomPickBtnHTML() : ''}</div>${roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null)}
+  return `<div class="panel" id="host-table"><div class="row" style="margin-bottom:8px"><div class="eyebrow grow" style="margin:0">${u.tbLobby}</div><button class="btn xs ghost" data-a="setup-jump" aria-label="${u.gearSetup}" title="${u.gearSetup}">${I.gear} ${u.gearSetup}</button>${typeof roomPickBtnHTML === 'function' ? roomPickBtnHTML() : ''}</div>${roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null, typeof myTable === 'function' ? myTable() : null)}
     <div class="hint" style="text-align:center;margin-top:6px">${selPl ? `${tt(u.seatMoveHint, { name: esc(selPl.name) })} <button class="btn xs ghost" data-a="host-seat" data-seat="${sel}">${u.seatMoveCancel}</button>` : l.players.length ? u.seatTapHint : ''}</div>
     <div class="eyebrow" style="margin-top:12px">${u.tbJoinedList} · ${l.players.length}</div>${rows ? `<div class="stack-s" style="margin-top:6px">${rows}</div>` : `<div class="hint" style="margin-top:6px">${u.tgWaiting}</div>`}</div>`;
 }
@@ -11993,7 +12033,7 @@ async function tableFetch() {
   } finally { TB.busy = false; }
 }
 /* what a re-render depends on: the table itself, my private state (without a prompt the app made up for itself), teammates' live answers */
-function tbStateSig(d) { const me = d.me && d.me.synth ? Object.assign({}, d.me, { ask: null, synth: false }) : d.me; return d.version + '|' + d.status + '|' + d.hostPlays + '|' + JSON.stringify(d.voice || null) + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points])) + '|' + JSON.stringify(d.peers || null); }
+function tbStateSig(d) { const me = d.me && d.me.synth ? Object.assign({}, d.me, { ask: null, synth: false }) : d.me; return d.version + '|' + d.status + '|' + d.hostPlays + '|' + (d.room || '') + '|' + (d.tableSkin || '') + '|' + JSON.stringify(d.voice || null) + '|' + JSON.stringify(d.players) + '|' + JSON.stringify(me) + '|' + JSON.stringify(Object.values(d.profiles || {}).map(x => [x.tgId, x.online, x.points])) + '|' + JSON.stringify(d.peers || null); }
 function scrollTbChat() { try { const c = document.querySelector('#tb-chat'); if (c) c.scrollTop = c.scrollHeight; } catch (e) {} }
 function tablePoll() {
   const want = S.screen === 'table' && TB.code && TG.app && apiBase();
@@ -12008,11 +12048,12 @@ function tbTimerPaint() { const el = document.querySelector('#tb-timer'); const 
 function tbCanChat(pub, me) { if (pub && me && pub.chat === 'last') return !!(pub.lastSeat && me.seat === pub.lastSeat && tbTimerLeft(pub.timer) > 0); if (!pub || !me || me.alive === false) return false; if (pub.chat === true || pub.chat === 'all') return true; if (pub.chat === 'speaker') return !!(pub.chatSeat && me.seat === pub.chatSeat && tbTimerLeft(pub.timer) > 0); return false; }
 const tbSeatName = (seats, seat) => { const s = seats.find(x => x.seat === seat); return s ? `${esc(String(seat))} · ${esc(s.name)}` : esc(String(seat)); };
 /* the round table: seats around a ring, host and player count in the middle */
-function roundTableHTML(seats, profiles, center, marks = {}, room = null) { // v71: room — the table's background (the host's)
+function roundTableHTML(seats, profiles, center, marks = {}, room = null, tskin = null) { // v71: room — the table's background (the host's); v84: tskin — his table's skin
   const u = U(); const n = Math.max(1, seats.length); const rl = room && typeof roomLayerHTML === 'function' ? roomLayerHTML(room) : '';
+  const ts = tskin && typeof TABLE !== 'undefined' && TABLE[tskin] ? TABLE[tskin] : null; // v84: the table is a picture of its own shape — the seats stand along it
   const size = rl ? roomTableSize(room, n) : n <= 10 ? 'lg' : n <= 16 ? 'md' : 'sm'; // v71: in a room the table is narrower (it stands on the carpet)
   const items = seats.map((s, i) => {
-    const ang = -Math.PI / 2 + 2 * Math.PI * i / n; const x = 50 + 43 * Math.cos(ang), y = 50 + 43 * Math.sin(ang);
+    const ang = -Math.PI / 2 + 2 * Math.PI * i / n; const rad = ts ? tableSeatR(ts, ang) : 43; const x = 50 + rad * Math.cos(ang), y = 50 + rad * Math.sin(ang);
     const pr = s.tgId && profiles ? profiles[s.tgId] : null; const free = !s.name && !(pr && pr.name); const name = s.name || (pr ? pr.name : '') || u.tbSeatFree;
     const av = pr && pr.photo ? `<img src="${esc(pr.photo)}" alt="">` : `<span>${free ? '·' : esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
     const m = marks[s.seat] || {}; if (free && !m.dim) m.dim = true;
@@ -12021,7 +12062,7 @@ function roundTableHTML(seats, profiles, center, marks = {}, room = null) { // v
     const act = m.act ? m.act : m.pick ? `data-a="tb-pick" data-seat="${s.seat}"` : (s.tgId ? `data-a="fr-open" data-id="${s.tgId}"` : '');
     return `<div class="${cls}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%" role="button" tabindex="0" ${act}><div class="rt-av">${av}${fr ? frameImgHTML(fr, true) : ''}<span class="rt-num">${s.seat}</span>${s.fouls ? `<span class="rt-foul f${Math.min(4, s.fouls)}" title="${esc(tt(u.tbFoulsN, { n: s.fouls }))}">${s.fouls}</span>` : ''}${m.vote ? `<span class="rt-vote">→${m.vote}</span>` : m.wait ? `<span class="rt-vote rt-wait" title="${esc(u.hvWait || '')}">…</span>` : ''}</div><div class="rt-nm">${esc(name)}${m.mine ? ` <small>· ${u.tbYou}</small>` : ''}</div>${pr ? `${typeof pr.points === 'number' ? `<div class="rt-meta">${rankIco(pr, 12)}${pr.points}${pr.country || pr.city ? ' · ' + [pr.country ? flagOf(pr.country) : '', pr.city ? esc(pr.city) : ''].filter(Boolean).join(' ') : ''}</div>` : ''}${pr.club ? `<div class="rt-club">${esc(pr.club)}</div>` : ''}` : ''}</div>`;
   });
-  const table = `<div class="rtable ${size}${rl ? ' roomed' : ''}"><div class="rt-ring"></div><div class="rt-center">${center}</div>${items.join('')}</div>`;
+  const table = `<div class="rtable ${size}${rl ? ' roomed' : ''}${ts ? ' skinned ts-' + ts.shape : ''}">${ts ? tableRingHTML(ts) : '<div class="rt-ring"></div>'}<div class="rt-center">${center}</div>${items.join('')}</div>`;
   return rl ? `<div class="rt-stage" ${roomStageAttr(room)}>${rl}${table}</div>` : table;
 }
 /* the mods of the table I sit at: the bomb hunt and the classic game change what the cards say */
@@ -12114,7 +12155,7 @@ function tableScreen() {
     return `${topbar(tt(u.tbTitle, { code: TB.code }), u.tbDead)}<div class="stack">
       <div class="panel" style="border-color:var(--crimson-2)"><div style="font-weight:800">${u.tbDead}</div><div class="hint" style="margin-top:4px">${u.tbDeadHint}</div></div>
       ${pub.lastWord && pub.lastWord.seat === mySeat ? `<div class="panel raised lw-panel"><div class="eyebrow gold">${u.lwTitle}</div><div style="font-weight:800;margin-top:4px">${u.tbLastMe}</div>${timerHTML}</div>${pub.online ? tbChatHTML(pub, me) : ''}` : ''}
-      ${roundTableHTML(seats.filter(s => s.alive !== false), profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
+      ${roundTableHTML(seats.filter(s => s.alive !== false), profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null, typeof tbTable === 'function' ? tbTable() : null)}
       ${me.roleId ? tbRoleRow(me.roleId, false) : ''}
       <button class="btn ghost" data-a="go" data-to="home">${u.tbBackHome}</button></div>`;
   }
@@ -12124,7 +12165,7 @@ function tableScreen() {
     const mates = me && me.mates && me.mates.length ? `<div class="panel"><div class="eyebrow">${u.tbMates}</div><div class="stack-s" style="margin-top:6px">${me.mates.map(m => `<div class="row"><span class="seat" style="width:28px;font-weight:800;color:var(--gold-2)">${m.seat}</span>${ROLE[m.roleId] ? sealFor(ROLE[m.roleId], m.sk) : ''}<div class="grow"><b>${esc(m.name)}</b><div class="hint" style="margin:0">${ROLE[m.roleId] ? ROLE[m.roleId].name : ''}</div></div></div>`).join('')}</div></div>` : '';
     return `${topbar(tt(u.tbTitle, { code: TB.code }), `${d.flag ? d.flag + ' ' : ''}${pub.mode ? modeLine(pub.mode, pub.open) + ' · ' : ''}${pub.online ? `${u.tbLobby} · ${u.tbOnlineTag}` : u.tbLobby}`)}<div class="stack">
       ${hostChipHTML(d)}
-      ${roundTableHTML(seats, profiles, hostLine, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
+      ${roundTableHTML(seats, profiles, hostLine, marks, typeof tbRoom === 'function' ? tbRoom() : null, typeof tbTable === 'function' ? tbTable() : null)}
       <div class="hint" style="text-align:center">${mySeat ? tt(u.tgSeated, { seat: mySeat }) : u.tbNoSeat}</div>
       ${typeof tbVoiceHTML === 'function' ? tbVoiceHTML(d, false) : ''}
       ${card}${mates}
@@ -12158,7 +12199,7 @@ function tableScreen() {
   const mates = me && me.mates && me.mates.length ? `<div class="hint" style="text-align:center">${u.tbMates}: ${me.mates.map(m => `${m.seat} · ${esc(m.name)}${ROLE[m.roleId] ? ' (' + ROLE[m.roleId].name + ')' : ''}`).join(', ')}</div>` : '';
   const waiting = pub.waiting && pub.waiting.length && !isMine ? `<div class="hint" style="text-align:center">${tt(u.onWaiting, { list: pub.waiting.join(', ') })}</div>` : (!isMine && pub.phase !== 'day' ? `<div class="hint" style="text-align:center">${u.tbWaitHostNext}</div>` : '');
   return `${topbar(tt(u.tbTitle, { code: TB.code }), `${phaseLbl}${stageLbl ? ' · ' + stageLbl : ''}`)}<div class="stack">
-    ${roundTableHTML(seats, profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null)}
+    ${roundTableHTML(seats, profiles, center, marks, typeof tbRoom === 'function' ? tbRoom() : null, typeof tbTable === 'function' ? tbTable() : null)}
     ${ask ? tbAskHTML(ask, seats) : ''}${waiting}
     ${body}
     ${me && me.roleId ? tbRoleRow(me.roleId, false) : ''}${mates}${recruitNoteHTML(me)}
@@ -13087,6 +13128,12 @@ const FRAMES = [
   { id: 'hw_werewolf_moon', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-werewolf-moon', hole: 0.4759 },
   { id: 'hw_grim_reaper', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-grim-reaper', hole: 0.4963 }
 ];
+// v84: table skins — the table top itself (surface, rim, shape) instead of the app's plain disc; role «table» on the server — src/22-tables.js
+// shape — how the seats stand around it: 'circle' (as the plain table), 'octagon' (flat sides at the top, bottom, left and right);
+// fit — the picture's width against the table's width (the rim's glow outside the table); the picture is square and transparent around the table
+const TABLES = [
+  { id: 'don_table', role: 'table', rarity: 'legendary', file: 'table-don', shape: 'octagon', fit: 1.02 }
+];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
 /* v60: nine rarities (the owner's list, 15.10.2026) in the filter's order; abbr — the short mark, plate — the word on the pill (as on the card's plaque) */
@@ -13272,14 +13319,14 @@ function skinTileHTML(s) {
 /* v76: the Skins tab in four categories — looks (card skins), room backgrounds, the table's own look (coming), avatar frames */
 const SKIN_CATS = ['looks', 'rooms', 'tables', 'frames'];
 function skinCatsHTML(cat) {
-  const u = U(); const n = { looks: SKINS.length, rooms: typeof ROOMS !== 'undefined' ? ROOMS.length : 0, tables: 0, frames: typeof FRAMES !== 'undefined' ? FRAMES.length : 0 };
+  const u = U(); const n = { looks: SKINS.length, rooms: typeof ROOMS !== 'undefined' ? ROOMS.length : 0, tables: typeof TABLES !== 'undefined' ? TABLES.length : 0, frames: typeof FRAMES !== 'undefined' ? FRAMES.length : 0 };
   const lbl = { looks: u.skCatLooks, rooms: u.skCatRooms, tables: u.skCatTables, frames: u.skCatFrames };
   return `<div class="filters sk-cats">${SKIN_CATS.map(c => `<button class="chip sk-cat ${cat === c ? 'active' : ''}" data-a="skin-cat" data-id="${c}">${esc(lbl[c] || c)}${n[c] ? ` <b class="rar-ab">${n[c]}</b>` : ''}</button>`).join('')}</div>`;
 }
 function skinsTabHTML() {
   const cat = SKIN_CATS.includes(S.ui.skinCat) ? S.ui.skinCat : 'looks';
   if (cat !== 'looks') {
-    const u = U(); const body = cat === 'rooms' ? (typeof roomsSectionHTML === 'function' ? roomsSectionHTML('all', 'all') : '') : cat === 'frames' ? (typeof framesSectionHTML === 'function' ? framesSectionHTML('all', 'all') : '') : `<div class="panel sk-soon"><div style="font-size:30px">🎲</div><p class="hint" style="margin:8px 0 0">${u.skTablesSoon}</p></div>`;
+    const u = U(); const body = cat === 'rooms' ? (typeof roomsSectionHTML === 'function' ? roomsSectionHTML('all', 'all') : '') : cat === 'frames' ? (typeof framesSectionHTML === 'function' ? framesSectionHTML('all', 'all') : '') : (typeof tablesSectionHTML === 'function' && tablesSectionHTML()) || `<div class="panel sk-soon"><div style="font-size:30px">🎲</div><p class="hint" style="margin:8px 0 0">${u.skTablesSoon}</p></div>`;
     return skinCatsHTML(cat) + body;
   }
   return skinCatsHTML(cat) + skinsLooksHTML();
@@ -13376,8 +13423,8 @@ function admSkinsSheetHTML() {
   const tile = s => { const own = owned.includes(s.id), gift = gifted.includes(s.id), on = worn.includes(s.id); const role = ROLE[s.role];
     return `<div class="sk-tile ${s.rarity} ${own ? 'own' : 'locked'} ${on ? 'worn' : ''}" role="button" tabindex="0" data-a="adm-skin" data-id="${s.id}">
       <div class="sk-thumb"><img src="${skinUrl(s, s.role === 'frame' ? '' : 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()"${s.role === 'frame' ? ' style="object-fit:contain;padding:8px"' : ''}>${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
-      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role === 'frame' ? u.afLabel : s.role)}</div></div>`; };
-  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : [], typeof FRAMES !== 'undefined' ? FRAMES : []); // v71/v74: the table backgrounds and the frames are given the same way
+      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role === 'frame' ? u.afLabel : s.role === 'table' ? u.tsLabel : s.role)}</div></div>`; };
+  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : [], typeof TABLES !== 'undefined' ? TABLES : [], typeof FRAMES !== 'undefined' ? FRAMES : []); // v71/v74/v84: the table backgrounds, the table skins and the frames are given the same way
   const all = ALL.length; const missing = ALL.filter(s => !owned.includes(s.id)).length;
   return `<h2 style="margin:0">${u.askTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''} · ${tt(u.askCount, { n: owned.length, all })}</div>
     <p class="hint" style="margin:8px 0">${u.askHint}</p>
@@ -13394,7 +13441,7 @@ Object.assign(ACT, {
   'adm-sk-q'(el) { ADMSK.q = el.value || ''; },
   'adm-sk-find'() { if (!admSkinsOn()) return; const q = ADMSK.q.trim(); if (!q) return; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
   async 'adm-skin'(el) {
-    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]) || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
+    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]) || (typeof TABLE !== 'undefined' && TABLE[el.dataset.id]) || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
     const own = (d.owned || []).includes(s.id), gift = (d.gifted || []).includes(s.id);
     if (own && !gift) { toast(u.askKeep); return; }
     ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: s.id, give: !own }); ADMSK.busy = false;
@@ -13930,7 +13977,7 @@ function hostGameTableHTML(g) {
   }
   if (onlineActive(g)) { try { Object.entries(buildAsks(g)).forEach(([id, a]) => { if (!a.done && !a.blocked) mk(Number(g.tg.map[id]) || 0, { wait: true }); }); } catch (e) {} }
   const center = `<div class="rt-phase">${phaseLbl}</div>${stage ? `<div class="rt-stage">${stage}</div>` : ''}<div class="rt-n">${tt(u.tbAtTable, { n: al.length })}</div>`;
-  const table = roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null).replace(/class="rtable (lg|md)( roomed)?"/, (m, sz, rm) => `class="rtable ${sz === 'lg' ? 'md' : 'sm'}${rm || ''}"`); // one size smaller than the players' — the controls stay close
+  const table = roundTableHTML(seats, profiles, center, marks, typeof myRoom === 'function' ? myRoom() : null, typeof myTable === 'function' ? myTable() : null).replace(/class="rtable (lg|md)( [^"]*)?"/, (m, sz, rm) => `class="rtable ${sz === 'lg' ? 'md' : 'sm'}${rm || ''}"`); // one size smaller than the players' — the controls stay close
   return `<div class="panel hv-panel" id="hv-table">${head}${table}<div class="hint hv-legend">${u.hvLegend}</div></div>`;
 }
 /* who may write right now — the same rule the players see */
@@ -14383,7 +14430,7 @@ function roomLayerHTML(id) {
 }
 
 /* ---------- 2.5D: one WebGL canvas, moved into whichever table is on screen ---------- */
-const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, ty: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 };
+const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, uty: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 }; // v84: uty — the uniform's location (it used to share the name of the tilt, which broke every frame since v73)
 // b — the point of the picture under this pixel (ctr — the carpet's centre at the stage's centre, sc — the stage's size in pictures); then the parallax by depth
 const RMGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off,ctr,sc;uniform float ty;varying vec2 v;void main(){vec2 b=ctr+(v-vec2(.5,ty))*sc;vec2 uv=b;for(int i=0;i<8;i++){float d=texture2D(dep,uv).r;uv=b+off*(d-.03);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
 function rmglInit() {
@@ -14397,7 +14444,7 @@ function rmglInit() {
     gl.useProgram(prog); const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1);
-    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc'); RMGL.ty = gl.getUniformLocation(prog, 'ty');
+    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc'); RMGL.uty = gl.getUniformLocation(prog, 'ty');
     cv.addEventListener('webglcontextlost', e => { e.preventDefault(); RMGL.failed = true; cv.remove(); }, false);
     return true;
   } catch (e) { RMGL.failed = true; return false; }
@@ -14429,7 +14476,7 @@ function roomFrame(now) {
   const key = `${r.id}:${W}x${H}:${Math.round(D)}:${RMGL.tx.toFixed(3)},${RMGL.ty.toFixed(3)}`; if (RMGL.last === key) return; RMGL.last = key;
   const gl = RMGL.gl; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; } gl.viewport(0, 0, W, H);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, a.t); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.t);
-  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D); gl.uniform1f(RMGL.ty, g.ty);
+  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D); gl.uniform1f(RMGL.uty, g.ty);
   gl.uniform2f(RMGL.off, -RMGL.tx * 0.025, -RMGL.ty * 0.025); // the carpet (depth ≈ 0) stays under the table; the walls move up to ~2.5 % of the picture
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   cv.classList.add('on');
@@ -14453,7 +14500,7 @@ function roomsSectionHTML(f, rf) {
 function roomPreviewHTML(id) {
   const u = U(); const seats = Array.from({ length: 8 }, (_, i) => ({ seat: i + 1 }));
   const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-n">${esc(ROOM[id] ? ROOM[id].name : u.rmNone)}</div>`;
-  return roundTableHTML(seats, {}, center, {}, id);
+  return roundTableHTML(seats, {}, center, {}, id, typeof myTable === 'function' ? myTable() : null); // v84: with my table's skin, if any
 }
 function roomSheetHTML(id) {
   const u = U(); const r = ROOM[id]; if (!r) return '';
@@ -14947,6 +14994,115 @@ Object.assign(ACT, {
   'oh-punish'() { const q = OH.adm.pq.trim(), reason = OH.adm.preason.trim(); if (!q || !reason) { toast(U().ohFormErr); return; } ohAsk('punish', async () => { if (await ohAdmin({ action: 'punish', q, reason, days: OH.adm.pdays })) { OH.adm.pq = ''; OH.adm.preason = ''; render(); } }); },
   async 'oh-unban'() { const q = OH.adm.pq.trim(); if (!q) return; await ohAdmin({ action: 'unban', q }); }
 });
+/* ============================================================
+   v84 TABLE SKINS — the table top itself (surface, rim, shape) instead of the app's plain disc
+   - owning: like a skin (role «table» on the server): a reward or an admin's gift; admins own all. Not sold (yet).
+   - putting up: one table per player (/api/skin/equip { role: 'table' }); the host's table is what everyone at his table sees:
+     his own lobby, game and host-view screens use it (S.skins.equipped.table), the players get it with the table (/api/table/state → tableSkin).
+   - the picture: a square, transparent around the table (skins/tools/prepare_table.py); TABLES[].shape says how the seats stand around it
+     (09-online.js roundTableHTML → tableSeatR): 'circle' — as the plain table, 'octagon' — along the eight sides, the corners further out.
+     The app's title, host and player count stay in the middle, so the picture's centre is calm.
+   - live: a glare slides over the rim with the finger / the phone's tilt (masked by the picture itself) and the top leans a few degrees;
+     old phones (html.lite) and reduced motion — the still picture. A room background and a table skin go together: the table stands on the carpet.
+   ============================================================ */
+const TABLE = Object.fromEntries(TABLES.map(t => [t.id, t]));
+['name', 'lore'].forEach(k => TABLES.forEach(t => Object.defineProperty(t, k, { get() { const p = (L.skins && L.skins[t.id]) || (I18N.ru.skins || {})[t.id] || {}; return p[k] || t.id; }, enumerable: true })));
+const tableOwned = id => !!TABLE[id] && (S.skins.owned || []).includes(id);
+const myTable = () => { const id = S.skins && S.skins.equipped && S.skins.equipped.table; return tableOwned(id) ? id : null; };
+const tbTable = () => { const id = typeof TB !== 'undefined' && TB.data && TB.data.tableSkin; return TABLE[id] ? id : null; };
+const tablesMine = () => TABLES.some(t => tableOwned(t.id));
+/* ---------- the shape: how far the rim is from the centre at this angle, in halves of the table's width (1 — the apothem / the radius) ---------- */
+function tableShapeR(t, ang) {
+  if (t.shape === 'octagon') { const k = Math.PI / 4; const a = (((ang + k / 2) % k) + k) % k - k / 2; return 1 / Math.cos(a); } // flat sides centred at 0°, 45°, 90°…, the corners at 22.5°
+  return 1; // a circle
+}
+/* where a seat stands: just outside the rim — the skinned table is 70 % of the box (the plain disc 66 %), the seat's centre 9 % further out */
+const tableSeatR = (t, ang) => 35 * tableShapeR(t, ang) + 9;
+const tableShapeName = t => (U().tsShape || {})[t.shape] || t.shape;
+/* the table top: the picture in the ring's box (fit — the picture is a little wider than the table: the rim's glow), the glare masked by it */
+function tableRingHTML(t) {
+  const src = skinUrl(t);
+  return `<div class="rt-ring ts"><div class="ts-pic" style="width:${(t.fit * 100).toFixed(1)}%"><img class="ts-img" src="${src}" alt="" draggable="false" decoding="async" onerror="const r=this.closest('.rt-ring');if(r)r.classList.remove('ts');this.parentNode.remove()"><div class="ts-glare" style="-webkit-mask-image:url(${src});mask-image:url(${src})"></div></div></div>`;
+}
+/* ---------- live: the glare and the lean follow the finger / the tilt, plus a slow drift so the rim glints on its own ---------- */
+const TSL = { raf: 0, tx: 0, ty: 0 };
+function tablesFrame(now) {
+  TSL.raf = 0; const pics = document.querySelectorAll('.ts-pic'); if (!pics.length) return;
+  TSL.raf = requestAnimationFrame(tablesFrame); if (skinsStill()) return;
+  const t = now / 1000; const px = typeof PX !== 'undefined' ? PX : { x: 0, y: 0 };
+  const gx = Math.max(-1, Math.min(1, px.x * 0.8 + Math.sin(t * 0.37) * 0.35)), gy = Math.max(-1, Math.min(1, px.y * 0.8 + Math.cos(t * 0.27) * 0.3));
+  TSL.tx += (gx - TSL.tx) * 0.1; TSL.ty += (gy - TSL.ty) * 0.1; if (TSL.fixed) [TSL.tx, TSL.ty] = TSL.fixed; // fixed: a set tilt (the channel video's frames)
+  const tx = TSL.tx.toFixed(3), ty = TSL.ty.toFixed(3), fx = (50 + TSL.tx * 38).toFixed(1) + '%', fy = (40 + TSL.ty * 38).toFixed(1) + '%';
+  pics.forEach(p => { const r = p.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return; p.style.setProperty('--tx', tx); p.style.setProperty('--ty', ty); p.style.setProperty('--gx', fx); p.style.setProperty('--gy', fy); });
+}
+function tablesKick() { if (!TSL.raf && document.querySelector('.ts-pic')) TSL.raf = requestAnimationFrame(tablesFrame); }
+setInterval(() => { try { tablesKick(); } catch (e) {} }, 400); // tables are drawn by renders and by timers (online) — the loop finds them
+
+/* ---------- choosing: the Skins tab section, a table's sheet, the host's quick picker (shared with the rooms) ---------- */
+function tableTileHTML(t) {
+  const u = U(); const own = tableOwned(t.id), on = myTable() === t.id;
+  return `<div class="rm-tile ts-tile ${own ? 'own' : 'locked'} ${on ? 'on' : ''}" role="button" tabindex="0" data-a="table-sheet" data-id="${t.id}">
+    <div class="rm-thumb ts-thumb"><img src="${skinUrl(t, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${on ? `<span class="sk-badge">${u.tsOn}</span>` : own ? '' : '<span class="rm-lock">🔒</span>'}</div>
+    <div class="sk-tn">${esc(t.name)}</div><div class="sk-tr">${rarPill(t)} <span class="ts-shape">${esc(tableShapeName(t))}</span></div></div>`;
+}
+function tablesSectionHTML() {
+  if (!TABLES.length) return ''; const u = U();
+  return `<div class="eyebrow gold">🎲 ${u.tsTitle}</div><p class="hint" style="margin:2px 0 8px">${u.tsHint}</p><div class="rm-grid">${TABLES.map(tableTileHTML).join('')}</div>`;
+}
+/* a preview: this table with an empty ring of 8 seats, in my room if I have one — exactly what the players will see */
+function tablePreviewHTML(id) {
+  const seats = Array.from({ length: 8 }, (_, i) => ({ seat: i + 1 }));
+  const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-n">${esc(TABLE[id] ? TABLE[id].name : U().tsNone)}</div>`;
+  return roundTableHTML(seats, {}, center, {}, typeof myRoom === 'function' ? myRoom() : null, id);
+}
+function tableSheetHTML(id) {
+  const u = U(); const t = TABLE[id]; if (!t) return '';
+  const own = tableOwned(id), on = myTable() === id;
+  const btn = !own ? `<p class="hint" style="margin:10px 0 0">${u.tsHow}</p>` : on ? `<button class="btn ghost" data-a="table-set" data-id="">${u.tsOffBtn}</button>` : `<button class="btn primary" data-a="table-set" data-id="${t.id}">${u.tsSetBtn}</button>`;
+  return `<div class="row" style="gap:8px;align-items:center"><h2 class="grow" style="margin:0">${esc(t.name)}</h2>${rarPill(t)}</div>
+    <div class="hint" style="margin:2px 0 10px">${u.tsLabel} · ${esc(tt(u.tsShapeLine, { shape: tableShapeName(t) }))}${on ? ' · ' + u.tsOn : ''}</div>
+    <div class="rm-preview">${tablePreviewHTML(id)}</div><div class="spin-hint">${skinsStill() ? u.tsWho : u.tsTilt}</div>
+    <p style="margin:10px 0 0;line-height:1.5">${esc(t.lore)}</p><p class="hint" style="margin:6px 0 0">${u.tsHint}</p>
+    <div class="btn-row" style="margin-top:12px">${btn}</div>`;
+}
+/* the host's picker: the tables I own and the plain one (the rooms' sheet gets this section under its own) */
+function tablesPickHTML() {
+  const u = U(); const mine = TABLES.filter(t => tableOwned(t.id)); if (!mine.length) return ''; const cur = myTable();
+  const none = `<div class="rm-tile own ${cur ? '' : 'on'}" role="button" tabindex="0" data-a="table-set" data-id=""><div class="rm-thumb rm-plain"><span>${u.tsNoneHint}</span>${cur ? '' : `<span class="sk-badge">${u.tsOn}</span>`}</div><div class="sk-tn">${u.tsNone}</div></div>`;
+  const tiles = mine.map(t => `<div class="rm-tile own ${cur === t.id ? 'on' : ''}" role="button" tabindex="0" data-a="table-set" data-id="${t.id}"><div class="rm-thumb ts-thumb"><img src="${skinUrl(t, 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">${cur === t.id ? `<span class="sk-badge">${u.tsOn}</span>` : ''}</div><div class="sk-tn">${esc(t.name)}</div></div>`).join('');
+  return `<div class="eyebrow gold" style="margin-top:4px">🎲 ${u.tsPick}</div><div class="rm-grid">${none}${tiles}</div>`;
+}
+Object.assign(ACT, {
+  'table-sheet'(el) { if (!TABLE[el.dataset.id]) return; S.ui.sheet = { type: 'table', id: el.dataset.id }; render(); },
+  async 'table-set'(el) {
+    const u = U(); const id = el.dataset.id || null; if (id && !tableOwned(id)) return; if ((myTable() || null) === id) { if (S.ui.sheet && S.ui.sheet.type === 'roomPick') { S.ui.sheet = null; render(); } return; }
+    if (typeof TG === 'undefined' || !TG.app || !apiBase()) { toast(u.skTgOnly); return; }
+    const prev = Object.assign({}, S.skins.equipped || {}); S.skins.equipped = Object.assign({}, prev); if (id) S.skins.equipped.table = id; else delete S.skins.equipped.table;
+    if (S.ui.sheet && S.ui.sheet.type === 'roomPick') S.ui.sheet = null; render();
+    const d = await api('/api/skin/equip', { role: 'table', skin: id });
+    if (!d || !d.ok) { S.skins.equipped = prev; render(); toast(u.skErr); return; }
+    S.skins.equipped = d.equipped || {}; save(); render(); toast(id ? tt(u.tsSet, { name: TABLE[id].name }) : u.tsOff); tgHaptic('success');
+  }
+});
+(function () {
+  const orig = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || sh.type !== 'table') return orig.apply(this, arguments);
+    const body = tableSheetHTML(sh.id); if (!body) return orig.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${body}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
+  };
+  // the host's «Background» button and sheet (18-rooms.js) also offer the tables: the button shows for a table alone, the sheet lists both
+  if (typeof roomPickBtnHTML === 'function') {
+    const origBtn = roomPickBtnHTML;
+    roomPickBtnHTML = function () { if (!tablesMine()) return origBtn.apply(this, arguments); return `<button class="btn xs ghost" data-a="room-pick" aria-label="${U().tsPickBtn}">🏛 ${U().tsPickBtn}</button>`; };
+    const origPick = roomPickHTML;
+    roomPickHTML = function () { const u = U(); const rooms = typeof roomsMine === 'function' && roomsMine(); return (rooms ? origPick.apply(this, arguments) : `<h2 style="margin:0">${u.tsPickBtn}</h2><p class="hint" style="margin:4px 0 10px">${u.rmPickHint}</p>`) + tablesPickHTML(); };
+    const origAct = ACT['room-pick'];
+    ACT['room-pick'] = function () { if (!tablesMine()) return origAct.apply(this, arguments); S.ui.sheet = { type: 'roomPick' }; render(); };
+  }
+  const origRender = render;
+  render = function () { origRender.apply(this, arguments); try { tablesKick(); } catch (e) {} };
+})();
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

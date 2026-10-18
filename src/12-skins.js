@@ -70,6 +70,12 @@ const FRAMES = [
   { id: 'hw_werewolf_moon', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-werewolf-moon', hole: 0.4759 },
   { id: 'hw_grim_reaper', role: 'frame', rarity: 'sr', series: 'halloween', file: 'frame-hw-grim-reaper', hole: 0.4963 }
 ];
+// v84: table skins — the table top itself (surface, rim, shape) instead of the app's plain disc; role «table» on the server — src/22-tables.js
+// shape — how the seats stand around it: 'circle' (as the plain table), 'octagon' (flat sides at the top, bottom, left and right);
+// fit — the picture's width against the table's width (the rim's glow outside the table); the picture is square and transparent around the table
+const TABLES = [
+  { id: 'don_table', role: 'table', rarity: 'legendary', file: 'table-don', shape: 'octagon', fit: 1.02 }
+];
 /* skins:end */
 const SKIN = Object.fromEntries(SKINS.map(s => [s.id, s]));
 /* v60: nine rarities (the owner's list, 15.10.2026) in the filter's order; abbr — the short mark, plate — the word on the pill (as on the card's plaque) */
@@ -255,14 +261,14 @@ function skinTileHTML(s) {
 /* v76: the Skins tab in four categories — looks (card skins), room backgrounds, the table's own look (coming), avatar frames */
 const SKIN_CATS = ['looks', 'rooms', 'tables', 'frames'];
 function skinCatsHTML(cat) {
-  const u = U(); const n = { looks: SKINS.length, rooms: typeof ROOMS !== 'undefined' ? ROOMS.length : 0, tables: 0, frames: typeof FRAMES !== 'undefined' ? FRAMES.length : 0 };
+  const u = U(); const n = { looks: SKINS.length, rooms: typeof ROOMS !== 'undefined' ? ROOMS.length : 0, tables: typeof TABLES !== 'undefined' ? TABLES.length : 0, frames: typeof FRAMES !== 'undefined' ? FRAMES.length : 0 };
   const lbl = { looks: u.skCatLooks, rooms: u.skCatRooms, tables: u.skCatTables, frames: u.skCatFrames };
   return `<div class="filters sk-cats">${SKIN_CATS.map(c => `<button class="chip sk-cat ${cat === c ? 'active' : ''}" data-a="skin-cat" data-id="${c}">${esc(lbl[c] || c)}${n[c] ? ` <b class="rar-ab">${n[c]}</b>` : ''}</button>`).join('')}</div>`;
 }
 function skinsTabHTML() {
   const cat = SKIN_CATS.includes(S.ui.skinCat) ? S.ui.skinCat : 'looks';
   if (cat !== 'looks') {
-    const u = U(); const body = cat === 'rooms' ? (typeof roomsSectionHTML === 'function' ? roomsSectionHTML('all', 'all') : '') : cat === 'frames' ? (typeof framesSectionHTML === 'function' ? framesSectionHTML('all', 'all') : '') : `<div class="panel sk-soon"><div style="font-size:30px">🎲</div><p class="hint" style="margin:8px 0 0">${u.skTablesSoon}</p></div>`;
+    const u = U(); const body = cat === 'rooms' ? (typeof roomsSectionHTML === 'function' ? roomsSectionHTML('all', 'all') : '') : cat === 'frames' ? (typeof framesSectionHTML === 'function' ? framesSectionHTML('all', 'all') : '') : (typeof tablesSectionHTML === 'function' && tablesSectionHTML()) || `<div class="panel sk-soon"><div style="font-size:30px">🎲</div><p class="hint" style="margin:8px 0 0">${u.skTablesSoon}</p></div>`;
     return skinCatsHTML(cat) + body;
   }
   return skinCatsHTML(cat) + skinsLooksHTML();
@@ -359,8 +365,8 @@ function admSkinsSheetHTML() {
   const tile = s => { const own = owned.includes(s.id), gift = gifted.includes(s.id), on = worn.includes(s.id); const role = ROLE[s.role];
     return `<div class="sk-tile ${s.rarity} ${own ? 'own' : 'locked'} ${on ? 'worn' : ''}" role="button" tabindex="0" data-a="adm-skin" data-id="${s.id}">
       <div class="sk-thumb"><img src="${skinUrl(s, s.role === 'frame' ? '' : 'thumb')}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()"${s.role === 'frame' ? ' style="object-fit:contain;padding:8px"' : ''}>${own ? `<span class="sk-badge ${gift ? 'gift' : ''}">${gift ? '🎁 ' + u.askGift : on ? u.askWorn : u.askOwn}</span>` : ''}</div>
-      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role === 'frame' ? u.afLabel : s.role)}</div></div>`; };
-  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : [], typeof FRAMES !== 'undefined' ? FRAMES : []); // v71/v74: the table backgrounds and the frames are given the same way
+      <div class="sk-tn">${esc(s.name)}</div><div class="sk-tr">${esc(role ? role.name : s.role === 'room' ? u.rmLabel : s.role === 'frame' ? u.afLabel : s.role === 'table' ? u.tsLabel : s.role)}</div></div>`; };
+  const ALL = SKINS.concat(typeof ROOMS !== 'undefined' ? ROOMS : [], typeof TABLES !== 'undefined' ? TABLES : [], typeof FRAMES !== 'undefined' ? FRAMES : []); // v71/v74/v84: the table backgrounds, the table skins and the frames are given the same way
   const all = ALL.length; const missing = ALL.filter(s => !owned.includes(s.id)).length;
   return `<h2 style="margin:0">${u.askTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''} · ${tt(u.askCount, { n: owned.length, all })}</div>
     <p class="hint" style="margin:8px 0">${u.askHint}</p>
@@ -377,7 +383,7 @@ Object.assign(ACT, {
   'adm-sk-q'(el) { ADMSK.q = el.value || ''; },
   'adm-sk-find'() { if (!admSkinsOn()) return; const q = ADMSK.q.trim(); if (!q) return; S.ui.sheet = { type: 'admSkins' }; admSkinsLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
   async 'adm-skin'(el) {
-    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]) || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
+    const u = U(); const d = ADMSK.d; const s = SKIN[el.dataset.id] || (typeof ROOM !== 'undefined' && ROOM[el.dataset.id]) || (typeof TABLE !== 'undefined' && TABLE[el.dataset.id]) || (typeof FRAME !== 'undefined' && FRAME[el.dataset.id]); if (!d || !d.user || !s || ADMSK.busy) return;
     const own = (d.owned || []).includes(s.id), gift = (d.gifted || []).includes(s.id);
     if (own && !gift) { toast(u.askKeep); return; }
     ADMSK.busy = true; const r = await api('/api/admin/skin', { tgId: d.user.tgId, skin: s.id, give: !own }); ADMSK.busy = false;

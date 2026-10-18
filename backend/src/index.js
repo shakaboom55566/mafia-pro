@@ -63,7 +63,7 @@ import { apiAdClick, adStart, adsCreds, adsStats, onAdsCommand, onAdsCallback, r
 import { LANGS, flagOf, discordReady, createVoice, setVoiceLimit, deleteVoice, limitFor, hookSend, hookLang, cardT, dcall, verifyInteraction, snowflakeTime, handleButton } from './discord.js';
 import { ROLE_NAMES } from './role-names.js';
 import { rankIdx, rankName, rankLabel, rankNext, hostLevel, rankRoleName, RANK_MIN, RANK_EMOJI, HOST_LEVELS, RANK_NOVICE_GAMES, seasonAt } from './ranks.js';
-import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered, roomOf, isRoom, isFrame, framesOf } from './skins.js';
+import { ownedSkins, equippedSkins, equippedOf, equipSkin, grantSeasonSkin, skinName, SKINS, isSkin, buySkinStmts, giftedSkins, giftSkinStmts, takeGiftedSkins, serialsOf, skinCounters, isNumbered, roomOf, isRoom, isFrame, framesOf, tableSkinOf, isTable } from './skins.js';
 import { PACK, isPack, packGrant, boughtPacks, changeStmts, balanceOf, ledgerOf, emeraldsInfo, epicPrice, skinPrice, framePrice, PACKS as EM_PACKS } from './emeralds.js';
 import { officialInfo, officialSet, officialList, pendingApps, applyForm, decideApp, buyLicense, appoint, revoke as revokeOfficial, punish, pardon, penaltiesList, rewardGame, estimateFor, officialsText, runOfficialCron, license as officialLicense, limits as officialLimits, OFFICIAL_RANK_K } from './official.js';
 import { tournamentView, joinTournament, openTournament, drawRound, setTableHost, closeTournament, setTournament, creditGame, borrowsSkins, runTournamentCron, tournamentStatusText, currentTournament, takeTable } from './tournament.js';
@@ -861,7 +861,7 @@ async function giveSkins(env, bot, adminId, target, skins) {
   if (!add.length) return [];
   for (let i = 0; i < add.length; i += 40) await env.DB.batch(giftSkinStmts(env, target.tg_id, add.slice(i, i + 40), adminId, now(), randomId(4) + i));
   const lang = pickLang(target.lang);
-  const text = add.length === 1 ? t(lang, isRoom(add[0]) ? 'roomGift' : isFrame(add[0]) ? 'frameGift' : 'skinGift', { skin: esc(skinName(add[0], lang)) }) : t(lang, 'skinGiftMany', { n: add.length }); // v71: a room has its own words
+  const text = add.length === 1 ? t(lang, isRoom(add[0]) ? 'roomGift' : isFrame(add[0]) ? 'frameGift' : isTable(add[0]) ? 'tableGift' : 'skinGift', { skin: esc(skinName(add[0], lang)) }) : t(lang, 'skinGiftMany', { n: add.length }); // v71/v74/v84: a room, a frame and a table have their own words
   try { await bot.send(target.tg_id, text, bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) {}
   return add;
 }
@@ -1546,7 +1546,7 @@ async function apiTableState(env, bot, body) {
   const voice = await voiceInfo(env, code, v.user.id); const flag = flagOf(await lobbyLang(env, code));
   let official = null; // v77: an official host's table — what a game here brings me
   if (profiles[lobby.host_id] && profiles[lobby.host_id].official) { const lim = officialLimits(env); const today = isHost ? 0 : (await env.DB.prepare("SELECT COUNT(*) AS n FROM emerald_ledger WHERE tg_id = ?1 AND kind = 'game' AND created_at > ?2").bind(v.user.id, now() - 86400).first('n')) || 0; official = Object.assign({ on: true, left: Math.max(0, lim.dayGames - today), limits: lim }, isHost ? {} : estimateFor(profiles, players.map(p => p.tgId).filter(id => id !== lobby.host_id), v.user.id) || {}); }
-  return json({ ok: true, now: Date.now(), official, peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, room: await roomOf(env, lobby.host_id), host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
+  return json({ ok: true, now: Date.now(), official, peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, room: await roomOf(env, lobby.host_id), tableSkin: await tableSkinOf(env, lobby.host_id), host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
 }
 async function apiTableAct(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -2035,13 +2035,13 @@ async function cachedLeaderboard(env) {
   if (r && r.value && now() - r.updated_at < LB_EVERY + 60) { try { const v = JSON.parse(r.value); if (v && !Array.isArray(v) && v.n === sz.n && v.final === (sz.phase === 'break')) return { top: v.top, at: r.updated_at, final: v.final, season: seasonInfo(sz) }; } catch (e) {} } // another season or phase: rebuild
   return buildLeaderboard(env);
 }
-async function dropLeaderboard(env) { await env.DB.prepare('DELETE FROM discord_cfg WHERE key IN (?1, ?2)').bind(LB_KEY, LB_GEO).run(); } // v83: the country board too
+async function dropLeaderboard(env) { await env.DB.prepare('DELETE FROM discord_cfg WHERE key IN (?1, ?2)').bind(LB_KEY, LB_GEO).run(); } // v84: the country board too
 async function apiLeaderboard(env, url) {
   const limit = Math.max(1, Math.min(LB_MAX, Number(url.searchParams.get('limit')) || 20));
   const { top, at, final, season } = await cachedLeaderboard(env);
   return json({ ok: true, top: top.slice(0, limit), at: at * 1000, every: LB_EVERY * 1000, final: !!final, season });
 }
-/* v83: the rating by country — the same points as the overall top (between seasons the finished season's results), grouped by the
+/* v84: the rating by country — the same points as the overall top (between seasons the finished season's results), grouped by the
    profile's country (user_countries: set from the network at the first open since v75, the player may change or clear it).
    Built on request, kept in discord_cfg 'lb:geo' for 10 minutes (a game result drops it with the top); up to 50 players a country. */
 const LB_GEO = 'lb:geo', LB_GEO_MAX = 50;

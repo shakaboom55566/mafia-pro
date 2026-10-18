@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02zg-i18n-hookah.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02zg-i18n-hookah.js', '02zh-i18n-tables.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '22-tables.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -1122,11 +1122,11 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v66 ' + m); }
   S.game = null; S.lobby = null; S.screen = 'home'; S.ui.sheet = null; X.render(); console.log('v66 ok');
 } catch (e) { fails++; console.log('FAIL v66 crashed', e && e.stack || e); }
 // v68: an admin gives a player skins — the entry in the player's sheet, the stats screen and the admin panel; a tile gives, a gift is taken back, «Give all»
-try { const u = X.U(); const F = m => { fails++; console.log('FAIL v68 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const SK = E('SKINS').concat(E('ROOMS'), E('FRAMES')); // v71/v74: rooms and frames are given the same way
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v68 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const SK = E('SKINS').concat(E('ROOMS'), E('TABLES'), E('FRAMES')); // v71/v74/v84: rooms, tables and frames are given the same way
   vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []; globalThis.__own = { owned: ["amethyst_don"], gifted: [] }', ctx);
   vm.runInContext(`api = async (p, b) => { __calls.push([p, b]); const view = () => ({ ok: true, user: { tgId: 777, name: 'Нина <b>', username: 'nina' }, owned: __own.owned.slice(), gifted: __own.gifted.slice(), equipped: { don: 'amethyst_don' } });
     if (p === '/api/admin/skins') return (b.q === '@nobody') ? { ok: false, error: 'not_found' } : view();
-    if (p === '/api/admin/skin') { const ids = b.skin === 'all' ? SKINS.concat(ROOMS, FRAMES).map(s => s.id).filter(id => !__own.owned.includes(id)) : [b.skin];
+    if (p === '/api/admin/skin') { const ids = b.skin === 'all' ? SKINS.concat(ROOMS, TABLES, FRAMES).map(s => s.id).filter(id => !__own.owned.includes(id)) : [b.skin];
       if (b.give) ids.forEach(id => { if (!__own.owned.includes(id)) { __own.owned.push(id); __own.gifted.push(id); } }); else ids.forEach(id => { __own.owned = __own.owned.filter(x => x !== id); __own.gifted = __own.gifted.filter(x => x !== id); });
       return Object.assign(view(), { changed: ids, give: !!b.give }); }
     return { ok: false, error: 'not_found' }; }`, ctx);
@@ -1185,6 +1185,52 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v71 ' + m); }
   vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
   S.lobby = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.screen = 'home'; X.render(); console.log('v71 ok');
 } catch (e) { fails++; console.log('FAIL v71 crashed', e && e.stack || e); }
+// v84: table skins — the Skins tab section, the table's sheet with a live preview, putting it up, the shape's seat ring, the host's lobby and the players' table
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v84 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const TS = E('TABLES'); const id = TS[0].id; const RM = E('ROOMS');
+  vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []', ctx);
+  vm.runInContext('api = async (p, b) => { __calls.push([p, b]); if (p === "/api/skin/equip") { const e = Object.assign({}, S.skins.equipped); if (b.skin) e[b.role] = b.skin; else delete e[b.role]; return { ok: true, equipped: e }; } return { ok: false }; }', ctx);
+  const calls = E('__calls'); const last = () => calls[calls.length - 1];
+  S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.skinFilter = 'all'; S.ui.skinRar = 'all';
+  if (TS[0].shape !== 'octagon' || !(TS[0].fit > 1 && TS[0].fit < 1.2)) F('the first table is the octagon with a small glow margin');
+  // the shape: an octagon's seats stand further out at the corners (22.5°) than at the sides (0°, 45°, 90°); a circle is a circle
+  const R = E('tableShapeR'); const oct = TS[0];
+  if (Math.abs(R(oct, 0) - 1) > 1e-6 || Math.abs(R(oct, Math.PI / 4) - 1) > 1e-6 || Math.abs(R(oct, -Math.PI / 2) - 1) > 1e-6 || Math.abs(R(oct, Math.PI / 8) - 1 / Math.cos(Math.PI / 8)) > 1e-6 || Math.abs(R(oct, -Math.PI / 2 + 2 * Math.PI / 16) - R(oct, Math.PI / 8)) > 1e-6) F('the octagon\'s outline: 1 at the sides, 1.082 at the corners, symmetrical');
+  if (R({ shape: 'circle' }, 1.234) !== 1 || E('tableSeatR')({ shape: 'circle' }, 0) !== 44) F('a round skin keeps a round seat ring');
+  const html8 = E('roundTableHTML')(Array.from({ length: 8 }, (_, i) => ({ seat: i + 1 })), {}, '', {}, null, id); // 8 seats on an octagon: all at the sides' middles — the same distance
+  const tops = [...html8.matchAll(/style="left:([\d.]+)%;top:([\d.]+)%"/g)].map(m => Math.hypot(+m[1] - 50, +m[2] - 50));
+  if (tops.length !== 8 || tops.some(d => Math.abs(d - 44) > 0.2) || !html8.includes('rtable lg skinned ts-octagon') || !html8.includes('rt-ring ts') || !html8.includes(oct.file + '.webp') || !html8.includes('ts-glare') || !html8.includes('mask-image')) F('8 seats at the sides, the picture in the ring with its glare');
+  const html12 = E('roundTableHTML')(Array.from({ length: 12 }, (_, i) => ({ seat: i + 1 })), {}, '', {}, null, id); const d12 = [...html12.matchAll(/style="left:([\d.]+)%;top:([\d.]+)%"/g)].map(m => Math.hypot(+m[1] - 50, +m[2] - 50));
+  if (d12.length !== 12 || Math.max(...d12) < 45 || Math.min(...d12) > 44.2) F('12 seats: some at the corners stand further out than those at the sides');
+  if (E('roundTableHTML')([{ seat: 1 }], {}, '', {}, null, 'nope').includes('rt-ring ts') || !E('roundTableHTML')([{ seat: 1 }], {}, '', {}, null, null).includes('<div class="rt-ring"></div>')) F('an unknown or absent skin — the plain disc');
+  // the Skins tab: the Table category lists it, locked; its sheet shows the live preview and how to get it
+  A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; A['skin-cat'](el('skin-cat', { id: 'tables' })); check('v84 skins tab tables'); let h = app.innerHTML;
+  if (!h.includes(u.tsTitle) || !h.includes('class="rm-tile ts-tile locked') || !h.includes(`data-a="table-sheet" data-id="${id}"`) || !h.includes('rm-lock') || !h.includes(u.tsShape.octagon) || h.includes(u.skTablesSoon)) F('the section lists the table, locked, with its shape; «coming soon» is gone');
+  A['table-sheet'](el('table-sheet', { id })); check('v84 table sheet locked'); h = app.innerHTML;
+  if (!h.includes('rtable lg skinned ts-octagon') || !h.includes(oct.file + '.webp') || !h.includes(u.tsHow) || h.includes('data-a="table-set"') || (h.match(/class="rt-seat /g) || []).length < 8 || !h.includes(X.tt(u.tsShapeLine, { shape: u.tsShape.octagon }))) F('locked: the live preview with 8 seats, the shape, how to get it');
+  const n0 = calls.length; await A['table-set'](el('table-set', { id })); if (calls.length !== n0) F('a table not owned cannot be put up');
+  // owned: put it up; with a room on, the preview shows both
+  S.skins.owned = [id, RM[0].id]; X.render(); h = app.innerHTML; if (!h.includes(`data-a="table-set" data-id="${id}"`) || !h.includes(u.tsSetBtn)) F('owned: the button puts it up');
+  await A['table-set'](el('table-set', { id })); h = app.innerHTML; if (last()[0] !== '/api/skin/equip' || last()[1].role !== 'table' || last()[1].skin !== id || S.skins.equipped.table !== id || !h.includes(u.tsOffBtn)) F('put up through the server');
+  S.skins.equipped.room = RM[0].id; X.render(); h = app.innerHTML; if (!h.includes('rtable lg roomed skinned ts-octagon') || !h.includes(`data-room="${RM[0].id}"`)) F('the sheet\'s preview: the table in my room');
+  S.ui.sheet = null; A['room-sheet'](el('room-sheet', { id: RM[0].id })); h = app.innerHTML; if (!h.includes('rtable lg roomed skinned ts-octagon')) F('the room\'s preview wears my table too');
+  S.ui.sheet = null; X.render(); if (!app.innerHTML.includes('rm-tile ts-tile own on')) F('the tile says it is on the table');
+  // the host's lobby: the skinned table, the picker offers the rooms and the tables
+  S.lobby = { code: 'TS83', link: '', players: [], map: {}, sent: [], seats: {}, flag: '' }; const st = { n: 7, names: [], seatProfiles: [] };
+  h = E('hostTableHTML')(st); if (!h.includes('rtable lg roomed skinned ts-octagon') || !h.includes('data-a="room-pick"') || !h.includes(u.tsPickBtn)) F('the host\'s lobby table wears the skin in the room, the picker button names the table look');
+  A['room-pick'](); check('v84 picker'); h = app.innerHTML; if ((h.match(/data-a="table-set"/g) || []).length !== 2 || (h.match(/data-a="room-set"/g) || []).length !== 2 || !h.includes(u.tsNone) || !h.includes(u.rmNone)) F('the picker: no background + my room, plain table + my table');
+  await A['table-set'](el('table-set', { id: '' })); if (S.skins.equipped.table || last()[1].skin !== null || last()[1].role !== 'table' || S.ui.sheet) F('«plain table» takes it down and closes the picker');
+  h = E('hostTableHTML')(st); if (h.includes('skinned') || h.includes('rt-ring ts')) F('no skin — the plain disc in the room');
+  // a table alone (no room): the picker button still shows, the sheet lists only the tables
+  delete S.skins.equipped.room; S.skins.owned = [id]; S.skins.equipped.table = id; if (!E('roomPickBtnHTML')().includes('data-a="room-pick"')) F('a table alone shows the picker button');
+  A['room-pick'](); h = app.innerHTML; if (h.includes('data-a="room-set"') || (h.match(/data-a="table-set"/g) || []).length !== 2 || !h.includes(u.tsPickBtn)) F('no rooms: the picker lists the tables only');
+  S.ui.sheet = null;
+  // the players see the host's table skin with the table (not their own)
+  vm.runInContext('TB.data = { tableSkin: "' + id + '" }', ctx); if (E('tbTable')() !== id) F('the player\'s table takes the host\'s skin'); vm.runInContext('TB.data = { tableSkin: "nope" }', ctx); if (E('tbTable')() !== null) F('an unknown skin is ignored');
+  vm.runInContext('TB.data = null', ctx); if (E('tbStateSig')({ version: 1, status: 'open', tableSkin: id, players: [] }) === E('tbStateSig')({ version: 1, status: 'open', tableSkin: null, players: [] })) F('a changed table skin re-renders the player\'s screen');
+  S.skins.owned = []; S.skins.equipped = {}; if (E('roomPickBtnHTML')() !== '') F('nothing owned — no picker');
+  vm.runInContext('api = __api; apiBase = __apiBase; TG.app = null', ctx);
+  S.lobby = null; S.cloud = null; S.skins = { owned: [], equipped: {} }; S.ui.sheet = null; S.ui.cardsTab = 'cards'; S.ui.skinCat = null; S.screen = 'home'; X.render(); console.log('v84 ok');
+} catch (e) { fails++; console.log('FAIL v84 crashed', e && e.stack || e); }
 // v74: avatar frames — the Skins tab section with my avatar, a frame's sheet (price, buy, put on, take off), the frame on the table and in a profile
 try { const u = X.U(); const F = m => { fails++; console.log('FAIL v74 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const FR = E('FRAMES'); const id = FR[0].id, id2 = FR[7].id;
   vm.runInContext('TG.app = TG.app || { initData: "" }; globalThis.__api = api; globalThis.__apiBase = apiBase; apiBase = () => "https://x.test"; globalThis.__calls = []', ctx);
@@ -1263,7 +1309,7 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v76 ' + m); }
   S.cloud = { user: { id: 500, name: 'Me' } }; S.skins = { owned: ['hw_grim_reaper'], equipped: { frame: 'hw_grim_reaper' } }; S.ui.sheet = null; S.ui.skinCat = null;
   A.go(el('go', { to: 'cards' })); S.ui.cardsTab = 'skins'; X.render(); check('v76 skins categories'); let h = app.innerHTML;
   if ((h.match(/data-a="skin-cat"/g) || []).length !== 4 || ![u.skCatLooks, u.skCatRooms, u.skCatTables, u.skCatFrames].every(t => h.includes(t)) || !h.includes('sk-cat active') || !h.includes('data-a="skin-rar"')) F('four categories, the looks first with their filters');
-  A['skin-cat'](el('skin-cat', { id: 'tables' })); check('v76 tables soon'); if (!app.innerHTML.includes(u.skTablesSoon) || app.innerHTML.includes('data-a="skin-rar"')) F('the table: coming soon');
+  A['skin-cat'](el('skin-cat', { id: 'tables' })); check('v76 tables'); if (!app.innerHTML.includes(u.tsTitle) || !app.innerHTML.includes('data-a="table-sheet"') || app.innerHTML.includes('data-a="skin-rar"')) F('the table: the table skins (v84), without the rarity row');
   A['skin-cat'](el('skin-cat', { id: 'nope' })); if (S.ui.skinCat !== 'looks') F('an unknown category — the looks');
   // my profile: the frame around my avatar, the favourite card
   const me = E('newProfile')({ name: 'Me', tgId: 500 }); S.profiles.unshift(me); S.meId = me.id; me.history = [{ roleId: 'doctor', won: true, n: 8, date: Date.now(), points: 15, survived: true }];
@@ -1404,15 +1450,15 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v82 ' + m); }
   A['cards-tab'](el('cards-tab', { v: 'cards' })); S.screen = 'home'; X.render();
   console.log('v82 hookah ok');
 } catch (e) { fails++; console.log('FAIL v82 crashed', e && e.stack || e); }
-// v83: the «Country» tab with the server — every country players play from (with how many), opens on my country, that country's top
-try { const u = X.U(); const F = m => { fails++; console.log('FAIL v83 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
+// v84: the «Country» tab with the server — every country players play from (with how many), opens on my country, that country's top
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v84 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S();
   vm.runInContext('globalThis.__api3 = api; globalThis.__apiBase3 = apiBase; globalThis.__tg3 = TG.app; TG.app = { initData: "x" }; apiBase = () => "https://x.test"; globalThis.__gb = []', ctx);
   vm.runInContext(`api = async (p, b) => { if (p === '/api/leaderboard/country') { __gb.push(b.country); const c = b.country || 'UA'; const tops = { UA: [{ rank: 1, tgId: 11, name: 'Mikael', username: 'm', photo: '', points: 1056, games: 2, wins: 2, hosted: 0 }, { rank: 2, tgId: 12, name: 'Viktoriia', username: 'v', photo: '', points: 1054, games: 3, wins: 2, hosted: 0 }], PL: [{ rank: 1, tgId: 21, name: 'Ania', username: 'a', photo: '', points: 1030, games: 2, wins: 1, hosted: 0 }] };
     return { ok: true, countries: [{ country: 'UA', players: 9 }, { country: 'PL', players: 3 }, { country: 'AM', players: 1 }], country: c, mine: 'UA', top: tops[c] || [], at: Date.now(), every: 600000, final: false }; }
     if (p === '/api/leaderboard') return { ok: true, top: [], at: Date.now() }; return { ok: false }; }`, ctx);
   const tick = () => new Promise(r => setTimeout(r, 5));
-  S.profiles = S.profiles.filter(p => !p.__v83); S.ui.rtTab = 'rating'; S.ui.rt = { scope: 'country', period: 'all', city: null, country: null, role: 'sheriff' };
-  A.go(el('go', { to: 'ratings' })); await tick(); await tick(); await tick(); X.render(); let h = app.innerHTML; check('v83 country tab');
+  S.profiles = S.profiles.filter(p => !p.__v84); S.ui.rtTab = 'rating'; S.ui.rt = { scope: 'country', period: 'all', city: null, country: null, role: 'sheriff' };
+  A.go(el('go', { to: 'ratings' })); await tick(); await tick(); await tick(); X.render(); let h = app.innerHTML; check('v84 country tab');
   const gb = E('__gb'); if (!gb.length) F('the tab asks the server');
   const opts = (h.match(/<select class="input" data-a="rt-pick" data-k="country">([\s\S]*?)<\/select>/) || [])[1] || '';
   if (!opts.includes('value="UA"') || !opts.includes('value="PL"') || !opts.includes('value="AM"') || !opts.includes('· 9') || opts.indexOf('value="UA"') > opts.indexOf('value="PL"')) F('every server country in the picker, most players first: ' + opts.slice(0, 300));
@@ -1424,8 +1470,8 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v83 ' + m); }
   A['rt-pick']({ dataset: { k: 'country' }, value: 'AM' }); await tick(); await tick(); X.render(); h = app.innerHTML; if (!h.includes(u.geoTopEmpty)) F('a country with nobody on top says so');
   vm.runInContext('api = __api3; apiBase = __apiBase3; TG.app = __tg3', ctx);
   S.ui.rt = { scope: 'server', period: 'all', city: null, country: null, role: 'sheriff' }; S.screen = 'home'; X.render();
-  console.log('v83 country ok');
-} catch (e) { fails++; console.log('FAIL v83 crashed', e && e.stack || e); }
+  console.log('v84 country ok');
+} catch (e) { fails++; console.log('FAIL v84 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

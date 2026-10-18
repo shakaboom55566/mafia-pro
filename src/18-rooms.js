@@ -24,7 +24,7 @@ function roomLayerHTML(id) {
 }
 
 /* ---------- 2.5D: one WebGL canvas, moved into whichever table is on screen ---------- */
-const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, ty: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 };
+const RMGL = { gl: null, cv: null, off: null, ctr: null, sc: null, uty: null, tex: {}, failed: false, raf: 0, tx: 0, ty: 0, last: '', at: 0 }; // v84: uty — the uniform's location (it used to share the name of the tilt, which broke every frame since v73)
 // b — the point of the picture under this pixel (ctr — the carpet's centre at the stage's centre, sc — the stage's size in pictures); then the parallax by depth
 const RMGL_FS = 'precision mediump float;uniform sampler2D img,dep;uniform vec2 off,ctr,sc;uniform float ty;varying vec2 v;void main(){vec2 b=ctr+(v-vec2(.5,ty))*sc;vec2 uv=b;for(int i=0;i<8;i++){float d=texture2D(dep,uv).r;uv=b+off*(d-.03);}gl_FragColor=texture2D(img,clamp(uv,.001,.999));}';
 function rmglInit() {
@@ -38,7 +38,7 @@ function rmglInit() {
     gl.useProgram(prog); const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     gl.uniform1i(gl.getUniformLocation(prog, 'img'), 0); gl.uniform1i(gl.getUniformLocation(prog, 'dep'), 1);
-    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc'); RMGL.ty = gl.getUniformLocation(prog, 'ty');
+    RMGL.gl = gl; RMGL.cv = cv; RMGL.off = gl.getUniformLocation(prog, 'off'); RMGL.ctr = gl.getUniformLocation(prog, 'ctr'); RMGL.sc = gl.getUniformLocation(prog, 'sc'); RMGL.uty = gl.getUniformLocation(prog, 'ty');
     cv.addEventListener('webglcontextlost', e => { e.preventDefault(); RMGL.failed = true; cv.remove(); }, false);
     return true;
   } catch (e) { RMGL.failed = true; return false; }
@@ -70,7 +70,7 @@ function roomFrame(now) {
   const key = `${r.id}:${W}x${H}:${Math.round(D)}:${RMGL.tx.toFixed(3)},${RMGL.ty.toFixed(3)}`; if (RMGL.last === key) return; RMGL.last = key;
   const gl = RMGL.gl; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; } gl.viewport(0, 0, W, H);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, a.t); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, b.t);
-  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D); gl.uniform1f(RMGL.ty, g.ty);
+  gl.uniform2f(RMGL.ctr, g.cx, g.cy); gl.uniform2f(RMGL.sc, W / D, H / D); gl.uniform1f(RMGL.uty, g.ty);
   gl.uniform2f(RMGL.off, -RMGL.tx * 0.025, -RMGL.ty * 0.025); // the carpet (depth ≈ 0) stays under the table; the walls move up to ~2.5 % of the picture
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   cv.classList.add('on');
@@ -94,7 +94,7 @@ function roomsSectionHTML(f, rf) {
 function roomPreviewHTML(id) {
   const u = U(); const seats = Array.from({ length: 8 }, (_, i) => ({ seat: i + 1 }));
   const center = `<div class="rt-brand">Mafia <em>PRO</em></div><div class="rt-n">${esc(ROOM[id] ? ROOM[id].name : u.rmNone)}</div>`;
-  return roundTableHTML(seats, {}, center, {}, id);
+  return roundTableHTML(seats, {}, center, {}, id, typeof myTable === 'function' ? myTable() : null); // v84: with my table's skin, if any
 }
 function roomSheetHTML(id) {
   const u = U(); const r = ROOM[id]; if (!r) return '';
