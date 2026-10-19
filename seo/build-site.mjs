@@ -50,9 +50,12 @@ export function build(outDir, env = process.env) {
   const tg = l => `https://t.me/${BOT}?start=site_${l}`;
   const card = (l, id) => `${BASE}cards/${l}/${id}.png`;
   const thumb = (l, id) => `${BASE}cards/${l}/t/${id}.jpg`;
+  const cardw = (l, id) => `${BASE}cards/${l}/w/${id}.webp`; // light WebP of the card for the role page (seo/render-images.js); the PNG stays the share/JSON-LD image and the fallback
 
   /* ---------- page shell ---------- */
-  function page({ l, p, title, desc, h1, lead, body, ld = [], crumbs = [], image, alt, ogType = 'website' }) {
+  function page({ l, p, title, desc, h1, lead, body, ld = [], crumbs = [], image, hero, alt, ogType = 'website' }) {
+    // fonts never block the first paint (FCP/LCP on a phone); the Armenian face is loaded only on the Armenian pages
+    const fonts = `https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Manrope:wght@400;600;700${l === 'hy' ? '&family=Noto+Sans+Armenian:wght@400;700' : ''}&display=swap`;
     const s = S[l]; const altMap = alt || Object.fromEntries(LANGS.map(x => [x, p.replace(/^[a-z]{2}\//, x + '/')]));
     /* per-page edits of the SEO agent (seo/overrides.json): a better title / description / h1, an extra paragraph, FAQ for the queries the page ranks for */
     const o = OVR[p] || {};
@@ -89,9 +92,9 @@ ${LANGS.map(x => `<link rel="alternate" hreflang="${S[x].html}" href="${abs(altM
 ${LANGS.filter(x => x !== l).map(x => `<meta property="og:locale:alternate" content="${S[x].og}">`).join('\n')}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0b0a0e">
-${verify && p === `${l}/` ? `<meta name="google-site-verification" content="${esc(verify)}">\n` : ''}${image && /\/cards\//.test(image) ? `<link rel="preload" as="image" href="${esc(image)}" fetchpriority="high">\n` : ''}<link rel="icon" href="${BASE}favicon.png">
+${verify && p === `${l}/` ? `<meta name="google-site-verification" content="${esc(verify)}">\n` : ''}${hero ? `<link rel="preload" as="image" href="${esc(hero)}" type="image/webp" fetchpriority="high">\n` : ''}<link rel="icon" href="${BASE}favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Manrope:wght@400;600;700&family=Noto+Sans+Armenian:wght@400;700&display=swap">
+<link rel="preload" as="style" href="${fonts}" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="${fonts}"></noscript>
 <style>${CSS}</style>
 ${ld.map(x => `<script type="application/ld+json">${JSON.stringify(x).replace(/</g, '\\u003c')}</script>`).join('\n')}
 </head>
@@ -156,9 +159,9 @@ ${body}
       const mates = app.ROLES.filter(x => x.id !== r.id && TEAM_KEY[x.team] === TEAM_KEY[r.team]).slice(0, 12);
       const desc = cut(rs.desc(name, tr.short || ''), 160);
       const art_ld = { '@context': 'https://schema.org', '@type': 'Article', headline: rs.h1(name), description: desc, inLanguage: s.html, image: abs(`cards/${l}/${r.id}.png`), mainEntityOfPage: abs(`${l}/roles/${r.id}/`), author: { '@type': 'Organization', name: 'Mafia Pro' }, publisher: { '@type': 'Organization', name: 'Mafia Pro' }, about: { '@type': 'Thing', name } };
-      write(`${l}/roles/${r.id}/index.html`, page({ l, p: `${l}/roles/${r.id}/`, title: rs.title(name), desc, h1: rs.h1(name), lead: tr.short, image: abs(`cards/${l}/${r.id}.png`), ogType: 'article', ld: [art_ld], crumbs: [[s.nav.roles, `${l}/roles/`], [name, `${l}/roles/${r.id}/`]], body: `
+      write(`${l}/roles/${r.id}/index.html`, page({ l, p: `${l}/roles/${r.id}/`, title: rs.title(name), desc, h1: rs.h1(name), lead: tr.short, image: abs(`cards/${l}/${r.id}.png`), hero: cardw(l, r.id), ogType: 'article', ld: [art_ld], crumbs: [[s.nav.roles, `${l}/roles/`], [name, `${l}/roles/${r.id}/`]], body: `
 <div class="role t-${r.team}">
-  <img class="cardimg" src="${card(l, r.id)}" alt="${esc(name)}" width="340" height="510" fetchpriority="high" onerror="this.remove()">
+  <img class="cardimg" src="${cardw(l, r.id)}" alt="${esc(name)}" width="340" height="510" fetchpriority="high" onerror="if(this.dataset.f)this.remove();else{this.dataset.f=1;this.src='${card(l, r.id)}'}">
   <div>
     <dl class="facts"><dt>${esc(rs.team)}</dt><dd>${esc(teamName(L, r.team))}</dd>${r.color && L.colors && L.colors[r.color] ? `<dt>${esc(rs.checks)}</dt><dd>${esc(L.colors[r.color])}</dd>` : ''}${tr.kind ? `<dt>${esc(rs.kind)}</dt><dd>${esc(tr.kind)}</dd>` : ''}<dt>${esc(rs.access)}</dt><dd>${esc(access(l, app, r))}</dd></dl>
     ${(tr.rules || []).length ? `<h2>${esc(rs.how)}</h2><ul>${tr.rules.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}

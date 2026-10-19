@@ -17,7 +17,8 @@
       { "q": "роль доктор в мафии", "page": "ru/roles/doctor/", "tier": "long" },
       { "q": "роль оборотень в мафии", "page": "ru/roles/werewolf/", "tier": "long" },
       { "q": "дон мафии роль", "page": "ru/roles/don/", "tier": "long" },
-      { "q": "роль камикадзе мафия", "page": "ru/roles/kamikaze/", "tier": "long" }
+      { "q": "роль камикадзе мафия", "page": "ru/roles/kamikaze/", "tier": "long" },
+      { "q": "что делает мститель в мафии", "page": "ru/roles/avenger/", "tier": "long" }
     ]
   },
   "uk": {
@@ -33,7 +34,9 @@
       { "q": "мафія на 10 гравців ролі", "page": "uk/scenarios/", "tier": "long" },
       { "q": "роль лікар у мафії", "page": "uk/roles/doctor/", "tier": "long" },
       { "q": "роль шериф мафія", "page": "uk/roles/sheriff/", "tier": "long" },
-      { "q": "роль маніяк мафія", "page": "uk/roles/maniac/", "tier": "long" }
+      { "q": "роль маніяк мафія", "page": "uk/roles/maniac/", "tier": "long" },
+      { "q": "які є ролі в мафії", "page": "uk/roles/", "tier": "long" },
+      { "q": "хто такий дон в мафії", "page": "uk/roles/don/", "tier": "long" }
     ]
   },
   "en": {
@@ -50,7 +53,8 @@
       { "q": "mafia roles for 8 players", "page": "en/scenarios/", "tier": "long" },
       { "q": "mafia game werewolf role", "page": "en/roles/werewolf/", "tier": "long" },
       { "q": "mafia game kamikaze role", "page": "en/roles/kamikaze/", "tier": "long" },
-      { "q": "mafia game maniac role", "page": "en/roles/maniac/", "tier": "long" }
+      { "q": "mafia game maniac role", "page": "en/roles/maniac/", "tier": "long" },
+      { "q": "role of sheriff in mafia game", "page": "en/roles/sheriff/", "tier": "long" }
     ]
   },
   "pl": {
@@ -66,7 +70,8 @@
       { "q": "mafia zasady gry towarzyskiej", "page": "pl/rules/", "tier": "mid" },
       { "q": "mafia na 10 osób role", "page": "pl/scenarios/", "tier": "long" },
       { "q": "rola szeryf mafia", "page": "pl/roles/sheriff/", "tier": "long" },
-      { "q": "rola lekarz mafia", "page": "pl/roles/doctor/", "tier": "long" }
+      { "q": "rola lekarz mafia", "page": "pl/roles/doctor/", "tier": "long" },
+      { "q": "don mafia", "page": "pl/roles/don/", "tier": "long" }
     ]
   },
   "hy": {
@@ -79,7 +84,8 @@
       { "q": "մաֆիայի դերեր", "page": "hy/roles/", "tier": "long" },
       { "q": "մաֆիա խաղի կանոններ", "page": "hy/rules/", "tier": "long" },
       { "q": "մաֆիա 10 հոգու համար", "page": "hy/scenarios/", "tier": "long" },
-      { "q": "շերիֆ մաֆիա դեր", "page": "hy/roles/sheriff/", "tier": "long" }
+      { "q": "շերիֆ մաֆիա դեր", "page": "hy/roles/sheriff/", "tier": "long" },
+      { "q": "մաֆիա խաղ կանոններ", "page": "hy/rules/", "tier": "long" }
     ]
   }
 }
