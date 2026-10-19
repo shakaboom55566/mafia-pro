@@ -92,7 +92,7 @@ console.log('geo (v75): the request\'s country and city come back as a hint, the
   await post('/api/me', { initData: hi, country: '' }); eq((await env.DB.prepare('SELECT country FROM user_countries WHERE tg_id = 4401').first()).country, '', 'the player may clear the country');
 }
 
-console.log('the rating by country (v84): every country with players, the top of the chosen one, signed, cached with the top');
+console.log('the rating by country (v83): every country with players, the top of the chosen one, signed, cached with the top');
 { const t0 = now(); const put = async (id, name, pts, games, cc) => { await env.DB.prepare('INSERT INTO users (tg_id, first_name, username, created_at, seen_at) VALUES (?1, ?2, ?3, ?4, ?4) ON CONFLICT(tg_id) DO UPDATE SET first_name = ?2').bind(id, name, 'u' + id, t0).run(); await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, 1, 0, ?4) ON CONFLICT(tg_id) DO UPDATE SET points = ?2, games = ?3').bind(id, pts, games, t0).run(); if (cc !== null) await env.DB.prepare('INSERT INTO user_countries (tg_id, country, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET country = ?2').bind(id, cc, t0).run(); };
   await put(4501, 'Oksana', 40, 3, 'UA'); await put(4502, 'Taras', 25, 2, 'UA'); await put(4503, 'Ania', 30, 2, 'PL'); await put(4504, 'Aram', 12, 1, 'AM'); await put(4505, 'NoGames', 0, 0, 'DE'); await put(4506, 'NoCountry', 99, 4, null); await put(4507, 'Cleared', 50, 2, '');
   await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:geo'").run();
@@ -115,6 +115,36 @@ console.log('the rating by country (v84): every country with players, the top of
   d = await (await post('/api/leaderboard/country', { initData: me, country: 'UA' })).json(); ok(d.top.findIndex(x => x.tgId === 4502) < d.top.findIndex(x => x.tgId === 4501), 'an old cache is rebuilt on request');
   const anon = await initData(user(4506)); d = await (await post('/api/leaderboard/country', { initData: anon })).json(); ok(d.ok && d.mine === '' && d.country === d.countries[0].country, 'a player without a country gets the biggest country');
   for (const id of [4501, 4502, 4503, 4504, 4505, 4506, 4507]) { await env.DB.prepare('DELETE FROM ratings WHERE tg_id = ?1').bind(id).run(); await env.DB.prepare('DELETE FROM user_countries WHERE tg_id = ?1').bind(id).run(); }
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key IN ('lb:geo', 'lb:top')").run(); }
+
+console.log('the rating by city (v85): one city however it is written, names in the asker\'s language, the city\'s flag; the same code as the app');
+{ const fs = await import('node:fs'); const app = fs.readFileSync(path.join(here, '..', '..', 'src', '23-cities.js'), 'utf8'); const srv = fs.readFileSync(path.join(here, '..', 'src', 'cities.js'), 'utf8');
+  const block = t => t.slice(t.indexOf('/* cities:begin'), t.indexOf('/* cities:end */')); ok(block(app).length > 2000 && block(app) === block(srv), 'the city dictionary is the same text in the app and the server');
+  const C = await import('../src/cities.js');
+  eq(['Київ', 'Киев', 'г. Киев', 'Kyiv', 'Kiev', 'Kijów', 'м. Київ', ' KYIV '].map(C.cityKey), Array(8).fill('kyiv'), 'every spelling of Kyiv is one key');
+  eq(['Дніпро', 'Днепр', 'Днепропетровск', 'Dnipro'].map(C.cityKey), Array(4).fill('dnipro'), 'Dnipro, old names too');
+  eq([C.cityKey('Кам’янське'), C.cityKey('Камянське'), C.cityKey('Երևան'), C.cityKey('Łódź'), C.cityKey('Lodz'), C.cityKey(''), C.cityKey(null)], ['kamianske', 'kamianske', 'yerevan', 'lodz', 'lodz', '', ''], 'apostrophes, Armenian, Polish letters, empty');
+  eq([C.cityKey('Новомосковськ'), C.cityKey('новомосковськ ')], ['~новомосковськ', '~новомосковськ'], 'a city outside the dictionary: its spelling, case and spaces aside');
+  eq([C.cityLabel('kyiv', 'uk'), C.cityLabel('kyiv', 'ru'), C.cityLabel('kyiv', 'pl'), C.cityLabel('kyiv', 'hy'), C.cityLabel('sumy', 'hy'), C.cityLabel('~самар', 'uk', 'Самар')], ['Київ', 'Киев', 'Kijów', 'Կիև', 'Sumy', 'Самар'], 'names by language (Armenian falls back to English)');
+  const t0 = now(); const put = async (id, name, pts, games, cc, city) => { await env.DB.prepare('INSERT INTO users (tg_id, first_name, username, created_at, seen_at) VALUES (?1, ?2, ?3, ?4, ?4) ON CONFLICT(tg_id) DO UPDATE SET first_name = ?2').bind(id, name, 'u' + id, t0).run(); await env.DB.prepare('INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, 1, 0, ?4) ON CONFLICT(tg_id) DO UPDATE SET points = ?2, games = ?3').bind(id, pts, games, t0).run(); if (cc) await env.DB.prepare('INSERT INTO user_countries (tg_id, country, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET country = ?2').bind(id, cc, t0).run(); if (city !== null) await env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2').bind(id, city, t0).run(); };
+  await put(4601, 'Ira', 40, 3, 'UA', 'Київ'); await put(4602, 'Oleg', 30, 2, 'UA', 'Киев'); await put(4603, 'Max', 20, 2, null, 'Kyiv'); await put(4604, 'Dima', 35, 2, 'UA', 'Днепр');
+  await put(4605, 'Ola', 25, 1, 'PL', 'Warszawa'); await put(4606, 'Sam', 15, 1, 'UA', 'Самар'); await put(4607, 'Sam2', 10, 1, 'UA', 'самар'); await put(4608, 'NoGames', 0, 0, 'UA', 'Київ'); await put(4609, 'Xss', 5, 1, 'UA', '<b>Город</b>');
+  await env.DB.prepare("DELETE FROM discord_cfg WHERE key = 'lb:geo'").run();
+  const me = await initData(user(4604, 'uk', { first_name: 'Dima' }));
+  eq((await post('/api/leaderboard/city', { city: 'kyiv' })).status, 401, 'unsigned → 401');
+  let d = await (await post('/api/leaderboard/city', { initData: me, lang: 'uk' })).json();
+  ok(d.ok && d.mine === 'dnipro' && d.city === 'dnipro' && d.top.length === 1 && d.top[0].tgId === 4604, 'no city asked → my own: ' + JSON.stringify([d.mine, d.city]));
+  const kv = d.cities.find(x => x.key === 'kyiv'); ok(kv && kv.players === 3 && kv.name === 'Київ' && kv.cc === 'UA' && d.cities[0] === kv, 'Київ + Киев + Kyiv = one city of 3, first, in Ukrainian, with its flag: ' + JSON.stringify(d.cities));
+  const sm = d.cities.find(x => x.key === '~самар'); ok(sm && sm.players === 2 && sm.cc === 'UA' && /^[Сс]амар$/.test(sm.name), 'a city outside the dictionary: one entry, the most common spelling, its players\' country');
+  const wa = d.cities.find(x => x.key === 'warsaw'); ok(wa && wa.name === 'Варшава' && wa.cc === 'PL', 'Warszawa in Ukrainian');
+  const xs = d.cities.find(x => x.name.includes('Город')); ok(xs && !xs.name.includes('<') && !JSON.stringify(d.cities).includes('<b>'), 'markup in a city is defused on the server');
+  ok(!d.cities.some(x => x.players === 0) && !JSON.stringify(d).includes('NoGames'), 'only players who played');
+  d = await (await post('/api/leaderboard/city', { initData: me, city: 'kyiv', lang: 'pl' })).json(); ok(d.city === 'kyiv' && d.top.map(x => x.tgId).join() === '4601,4602,4603' && d.top[2].rank === 3 && d.cities.find(x => x.key === 'kyiv').name === 'Kijów', 'Kyiv\'s top by points, names in Polish');
+  d = await (await post('/api/leaderboard/city', { initData: me, city: '__proto__' })).json(); ok(d.ok && d.city === 'dnipro' && Array.isArray(d.top), 'a strange key falls back to my city');
+  d = await (await post('/api/leaderboard/city', { initData: me, city: 'x'.repeat(200) })).json(); ok(d.ok && d.city === 'dnipro', 'a long key is ignored');
+  d = await (await post('/api/leaderboard/country', { initData: me, country: 'UA' })).json(); ok(d.ok && d.top.some(x => x.tgId === 4601) && !d.top.some(x => x.tgId === 4603), 'the country board still works (the player without a country is only in the city)');
+  const h = await initData(user(4610, 'ru')); await post('/api/me', { initData: h, city: '  <i>Львов</i> ' }); const st = await env.DB.prepare('SELECT city FROM user_cities WHERE tg_id = 4610').first(); ok(st && !st.city.includes('<'), 'the city from the profile is stored defused: ' + (st && st.city));
+  for (const id of [4601, 4602, 4603, 4604, 4605, 4606, 4607, 4608, 4609, 4610]) { await env.DB.prepare('DELETE FROM ratings WHERE tg_id = ?1').bind(id).run(); await env.DB.prepare('DELETE FROM user_countries WHERE tg_id = ?1').bind(id).run(); await env.DB.prepare('DELETE FROM user_cities WHERE tg_id = ?1').bind(id).run(); }
   await env.DB.prepare("DELETE FROM discord_cfg WHERE key IN ('lb:geo', 'lb:top')").run(); }
 
 console.log('Stars purchase flow');

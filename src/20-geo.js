@@ -10,8 +10,12 @@ const geoCountryOk = cc => /^[A-Z]{2}$/.test(String(cc || '')) && !['T1', 'XX'].
 /* my profile without a country takes the network's one; true when it changed */
 function geoApply() {
   const me = S.meId ? profById(S.meId) : null; const geo = geoNow(); if (!me || !geo) return false;
-  if (!me.country && !me.noCountry && geoCountryOk(geo.country)) { me.country = geo.country; return true; } // noCountry: the player chose «no country» himself
-  return false;
+  let changed = false;
+  if (!me.country && !me.noCountry && geoCountryOk(geo.country)) { me.country = geo.country; changed = true; } // noCountry: the player chose «no country» himself
+  // v85: the city too (it used to be only suggested in the form) — in the app's language when the dictionary knows it; «from the network»
+  // under it on my profile until the player saves the profile; noCity: he cleared it himself
+  if (!me.city && !me.noCity && geo.city) { me.city = cityLabel(cityKey(geo.city), L.code, geo.city).slice(0, 48); me.cityAuto = true; changed = true; }
+  return changed;
 }
 /* the server learns the profile's city and country whenever they differ from what it was last told in this session */
 function geoSend() {
@@ -31,10 +35,10 @@ function geoSend() {
   // the profile form: my new profile and my profile without a place get the network's country and city with a hint
   const origNew = ACT['prof-new'];
   const geoKind = (cc, city) => cc && city ? 'both' : cc ? 'country' : city ? 'city' : '';
-  ACT['prof-new'] = function (el) { origNew.call(this, el); const geo = geoNow(); if (!(el && el.dataset && el.dataset.me && geo && S.ui.pf)) return; const cc = geoCountryOk(geo.country) ? geo.country : ''; if (cc) S.ui.pf.country = cc; if (geo.city) S.ui.pf.city = geo.city; const kind = geoKind(cc, geo.city); if (kind) { S.ui.pf.geo = kind; render(); } };
+  ACT['prof-new'] = function (el) { origNew.call(this, el); const geo = geoNow(); if (!(el && el.dataset && el.dataset.me && geo && S.ui.pf)) return; const cc = geoCountryOk(geo.country) ? geo.country : ''; if (cc) S.ui.pf.country = cc; if (geo.city) S.ui.pf.city = cityLabel(cityKey(geo.city), L.code, geo.city).slice(0, 48); const kind = geoKind(cc, geo.city); if (kind) { S.ui.pf.geo = kind; render(); } };
   const origEdit = ACT['prof-edit'];
   ACT['prof-edit'] = function (el) { origEdit.call(this, el); const pr = profById(el.dataset.id); const geo = geoNow(); if (!pr || pr.id !== S.meId || !geo || !S.ui.pf) return;
-    const cc = !pr.country && !pr.noCountry && geoCountryOk(geo.country) ? geo.country : ''; const city = !pr.city && geo.city ? geo.city : '';
+    const cc = !pr.country && !pr.noCountry && geoCountryOk(geo.country) ? geo.country : ''; const city = !pr.city && !pr.noCity && geo.city ? cityLabel(cityKey(geo.city), L.code, geo.city).slice(0, 48) : ''; // v85: not after «no city» on purpose; in the app's language
     if (cc) S.ui.pf.country = cc; if (city) S.ui.pf.city = city; const kind = geoKind(cc, city); if (kind) { S.ui.pf.geo = kind; render(); } };
   const origForm = profEditHTML;
   profEditHTML = function (id) {
@@ -46,7 +50,14 @@ function geoSend() {
     return html;
   };
   const origSave = ACT['prof-save'];
-  ACT['prof-save'] = function (el) { const d = S.ui.pf || {}; const r = origSave.call(this, el); try { const me = S.meId ? profById(S.meId) : null; if (me && d.me) { me.noCountry = !me.country && !!(geoNow() && geoNow().country); if (me.country) delete me.noCountry; } geoSend(); } catch (e) {} return r; }; // «no country» chosen on purpose stays
+  ACT['prof-save'] = function (el) { const d = S.ui.pf || {}; const r = origSave.call(this, el); try { const me = S.meId ? profById(S.meId) : null; if (me && d.me) { me.noCountry = !me.country && !!(geoNow() && geoNow().country); if (me.country) delete me.noCountry; me.noCity = !me.city && !!(geoNow() && geoNow().city); if (me.city) delete me.noCity; delete me.cityAuto; } geoSend(); } catch (e) {} return r; }; // «no country» chosen on purpose stays
+  // v85: my profile — the city set from the network says so until the profile is saved
+  const origMy = myProfileScreen;
+  myProfileScreen = function () {
+    const html = origMy(); const me = S.meId ? profById(S.meId) : null; if (!me || !me.cityAuto || !me.city) return html;
+    const i = html.indexOf('<div class="loc">'); const j = i < 0 ? -1 : html.indexOf('</div>', i); if (j < 0) return html;
+    return html.slice(0, j + 6) + `<div class="hint geo-hint" style="margin:2px 0 0">${U().geoCityAuto}</div>` + html.slice(j + 6);
+  };
   const origPf = ACT.pf;
   ACT.pf = function (el) { origPf.call(this, el); if (S.ui.pf && S.ui.pf.geo && (el.dataset.k === 'city' || el.dataset.k === 'country')) { S.ui.pf.geo = ''; const h = document.querySelector('.geo-hint'); if (h) h.remove(); } }; // edited by hand — the hint is no longer true
 })();
@@ -57,31 +68,46 @@ function geoSend() {
    (POST /api/leaderboard/country: the same points as the overall rating, the profile's country, cached 10 minutes on the server).
    The players saved on this phone stay below it under «On this phone».
    ============================================================ */
-const GB = { list: null, mine: '', by: {}, busy: false };
+/* v85: the same for cities — «City» lists every city players play in (one key however it is written: 23-cities.js), names in the
+   app's language, a flag by the city's country; POST /api/leaderboard/city */
+const GB = { country: { list: null, mine: '', by: {}, busy: false, lang: '' }, city: { list: null, mine: '', by: {}, busy: false, lang: '' } };
 const GB_EVERY = 2 * 60 * 1000;
 function geoBoardOn() { return !!(TG.app && apiBase()); }
-function geoBoardCountries() { if (!geoBoardOn()) return null; geoBoardPoll(''); return GB.list; }
-function geoBoardMine() { return GB.mine || ''; }
-function geoBoardPoll(cc) {
-  if (!geoBoardOn() || GB.busy) return;
-  const key = cc || ''; const have = GB.by[key];
-  if (!key && GB.list) return; // the list of countries comes with every country's answer
+function geoBoardCountries() { if (!geoBoardOn()) return null; geoBoardPoll('country', ''); return GB.country.list; }
+function geoBoardMine() { return GB.country.mine || ''; }
+function geoCityList() { if (!geoBoardOn()) return null; geoBoardPoll('city', ''); return GB.city.list; }
+function geoCityMine() { return GB.city.mine || ''; }
+function geoBoardPoll(kind, key) {
+  const B = GB[kind]; if (!geoBoardOn() || B.busy) return;
+  if (kind === 'city' && B.lang && B.lang !== L.code) { B.list = null; B.by = {}; } // the city names come in the app's language
+  key = key || ''; const have = B.by[key];
+  if (!key && B.list) return; // the list comes with every answer
   if (have && Date.now() - have.t < (have.fail ? 30000 : GB_EVERY)) return;
-  GB.busy = true;
+  B.busy = true; const lang = L.code;
   setTimeout(async () => {
-    let d = null; try { d = await api('/api/leaderboard/country', { country: key, limit: 30 }); } catch (e) { d = null; }
-    GB.busy = false;
-    if (d && d.ok) { GB.list = Array.isArray(d.countries) ? d.countries.filter(x => x && geoCountryOk(x.country)) : []; GB.mine = geoCountryOk(d.mine) ? d.mine : ''; if (geoCountryOk(d.country)) GB.by[d.country] = { top: Array.isArray(d.top) ? d.top : [], at: d.at || Date.now(), t: Date.now() }; }
-    else GB.by[key] = Object.assign({}, GB.by[key] || {}, { fail: true, t: Date.now() });
+    let d = null; try { d = await api(kind === 'city' ? '/api/leaderboard/city' : '/api/leaderboard/country', kind === 'city' ? { city: key, lang, limit: 30 } : { country: key, limit: 30 }); } catch (e) { d = null; }
+    B.busy = false;
+    if (d && d.ok && kind === 'country') { B.list = Array.isArray(d.countries) ? d.countries.filter(x => x && geoCountryOk(x.country)) : []; B.mine = geoCountryOk(d.mine) ? d.mine : ''; if (geoCountryOk(d.country)) B.by[d.country] = { top: Array.isArray(d.top) ? d.top : [], t: Date.now() }; }
+    else if (d && d.ok && kind === 'city') { B.lang = lang; B.list = Array.isArray(d.cities) ? d.cities.filter(x => x && typeof x.key === 'string' && x.key).map(x => ({ key: x.key, name: String(x.name || x.key), cc: geoCountryOk(x.cc) ? x.cc : '', players: Number(x.players) || 0 })) : []; B.mine = typeof d.mine === 'string' ? d.mine : ''; if (typeof d.city === 'string' && d.city) B.by[d.city] = { top: Array.isArray(d.top) ? d.top : [], t: Date.now() }; }
+    else B.by[key] = Object.assign({}, B.by[key] || {}, { fail: true, t: Date.now() });
     if (S.screen === 'ratings') render();
   }, 0);
+}
+function geoPanelHTML(b, title) {
+  const u = U();
+  const rows = b && b.top ? (b.top.length ? `<div class="stack-s" style="margin-top:10px">${b.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${title.empty}</div>`)
+    : `<div class="hint" style="margin-top:8px">${b && b.fail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  return `<div class="panel geo-top"><div class="eyebrow">${title.head}</div><div class="hint" style="margin-top:4px">${title.hint}</div>${rows}</div>`;
 }
 /* the panel under the country picker: that country's players on the server */
 function geoBoardHTML(cc) {
   if (!geoBoardOn()) return '';
-  const u = U(); if (cc) geoBoardPoll(cc);
-  const b = cc ? GB.by[cc] : null; const name = cc ? `${flagOf(cc)} ${esc(countryName(cc))}` : '';
-  const rows = b && b.top ? (b.top.length ? `<div class="stack-s" style="margin-top:10px">${b.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.geoTopEmpty}</div>`)
-    : `<div class="hint" style="margin-top:8px">${b && b.fail ? u.tgTopFail : u.tgTopLoading}</div>`;
-  return `<div class="panel geo-top"><div class="eyebrow">${cc ? tt(u.geoTopTitle, { country: name }) : u.geoTopAny}</div><div class="hint" style="margin-top:4px">${u.geoTopHint}</div>${rows}</div>`;
+  const u = U(); if (cc) geoBoardPoll('country', cc); else if (GB.country.list) return ''; // loaded and nobody anywhere: no panel
+  return geoPanelHTML(cc ? GB.country.by[cc] : null, { head: cc ? tt(u.geoTopTitle, { country: `${flagOf(cc)} ${esc(countryName(cc))}` }) : u.geoTopAny, hint: u.geoTopHint, empty: u.geoTopEmpty });
+}
+/* the panel under the city picker */
+function geoCityHTML(key, name, cc) {
+  if (!geoBoardOn()) return '';
+  const u = U(); if (key) geoBoardPoll('city', key); else if (GB.city.list) return '';
+  return geoPanelHTML(key ? GB.city.by[key] : null, { head: key ? tt(u.geoCityTitle, { city: `${cc ? flagOf(cc) + ' ' : ''}${esc(name || cityLabel(key, L.code))}` }) : u.geoCityAny, hint: u.geoCityHint, empty: u.geoCityEmpty });
 }

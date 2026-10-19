@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.61.0-73622ae">
+<meta name="mafia-build" content="1.62.0-cc5cdc2">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -7385,6 +7385,12 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.assign(R.en, { geoTopTitle: 'Country rating · {country}', geoTopAny: 'Country rating', geoTopHint: 'Players from this country who play through Telegram. Points as in the overall rating; the country comes from the player’s profile.', geoTopEmpty: 'Nobody from this country has played yet.', geoLocalTitle: 'On this phone' });
   Object.assign(R.pl, { geoTopTitle: 'Ranking kraju · {country}', geoTopAny: 'Ranking kraju', geoTopHint: 'Gracze z tego kraju, którzy grają przez Telegram. Punkty jak w rankingu ogólnym; kraj pochodzi z profilu gracza.', geoTopEmpty: 'Z tego kraju nikt jeszcze nie grał.', geoLocalTitle: 'Na tym telefonie' });
   Object.assign(R.hy, { geoTopTitle: 'Երկրի վարկանիշ · {country}', geoTopAny: 'Երկրի վարկանիշ', geoTopHint: 'Այս երկրի խաղացողները, ովքեր խաղում են Telegram-ով։ Միավորները՝ ինչպես ընդհանուր վարկանիշում, երկիրը՝ խաղացողի պրոֆիլից։', geoTopEmpty: 'Այս երկրից դեռ ոչ ոք չի խաղացել։', geoLocalTitle: 'Այս հեռախոսում' });
+  // v85: the rating by city from the server, the city set from the network (20-geo.js)
+  Object.assign(R.ru, { geoCityTitle: 'Рейтинг города · {city}', geoCityAny: 'Рейтинг города', geoCityHint: 'Игроки из этого города, которые играют через Telegram. Очки — как в общем рейтинге; город — из профиля игрока, как бы его ни написали.', geoCityEmpty: 'Из этого города пока никто не играл.', geoCityAuto: 'Город определён по сети — если не так, поправьте в «Изменить».' });
+  Object.assign(R.uk, { geoCityTitle: 'Рейтинг міста · {city}', geoCityAny: 'Рейтинг міста', geoCityHint: 'Гравці з цього міста, які грають через Telegram. Очки — як у загальному рейтингу; місто — з профілю гравця, хоч як його написали.', geoCityEmpty: 'З цього міста поки ніхто не грав.', geoCityAuto: 'Місто визначено за мережею — якщо не так, виправте в «Змінити».' });
+  Object.assign(R.en, { geoCityTitle: 'City rating · {city}', geoCityAny: 'City rating', geoCityHint: 'Players from this city who play through Telegram. Points as in the overall rating; the city comes from the player’s profile, however it is spelled.', geoCityEmpty: 'Nobody from this city has played yet.', geoCityAuto: 'City detected from your network — if it is wrong, change it in «Edit».' });
+  Object.assign(R.pl, { geoCityTitle: 'Ranking miasta · {city}', geoCityAny: 'Ranking miasta', geoCityHint: 'Gracze z tego miasta, którzy grają przez Telegram. Punkty jak w rankingu ogólnym; miasto z profilu gracza, niezależnie od pisowni.', geoCityEmpty: 'Z tego miasta nikt jeszcze nie grał.', geoCityAuto: 'Miasto rozpoznane po sieci — jeśli to nie to, popraw w «Edytuj».' });
+  Object.assign(R.hy, { geoCityTitle: 'Քաղաքի վարկանիշ · {city}', geoCityAny: 'Քաղաքի վարկանիշ', geoCityHint: 'Այս քաղաքի խաղացողները, ովքեր խաղում են Telegram-ով։ Միավորները՝ ինչպես ընդհանուր վարկանիշում, քաղաքը՝ խաղացողի պրոֆիլից, ինչպես էլ այն գրված լինի։', geoCityEmpty: 'Այս քաղաքից դեռ ոչ ոք չի խաղացել։', geoCityAuto: 'Քաղաքը որոշվել է ցանցով․ եթե սխալ է, ուղղեք «Փոխել»-ում։' });
   Object.keys(R).forEach(l => { if (I18N[l] && I18N[l].ui) Object.assign(I18N[l].ui, R[l]); });
 })();
 /* ============================================================
@@ -10723,10 +10729,16 @@ function ratingsScreen() {
   const periodSeg = seg('n3', [['all', u.rtAll], ['week', u.rtWeek], ['month', u.rtMonth]], 'period');
   let pool = S.profiles.slice(); let picker = ''; let srvPanel = '';
   if (rt.scope === 'city') {
-    const cities = [...new Set(S.profiles.map(p => p.city).filter(Boolean))].sort();
-    if (!rt.city || !cities.includes(rt.city)) rt.city = (me && me.city && cities.includes(me.city)) ? me.city : cities[0] || null;
-    picker = cities.length ? `<select class="input" data-a="rt-pick" data-k="city">${cities.map(c => `<option value="${esc(c)}" ${rt.city === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>` : `<p class="hint">${u.rtNoCity}</p>`;
-    pool = pool.filter(p => p.city && p.city === rt.city);
+    // v85: one city however it is written (cityKey in 23-cities.js); with the bot's server — every city players play in (geoCity* in 20-geo.js)
+    const srv = typeof geoCityList === 'function' ? geoCityList() : null; const nm = {}, nOf = {}, ccOf = {};
+    (srv || []).forEach(x => { nm[x.key] = x.name; nOf[x.key] = x.players; ccOf[x.key] = x.cc; });
+    S.profiles.forEach(p => { const k = cityKey(p.city); if (k && !nm[k]) { nm[k] = cityLabel(k, L.code, p.city); if (!ccOf[k] && CITY_INFO[k]) ccOf[k] = CITY_INFO[k].cc; } });
+    const cities = Object.keys(nm).sort((a, b) => (nOf[b] || 0) - (nOf[a] || 0) || nm[a].localeCompare(nm[b]));
+    const mine = (me && me.city ? cityKey(me.city) : '') || (typeof geoCityMine === 'function' ? geoCityMine() : '');
+    if (!rt.city || !cities.includes(rt.city)) rt.city = mine && cities.includes(mine) ? mine : cities[0] || null;
+    picker = cities.length ? `<select class="input" data-a="rt-pick" data-k="city">${cities.map(c => `<option value="${esc(c)}" ${rt.city === c ? 'selected' : ''}>${ccOf[c] ? flagOf(ccOf[c]) + ' ' : ''}${esc(nm[c])}${nOf[c] ? ' · ' + nOf[c] : ''}</option>`).join('')}</select>` : srv === null && typeof geoBoardOn === 'function' && geoBoardOn() ? '' : `<p class="hint">${u.rtNoCity}</p>`;
+    pool = pool.filter(p => p.city && cityKey(p.city) === rt.city);
+    srvPanel = typeof geoCityHTML === 'function' ? geoCityHTML(rt.city, nm[rt.city], ccOf[rt.city]) : '';
   }
   if (rt.scope === 'country') {
     // v83: with the bot's server the countries are every country players play from (geoBoard* in 20-geo.js), not only this phone's profiles
@@ -14695,8 +14707,12 @@ const geoCountryOk = cc => /^[A-Z]{2}$/.test(String(cc || '')) && !['T1', 'XX'].
 /* my profile without a country takes the network's one; true when it changed */
 function geoApply() {
   const me = S.meId ? profById(S.meId) : null; const geo = geoNow(); if (!me || !geo) return false;
-  if (!me.country && !me.noCountry && geoCountryOk(geo.country)) { me.country = geo.country; return true; } // noCountry: the player chose «no country» himself
-  return false;
+  let changed = false;
+  if (!me.country && !me.noCountry && geoCountryOk(geo.country)) { me.country = geo.country; changed = true; } // noCountry: the player chose «no country» himself
+  // v85: the city too (it used to be only suggested in the form) — in the app's language when the dictionary knows it; «from the network»
+  // under it on my profile until the player saves the profile; noCity: he cleared it himself
+  if (!me.city && !me.noCity && geo.city) { me.city = cityLabel(cityKey(geo.city), L.code, geo.city).slice(0, 48); me.cityAuto = true; changed = true; }
+  return changed;
 }
 /* the server learns the profile's city and country whenever they differ from what it was last told in this session */
 function geoSend() {
@@ -14716,10 +14732,10 @@ function geoSend() {
   // the profile form: my new profile and my profile without a place get the network's country and city with a hint
   const origNew = ACT['prof-new'];
   const geoKind = (cc, city) => cc && city ? 'both' : cc ? 'country' : city ? 'city' : '';
-  ACT['prof-new'] = function (el) { origNew.call(this, el); const geo = geoNow(); if (!(el && el.dataset && el.dataset.me && geo && S.ui.pf)) return; const cc = geoCountryOk(geo.country) ? geo.country : ''; if (cc) S.ui.pf.country = cc; if (geo.city) S.ui.pf.city = geo.city; const kind = geoKind(cc, geo.city); if (kind) { S.ui.pf.geo = kind; render(); } };
+  ACT['prof-new'] = function (el) { origNew.call(this, el); const geo = geoNow(); if (!(el && el.dataset && el.dataset.me && geo && S.ui.pf)) return; const cc = geoCountryOk(geo.country) ? geo.country : ''; if (cc) S.ui.pf.country = cc; if (geo.city) S.ui.pf.city = cityLabel(cityKey(geo.city), L.code, geo.city).slice(0, 48); const kind = geoKind(cc, geo.city); if (kind) { S.ui.pf.geo = kind; render(); } };
   const origEdit = ACT['prof-edit'];
   ACT['prof-edit'] = function (el) { origEdit.call(this, el); const pr = profById(el.dataset.id); const geo = geoNow(); if (!pr || pr.id !== S.meId || !geo || !S.ui.pf) return;
-    const cc = !pr.country && !pr.noCountry && geoCountryOk(geo.country) ? geo.country : ''; const city = !pr.city && geo.city ? geo.city : '';
+    const cc = !pr.country && !pr.noCountry && geoCountryOk(geo.country) ? geo.country : ''; const city = !pr.city && !pr.noCity && geo.city ? cityLabel(cityKey(geo.city), L.code, geo.city).slice(0, 48) : ''; // v85: not after «no city» on purpose; in the app's language
     if (cc) S.ui.pf.country = cc; if (city) S.ui.pf.city = city; const kind = geoKind(cc, city); if (kind) { S.ui.pf.geo = kind; render(); } };
   const origForm = profEditHTML;
   profEditHTML = function (id) {
@@ -14731,7 +14747,14 @@ function geoSend() {
     return html;
   };
   const origSave = ACT['prof-save'];
-  ACT['prof-save'] = function (el) { const d = S.ui.pf || {}; const r = origSave.call(this, el); try { const me = S.meId ? profById(S.meId) : null; if (me && d.me) { me.noCountry = !me.country && !!(geoNow() && geoNow().country); if (me.country) delete me.noCountry; } geoSend(); } catch (e) {} return r; }; // «no country» chosen on purpose stays
+  ACT['prof-save'] = function (el) { const d = S.ui.pf || {}; const r = origSave.call(this, el); try { const me = S.meId ? profById(S.meId) : null; if (me && d.me) { me.noCountry = !me.country && !!(geoNow() && geoNow().country); if (me.country) delete me.noCountry; me.noCity = !me.city && !!(geoNow() && geoNow().city); if (me.city) delete me.noCity; delete me.cityAuto; } geoSend(); } catch (e) {} return r; }; // «no country» chosen on purpose stays
+  // v85: my profile — the city set from the network says so until the profile is saved
+  const origMy = myProfileScreen;
+  myProfileScreen = function () {
+    const html = origMy(); const me = S.meId ? profById(S.meId) : null; if (!me || !me.cityAuto || !me.city) return html;
+    const i = html.indexOf('<div class="loc">'); const j = i < 0 ? -1 : html.indexOf('</div>', i); if (j < 0) return html;
+    return html.slice(0, j + 6) + `<div class="hint geo-hint" style="margin:2px 0 0">${U().geoCityAuto}</div>` + html.slice(j + 6);
+  };
   const origPf = ACT.pf;
   ACT.pf = function (el) { origPf.call(this, el); if (S.ui.pf && S.ui.pf.geo && (el.dataset.k === 'city' || el.dataset.k === 'country')) { S.ui.pf.geo = ''; const h = document.querySelector('.geo-hint'); if (h) h.remove(); } }; // edited by hand — the hint is no longer true
 })();
@@ -14742,33 +14765,48 @@ function geoSend() {
    (POST /api/leaderboard/country: the same points as the overall rating, the profile's country, cached 10 minutes on the server).
    The players saved on this phone stay below it under «On this phone».
    ============================================================ */
-const GB = { list: null, mine: '', by: {}, busy: false };
+/* v85: the same for cities — «City» lists every city players play in (one key however it is written: 23-cities.js), names in the
+   app's language, a flag by the city's country; POST /api/leaderboard/city */
+const GB = { country: { list: null, mine: '', by: {}, busy: false, lang: '' }, city: { list: null, mine: '', by: {}, busy: false, lang: '' } };
 const GB_EVERY = 2 * 60 * 1000;
 function geoBoardOn() { return !!(TG.app && apiBase()); }
-function geoBoardCountries() { if (!geoBoardOn()) return null; geoBoardPoll(''); return GB.list; }
-function geoBoardMine() { return GB.mine || ''; }
-function geoBoardPoll(cc) {
-  if (!geoBoardOn() || GB.busy) return;
-  const key = cc || ''; const have = GB.by[key];
-  if (!key && GB.list) return; // the list of countries comes with every country's answer
+function geoBoardCountries() { if (!geoBoardOn()) return null; geoBoardPoll('country', ''); return GB.country.list; }
+function geoBoardMine() { return GB.country.mine || ''; }
+function geoCityList() { if (!geoBoardOn()) return null; geoBoardPoll('city', ''); return GB.city.list; }
+function geoCityMine() { return GB.city.mine || ''; }
+function geoBoardPoll(kind, key) {
+  const B = GB[kind]; if (!geoBoardOn() || B.busy) return;
+  if (kind === 'city' && B.lang && B.lang !== L.code) { B.list = null; B.by = {}; } // the city names come in the app's language
+  key = key || ''; const have = B.by[key];
+  if (!key && B.list) return; // the list comes with every answer
   if (have && Date.now() - have.t < (have.fail ? 30000 : GB_EVERY)) return;
-  GB.busy = true;
+  B.busy = true; const lang = L.code;
   setTimeout(async () => {
-    let d = null; try { d = await api('/api/leaderboard/country', { country: key, limit: 30 }); } catch (e) { d = null; }
-    GB.busy = false;
-    if (d && d.ok) { GB.list = Array.isArray(d.countries) ? d.countries.filter(x => x && geoCountryOk(x.country)) : []; GB.mine = geoCountryOk(d.mine) ? d.mine : ''; if (geoCountryOk(d.country)) GB.by[d.country] = { top: Array.isArray(d.top) ? d.top : [], at: d.at || Date.now(), t: Date.now() }; }
-    else GB.by[key] = Object.assign({}, GB.by[key] || {}, { fail: true, t: Date.now() });
+    let d = null; try { d = await api(kind === 'city' ? '/api/leaderboard/city' : '/api/leaderboard/country', kind === 'city' ? { city: key, lang, limit: 30 } : { country: key, limit: 30 }); } catch (e) { d = null; }
+    B.busy = false;
+    if (d && d.ok && kind === 'country') { B.list = Array.isArray(d.countries) ? d.countries.filter(x => x && geoCountryOk(x.country)) : []; B.mine = geoCountryOk(d.mine) ? d.mine : ''; if (geoCountryOk(d.country)) B.by[d.country] = { top: Array.isArray(d.top) ? d.top : [], t: Date.now() }; }
+    else if (d && d.ok && kind === 'city') { B.lang = lang; B.list = Array.isArray(d.cities) ? d.cities.filter(x => x && typeof x.key === 'string' && x.key).map(x => ({ key: x.key, name: String(x.name || x.key), cc: geoCountryOk(x.cc) ? x.cc : '', players: Number(x.players) || 0 })) : []; B.mine = typeof d.mine === 'string' ? d.mine : ''; if (typeof d.city === 'string' && d.city) B.by[d.city] = { top: Array.isArray(d.top) ? d.top : [], t: Date.now() }; }
+    else B.by[key] = Object.assign({}, B.by[key] || {}, { fail: true, t: Date.now() });
     if (S.screen === 'ratings') render();
   }, 0);
+}
+function geoPanelHTML(b, title) {
+  const u = U();
+  const rows = b && b.top ? (b.top.length ? `<div class="stack-s" style="margin-top:10px">${b.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${title.empty}</div>`)
+    : `<div class="hint" style="margin-top:8px">${b && b.fail ? u.tgTopFail : u.tgTopLoading}</div>`;
+  return `<div class="panel geo-top"><div class="eyebrow">${title.head}</div><div class="hint" style="margin-top:4px">${title.hint}</div>${rows}</div>`;
 }
 /* the panel under the country picker: that country's players on the server */
 function geoBoardHTML(cc) {
   if (!geoBoardOn()) return '';
-  const u = U(); if (cc) geoBoardPoll(cc);
-  const b = cc ? GB.by[cc] : null; const name = cc ? `${flagOf(cc)} ${esc(countryName(cc))}` : '';
-  const rows = b && b.top ? (b.top.length ? `<div class="stack-s" style="margin-top:10px">${b.top.map(topRowHTML).join('')}</div>` : `<div class="hint" style="margin-top:8px">${u.geoTopEmpty}</div>`)
-    : `<div class="hint" style="margin-top:8px">${b && b.fail ? u.tgTopFail : u.tgTopLoading}</div>`;
-  return `<div class="panel geo-top"><div class="eyebrow">${cc ? tt(u.geoTopTitle, { country: name }) : u.geoTopAny}</div><div class="hint" style="margin-top:4px">${u.geoTopHint}</div>${rows}</div>`;
+  const u = U(); if (cc) geoBoardPoll('country', cc); else if (GB.country.list) return ''; // loaded and nobody anywhere: no panel
+  return geoPanelHTML(cc ? GB.country.by[cc] : null, { head: cc ? tt(u.geoTopTitle, { country: `${flagOf(cc)} ${esc(countryName(cc))}` }) : u.geoTopAny, hint: u.geoTopHint, empty: u.geoTopEmpty });
+}
+/* the panel under the city picker */
+function geoCityHTML(key, name, cc) {
+  if (!geoBoardOn()) return '';
+  const u = U(); if (key) geoBoardPoll('city', key); else if (GB.city.list) return '';
+  return geoPanelHTML(key ? GB.city.by[key] : null, { head: key ? tt(u.geoCityTitle, { city: `${cc ? flagOf(cc) + ' ' : ''}${esc(name || cityLabel(key, L.code))}` }) : u.geoCityAny, hint: u.geoCityHint, empty: u.geoCityEmpty });
 }
 /* ============================================================
    v77 OFFICIAL HOSTS — verified hosts with a licence; every game at their tables brings the players emeralds (up to 100 a game).
@@ -15103,6 +15141,89 @@ Object.assign(ACT, {
   const origRender = render;
   render = function () { origRender.apply(this, arguments); try { tablesKick(); } catch (e) {} };
 })();
+/* ============================================================
+   v85 CITIES — one key per city however players write it, so the «City» rating counts Київ, Киев, Kyiv and Kijów as one city
+   and shows it in the app's language. The same block is on the server (backend/src/cities.js); backend/test/run.js compares them.
+   ============================================================ */
+/* cities:begin — the same text in src/23-cities.js and backend/src/cities.js (backend/test/run.js compares them).
+   [key, country, en, uk, ru, pl, hy ('' — the English name), other spellings separated by «|»] */
+const CITY_ROWS = [
+  ['kyiv', 'UA', 'Kyiv', 'Київ', 'Киев', 'Kijów', 'Կիև', 'kiev|kijow|kyjiw|kiew'],
+  ['kharkiv', 'UA', 'Kharkiv', 'Харків', 'Харьков', 'Charków', 'Խարկով', 'kharkov|charkow'],
+  ['odesa', 'UA', 'Odesa', 'Одеса', 'Одесса', 'Odessa', 'Օդեսա', 'odessa'],
+  ['dnipro', 'UA', 'Dnipro', 'Дніпро', 'Днепр', 'Dniepr', 'Դնեպր', 'dnepr|днепропетровск|дніпропетровськ|dnipropetrovsk|dnepropetrovsk|днипро'],
+  ['lviv', 'UA', 'Lviv', 'Львів', 'Львов', 'Lwów', 'Լվով', 'lvov|lwow|lemberg|львiв'],
+  ['zaporizhzhia', 'UA', 'Zaporizhzhia', 'Запоріжжя', 'Запорожье', 'Zaporoże', 'Զապորոժյե', 'zaporozhye|zaporizhia|zaporizhzhya|zaporozhe|zaporozhie|запорiжжя'],
+  ['kryvyi_rih', 'UA', 'Kryvyi Rih', 'Кривий Ріг', 'Кривой Рог', 'Krzywy Róg', '', 'krivoy rog|kryvyy rih|krivoi rog|кривий рiг'],
+  ['mykolaiv', 'UA', 'Mykolaiv', 'Миколаїв', 'Николаев', 'Mikołajów', '', 'nikolaev|nikolayev|mykolayiv|миколаiв'],
+  ['vinnytsia', 'UA', 'Vinnytsia', 'Вінниця', 'Винница', 'Winnica', '', 'vinnitsa|vinnytsya|вiнниця'],
+  ['poltava', 'UA', 'Poltava', 'Полтава', 'Полтава', 'Połtawa', '', ''],
+  ['chernihiv', 'UA', 'Chernihiv', 'Чернігів', 'Чернигов', 'Czernihów', '', 'chernigov|чернiгiв'],
+  ['cherkasy', 'UA', 'Cherkasy', 'Черкаси', 'Черкассы', 'Czerkasy', '', 'cherkassy'],
+  ['khmelnytskyi', 'UA', 'Khmelnytskyi', 'Хмельницький', 'Хмельницкий', 'Chmielnicki', '', 'khmelnitsky|khmelnytskyy|khmelnytsky|khmelnitskiy'],
+  ['chernivtsi', 'UA', 'Chernivtsi', 'Чернівці', 'Черновцы', 'Czerniowce', '', 'chernovtsy|чернiвцi'],
+  ['zhytomyr', 'UA', 'Zhytomyr', 'Житомир', 'Житомир', 'Żytomierz', '', 'zhitomir'],
+  ['sumy', 'UA', 'Sumy', 'Суми', 'Сумы', 'Sumy', '', ''],
+  ['rivne', 'UA', 'Rivne', 'Рівне', 'Ровно', 'Równe', '', 'rovno|рiвне'],
+  ['ivano_frankivsk', 'UA', 'Ivano-Frankivsk', 'Івано-Франківськ', 'Ивано-Франковск', 'Iwano-Frankiwsk', '', 'ivano frankovsk|frankivsk|франківськ|франик'],
+  ['ternopil', 'UA', 'Ternopil', 'Тернопіль', 'Тернополь', 'Tarnopol', '', 'тернопiль'],
+  ['lutsk', 'UA', 'Lutsk', 'Луцьк', 'Луцк', 'Łuck', '', ''],
+  ['uzhhorod', 'UA', 'Uzhhorod', 'Ужгород', 'Ужгород', 'Użhorod', '', 'uzhgorod'],
+  ['kropyvnytskyi', 'UA', 'Kropyvnytskyi', 'Кропивницький', 'Кропивницкий', 'Kropywnycki', '', 'kirovograd|kirovohrad|кировоград|кіровоград|kropyvnytskyy|kropyvnytskyi'],
+  ['kremenchuk', 'UA', 'Kremenchuk', 'Кременчук', 'Кременчуг', 'Krzemieńczuk', '', 'kremenchug'],
+  ['kamianske', 'UA', 'Kamianske', 'Кам’янське', 'Каменское', 'Kamieńskie', '', 'dniprodzerzhynsk|днепродзержинск|дніпродзержинськ|kamenskoe|kamyanske|камянське'],
+  ['bila_tserkva', 'UA', 'Bila Tserkva', 'Біла Церква', 'Белая Церковь', 'Biała Cerkiew', '', 'belaya tserkov|bila tserkva'],
+  ['brovary', 'UA', 'Brovary', 'Бровари', 'Бровары', 'Browary', '', ''],
+  ['irpin', 'UA', 'Irpin', 'Ірпінь', 'Ирпень', 'Irpień', '', 'irpen'],
+  ['bucha', 'UA', 'Bucha', 'Буча', 'Буча', 'Bucza', '', ''],
+  ['kherson', 'UA', 'Kherson', 'Херсон', 'Херсон', 'Chersoń', 'Խերսոն', ''],
+  ['mukachevo', 'UA', 'Mukachevo', 'Мукачево', 'Мукачево', 'Mukaczewo', '', 'mukachiv|мукачів'],
+  ['melitopol', 'UA', 'Melitopol', 'Мелітополь', 'Мелитополь', 'Melitopol', '', ''],
+  ['kramatorsk', 'UA', 'Kramatorsk', 'Краматорськ', 'Краматорск', 'Kramatorsk', '', ''],
+  ['pavlohrad', 'UA', 'Pavlohrad', 'Павлоград', 'Павлоград', 'Pawłohrad', '', 'pavlograd'],
+  ['nikopol', 'UA', 'Nikopol', 'Нікополь', 'Никополь', 'Nikopol', '', ''],
+  ['warsaw', 'PL', 'Warsaw', 'Варшава', 'Варшава', 'Warszawa', 'Վարշավա', 'warszawa|warschau'],
+  ['krakow', 'PL', 'Kraków', 'Краків', 'Краков', 'Kraków', 'Կրակով', 'krakow|cracow|krakau'],
+  ['wroclaw', 'PL', 'Wrocław', 'Вроцлав', 'Вроцлав', 'Wrocław', 'Վրոցլավ', 'wroclaw|breslau'],
+  ['gdansk', 'PL', 'Gdańsk', 'Гданськ', 'Гданьск', 'Gdańsk', 'Գդանսկ', 'gdansk|danzig'],
+  ['poznan', 'PL', 'Poznań', 'Познань', 'Познань', 'Poznań', '', 'poznan'],
+  ['lodz', 'PL', 'Łódź', 'Лодзь', 'Лодзь', 'Łódź', '', 'lodz'],
+  ['katowice', 'PL', 'Katowice', 'Катовіце', 'Катовице', 'Katowice', '', ''],
+  ['lublin', 'PL', 'Lublin', 'Люблін', 'Люблин', 'Lublin', '', ''],
+  ['szczecin', 'PL', 'Szczecin', 'Щецин', 'Щецин', 'Szczecin', '', ''],
+  ['bydgoszcz', 'PL', 'Bydgoszcz', 'Бидгощ', 'Быдгощ', 'Bydgoszcz', '', ''],
+  ['rzeszow', 'PL', 'Rzeszów', 'Ряшів', 'Жешув', 'Rzeszów', '', 'rzeszow'],
+  ['gdynia', 'PL', 'Gdynia', 'Гдиня', 'Гдыня', 'Gdynia', '', ''],
+  ['bialystok', 'PL', 'Białystok', 'Білосток', 'Белосток', 'Białystok', '', 'bialystok'],
+  ['yerevan', 'AM', 'Yerevan', 'Єреван', 'Ереван', 'Erywań', 'Երևան', 'erevan|yerevan'],
+  ['gyumri', 'AM', 'Gyumri', 'Гюмрі', 'Гюмри', 'Giumri', 'Գյումրի', 'gumri|leninakan'],
+  ['vanadzor', 'AM', 'Vanadzor', 'Ванадзор', 'Ванадзор', 'Wanadzor', 'Վանաձոր', ''],
+  ['tbilisi', 'GE', 'Tbilisi', 'Тбілісі', 'Тбилиси', 'Tbilisi', 'Թբիլիսի', 'tiflis'],
+  ['batumi', 'GE', 'Batumi', 'Батумі', 'Батуми', 'Batumi', 'Բաթումի', ''],
+  ['chisinau', 'MD', 'Chișinău', 'Кишинів', 'Кишинёв', 'Kiszyniów', 'Քիշնև', 'chisinau|kishinev|kishinau'],
+  ['vilnius', 'LT', 'Vilnius', 'Вільнюс', 'Вильнюс', 'Wilno', 'Վիլնյուս', ''],
+  ['riga', 'LV', 'Riga', 'Рига', 'Рига', 'Ryga', 'Ռիգա', ''],
+  ['tallinn', 'EE', 'Tallinn', 'Таллінн', 'Таллин', 'Tallinn', 'Տալլին', 'tallin'],
+  ['berlin', 'DE', 'Berlin', 'Берлін', 'Берлин', 'Berlin', 'Բեռլին', ''],
+  ['prague', 'CZ', 'Prague', 'Прага', 'Прага', 'Praga', 'Պրահա', 'praha|prag'],
+  ['vienna', 'AT', 'Vienna', 'Відень', 'Вена', 'Wiedeń', 'Վիեննա', 'wien'],
+  ['london', 'GB', 'London', 'Лондон', 'Лондон', 'Londyn', 'Լոնդոն', ''],
+  ['almaty', 'KZ', 'Almaty', 'Алмати', 'Алматы', 'Ałmaty', 'Ալմաթի', 'alma ata|алма ата'],
+  ['astana', 'KZ', 'Astana', 'Астана', 'Астана', 'Astana', 'Աստանա', 'nur sultan|нур султан']
+];
+/* lower case, no accents, «ё» → «е», no quotes or dots, one space; «г.», «м.», «місто», «miasto» in front are dropped */
+const cityNorm = s => String(s || '').toLowerCase().replace(/ł/g, 'l').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/ё/g, 'е')
+  .replace(/[ʼ'’`"«»]/g, '').replace(/[().,]/g, ' ').replace(/[\s\-–—_]+/g, ' ').trim().replace(/^(г|м|с|смт|пгт|місто|город|miasto|city of|city) /, '').trim().slice(0, 48);
+const CITY_ALIAS = Object.create(null), CITY_INFO = Object.create(null);
+CITY_ROWS.forEach(([key, cc, en, uk, ru, pl, hy, more]) => {
+  CITY_INFO[key] = { key, cc, names: { en, uk, ru, pl, hy: hy || en } };
+  [en, uk, ru, pl, hy].concat(String(more || '').split('|')).forEach(n => { const k = cityNorm(n); if (k && !CITY_ALIAS[k]) CITY_ALIAS[k] = key; });
+});
+/* the city's key: a known city → its id («kyiv»); any other → «~» + the normalized spelling; empty → '' */
+function cityKey(s) { const n = cityNorm(s); return n ? (CITY_ALIAS[n] || '~' + n) : ''; }
+/* the city's name in a language: a known city by the dictionary, another — the spelling given (or the key without «~») */
+function cityLabel(key, lang, fallback) { const c = CITY_INFO[key]; return c ? (c.names[lang] || c.names.en) : String(fallback || String(key || '').replace(/^~/, '')); }
+/* cities:end */
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

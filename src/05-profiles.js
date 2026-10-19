@@ -176,10 +176,16 @@ function ratingsScreen() {
   const periodSeg = seg('n3', [['all', u.rtAll], ['week', u.rtWeek], ['month', u.rtMonth]], 'period');
   let pool = S.profiles.slice(); let picker = ''; let srvPanel = '';
   if (rt.scope === 'city') {
-    const cities = [...new Set(S.profiles.map(p => p.city).filter(Boolean))].sort();
-    if (!rt.city || !cities.includes(rt.city)) rt.city = (me && me.city && cities.includes(me.city)) ? me.city : cities[0] || null;
-    picker = cities.length ? `<select class="input" data-a="rt-pick" data-k="city">${cities.map(c => `<option value="${esc(c)}" ${rt.city === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>` : `<p class="hint">${u.rtNoCity}</p>`;
-    pool = pool.filter(p => p.city && p.city === rt.city);
+    // v85: one city however it is written (cityKey in 23-cities.js); with the bot's server — every city players play in (geoCity* in 20-geo.js)
+    const srv = typeof geoCityList === 'function' ? geoCityList() : null; const nm = {}, nOf = {}, ccOf = {};
+    (srv || []).forEach(x => { nm[x.key] = x.name; nOf[x.key] = x.players; ccOf[x.key] = x.cc; });
+    S.profiles.forEach(p => { const k = cityKey(p.city); if (k && !nm[k]) { nm[k] = cityLabel(k, L.code, p.city); if (!ccOf[k] && CITY_INFO[k]) ccOf[k] = CITY_INFO[k].cc; } });
+    const cities = Object.keys(nm).sort((a, b) => (nOf[b] || 0) - (nOf[a] || 0) || nm[a].localeCompare(nm[b]));
+    const mine = (me && me.city ? cityKey(me.city) : '') || (typeof geoCityMine === 'function' ? geoCityMine() : '');
+    if (!rt.city || !cities.includes(rt.city)) rt.city = mine && cities.includes(mine) ? mine : cities[0] || null;
+    picker = cities.length ? `<select class="input" data-a="rt-pick" data-k="city">${cities.map(c => `<option value="${esc(c)}" ${rt.city === c ? 'selected' : ''}>${ccOf[c] ? flagOf(ccOf[c]) + ' ' : ''}${esc(nm[c])}${nOf[c] ? ' · ' + nOf[c] : ''}</option>`).join('')}</select>` : srv === null && typeof geoBoardOn === 'function' && geoBoardOn() ? '' : `<p class="hint">${u.rtNoCity}</p>`;
+    pool = pool.filter(p => p.city && cityKey(p.city) === rt.city);
+    srvPanel = typeof geoCityHTML === 'function' ? geoCityHTML(rt.city, nm[rt.city], ccOf[rt.city]) : '';
   }
   if (rt.scope === 'country') {
     // v83: with the bot's server the countries are every country players play from (geoBoard* in 20-geo.js), not only this phone's profiles
