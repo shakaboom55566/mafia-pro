@@ -1,0 +1,32 @@
+{
+  "id": "2026-10-19",
+  "date": "2026-10-19",
+  "rubric": "Новинка",
+  "hook": "питання",
+  "model": "veo-3.1-fast-generate-preview",
+  "resolution": "1080p",
+  "image": null,
+  "refs": [
+    "mayor"
+  ],
+  "title": "Твоє місто в рейтингу",
+  "voice": {
+    "seconds": 7.9,
+    "tempo": 1.09
+  },
+  "costUsd": 0.98,
+  "seconds": 10.2,
+  "bytes": 6882211,
+  "at": "2026-10-19T15:56:07.279Z",
+  "results": {
+    "instagram": {
+      "error": "container: Any of the pages_read_engagement, pages_manage_metadata,\n        pages_read_user_content, pages_manage_ads, pages_show_list or\n        pages_messaging permission(s) must be granted before impersonating a\n        user's page. (#190)"
+    },
+    "facebook": {
+      "error": "start: Any of the pages_read_engagement, pages_manage_metadata,\n        pages_read_user_content, pages_manage_ads, pages_show_list or\n        pages_messaging permission(s) must be granted before impersonating a\n        user's page. (#190)"
+    },
+    "tiktok": {
+      "status": "telegram"
+    }
+  }
+}
