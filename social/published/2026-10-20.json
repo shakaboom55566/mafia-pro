@@ -1,0 +1,32 @@
+{
+  "id": "2026-10-20",
+  "date": "2026-10-20",
+  "rubric": "Ніч у Кастельмарі",
+  "hook": "таємниця",
+  "model": "veo-3.1-fast-generate-preview",
+  "resolution": "1080p",
+  "image": null,
+  "refs": [
+    "journalist"
+  ],
+  "title": "Репортер не спить",
+  "voice": {
+    "seconds": 7.4,
+    "tempo": 1.02
+  },
+  "costUsd": 0.98,
+  "seconds": 10.2,
+  "bytes": 7093957,
+  "at": "2026-10-20T15:55:52.974Z",
+  "results": {
+    "instagram": {
+      "error": "container: Any of the pages_read_engagement, pages_manage_metadata,\n        pages_read_user_content, pages_manage_ads, pages_show_list or\n        pages_messaging permission(s) must be granted before impersonating a\n        user's page. (#190)"
+    },
+    "facebook": {
+      "error": "start: Any of the pages_read_engagement, pages_manage_metadata,\n        pages_read_user_content, pages_manage_ads, pages_show_list or\n        pages_messaging permission(s) must be granted before impersonating a\n        user's page. (#190)"
+    },
+    "tiktok": {
+      "status": "telegram"
+    }
+  }
+}
