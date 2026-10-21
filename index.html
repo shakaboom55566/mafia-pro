@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.62.0-cc5cdc2">
+<meta name="mafia-build" content="1.62.1-1e5a973">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -742,14 +742,16 @@ html.lite .rt-ring { box-shadow: none; background: var(--bg-2); }
 .rtable.roomed .rt-meta, .rtable.roomed .rt-club { color: #d9cfbf; }
 html.lite .rt-room-haze { display: none; }
 @media (prefers-reduced-motion: reduce) { .rt-room-haze { animation: none; } }
-.rm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.rm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; align-content: start; }
 .rm-tile { display: flex; flex-direction: column; gap: 2px; padding: 6px 6px 8px; border-radius: 14px; border: 1px solid rgba(240,205,122,.3); background: linear-gradient(180deg, rgba(240,205,122,.10), var(--bg-2)); cursor: pointer; }
 .rm-tile.on { border-color: rgba(240,205,122,.95); box-shadow: 0 0 0 1px rgba(240,205,122,.45), 0 6px 22px -10px rgba(240,205,122,.8); }
-.rm-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #120d0a; }
-.rm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* v85.1: the square through padding, the picture absolute — the same iOS WebKit stretch as .sk-thumb (one table skin alone in its grid) */
+.rm-thumb { position: relative; flex: none; height: 0; padding-bottom: 100%; border-radius: 10px; overflow: hidden; background: #120d0a; }
+.rm-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .rm-tile.locked .rm-thumb img { filter: saturate(.7) brightness(.62); }
 .rm-lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; filter: drop-shadow(0 2px 6px #000); }
-.rm-plain { display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(240,205,122,.16), rgba(29,20,20,.9) 55%, #0b0a0e); color: var(--muted); font-size: 11px; text-align: center; padding: 8px; }
+.rm-plain { background: radial-gradient(circle at 50% 45%, rgba(240,205,122,.16), rgba(29,20,20,.9) 55%, #0b0a0e); color: var(--muted); font-size: 11px; text-align: center; }
+.rm-plain > span:first-child { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px; }
 .rm-preview { margin: 0 auto; max-width: 360px; }
 /* v84: table skins — the table top is a picture of its own shape in the ring's box; the seats stand along it (22-tables.js) */
 .rtable .rt-ring.ts, .rtable.roomed .rt-ring.ts { left: 15%; top: 15%; width: 70%; height: 70%; background: none; border: 0; box-shadow: none; border-radius: 0; } /* a little wider than the plain disc: the rim is the point */
@@ -1125,11 +1127,14 @@ html.lite .screen.enter, html.lite .sheet-bg.enter, html.lite .sheet-bg.enter .s
 .sk-row .seal { width: 44px; height: 44px; }
 @media (max-width: 460px) { .skin-item { grid-template-columns: 1fr; justify-items: center; text-align: center; } .skin-item .card3d-wrap { max-width: 230px; } .sk-info .row, .sk-rank { justify-content: center; } }
 /* v57: the Skins tab — tiles of the Epic series (thumbnails), a sheet per skin */
-.sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; align-content: start; }
 .sk-tile { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 6px 6px 8px; border-radius: 14px; border: 1px solid rgba(157,108,224,.35); background: linear-gradient(180deg, rgba(157,92,240,.14), var(--bg-2)); cursor: pointer; min-width: 0; }
 .sk-tile.worn { border-color: rgba(157,108,224,.95); box-shadow: 0 0 0 1px rgba(185,140,255,.5), 0 6px 22px -10px rgba(157,92,240,.9); }
-.sk-thumb { position: relative; aspect-ratio: 2 / 3; border-radius: 9px; overflow: hidden; background: #120b1c; }
-.sk-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* v85.1: the thumb box is made through padding and the picture is absolute (as .card.mini .art) — iOS WebKit stretched a lone tile
+   («Other looks» with one skin, iPhone 12 Pro Max) down to the bottom of the screen when the box was an aspect-ratio flex item
+   holding a percentage-height <img>; the grid also never stretches its rows (align-content: start) */
+.sk-thumb { position: relative; flex: none; height: 0; padding-bottom: 150%; border-radius: 9px; overflow: hidden; background: #120b1c; }
+.sk-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .sk-tile.locked .sk-thumb img { filter: saturate(.75) brightness(.86); }
 .sk-badge { position: absolute; right: 5px; top: 5px; padding: 2px 7px; border-radius: 999px; background: rgba(10,6,16,.8); color: #d9c2ff; font-size: 10.5px; font-weight: 800; }
 /* v68: the admin's view of a player's skins — not owned is dim with a «+», a gift has a gold badge */
