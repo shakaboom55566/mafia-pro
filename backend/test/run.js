@@ -1218,6 +1218,10 @@ console.log('/broadcast: preview → confirm → portions by cron → progress, 
   ok(/нет игроков/.test(lastTo(777).params.text), 'the admin is told nobody is there');
   await hook(msg(adm, '/broadcast місто:«Дніпро» Привіт')); b = await bc(); ok(b.id !== before5 && b.text === 'Привіт' && lastTo(777).params.text.includes('Днепр'), 'місто: and «…» work');
   await cb(adm, `bc_cancel_${b.id}`);
+  // pasted as monospace (a pre entity over the whole message, the command included) → still read as the command and the city
+  const preText = '/broadcast город:Днепр\nСегодня играем'; await hook({ update_id: 903, message: { message_id: 904, from: adm, chat: { id: 777, type: 'private' }, text: preText, entities: [{ type: 'pre', offset: 0, length: preText.length }] } });
+  b = await bc(); ok(b.text === 'Сегодня играем' && lastTo(777).params.text.includes('Рассылка игрокам из города Днепр'), 'monospace paste: city read, the command not in the text: ' + b.text);
+  await cb(adm, `bc_cancel_${b.id}`);
   // a plain /broadcast is still for everyone
   await hook(msg(adm, '/broadcast Всем')); b = await bc(); ok(!(await env.DB.prepare('SELECT 1 FROM broadcast_targets WHERE bid = ?1').bind(b.id).first()) && lastTo(777).params.text.includes('Рассылка всем игрокам'), 'without a city — everyone, as before');
   await cb(adm, `bc_cancel_${b.id}`);

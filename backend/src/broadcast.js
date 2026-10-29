@@ -188,7 +188,9 @@ export async function onBroadcastCommand(env, bot, msg) {
     if (r && r.ok) await env.DB.prepare('UPDATE broadcasts SET admin_chat = ?1, admin_msg = ?2 WHERE id = ?3').bind(chat, r.result.message_id, busy.id).run();
     return;
   }
-  let html = entitiesToHtml(msg.text || '', msg.entities || []).replace(/^\/broadcast(?:@\w+)?\s*/, '').trim();
+  // a message pasted as code/pre (monospace) wraps the command itself — drop that formatting so the command and the city are read
+  const ents = (msg.entities || []).filter(e => !((e.type === 'pre' || e.type === 'code') && e.offset === 0));
+  let html = entitiesToHtml(msg.text || '', ents).replace(/^\/broadcast(?:@\w+)?\s*/, '').trim();
   let t = null; const cm = CITY_RE.exec(html); // v86: one city only
   if (cm) {
     const key = cityKey(cm[1] || cm[2]); html = html.slice(cm[0].length).trim();
