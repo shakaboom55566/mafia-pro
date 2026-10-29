@@ -408,6 +408,12 @@ CREATE TABLE IF NOT EXISTS broadcast_queue (
   PRIMARY KEY (bid, tg_id)
 );
 CREATE INDEX IF NOT EXISTS broadcast_queue_pending ON broadcast_queue (bid, status);
+-- v86: a broadcast to one city only (/broadcast город:Днепр …); no row = everyone
+CREATE TABLE IF NOT EXISTS broadcast_targets (
+  bid       INTEGER PRIMARY KEY,      -- broadcasts.id
+  city_key  TEXT NOT NULL,            -- cities.js cityKey: «dnipro», or «~» + the spelling for a city outside the dictionary
+  city_name TEXT
+);
 -- Security (v44, security.js): events (IPs only as a salted hash, never the address), per-minute counters, incidents, bans
 CREATE TABLE IF NOT EXISTS security_events (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -6,11 +6,15 @@
    Sending goes in portions from the every-minute cron (BROADCAST_BATCH per minute, 30 by default: well under Telegram's
    limits and the Worker's subrequest cap), each player at most once per broadcast; the control card shows progress and
    has "⏸ Остановить" / "▶️ Продолжить". Recipients: everyone in `users` (opened the bot or the app) except the admins.
-   Players who blocked the bot, or never started a chat with it, are counted as unreachable. */
+   Players who blocked the bot, or never started a chat with it, are counted as unreachable.
+   v86 — one city only: `/broadcast город:Днепр <text>` (also місто: / city: / miasto:; «Кривой Рог» or Кривой_Рог for two words)
+   goes to the players whose profile city (user_cities: set by the player or from the network) is that city under one key
+   however it is written (cities.js: Днепр = Дніпро = Dnipro = Днепропетровск). The city is kept in broadcast_targets. */
 import { esc } from './tg.js';
 import { newsOptOutSql } from './privacy.js';
 import { pickLang } from './texts.js';
 import { entitiesToHtml } from './posts.js';
+import { cityKey, cityLabel } from './cities.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const adminIds = env => String(env.ADMIN_IDS || '').split(',').map(x => Number(x.trim())).filter(Boolean);
@@ -127,8 +131,17 @@ const row = (env, id) => env.DB.prepare('SELECT * FROM broadcasts WHERE id = ?1'
 const active = env => env.DB.prepare("SELECT * FROM broadcasts WHERE status IN ('sending', 'stopped') ORDER BY id DESC LIMIT 1").first();
 /* recipients: everyone except admins and players who chose /unsubscribe (privacy.js) */
 function notAdmins(env) { const ids = adminIds(env); return ids.length ? { sql: ` WHERE tg_id NOT IN (${ids.map((_, i) => '?' + (i + 1)).join(',')}) AND ${newsOptOutSql}`, args: ids } : { sql: ` WHERE ${newsOptOutSql}`, args: [] }; }
+/* v86: the city of a broadcast (null = everyone) and the players of that city: [{ tg_id, lang }] */
+const CITY_RE = /^(?:город|місто|city|miasto)\s*[:=]\s*(?:«([^»]{1,48})»|(\S{1,48}))\s*/i;
+const targetOf = (env, id) => env.DB.prepare('SELECT city_key, city_name FROM broadcast_targets WHERE bid = ?1').bind(id).first();
+async function cityRecipients(env, key) {
+  const w = notAdmins(env);
+  const rows = (await env.DB.prepare(`SELECT tg_id, lang, (SELECT city FROM user_cities c WHERE c.tg_id = users.tg_id) AS city FROM users${w.sql} AND tg_id IN (SELECT tg_id FROM user_cities WHERE city IS NOT NULL AND city != '')`).bind(...w.args).all()).results || [];
+  return rows.filter(r => cityKey(r.city) === key).map(r => ({ tg_id: r.tg_id, lang: r.lang }));
+}
 /* recipients by language (after pickLang) */
-async function audience(env) {
+async function audience(env, t) {
+  if (t) { const by = {}; const list = await cityRecipients(env, t.city_key); for (const r of list) { const l = pickLang(r.lang); by[l] = (by[l] || 0) + 1; } return { by, total: list.length }; }
   const w = notAdmins(env);
   const rows = (await env.DB.prepare(`SELECT lang, COUNT(*) AS n FROM users${w.sql} GROUP BY lang`).bind(...w.args).all()).results || [];
   const by = {}; let total = 0;
@@ -143,9 +156,9 @@ async function counts(env, id) {
 const byLine = by => LANG_ORDER.filter(l => by[l]).map(l => `${FLAG[l]} ${by[l]}`).join(' · ');
 const minutes = (n, env) => Math.max(1, Math.ceil(n / batchSize(env)));
 
-function controlCard(env, b, c, aud) {
-  const what = b.kind === 'invite' ? 'приглашение в канал и чат' : 'ваш текст';
-  if (b.status === 'preview') return `📣 <b>Рассылка всем игрокам</b> · ${what}\n\nПолучат: <b>${aud.total}</b> ${aud.total ? `(${byLine(aud.by)})` : ''}\nВыше — сообщение так, как его увидят игроки: каждый на своём языке, с кнопками канала, чата и игры.\nОтправка порциями по ${batchSize(env)} в минуту — около ${minutes(aud.total, env)} мин.\n\nРазослать?`;
+function controlCard(env, b, c, aud, t) {
+  const what = (b.kind === 'invite' ? 'приглашение в канал и чат' : 'ваш текст') + (t ? ` · 📍 ${esc(t.city_name)}` : '');
+  if (b.status === 'preview') return `📣 <b>${t ? `Рассылка игрокам из города ${esc(t.city_name)}` : 'Рассылка всем игрокам'}</b> · ${what}\n\nПолучат: <b>${aud.total}</b> ${aud.total ? `(${byLine(aud.by)})` : ''}${t ? '\nГород — из профиля игрока (сам указал или определён по сети).' : ''}\nВыше — сообщение так, как его увидят игроки: каждый на своём языке, с кнопками канала, чата и игры.\nОтправка порциями по ${batchSize(env)} в минуту — около ${minutes(aud.total, env)} мин.\n\nРазослать?`;
   const prog = `Доставлено: <b>${c.sent}</b> из ${c.total}${c.blocked ? ` · недоступны (бот заблокирован или чат не начат): ${c.blocked}` : ''}${c.failed ? ` · ошибок: ${c.failed}` : ''}`;
   if (b.status === 'sending') return `📤 <b>Идёт рассылка</b> · ${what}\n\n${prog}\nОсталось: ${c.pending} — около ${minutes(c.pending, env)} мин.${b.error ? `\n⚠️ ${esc(b.error)}` : ''}`;
   if (b.status === 'stopped') return `⏸ <b>Рассылка остановлена</b> · ${what}\n\n${prog}\nОсталось: ${c.pending}.`;
@@ -160,8 +173,9 @@ function controlButtons(b, total) {
 }
 async function refresh(env, bot, b) {
   if (!b.admin_chat || !b.admin_msg) return;
-  const c = await counts(env, b.id); const aud = b.status === 'preview' ? await audience(env) : null;
-  await bot.call('editMessageText', { chat_id: b.admin_chat, message_id: b.admin_msg, text: controlCard(env, b, c, aud), parse_mode: 'HTML', reply_markup: controlButtons(b, aud && aud.total), link_preview_options: { is_disabled: true } });
+  const t = await targetOf(env, b.id);
+  const c = await counts(env, b.id); const aud = b.status === 'preview' ? await audience(env, t) : null;
+  await bot.call('editMessageText', { chat_id: b.admin_chat, message_id: b.admin_msg, text: controlCard(env, b, c, aud, t), parse_mode: 'HTML', reply_markup: controlButtons(b, aud && aud.total), link_preview_options: { is_disabled: true } });
 }
 
 /* /broadcast [text] from an admin */
@@ -170,24 +184,32 @@ export async function onBroadcastCommand(env, bot, msg) {
   const busy = await active(env);
   if (busy) { // one broadcast at a time: show the running one instead
     const c = await counts(env, busy.id);
-    const r = await bot.send(chat, controlCard(env, busy, c), { reply_markup: controlButtons(busy) });
+    const r = await bot.send(chat, controlCard(env, busy, c, null, await targetOf(env, busy.id)), { reply_markup: controlButtons(busy) });
     if (r && r.ok) await env.DB.prepare('UPDATE broadcasts SET admin_chat = ?1, admin_msg = ?2 WHERE id = ?3').bind(chat, r.result.message_id, busy.id).run();
     return;
   }
-  const html = entitiesToHtml(msg.text || '', msg.entities || []).replace(/^\/broadcast(?:@\w+)?\s*/, '').trim();
+  let html = entitiesToHtml(msg.text || '', msg.entities || []).replace(/^\/broadcast(?:@\w+)?\s*/, '').trim();
+  let t = null; const cm = CITY_RE.exec(html); // v86: one city only
+  if (cm) {
+    const key = cityKey(cm[1] || cm[2]); html = html.slice(cm[0].length).trim();
+    if (!key) return bot.send(chat, 'Не понял город. Пример: /broadcast город:Днепр Сегодня в 18:00 играем');
+    t = { city_key: key, city_name: cityLabel(key, 'ru') };
+    if (!(await cityRecipients(env, key)).length) return bot.send(chat, `В городе ${esc(t.city_name)} пока нет игроков, которым бот может написать: город берётся из профиля игрока (или по сети). Рассылка не создана.`);
+  }
   if (html.length > MAX_TEXT) return bot.send(chat, `Слишком длинный текст: ${html.length} знаков, можно до ${MAX_TEXT}.`);
   const kind = html ? 'custom' : 'invite';
   await env.DB.prepare("UPDATE broadcasts SET status = 'cancelled' WHERE status = 'preview'").run();
   const ins = await env.DB.prepare("INSERT INTO broadcasts (kind, text, status, created_by, created_at) VALUES (?1, ?2, 'preview', ?3, ?4)").bind(kind, html || null, msg.from.id, now()).run();
   const b = await row(env, ins.meta.last_row_id);
-  const aud = await audience(env);
+  if (t) await env.DB.prepare('INSERT OR REPLACE INTO broadcast_targets (bid, city_key, city_name) VALUES (?1, ?2, ?3)').bind(b.id, t.city_key, t.city_name).run();
+  const aud = await audience(env, t);
   const langs = kind === 'invite' ? (LANG_ORDER.filter(l => aud.by[l]).length ? LANG_ORDER.filter(l => aud.by[l]) : ['ru']) : [pickLang(msg.from.language_code)];
   for (const l of langs) { // samples exactly as players get them
     const m = messageFor(env, b, l);
     const r = await bot.send(chat, m.text, m.extra);
     if (!(r && r.ok)) return bot.send(chat, `Telegram не принял сообщение: ${esc((r && r.description) || 'нет ответа')}. Проверьте разметку и попробуйте снова.`);
   }
-  const r = await bot.send(chat, controlCard(env, b, null, aud), { reply_markup: controlButtons(b, aud.total) });
+  const r = await bot.send(chat, controlCard(env, b, null, aud, t), { reply_markup: controlButtons(b, aud.total) });
   if (r && r.ok) await env.DB.prepare('UPDATE broadcasts SET admin_chat = ?1, admin_msg = ?2 WHERE id = ?3').bind(chat, r.result.message_id, b.id).run();
 }
 
@@ -202,8 +224,14 @@ export async function onBroadcastCallback(env, bot, q, isAdmin) {
   if (m[1] === 'go' && b.status === 'preview') {
     const other = await active(env); if (other && other.id !== b.id) { await answer('Уже идёт другая рассылка'); return true; }
     if (!(await set('sending', ['preview']))) { await answer('Уже запущена'); return true; }
-    const w = notAdmins(env); const off = w.args.length;
-    await env.DB.prepare(`INSERT OR IGNORE INTO broadcast_queue (bid, tg_id, lang, status) SELECT ?${off + 1}, tg_id, lang, 'pending' FROM users${w.sql}`).bind(...w.args, b.id).run();
+    const t = await targetOf(env, b.id);
+    if (t) { // v86: the city's players only
+      const list = await cityRecipients(env, t.city_key);
+      for (let i = 0; i < list.length; i += 100) await env.DB.batch(list.slice(i, i + 100).map(p => env.DB.prepare("INSERT OR IGNORE INTO broadcast_queue (bid, tg_id, lang, status) VALUES (?1, ?2, ?3, 'pending')").bind(b.id, p.tg_id, p.lang)));
+    } else {
+      const w = notAdmins(env); const off = w.args.length;
+      await env.DB.prepare(`INSERT OR IGNORE INTO broadcast_queue (bid, tg_id, lang, status) SELECT ?${off + 1}, tg_id, lang, 'pending' FROM users${w.sql}`).bind(...w.args, b.id).run();
+    }
     await env.DB.prepare('UPDATE broadcasts SET started_at = ?1 WHERE id = ?2').bind(now(), b.id).run();
     await answer('Рассылка запущена');
   } else if (m[1] === 'go' && b.status === 'stopped') { await set('sending', ['stopped']); await answer('Продолжаем'); }

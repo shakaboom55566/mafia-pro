@@ -14,6 +14,7 @@ import { startMockSocial } from './mock-social.js';
 import { socialKey, seal, unseal } from '../src/social.js';
 import { adsKey, parseAdParam } from '../src/ads.js';
 import { exportUser, deleteUser } from '../src/privacy.js';
+import { cityKey } from '../src/cities.js';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 
@@ -1190,6 +1191,38 @@ console.log('/broadcast: preview → confirm → portions by cron → progress, 
   ok(tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === 777).slice(-2)[0].params.text === '<b>Вечером</b> играем', 'custom sample sent to the admin');
   await cb(adm, `bc_cancel_${b.id}`); eq((await bc()).status, 'cancelled', 'cancelled from the preview');
   const s3 = sentTo().length; await tick(); eq(sentTo().length, s3, 'a cancelled broadcast never goes out');
+  // v86: one city only — «город:Днепр» reaches the players whose profile city is Dnipro however it is written
+  const cityRows = (await env.DB.prepare('SELECT tg_id, city FROM user_cities').all()).results || [];
+  const pick = users.filter(x => !tg.blocked.has(x.tg_id)).slice(0, 5); const ts = now();
+  const setCity = (id, city) => env.DB.prepare('INSERT INTO user_cities (tg_id, city, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(tg_id) DO UPDATE SET city = ?2').bind(id, city, ts).run();
+  await setCity(pick[0].tg_id, 'Днепр'); await setCity(pick[1].tg_id, 'Дніпро'); await setCity(pick[2].tg_id, 'Dnipro'); await setCity(pick[3].tg_id, 'Київ'); await setCity(777, 'Днепр');
+  await env.DB.prepare('DELETE FROM user_cities WHERE tg_id = ?1').bind(pick[4].tg_id).run();
+  const optOut = new Set(((await env.DB.prepare('SELECT tg_id FROM user_prefs WHERE no_news = 1').all()).results || []).map(r => r.tg_id));
+  const dnipro = ((await env.DB.prepare('SELECT u.tg_id, c.city FROM users u JOIN user_cities c ON c.tg_id = u.tg_id WHERE u.tg_id != 777').all()).results || []).filter(r => cityKey(r.city) === 'dnipro' && !optOut.has(r.tg_id)).map(r => r.tg_id);
+  ok(dnipro.length >= 3 && !dnipro.includes(pick[3].tg_id), 'test setup: players in Dnipro ' + dnipro.length);
+  const m4 = tg.calls.length;
+  await hook(msg(adm, '/broadcast город:Днепр Сегодня в 18:00 игра в BRAZUCA'));
+  b = await bc(); ok(b.kind === 'custom' && b.text === 'Сегодня в 18:00 игра в BRAZUCA' && b.status === 'preview', 'city broadcast: the city word is not part of the text: ' + b.text);
+  eq((await env.DB.prepare('SELECT city_key FROM broadcast_targets WHERE bid = ?1').bind(b.id).first('city_key')), 'dnipro', 'city kept with the broadcast');
+  const card4 = lastTo(777).params.text; ok(card4.includes('Рассылка игрокам из города Днепр') && card4.includes(`Получат: <b>${dnipro.length}</b>`), 'card: the city and its players only: ' + card4);
+  ok(tg.calls.slice(m4).filter(c => c.method === 'sendMessage').every(c => c.params.chat_id === 777), 'city preview goes to the admin only');
+  await cb(adm, `bc_go_${b.id}`); eq((await bc()).status, 'sending', 'city broadcast confirmed');
+  const q4 = ((await env.DB.prepare('SELECT tg_id FROM broadcast_queue WHERE bid = ?1').bind(b.id).all()).results || []).map(r => r.tg_id).sort((x, y) => x - y);
+  eq(q4, [...dnipro].sort((x, y) => x - y), 'queued: Dnipro players only (any spelling), not Kyiv, not without a city, not the admin');
+  for (let i = 0; i < 10 && (await bc()).status === 'sending'; i++) await tick();
+  const got4 = tg.calls.slice(m4).filter(c => c.method === 'sendMessage' && c.params.chat_id !== 777 && (c.params.text || '').includes('BRAZUCA')).map(c => c.params.chat_id).sort((x, y) => x - y);
+  eq(got4, [...dnipro].sort((x, y) => x - y), 'delivered to the city only, once each');
+  eq((await bc()).status, 'done', 'city broadcast done');
+  // «місто:» and a city without players
+  const before5 = (await bc()).id; await hook(msg(adm, '/broadcast місто:Ужгород Привіт')); eq((await bc()).id, before5, 'no players in the city → no broadcast');
+  ok(/нет игроков/.test(lastTo(777).params.text), 'the admin is told nobody is there');
+  await hook(msg(adm, '/broadcast місто:«Дніпро» Привіт')); b = await bc(); ok(b.id !== before5 && b.text === 'Привіт' && lastTo(777).params.text.includes('Днепр'), 'місто: and «…» work');
+  await cb(adm, `bc_cancel_${b.id}`);
+  // a plain /broadcast is still for everyone
+  await hook(msg(adm, '/broadcast Всем')); b = await bc(); ok(!(await env.DB.prepare('SELECT 1 FROM broadcast_targets WHERE bid = ?1').bind(b.id).first()) && lastTo(777).params.text.includes('Рассылка всем игрокам'), 'without a city — everyone, as before');
+  await cb(adm, `bc_cancel_${b.id}`);
+  await env.DB.prepare('DELETE FROM user_cities').run();
+  for (const r of cityRows) await setCity(r.tg_id, r.city);
   delete env.BROADCAST_BATCH; delete env.CHAT_URL; delete env.CHANNEL_ID; }
 
 console.log('social media: /social, Facebook + Instagram and TikTok consent → sealed tokens, creds for the workflow, report, delete, pause, TikTok mode, stats, token watch');
