@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.62.1-1e5a973">
+<meta name="mafia-build" content="1.63.0-ae8eb18">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -5516,7 +5516,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['host-table', 'Стол на экране ведущего: кто говорит, кто выставлен, чьи голоса'], ['host-chat', 'Чат стола: ведущий читает всё и пишет в любой момент'], ['sheet-players', '«Игроки»: роли и ручное удаление или возврат игрока'], ['sheet-log', '«Журнал»: все события партии'], ['settings', 'Настройки: таймеры, открытие карт, звук']],
         r: ['Таймеры для новичков: минутка 60 с, балаган 2–3 минуты; опытному столу — 45 с.', 'Выбывшего игрока убирайте через {btnPlayers}, а не «на словах» — иначе приложение будет ждать его хода.'] },
       { t: 'Конец партии',
-        p: ['Как только одна из сторон победила, на экране появляется кнопка {gameOver}. Экран итогов: победитель, пьедестал, {reviewTitle} — каждый ход каждого игрока с оценкой и очками, стол с картами и {gameLog}. {newGame} начинает следующую партию.',
+        p: ['Как только одна из сторон победила, на экране появляется кнопка {gameOver}. Экран итогов: победитель, пьедестал, {reviewTitle} — каждый ход каждого игрока с оценкой и очками, стол с картами и {gameLog}. {agBtn} — следующая партия за тем же столом: все остаются на своих номерах, игроки из Telegram пересаживаются сами. {newGame} — партия с чистого стола.',
           '**Онлайн** итоги уходят игрокам сами, очки — в общий рейтинг, стол закрывается.'],
         i: [['end', 'Экран итогов: победитель и пьедестал'], ['end-review', 'Разбор партии: ходы, оценки, MVP']],
         r: ['Зачитайте разбор вслух — для новичков это лучшая часть вечера.', 'Между партиями меняйте состав понемногу: одна-две новые карты.'] },
@@ -5534,7 +5534,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
           'Новичкам — открытая игра и состав «Для новичков»; закрытая игра — для опытного стола.',
           'Онлайн: перед каждой ночью смотрите полосу {onStrip} — кто в приложении; тех, кого «ждём», поторопите голосом.',
           'Discord: дайте две минуты на {dcImOn} и только потом раздавайте карты.',
-          'После партии — разбор вслух и {newGame}. Места и стол к новой партии обнуляются — рассадите заново.',
+          'После партии — разбор вслух и {agBtn}: никого не нужно звать и пересаживать заново. Если состав другой — {newGame}, места обнулятся.',
           'Держите зарядку рядом: онлайн-партия заметно расходует батарею.'] }
     ]
   };
@@ -5849,7 +5849,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['host-table', 'Стіл на екрані ведучого: хто говорить, хто виставлений, чиї голоси'], ['host-chat', 'Чат столу: ведучий читає все й пише будь-якої миті'], ['sheet-players', '«Гравці»: ролі та ручне вилучення чи повернення гравця'], ['sheet-log', '«Журнал»: усі події партії'], ['settings', 'Налаштування: таймери, відкриття карт, звук']],
         r: ['Таймери для новачків: хвилинка 60 с, балаган 2–3 хвилини; досвідченому столу — 45 с.', 'Гравця, що вибув, прибирайте через {btnPlayers}, а не «на словах» — інакше застосунок чекатиме на його хід.'] },
       { t: 'Кінець партії',
-        p: ['Щойно одна зі сторін перемогла, на екрані з’являється кнопка {gameOver}. Екран підсумків: переможець, п’єдестал, {reviewTitle} — кожен хід кожного гравця з оцінкою та балами, стіл із картами й {gameLog}. {newGame} починає наступну партію.',
+        p: ['Щойно одна зі сторін перемогла, на екрані з’являється кнопка {gameOver}. Екран підсумків: переможець, п’єдестал, {reviewTitle} — кожен хід кожного гравця з оцінкою та балами, стіл із картами й {gameLog}. {agBtn} — наступна партія за тим самим столом: усі лишаються на своїх номерах, гравці з Telegram пересідають самі. {newGame} — партія з чистого столу.',
           '**Онлайн** підсумки йдуть гравцям самі, бали — у загальний рейтинг, стіл закривається.'],
         i: [['end', 'Екран підсумків: переможець і п’єдестал'], ['end-review', 'Розбір партії: ходи, оцінки, MVP']],
         r: ['Зачитайте розбір уголос — для новачків це найкраща частина вечора.', 'Між партіями міняйте склад потроху: одна-дві нові карти.'] },
@@ -5867,7 +5867,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
           'Новачкам — відкрита гра й склад «Для новачків»; закрита гра — для досвідченого столу.',
           'Онлайн: перед кожною ніччю дивіться смугу {onStrip} — хто в застосунку; тих, на кого «чекаємо», поквапте голосом.',
           'Discord: дайте дві хвилини на {dcImOn} і лише потім роздавайте карти.',
-          'Після партії — розбір уголос і {newGame}. Місця та стіл до нової партії обнуляються — розсадіть заново.',
+          'Після партії — розбір уголос і {agBtn}: нікого не треба кликати й пересаджувати знову. Якщо склад інший — {newGame}, місця обнуляться.',
           'Тримайте зарядку поруч: онлайн-партія помітно витрачає батарею.'] }
     ]
   };
@@ -6181,7 +6181,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['host-table', 'The table on the host’s screen: who speaks, who is nominated, whose votes'], ['host-chat', 'The table chat: the host reads everything and writes at any moment'], ['sheet-players', '“Players”: roles and removing or returning a player by hand'], ['sheet-log', '“Log”: every event of the game'], ['settings', 'Settings: timers, open cards, sound']],
         r: ['Timers for beginners: a 60-second minute, 2–3 minutes of free talk; an experienced table — 45 seconds.', 'Remove a player who left through {btnPlayers}, not “by word” — otherwise the app waits for their move.'] },
       { t: 'The end of the game',
-        p: ['As soon as one side wins, the {gameOver} button appears. The results screen: the winner, the podium, the {reviewTitle} — every move of every player with a verdict and points, the table with the cards and the {gameLog}. {newGame} starts the next one.',
+        p: ['As soon as one side wins, the {gameOver} button appears. The results screen: the winner, the podium, the {reviewTitle} — every move of every player with a verdict and points, the table with the cards and the {gameLog}. {agBtn} — the next game at the same table: everyone keeps their number, Telegram players move over by themselves. {newGame} — a game from a clean table.',
           '**Online** the results reach the players by themselves, the points go to the overall rating, the table closes.'],
         i: [['end', 'The results screen: the winner and the podium'], ['end-review', 'The game review: moves, verdicts, MVP']],
         r: ['Read the review aloud — for beginners it is the best part of the evening.', 'Change the line-up a little between games: one or two new cards.'] },
@@ -6199,7 +6199,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
           'Beginners — an open game and a “For beginners” line-up; a closed game is for an experienced table.',
           'Online: before every night look at the {onStrip} strip — who is in the app; hurry those you are “waiting for” by voice.',
           'Discord: give two minutes for {dcImOn} and only then deal the cards.',
-          'After the game — the review aloud and {newGame}. Seats and the table are reset for a new game — seat everyone again.',
+          'After the game — the review aloud and {agBtn}: nobody has to be invited or re-seated. A different line-up — {newGame}, the seats are reset.',
           'Keep a charger nearby: an online game drains the battery noticeably.'] }
     ]
   };
@@ -6513,7 +6513,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['host-table', 'Stół na ekranie prowadzącego: kto mówi, kto wystawiony, czyje głosy'], ['host-chat', 'Czat stołu: prowadzący czyta wszystko i pisze w każdej chwili'], ['sheet-players', '„Gracze”: role oraz ręczne usunięcie lub powrót gracza'], ['sheet-log', '„Dziennik”: wszystkie zdarzenia partii'], ['settings', 'Ustawienia: timery, odkrywanie kart, dźwięk']],
         r: ['Timery dla początkujących: minutka 60 s, swobodna dyskusja 2–3 minuty; doświadczony stół — 45 s.', 'Gracza, który wyszedł, usuwaj przez {btnPlayers}, a nie „słownie” — inaczej aplikacja będzie czekać na jego ruch.'] },
       { t: 'Koniec partii',
-        p: ['Gdy tylko jedna ze stron wygra, na ekranie pojawia się przycisk {gameOver}. Ekran wyników: zwycięzca, podium, {reviewTitle} — każdy ruch każdego gracza z oceną i punktami, stół z kartami i {gameLog}. {newGame} zaczyna następną partię.',
+        p: ['Gdy tylko jedna ze stron wygra, na ekranie pojawia się przycisk {gameOver}. Ekran wyników: zwycięzca, podium, {reviewTitle} — każdy ruch każdego gracza z oceną i punktami, stół z kartami i {gameLog}. {agBtn} — następna partia przy tym samym stole: wszyscy zostają na swoich numerach, gracze z Telegrama przesiadają się sami. {newGame} — partia od czystego stołu.',
           '**Online** wyniki idą do graczy same, punkty — do ogólnego rankingu, stół się zamyka.'],
         i: [['end', 'Ekran wyników: zwycięzca i podium'], ['end-review', 'Analiza partii: ruchy, oceny, MVP']],
         r: ['Przeczytaj analizę na głos — dla początkujących to najlepsza część wieczoru.', 'Między partiami zmieniaj skład po trochu: jedna–dwie nowe karty.'] },
@@ -6531,7 +6531,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
           'Początkującym — gra otwarta i skład „Dla początkujących”; gra zamknięta — dla doświadczonego stołu.',
           'Online: przed każdą nocą patrz na pasek {onStrip} — kto jest w aplikacji; tych, na których „czekamy”, popędź głosem.',
           'Discord: daj dwie minuty na {dcImOn} i dopiero potem rozdawaj karty.',
-          'Po partii — analiza na głos i {newGame}. Miejsca i stół do nowej partii się zerują — rozsadź od nowa.',
+          'Po partii — analiza na głos i {agBtn}: nikogo nie trzeba zapraszać ani przesadzać od nowa. Inny skład — {newGame}, miejsca się zerują.',
           'Miej ładowarkę pod ręką: partia online wyraźnie zużywa baterię.'] }
     ]
   };
@@ -6845,7 +6845,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
         i: [['host-table', 'Սեղանը վարողի էկրանին. ով է խոսում, ով է առաջադրված, ում ձայները'], ['host-chat', 'Սեղանի չատ. վարողը կարդում է ամեն ինչ և գրում ցանկացած պահի'], ['sheet-players', '«Խաղացողներ». դերերը և խաղացողին ձեռքով հանելը կամ վերադարձնելը'], ['sheet-log', '«Մատյան». խաղի բոլոր իրադարձությունները'], ['settings', 'Կարգավորումներ. ժամաչափեր, քարտերի բացում, ձայն']],
         r: ['Ժամաչափեր սկսնակների համար. րոպե՝ 60 վ, ազատ քննարկում՝ 2–3 րոպե. փորձառու սեղանին՝ 45 վ։', 'Հեռացած խաղացողին հանեք {btnPlayers}-ով, ոչ թե «խոսքով». այլապես հավելվածը կսպասի նրա քայլին։'] },
       { t: 'Խաղի ավարտ',
-        p: ['Հենց որ կողմերից մեկը հաղթում է, էկրանին հայտնվում է {gameOver} կոճակը։ Արդյունքների էկրան. հաղթող, պատվանդան, {reviewTitle}՝ ամեն խաղացողի ամեն քայլը գնահատականով և միավորներով, սեղանը քարտերով և {gameLog}։ {newGame}-ը սկսում է հաջորդ խաղը։',
+        p: ['Հենց որ կողմերից մեկը հաղթում է, էկրանին հայտնվում է {gameOver} կոճակը։ Արդյունքների էկրան. հաղթող, պատվանդան, {reviewTitle}՝ ամեն խաղացողի ամեն քայլը գնահատականով և միավորներով, սեղանը քարտերով և {gameLog}։ {agBtn}՝ հաջորդ խաղը նույն սեղանի շուրջ. բոլորը մնում են իրենց համարներին, Telegram-ի խաղացողները տեղափոխվում են ինքնուրույն։ {newGame}՝ խաղ մաքուր սեղանից։',
           '**Առցանց** արդյունքներն իրենք են գնում խաղացողներին, միավորները՝ ընդհանուր վարկանիշ, սեղանը փակվում է։'],
         i: [['end', 'Արդյունքների էկրան. հաղթող և պատվանդան'], ['end-review', 'Խաղի վերլուծություն. քայլեր, գնահատականներ, MVP']],
         r: ['Կարդացեք վերլուծությունը բարձրաձայն. սկսնակների համար դա երեկոյի լավագույն մասն է։', 'Խաղերի միջև կազմը փոխեք քիչ-քիչ. մեկ-երկու նոր քարտ։'] },
@@ -6863,7 +6863,7 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
           'Սկսնակներին՝ բաց խաղ և «Սկսնակների համար» կազմ. փակ խաղը փորձառու սեղանի համար է։',
           'Առցանց. ամեն գիշերից առաջ նայեք {onStrip} շերտին՝ ով է հավելվածում. նրանց, ում «սպասում ենք», շտապեցրեք ձայնով։',
           'Discord. տվեք երկու րոպե {dcImOn}-ի համար և միայն հետո բաժանեք քարտերը։',
-          'Խաղից հետո՝ վերլուծություն բարձրաձայն և {newGame}։ Տեղերն ու սեղանը նոր խաղի համար զրոյանում են. նստեցրեք նորից։',
+          'Խաղից հետո՝ վերլուծություն բարձրաձայն և {agBtn}. ոչ ոքի պետք չէ նորից կանչել կամ տեղափոխել։ Այլ կազմ՝ {newGame}, տեղերը կզրոյանան։',
           'Լիցքավորիչը պահեք մոտակայքում. առցանց խաղը նկատելիորեն ծախսում է մարտկոցը։'] }
     ]
   };
@@ -7652,6 +7652,19 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
     }
   };
   Object.keys(R).forEach(code => { const p = I18N[code]; if (!p) return; p.skins = Object.assign(p.skins || {}, R[code].skins); Object.assign(p.ui, R[code].ui); });
+})();
+/* ============================================================
+   v87 «Ещё партия — те же места» — texts (the screen: 24-again.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: { agBtn: 'Ещё партия — те же места', agHint: 'Все остаются на своих номерах: имена, профили и игроки из Telegram. Формат и состав — как в этой партии, их можно поменять перед раздачей.', agBusy: 'Готовлю стол…', agDone: 'Все на своих местах — можно раздавать карты', agDoneTg: 'Все на своих местах, из Telegram за столом: {n}. Можно раздавать карты', agMoved: 'Ведущий начал следующую партию — вы уже за столом, на своём месте', agTournament: 'Турнирный стол: следующий раунд рассаживает турнир' },
+    uk: { agBtn: 'Ще партія — ті самі місця', agHint: 'Усі лишаються на своїх номерах: імена, профілі й гравці з Telegram. Формат і склад — як у цій партії, їх можна змінити перед роздачею.', agBusy: 'Готую стіл…', agDone: 'Усі на своїх місцях — можна роздавати карти', agDoneTg: 'Усі на своїх місцях, із Telegram за столом: {n}. Можна роздавати карти', agMoved: 'Ведучий почав наступну партію — ви вже за столом, на своєму місці', agTournament: 'Турнірний стіл: наступний раунд розсаджує турнір' },
+    en: { agBtn: 'Play again — same seats', agHint: 'Everyone keeps their number: names, profiles and Telegram players. The format and line-up stay as in this game — change them before the deal if you like.', agBusy: 'Setting the table…', agDone: 'Everyone is in their seat — ready to deal', agDoneTg: 'Everyone is in their seat, Telegram players at the table: {n}. Ready to deal', agMoved: 'The host started the next game — you are at the table, in your seat', agTournament: 'A tournament table: the tournament seats the next round' },
+    pl: { agBtn: 'Jeszcze raz — te same miejsca', agHint: 'Wszyscy zostają na swoich numerach: imiona, profile i gracze z Telegrama. Format i skład — jak w tej partii, można je zmienić przed rozdaniem.', agBusy: 'Przygotowuję stół…', agDone: 'Wszyscy na swoich miejscach — można rozdawać karty', agDoneTg: 'Wszyscy na swoich miejscach, graczy z Telegrama przy stole: {n}. Można rozdawać karty', agMoved: 'Prowadzący zaczął następną partię — jesteś przy stole, na swoim miejscu', agTournament: 'Stół turniejowy: następną rundę rozsadza turniej' },
+    hy: { agBtn: 'Եվս մեկ խաղ՝ նույն տեղերով', agHint: 'Բոլորը մնում են իրենց համարներին՝ անուններ, պրոֆիլներ և Telegram-ի խաղացողներ։ Ձևաչափն ու կազմը՝ ինչպես այս խաղում, դրանք կարելի է փոխել բաժանումից առաջ։', agBusy: 'Պատրաստում եմ սեղանը…', agDone: 'Բոլորն իրենց տեղերում են. կարելի է բաժանել քարտերը', agDoneTg: 'Բոլորն իրենց տեղերում են, Telegram-ից սեղանի շուրջ՝ {n}։ Կարելի է բաժանել քարտերը', agMoved: 'Վարողը սկսեց հաջորդ խաղը. դուք արդեն սեղանի շուրջ եք՝ ձեր տեղում', agTournament: 'Մրցաշարային սեղան. հաջորդ փուլը նստեցնում է մրցաշարը' }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
 })();
 /* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
@@ -15229,6 +15242,71 @@ function cityKey(s) { const n = cityNorm(s); return n ? (CITY_ALIAS[n] || '~' + 
 /* the city's name in a language: a known city by the dictionary, another — the spelling given (or the key without «~») */
 function cityLabel(key, lang, fallback) { const c = CITY_INFO[key]; return c ? (c.names[lang] || c.names.en) : String(fallback || String(key || '').replace(/^~/, '')); }
 /* cities:end */
+/* ============================================================
+   v87 «ЕЩЁ ПАРТИЯ — ТЕ ЖЕ МЕСТА» — the next game at the same table without inviting or re-seating anybody
+   (the owner's request, 30.10: after an offline game everyone stays at the number they sat at)
+   - the host's results screen: «Ещё партия — те же места» above «Новая игра» (offline games; an online table keeps the old way).
+     Every number keeps its player — the typed name, the profile on the seat and the Telegram player; the format and the
+     composition stay as they were (the setup screen opens, the host may change them, re-seat with «⇄» or deal at once).
+   - a Telegram table: the finished table is history (finishGame cleared the seats), so the server opens the host's next table
+     with the same players (/api/lobby/again) — nobody follows a link again, each Telegram player sits at the number he had (S.lobby.seats).
+     Their apps move from the finished table to the new one by themselves: /api/table/state of the old table answers `next`.
+   - «Новая игра» is unchanged: a clean table, the seats empty.
+   ============================================================ */
+const AG = { busy: false };
+const againOk = g => !!(g && g.winner && !g.online && !g.aborted);
+/* who sat where in the finished game: names and profiles by seat, Telegram players → seat index */
+function againSeatsOf(g) {
+  const ps = g.players.slice().sort((a, b) => a.seat - b.seat);
+  const tg = {}; Object.entries((g.tg && g.tg.map) || {}).forEach(([id, seat]) => { seat = Number(seat); if (seat >= 1 && seat <= g.n) tg[Number(id)] = seat - 1; });
+  return { n: g.n, names: ps.map(p => String(p.name || '')), profiles: ps.map(p => p.profileId || null), tg };
+}
+function againBtnHTML(g) {
+  const u = U(); if (!againOk(g)) return '';
+  return `<button class="btn primary" data-a="again" ${AG.busy ? 'disabled' : ''}>${AG.busy ? u.agBusy : u.agBtn}</button><div class="hint" style="margin:-4px 2px 2px;text-align:center">${u.agHint}</div>`;
+}
+Object.assign(ACT, {
+  async again() {
+    const g = S.game; if (!againOk(g) || AG.busy) return; const u = U();
+    const keep = againSeatsOf(g); const tgl = g.tg && g.tg.code ? g.tg : null; let lobby = null;
+    if (tgl && TG.app && apiBase()) {
+      AG.busy = true; render(); let d = null;
+      try { d = await api('/api/lobby/again', { code: tgl.code, lang: L.code }); } catch (e) { d = null; } finally { AG.busy = false; }
+      if (!d || !d.ok) { toast(d && d.error === 'tournament' ? u.agTournament : u.tgOffline); render(); return; }
+      if (S.game !== g) return; // the host went on meanwhile
+      lobby = { code: d.code, link: d.link, players: (d.players || []).filter(pl => !isMeTg(pl.tgId)), map: {}, sent: [], seats: {}, flag: d.flag || '' };
+      lobby.players.forEach(pl => { const i = keep.tg[pl.tgId]; if (i !== undefined) lobby.seats[pl.tgId] = i; });
+    }
+    const st = S.setup; st.n = keep.n; st.names = keep.names.slice(); st.seatProfiles = keep.profiles.slice();
+    if (!Array.isArray(st.comp) || st.comp.length !== keep.n) st.comp = setupComp(keep.n); // the same format and line-up as the finished game
+    S.ui.showAll = false; S.ui.reseatOn = false; S.ui.reseat = null;
+    if (lobby) { S.lobby = lobby; setupAutoSeat(); } // a player who joined the table during the game takes a free seat, as before
+    save(); go('setup'); tgHaptic('success');
+    const n = lobby ? Object.keys(lobby.seats).length : 0;
+    toast(n ? tt(u.agDoneTg, { n }) : u.agDone);
+    if (lobby) { try { publishTable(true); } catch (e) {} } // the players see their numbers in the waiting room at once
+  }
+});
+(function () {
+  // the results screen: the same seats first, a clean table second
+  const origEnd = endScreen;
+  endScreen = function () {
+    const html = origEnd.apply(this, arguments); const g = S.game; const b = againBtnHTML(g); if (!b) return html;
+    const k = '<button class="btn primary" data-a="new">'; const i = html.indexOf(k); return i < 0 ? html : html.slice(0, i) + b + '<button class="btn" data-a="new">' + html.slice(i + k.length);
+  };
+  // a player at the finished table follows the host to the next one, keeping the app open
+  const origOpen = tableOpen;
+  tableOpen = function (code) { if (String(code || '').toUpperCase() !== TB.code) TB.endSynced = false; return origOpen.apply(this, arguments); }; // every game at a new table refreshes my rating once it ends
+  const origFetch = tableFetch;
+  tableFetch = async function () {
+    const r = await origFetch.apply(this, arguments); const d = TB.data;
+    if (d && d.next && d.next !== TB.code && S.screen === 'table' && /^[A-Z0-9]{4,8}$/.test(String(d.next))) {
+      const next = String(d.next); S.cloud = S.cloud || {}; S.cloud.table = { code: next, status: 'open' };
+      toast(U().agMoved); tgHaptic('success'); tableOpen(next);
+    }
+    return r;
+  };
+})();
 /* ============================================================
    SHOP: premium cards (2 $) and scenarios (9.99 $), demo purchases,
    scenario setup, live-art parallax

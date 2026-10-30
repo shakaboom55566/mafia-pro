@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02zg-i18n-hookah.js', '02zh-i18n-tables.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '22-tables.js', '23-cities.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02zg-i18n-hookah.js', '02zh-i18n-tables.js', '02zi-i18n-again.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '22-tables.js', '23-cities.js', '24-again.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -1510,6 +1510,66 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v85 ' + m); }
   S.ui.rt = { scope: 'server', period: 'all', city: null, country: null, role: 'sheriff' }; S.screen = 'home'; X.render();
   console.log('v85 city ok');
 } catch (e) { fails++; console.log('FAIL v85 crashed', e && e.stack || e); }
+// v87: «Ещё партия — те же места» — the next game keeps every number (names, profiles, Telegram players) and the format; the players' apps follow the host to the new table
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v87 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const tick = () => new Promise(r => setTimeout(r, 5));
+  const comp = ['don', 'mafia', 'sheriff', 'doctor', 'drunk', 'bomb', 'bodyguard'];
+  const play = () => { const g = S.game; for (let i = 0; i < g.players.length; i++) { A.flip(); A.hide(); } A.start(); g.players.filter(p => p.roleId === 'don' || p.roleId === 'mafia').forEach(p => { p.alive = false; }); A.finish(); return g; };
+  // 1) a table without Telegram: typed names and a profile
+  const prof = E('newProfile')({ name: 'Профиль87' }); S.profiles.push(prof);
+  S.game = null; S.lobby = null; A.new(); S.setup.online = false; S.setup.n = 7; S.setup.comp = comp.slice(); S.setup.names = ['Аня', 'Борис', '', 'Глеб', 'Даша', 'Егор', 'Жора']; S.setup.seatProfiles = [null, null, prof.id, null, null, null, null];
+  A.deal(); let g = play(); check('v87 results');
+  if (!g.winner) F('the game should be over');
+  let h = app.innerHTML; const ia = h.indexOf('data-a="again"'), inw = h.indexOf('data-a="new"');
+  if (ia < 0 || !h.includes(u.agBtn) || !h.includes(u.agHint)) F('the results screen offers the same seats');
+  if (!(ia >= 0 && inw > ia) || /class="btn primary" data-a="new"/.test(h)) F('«same seats» comes first, «New game» is the second button');
+  S.setup.names = []; S.setup.seatProfiles = []; S.setup.comp = ['don']; // whatever happened to the setup since the deal
+  await A.again(); check('v87 setup after «again»');
+  if (S.screen !== 'setup') F('«again» opens the setup screen, got ' + S.screen);
+  if (S.setup.names.join(',') !== 'Аня,Борис,Профиль87,Глеб,Даша,Егор,Жора') F('every name stays at its number: ' + S.setup.names.join(','));
+  if (S.setup.seatProfiles[2] !== prof.id || S.setup.seatProfiles.filter(Boolean).length !== 1) F('the profile stays on seat 3');
+  if (S.setup.n !== 7 || S.setup.comp.length !== 7) F('seven seats, a full line-up');
+  A.deal(); if (S.game.players.map(p => p.name).join(',') !== 'Аня,Борис,Профиль87,Глеб,Даша,Егор,Жора' || S.game.players[2].profileId !== prof.id) F('the next game deals to the same seats');
+  // the classic stays the classic
+  S.game = null; A['scen-use'](el('scen-use', { id: 'classic' })); S.setup.names = ['К1', 'К2', 'К3', 'К4', 'К5', 'К6', 'К7', 'К8', 'К9', 'К10']; S.setup.seatProfiles = [];
+  A.deal(); g = play(); await A.again(); if (S.setup.scenario !== 'classic' || S.setup.names[9] !== 'К10' || S.setup.n !== 10) F('a classic game goes on as the classic: ' + S.setup.scenario);
+  A.deal(); if (!E('isClassic')(S.game)) F('and is dealt as the classic');
+  // «New game» still starts from a clean line-up; an online game keeps the old way
+  S.game = null; S.setup.scenario = null; S.setup.n = 7; S.setup.comp = comp.slice(); S.setup.names = ['a', 'b', 'c', 'd', 'e', 'f', 'g']; A.deal(); g = play(); g.online = true; X.render(); if (app.innerHTML.includes('data-a="again"')) F('no «same seats» after an online game');
+  // 2) a Telegram table: the server opens the next table with the same players, each sits at his number
+  vm.runInContext('globalThis.__api7 = api; globalThis.__apiBase7 = apiBase; globalThis.__tg7 = TG.app; TG.app = { initData: "x" }; apiBase = () => "https://x.test"; globalThis.__c7 = []', ctx);
+  vm.runInContext(`api = async (p, b) => { __c7.push([p, b]); if (p === '/api/lobby/again') return b.code === 'BAD7' ? { ok: false, error: 'tournament' } : { ok: true, code: 'NEW87', link: 'https://t.me/x?start=join_NEW87', flag: '🇺🇦', moved: 3, players: [{ tgId: 501, name: 'Аня' }, { tgId: 502, name: 'Глеб' }, { tgId: 503, name: 'Новичок' }, { tgId: 9087, name: 'Я' }] };
+    if (p === '/api/lobby/deal') return { ok: true, sent: (b.cards || []).map(c => c.tgId), failed: [] }; if (p === '/api/table/publish') return { ok: true, delivered: [] }; return { ok: false }; }`, ctx);
+  const cloudBefore = S.cloud; S.cloud = Object.assign({}, S.cloud || {}, { user: { id: 9087 } });
+  S.game = null; S.setup.scenario = null; S.setup.n = 7; S.setup.comp = comp.slice(); S.setup.names = ['Аня', 'Борис', 'Вика', 'Глеб', 'Даша', 'Егор', 'Жора']; S.setup.seatProfiles = []; const offBefore = [S.setup.online, S.setup.hostRole]; S.setup.online = false; S.setup.hostRole = 'host';
+  S.lobby = { code: 'OLD87', link: 'x', players: [{ tgId: 501, name: 'Аня' }, { tgId: 502, name: 'Глеб' }], seats: { 501: 0, 502: 3 }, map: {}, sent: [], flag: '' };
+  A.deal(); await tick(); g = S.game; if (!g.tg || g.tg.code !== 'OLD87' || g.tg.map[501] !== 1 || g.tg.map[502] !== 4) F('the game carries the table: ' + JSON.stringify(g.tg && g.tg.map));
+  play(); await tick(); if (S.setup.names.length) F('a finished Telegram table empties the seats (as before)');
+  X.render(); if (!app.innerHTML.includes('data-a="again"')) F('an offline Telegram table offers the same seats');
+  E('__c7').length = 0; await A.again(); await tick(); check('v87 Telegram table again');
+  const call = E('__c7').find(c => c[0] === '/api/lobby/again'); if (!call || call[1].code !== 'OLD87') F('the server is asked to move the old table: ' + JSON.stringify(call));
+  if (!S.lobby || S.lobby.code !== 'NEW87') F('the new table is open on the setup screen');
+  else {
+    if (S.lobby.seats[501] !== 0 || S.lobby.seats[502] !== 3) F('Telegram players sit at their numbers: ' + JSON.stringify(S.lobby.seats));
+    if (S.lobby.seats[503] !== undefined) F('a newcomer gets no seat when every number is taken');
+    if (S.lobby.players.some(p => p.tgId === 9087)) F('the host is not a player');
+  }
+  if (S.setup.names.join(',') !== 'Аня,Борис,Вика,Глеб,Даша,Егор,Жора') F('the typed names come back: ' + S.setup.names.join(','));
+  const pubCall = E('__c7').filter(c => c[0] === '/api/table/publish').pop(); const ps = pubCall && pubCall[1].pub;
+  if (!ps || pubCall[1].code !== 'NEW87' || ps.phase !== 'lobby' || !ps.seats.some(x => x.seat === 1 && x.tgId === 501) || !ps.seats.some(x => x.seat === 4 && x.tgId === 502)) F('the waiting room is published with the seats: ' + JSON.stringify(pubCall && pubCall[1]));
+  h = app.innerHTML; if (!h.includes('NEW87')) F('the setup screen shows the new table');
+  A.deal(); await tick(); if (!S.game.tg || S.game.tg.code !== 'NEW87' || S.game.tg.map[501] !== 1 || S.game.tg.map[502] !== 4) F('the next deal sends the cards to the same seats: ' + JSON.stringify(S.game.tg && S.game.tg.map));
+  // the server refuses (a tournament table): nothing changes
+  play(); await tick(); S.game.tg.code = 'BAD7'; const lb = S.lobby; await A.again(); if (S.screen !== 'game' || S.lobby !== lb) F('a refused «again» stays on the results');
+  // 3) a player's app at the finished table follows the host
+  vm.runInContext(`api = async (p, b) => { if (p === '/api/table/state') return b.code === 'OLD87' ? { ok: true, now: Date.now(), next: 'NEW87', code: 'OLD87', status: 'finished', version: 3, hostId: 9000, host: { tgId: 9000, name: 'H' }, isHost: false, players: [], profiles: {}, pub: { v: 2, phase: 'end', code: 'OLD87', n: 7, seats: [], result: { side: 'city', title: 'x', text: '' }, roles: [] }, me: { seat: 1, roleId: 'sheriff', alive: true }, chat: [], invites: [] }
+    : { ok: true, now: Date.now(), next: null, code: b.code, status: 'open', version: 1, hostId: 9000, host: { tgId: 9000, name: 'H' }, isHost: false, players: [{ tgId: 9087, name: 'Я' }], profiles: {}, pub: { v: 2, phase: 'lobby', code: b.code, n: 7, seats: [{ seat: 1, name: 'Я', tgId: 9087, alive: true }] }, me: null, chat: [], invites: [] }; return { ok: false }; }`, ctx);
+  S.game = null; S.lobby = null; vm.runInContext('TB.endSynced = true', ctx); E('tableOpen')('OLD87'); await tick(); await tick(); await tick();
+  if (E('TB').code !== 'NEW87') F('the player\'s app moves to the new table, got ' + E('TB').code); check('v87 player follows');
+  if (E('TB').endSynced) F('the next game\'s end will refresh my rating again');
+  vm.runInContext('api = __api7; apiBase = __apiBase7; TG.app = __tg7; TB.code = null; TB.data = null', ctx);
+  S.setup.online = offBefore[0]; S.setup.hostRole = offBefore[1]; S.cloud = cloudBefore; S.profiles = S.profiles.filter(p => p !== prof); S.game = null; S.lobby = null; S.screen = 'home'; X.render();
+  console.log('v87 same seats ok');
+} catch (e) { fails++; console.log('FAIL v87 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

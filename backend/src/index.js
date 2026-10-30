@@ -6,6 +6,7 @@
    - POST /api/game/result    record a finished game, update ratings of Telegram-linked players
    - POST /api/lobby          open a table: players join via t.me/<bot>?start=join_<code>
    - POST /api/lobby/status   who has joined
+   - POST /api/lobby/again    v87: the finished table's players move to the host's next table, nobody re-joins (offline «same seats»)
    - POST /api/lobby/deal     send each player their card in a private message
    - POST /api/friends        my friends + my invite link (t.me/<bot>?start=friend_<code>)
    - POST /api/friends/accept accept an invite code opened inside the Mini App (?startapp=friend_<code>)
@@ -1475,6 +1476,32 @@ async function apiLobbyClose(env, body) {
   bg(env, announceTable(env, null, lobby.code, { force: true }));
   return json({ ok: true, code: lobby.code, status: lobby.status === 'open' || lobby.status === 'dealt' ? 'closed' : lobby.status });
 }
+/* v87 «Ещё партия — те же места»: the players of a finished table move to the host's next table in one tap — no new link, nobody re-joins;
+   the host's app seats each one at the number he had, the old table points their apps to the new one (apiTableState → next) */
+async function apiLobbyAgain(env, bot, body) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  const old = await hostLobby(env, v, body); if (!old) return json({ ok: false, error: 'no_lobby' }, 404);
+  if (await env.DB.prepare('SELECT 1 FROM tournament_tables WHERE code = ?1').bind(old.code).first()) return json({ ok: false, error: 'tournament' }, 409); // the tournament seats its own rounds
+  const username = await botUsername(env, bot); const link = c => `https://t.me/${username}?start=join_${c}`;
+  if (old.status === 'open') return json({ ok: true, code: old.code, link: link(old.code), players: await lobbyPlayers(env, old.code), flag: flagOf(await lobbyLang(env, old.code)), moved: 0 }); // nothing was played here: it is still the waiting room
+  const ts = now(); const opts = await lobbyOpts(env, old.code); const lang = await lobbyLang(env, old.code); const oldAt = ((await lobbyAny(env, old.code)) || {}).created_at || 0;
+  // a second tap (or a table he opened meanwhile): the host's newest table, still waiting, takes the players; otherwise a fresh one
+  const newest = await env.DB.prepare('SELECT code, status, created_at FROM lobbies WHERE host_id = ?1 ORDER BY created_at DESC, rowid DESC LIMIT 1').bind(v.user.id).first();
+  let code = newest && newest.code !== old.code && newest.status === 'open' && newest.created_at >= oldAt ? newest.code : null;
+  const stmts = [];
+  if (!code) {
+    code = randomCode(); for (let i = 0; i < 5; i++) { const ex = await env.DB.prepare('SELECT 1 FROM lobbies WHERE code = ?1').bind(code).first(); if (!ex) break; code = randomCode(); }
+    stmts.push(env.DB.prepare("UPDATE lobbies SET status = 'closed' WHERE host_id = ?1 AND code != ?2 AND status IN ('open', 'dealt', 'live')").bind(v.user.id, old.code)); // one table per host (the finished one keeps its result)
+    stmts.push(env.DB.prepare("INSERT INTO lobbies (code, host_id, status, created_at) VALUES (?1, ?2, 'open', ?3)").bind(code, v.user.id, ts));
+    stmts.push(env.DB.prepare('INSERT OR IGNORE INTO lobby_meta (code, creator_id, lang, updated_at) VALUES (?1, ?2, ?3, ?4)').bind(code, v.user.id, lang, ts));
+    stmts.push(env.DB.prepare('INSERT INTO lobby_opts (code, host_plays, online, updated_at) VALUES (?1, 0, ?2, ?3) ON CONFLICT(code) DO UPDATE SET host_plays = 0, online = ?2, updated_at = ?3').bind(code, opts.online ? 1 : 0, ts));
+  }
+  const players = (await lobbyPlayers(env, old.code)).filter(p => p.tgId !== v.user.id); // the host hosts again
+  players.forEach((p, i) => stmts.push(env.DB.prepare('INSERT OR IGNORE INTO lobby_players (code, tg_id, name, username, lang, joined_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(code, p.tgId, p.name, p.username || null, p.lang || 'ru', ts + i))); // the same order as at the old table
+  if (stmts.length) await env.DB.batch(stmts);
+  try { await sweepVoice(env); } catch (e) {}
+  return json({ ok: true, code, link: link(code), players: await lobbyPlayers(env, code), flag: flagOf(await lobbyLang(env, code)), moved: players.length });
+}
 async function apiTableJoin(env, bot, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
   const code = String(body.code || '').toUpperCase().trim(); if (!/^[A-Z0-9]{4,8}$/.test(code)) return json({ ok: false, error: 'bad_code' }, 400);
@@ -1546,9 +1573,11 @@ async function apiTableState(env, bot, body) {
   if (peerKeys.length && !dead) { const q = peerKeys.map((k, i) => '?' + (i + 2)).join(', '); peers = ((await env.DB.prepare(`SELECT tg_id, key, payload, created_at FROM table_actions WHERE code = ?1 AND key IN (${q}) ORDER BY id LIMIT 60`).bind(code, ...peerKeys).all()).results || []).map(r => ({ tgId: r.tg_id, key: r.key, payload: parseJSON(r.payload, {}), at: r.created_at * 1000 })); }
   const mySeat = me && me.seat ? me.seat : null; const opts = await lobbyOpts(env, code);
   const voice = await voiceInfo(env, code, v.user.id); const flag = flagOf(await lobbyLang(env, code));
+  // v87: the host moved this finished table's players to his next table («Ещё партия — те же места»): my app follows
+  const next = !isHost && (lobby.status === 'finished' || lobby.status === 'closed' || pub.phase === 'end') ? await env.DB.prepare("SELECT l.code FROM lobbies l JOIN lobby_players p ON p.code = l.code AND p.tg_id = ?2 WHERE l.host_id = ?1 AND l.code != ?3 AND l.status IN ('open', 'dealt', 'live') AND l.created_at >= ?4 ORDER BY l.created_at DESC, l.rowid DESC LIMIT 1").bind(lobby.host_id, v.user.id, code, lobby.created_at).first('code') : null;
   let official = null; // v77: an official host's table — what a game here brings me
   if (profiles[lobby.host_id] && profiles[lobby.host_id].official) { const lim = officialLimits(env); const today = isHost ? 0 : (await env.DB.prepare("SELECT COUNT(*) AS n FROM emerald_ledger WHERE tg_id = ?1 AND kind = 'game' AND created_at > ?2").bind(v.user.id, now() - 86400).first('n')) || 0; official = Object.assign({ on: true, left: Math.max(0, lim.dayGames - today), limits: lim }, isHost ? {} : estimateFor(profiles, players.map(p => p.tgId).filter(id => id !== lobby.host_id), v.user.id) || {}); }
-  return json({ ok: true, now: Date.now(), official, peers, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, room: await roomOf(env, lobby.host_id), tableSkin: await tableSkinOf(env, lobby.host_id), host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
+  return json({ ok: true, now: Date.now(), official, peers, next: next || null, code, status: lobby.status, hostPlays: opts.hostPlays, flag, voice, version: row ? row.version : 0, hostId: lobby.host_id, room: await roomOf(env, lobby.host_id), tableSkin: await tableSkinOf(env, lobby.host_id), host: Object.assign({ tgId: lobby.host_id, name: rowName(host) || String(lobby.host_id) }, profiles[lobby.host_id] || {}), isHost, players, profiles, pub, me: dead ? { seat: mySeat, alive: false, roleId: me.roleId } : me, chat, invites });
 }
 async function apiTableAct(env, body) {
   const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
@@ -2221,6 +2250,7 @@ export default {
           case '/api/lobby/status': return wrap(apiLobbyStatus(env, bot, body));
           case '/api/lobby/deal': return wrap(apiLobbyDeal(env, bot, body));
           case '/api/lobby/close': return wrap(apiLobbyClose(env, body));
+          case '/api/lobby/again': return wrap(apiLobbyAgain(env, bot, body));
           case '/api/lobby/role': return wrap(apiLobbyRole(env, bot, body));
           case '/api/lobby/kick': return wrap(apiLobbyKick(env, bot, body));
           case '/api/lobbies': return wrap(apiLobbies(env, bot, body));

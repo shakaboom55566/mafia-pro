@@ -2086,6 +2086,44 @@ console.log('official hosts (v77): the application, the admin\'s buttons, the li
   const exH = await exportUser(env, H); ok(exH.officialHost && exH.officialHost.status === 'revoked' && exH.penalties.length === 1 && exH.officialGamesHosted.length >= 2, '/mydata: the status, the games hosted, the penalty');
   await hook(msg(user(777), '/help')); ok(lastTo(777).params.text.includes('/officials'), 'the admin help lists the commands'); }
 
+console.log('same seats (v87): a finished table\'s players move to the host\'s next table, their apps follow, nobody re-joins');
+{ const H = user(8700, 'uk', { first_name: 'Host87' }); await hook(msg(H, '/start')); const hi = await initData(H);
+  const lob = await (await post('/api/lobby', { initData: hi, fresh: true, lang: 'uk' })).json(); const code = lob.code;
+  const P = [8701, 8702, 8703].map(id => user(id, 'ru', { first_name: 'P' + id }));
+  for (const p of P) await hook(msg(p, `/start join_${code}`));
+  await hook(msg(P[1], '/start')); // nothing special: still at the table
+  const seats = [{ seat: 1, tgId: 8702, name: 'P8702', alive: true }, { seat: 2, tgId: 8703, name: 'P8703', alive: true }, { seat: 3, tgId: 8701, name: 'P8701', alive: true }];
+  await post('/api/table/publish', { initData: hi, code, pub: { phase: 'night', night: 1, code, n: 3, seats }, priv: {} });
+  const stranger = await initData(user(8799));
+  eq((await post('/api/lobby/again', { initData: stranger, code })).status, 404, 'only the table\'s host');
+  let st = await (await post('/api/table/state', { initData: await initData(P[0]), code })).json(); eq(st.next, null, 'a running game points nowhere');
+  await post('/api/table/publish', { initData: hi, code, pub: { phase: 'end', code, n: 3, seats, result: { side: 'city', title: 'Город', text: '' }, roles: [] }, priv: {} });
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(code).first('status')), 'finished', 'the game is over');
+  st = await (await post('/api/table/state', { initData: await initData(P[0]), code })).json(); eq(st.next, null, 'before «again» — no next table');
+  const d = await (await post('/api/lobby/again', { initData: hi, code })).json();
+  ok(d.ok && d.code !== code && /^[A-Z0-9]{6}$/.test(d.code) && d.link.endsWith('join_' + d.code) && d.moved === 3, 'a new table with the same three players: ' + JSON.stringify(d));
+  eq(d.players.map(p => p.tgId), [8701, 8702, 8703], 'in the order they joined');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(code).first('status')), 'finished', 'the finished table keeps its result');
+  eq((await env.DB.prepare('SELECT status FROM lobbies WHERE code = ?1').bind(d.code).first('status')), 'open', 'the new one waits for the deal');
+  eq(d.flag, '🇺🇦', 'the flag of the old table');
+  const s2 = await (await post('/api/lobby/status', { initData: hi, code: d.code })).json(); ok(s2.ok && s2.players.length === 3 && !s2.online, 'the host sees them at once (offline table)');
+  st = await (await post('/api/table/state', { initData: await initData(P[2]), code })).json(); eq(st.next, d.code, 'a player at the old table is pointed to the new one');
+  st = await (await post('/api/table/state', { initData: hi, code })).json(); eq(st.next, null, 'the host is not redirected');
+  const ns = await (await post('/api/table/state', { initData: await initData(P[2]), code: d.code })).json(); ok(ns.ok && ns.pub.phase === 'lobby', 'and may read the new table without joining');
+  const ping = await (await post('/api/ping', { initData: await initData(P[0]) })).json(); eq(ping.table && ping.table.code, d.code, 'his table is the new one');
+  const d2 = await (await post('/api/lobby/again', { initData: hi, code })).json(); ok(d2.ok && d2.code === d.code && d2.players.length === 3, 'a second tap does not open a third table: ' + JSON.stringify(d2));
+  const d3 = await (await post('/api/lobby/again', { initData: hi, code: d.code })).json(); ok(d3.ok && d3.code === d.code && d3.moved === 0, 'a table where nothing was played stays the waiting room: ' + JSON.stringify(d3));
+  // a player who left before «again» is not brought back
+  const lob2 = await (await post('/api/lobby', { initData: hi, fresh: true })).json(); await hook(msg(P[0], `/start join_${lob2.code}`)); await hook(msg(P[1], `/start join_${lob2.code}`));
+  await post('/api/table/leave', { initData: await initData(P[1]), code: lob2.code });
+  await post('/api/table/publish', { initData: hi, code: lob2.code, pub: { phase: 'end', code: lob2.code, n: 2, seats: [], result: { side: 'city', title: 'x', text: '' }, roles: [] }, priv: {} });
+  const d4 = await (await post('/api/lobby/again', { initData: hi, code: lob2.code })).json(); eq(d4.players.map(p => p.tgId), [8701], 'only who is still at the table');
+  st = await (await post('/api/table/state', { initData: await initData(P[0]), code })).json(); eq(st.next, d4.code, 'the oldest table points to the newest one');
+  // a tournament table is seated by the tournament
+  await env.DB.prepare("INSERT INTO tournament_tables (tid, round, idx, code, host_id, size, seats, status, created_at) VALUES (9087, 1, 0, ?1, 8700, 1, '[8701]', 'played', ?2)").bind(d4.code, now()).run();
+  await post('/api/table/publish', { initData: hi, code: d4.code, pub: { phase: 'end', code: d4.code, n: 1, seats: [], result: { side: 'city', title: 'x', text: '' }, roles: [] }, priv: {} });
+  eq((await post('/api/lobby/again', { initData: hi, code: d4.code })).status, 409, 'not for a tournament table'); }
+
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');
   eq((await call('/api/nothing', { method: 'POST', body: '{}' })).status, 404, 'unknown api');

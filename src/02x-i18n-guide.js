@@ -177,7 +177,7 @@
         i: [['host-table', 'Стол на экране ведущего: кто говорит, кто выставлен, чьи голоса'], ['host-chat', 'Чат стола: ведущий читает всё и пишет в любой момент'], ['sheet-players', '«Игроки»: роли и ручное удаление или возврат игрока'], ['sheet-log', '«Журнал»: все события партии'], ['settings', 'Настройки: таймеры, открытие карт, звук']],
         r: ['Таймеры для новичков: минутка 60 с, балаган 2–3 минуты; опытному столу — 45 с.', 'Выбывшего игрока убирайте через {btnPlayers}, а не «на словах» — иначе приложение будет ждать его хода.'] },
       { t: 'Конец партии',
-        p: ['Как только одна из сторон победила, на экране появляется кнопка {gameOver}. Экран итогов: победитель, пьедестал, {reviewTitle} — каждый ход каждого игрока с оценкой и очками, стол с картами и {gameLog}. {newGame} начинает следующую партию.',
+        p: ['Как только одна из сторон победила, на экране появляется кнопка {gameOver}. Экран итогов: победитель, пьедестал, {reviewTitle} — каждый ход каждого игрока с оценкой и очками, стол с картами и {gameLog}. {agBtn} — следующая партия за тем же столом: все остаются на своих номерах, игроки из Telegram пересаживаются сами. {newGame} — партия с чистого стола.',
           '**Онлайн** итоги уходят игрокам сами, очки — в общий рейтинг, стол закрывается.'],
         i: [['end', 'Экран итогов: победитель и пьедестал'], ['end-review', 'Разбор партии: ходы, оценки, MVP']],
         r: ['Зачитайте разбор вслух — для новичков это лучшая часть вечера.', 'Между партиями меняйте состав понемногу: одна-две новые карты.'] },
@@ -195,7 +195,7 @@
           'Новичкам — открытая игра и состав «Для новичков»; закрытая игра — для опытного стола.',
           'Онлайн: перед каждой ночью смотрите полосу {onStrip} — кто в приложении; тех, кого «ждём», поторопите голосом.',
           'Discord: дайте две минуты на {dcImOn} и только потом раздавайте карты.',
-          'После партии — разбор вслух и {newGame}. Места и стол к новой партии обнуляются — рассадите заново.',
+          'После партии — разбор вслух и {agBtn}: никого не нужно звать и пересаживать заново. Если состав другой — {newGame}, места обнулятся.',
           'Держите зарядку рядом: онлайн-партия заметно расходует батарею.'] }
     ]
   };
@@ -510,7 +510,7 @@
         i: [['host-table', 'Стіл на екрані ведучого: хто говорить, хто виставлений, чиї голоси'], ['host-chat', 'Чат столу: ведучий читає все й пише будь-якої миті'], ['sheet-players', '«Гравці»: ролі та ручне вилучення чи повернення гравця'], ['sheet-log', '«Журнал»: усі події партії'], ['settings', 'Налаштування: таймери, відкриття карт, звук']],
         r: ['Таймери для новачків: хвилинка 60 с, балаган 2–3 хвилини; досвідченому столу — 45 с.', 'Гравця, що вибув, прибирайте через {btnPlayers}, а не «на словах» — інакше застосунок чекатиме на його хід.'] },
       { t: 'Кінець партії',
-        p: ['Щойно одна зі сторін перемогла, на екрані з’являється кнопка {gameOver}. Екран підсумків: переможець, п’єдестал, {reviewTitle} — кожен хід кожного гравця з оцінкою та балами, стіл із картами й {gameLog}. {newGame} починає наступну партію.',
+        p: ['Щойно одна зі сторін перемогла, на екрані з’являється кнопка {gameOver}. Екран підсумків: переможець, п’єдестал, {reviewTitle} — кожен хід кожного гравця з оцінкою та балами, стіл із картами й {gameLog}. {agBtn} — наступна партія за тим самим столом: усі лишаються на своїх номерах, гравці з Telegram пересідають самі. {newGame} — партія з чистого столу.',
           '**Онлайн** підсумки йдуть гравцям самі, бали — у загальний рейтинг, стіл закривається.'],
         i: [['end', 'Екран підсумків: переможець і п’єдестал'], ['end-review', 'Розбір партії: ходи, оцінки, MVP']],
         r: ['Зачитайте розбір уголос — для новачків це найкраща частина вечора.', 'Між партіями міняйте склад потроху: одна-дві нові карти.'] },
@@ -528,7 +528,7 @@
           'Новачкам — відкрита гра й склад «Для новачків»; закрита гра — для досвідченого столу.',
           'Онлайн: перед кожною ніччю дивіться смугу {onStrip} — хто в застосунку; тих, на кого «чекаємо», поквапте голосом.',
           'Discord: дайте дві хвилини на {dcImOn} і лише потім роздавайте карти.',
-          'Після партії — розбір уголос і {newGame}. Місця та стіл до нової партії обнуляються — розсадіть заново.',
+          'Після партії — розбір уголос і {agBtn}: нікого не треба кликати й пересаджувати знову. Якщо склад інший — {newGame}, місця обнуляться.',
           'Тримайте зарядку поруч: онлайн-партія помітно витрачає батарею.'] }
     ]
   };
@@ -842,7 +842,7 @@
         i: [['host-table', 'The table on the host’s screen: who speaks, who is nominated, whose votes'], ['host-chat', 'The table chat: the host reads everything and writes at any moment'], ['sheet-players', '“Players”: roles and removing or returning a player by hand'], ['sheet-log', '“Log”: every event of the game'], ['settings', 'Settings: timers, open cards, sound']],
         r: ['Timers for beginners: a 60-second minute, 2–3 minutes of free talk; an experienced table — 45 seconds.', 'Remove a player who left through {btnPlayers}, not “by word” — otherwise the app waits for their move.'] },
       { t: 'The end of the game',
-        p: ['As soon as one side wins, the {gameOver} button appears. The results screen: the winner, the podium, the {reviewTitle} — every move of every player with a verdict and points, the table with the cards and the {gameLog}. {newGame} starts the next one.',
+        p: ['As soon as one side wins, the {gameOver} button appears. The results screen: the winner, the podium, the {reviewTitle} — every move of every player with a verdict and points, the table with the cards and the {gameLog}. {agBtn} — the next game at the same table: everyone keeps their number, Telegram players move over by themselves. {newGame} — a game from a clean table.',
           '**Online** the results reach the players by themselves, the points go to the overall rating, the table closes.'],
         i: [['end', 'The results screen: the winner and the podium'], ['end-review', 'The game review: moves, verdicts, MVP']],
         r: ['Read the review aloud — for beginners it is the best part of the evening.', 'Change the line-up a little between games: one or two new cards.'] },
@@ -860,7 +860,7 @@
           'Beginners — an open game and a “For beginners” line-up; a closed game is for an experienced table.',
           'Online: before every night look at the {onStrip} strip — who is in the app; hurry those you are “waiting for” by voice.',
           'Discord: give two minutes for {dcImOn} and only then deal the cards.',
-          'After the game — the review aloud and {newGame}. Seats and the table are reset for a new game — seat everyone again.',
+          'After the game — the review aloud and {agBtn}: nobody has to be invited or re-seated. A different line-up — {newGame}, the seats are reset.',
           'Keep a charger nearby: an online game drains the battery noticeably.'] }
     ]
   };
@@ -1174,7 +1174,7 @@
         i: [['host-table', 'Stół na ekranie prowadzącego: kto mówi, kto wystawiony, czyje głosy'], ['host-chat', 'Czat stołu: prowadzący czyta wszystko i pisze w każdej chwili'], ['sheet-players', '„Gracze”: role oraz ręczne usunięcie lub powrót gracza'], ['sheet-log', '„Dziennik”: wszystkie zdarzenia partii'], ['settings', 'Ustawienia: timery, odkrywanie kart, dźwięk']],
         r: ['Timery dla początkujących: minutka 60 s, swobodna dyskusja 2–3 minuty; doświadczony stół — 45 s.', 'Gracza, który wyszedł, usuwaj przez {btnPlayers}, a nie „słownie” — inaczej aplikacja będzie czekać na jego ruch.'] },
       { t: 'Koniec partii',
-        p: ['Gdy tylko jedna ze stron wygra, na ekranie pojawia się przycisk {gameOver}. Ekran wyników: zwycięzca, podium, {reviewTitle} — każdy ruch każdego gracza z oceną i punktami, stół z kartami i {gameLog}. {newGame} zaczyna następną partię.',
+        p: ['Gdy tylko jedna ze stron wygra, na ekranie pojawia się przycisk {gameOver}. Ekran wyników: zwycięzca, podium, {reviewTitle} — każdy ruch każdego gracza z oceną i punktami, stół z kartami i {gameLog}. {agBtn} — następna partia przy tym samym stole: wszyscy zostają na swoich numerach, gracze z Telegrama przesiadają się sami. {newGame} — partia od czystego stołu.',
           '**Online** wyniki idą do graczy same, punkty — do ogólnego rankingu, stół się zamyka.'],
         i: [['end', 'Ekran wyników: zwycięzca i podium'], ['end-review', 'Analiza partii: ruchy, oceny, MVP']],
         r: ['Przeczytaj analizę na głos — dla początkujących to najlepsza część wieczoru.', 'Między partiami zmieniaj skład po trochu: jedna–dwie nowe karty.'] },
@@ -1192,7 +1192,7 @@
           'Początkującym — gra otwarta i skład „Dla początkujących”; gra zamknięta — dla doświadczonego stołu.',
           'Online: przed każdą nocą patrz na pasek {onStrip} — kto jest w aplikacji; tych, na których „czekamy”, popędź głosem.',
           'Discord: daj dwie minuty na {dcImOn} i dopiero potem rozdawaj karty.',
-          'Po partii — analiza na głos i {newGame}. Miejsca i stół do nowej partii się zerują — rozsadź od nowa.',
+          'Po partii — analiza na głos i {agBtn}: nikogo nie trzeba zapraszać ani przesadzać od nowa. Inny skład — {newGame}, miejsca się zerują.',
           'Miej ładowarkę pod ręką: partia online wyraźnie zużywa baterię.'] }
     ]
   };
@@ -1506,7 +1506,7 @@
         i: [['host-table', 'Սեղանը վարողի էկրանին. ով է խոսում, ով է առաջադրված, ում ձայները'], ['host-chat', 'Սեղանի չատ. վարողը կարդում է ամեն ինչ և գրում ցանկացած պահի'], ['sheet-players', '«Խաղացողներ». դերերը և խաղացողին ձեռքով հանելը կամ վերադարձնելը'], ['sheet-log', '«Մատյան». խաղի բոլոր իրադարձությունները'], ['settings', 'Կարգավորումներ. ժամաչափեր, քարտերի բացում, ձայն']],
         r: ['Ժամաչափեր սկսնակների համար. րոպե՝ 60 վ, ազատ քննարկում՝ 2–3 րոպե. փորձառու սեղանին՝ 45 վ։', 'Հեռացած խաղացողին հանեք {btnPlayers}-ով, ոչ թե «խոսքով». այլապես հավելվածը կսպասի նրա քայլին։'] },
       { t: 'Խաղի ավարտ',
-        p: ['Հենց որ կողմերից մեկը հաղթում է, էկրանին հայտնվում է {gameOver} կոճակը։ Արդյունքների էկրան. հաղթող, պատվանդան, {reviewTitle}՝ ամեն խաղացողի ամեն քայլը գնահատականով և միավորներով, սեղանը քարտերով և {gameLog}։ {newGame}-ը սկսում է հաջորդ խաղը։',
+        p: ['Հենց որ կողմերից մեկը հաղթում է, էկրանին հայտնվում է {gameOver} կոճակը։ Արդյունքների էկրան. հաղթող, պատվանդան, {reviewTitle}՝ ամեն խաղացողի ամեն քայլը գնահատականով և միավորներով, սեղանը քարտերով և {gameLog}։ {agBtn}՝ հաջորդ խաղը նույն սեղանի շուրջ. բոլորը մնում են իրենց համարներին, Telegram-ի խաղացողները տեղափոխվում են ինքնուրույն։ {newGame}՝ խաղ մաքուր սեղանից։',
           '**Առցանց** արդյունքներն իրենք են գնում խաղացողներին, միավորները՝ ընդհանուր վարկանիշ, սեղանը փակվում է։'],
         i: [['end', 'Արդյունքների էկրան. հաղթող և պատվանդան'], ['end-review', 'Խաղի վերլուծություն. քայլեր, գնահատականներ, MVP']],
         r: ['Կարդացեք վերլուծությունը բարձրաձայն. սկսնակների համար դա երեկոյի լավագույն մասն է։', 'Խաղերի միջև կազմը փոխեք քիչ-քիչ. մեկ-երկու նոր քարտ։'] },
@@ -1524,7 +1524,7 @@
           'Սկսնակներին՝ բաց խաղ և «Սկսնակների համար» կազմ. փակ խաղը փորձառու սեղանի համար է։',
           'Առցանց. ամեն գիշերից առաջ նայեք {onStrip} շերտին՝ ով է հավելվածում. նրանց, ում «սպասում ենք», շտապեցրեք ձայնով։',
           'Discord. տվեք երկու րոպե {dcImOn}-ի համար և միայն հետո բաժանեք քարտերը։',
-          'Խաղից հետո՝ վերլուծություն բարձրաձայն և {newGame}։ Տեղերն ու սեղանը նոր խաղի համար զրոյանում են. նստեցրեք նորից։',
+          'Խաղից հետո՝ վերլուծություն բարձրաձայն և {agBtn}. ոչ ոքի պետք չէ նորից կանչել կամ տեղափոխել։ Այլ կազմ՝ {newGame}, տեղերը կզրոյանան։',
           'Լիցքավորիչը պահեք մոտակայքում. առցանց խաղը նկատելիորեն ծախսում է մարտկոցը։'] }
     ]
   };
