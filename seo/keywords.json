@@ -23,7 +23,10 @@
       { "q": "что делает судья в мафии", "page": "ru/roles/judge/", "tier": "long" },
       { "q": "что делает вор в мафии", "page": "ru/roles/thief/", "tier": "long" },
       { "q": "кто такой камикадзе в мафии", "page": "ru/roles/kamikaze/", "tier": "long" },
-      { "q": "что делает шут в мафии", "page": "ru/roles/jester/", "tier": "long" }
+      { "q": "что делает шут в мафии", "page": "ru/roles/jester/", "tier": "long" },
+      { "q": "дон мафии", "page": "ru/roles/don/", "tier": "long" },
+      { "q": "адвокат в мафии", "page": "ru/roles/lawyer/", "tier": "long" },
+      { "q": "что делает телохранитель в мафии", "page": "ru/roles/bodyguard/", "tier": "long" }
     ]
   },
   "uk": {
@@ -43,7 +46,8 @@
       { "q": "які є ролі в мафії", "page": "uk/roles/", "tier": "long" },
       { "q": "хто такий дон в мафії", "page": "uk/roles/don/", "tier": "long" },
       { "q": "дон мафія", "page": "uk/roles/don/", "tier": "long" },
-      { "q": "мафія ролі", "page": "uk/roles/", "tier": "mid" }
+      { "q": "мафія ролі", "page": "uk/roles/", "tier": "mid" },
+      { "q": "перевертень в мафії", "page": "uk/roles/werewolf/", "tier": "long" }
     ]
   },
   "en": {
@@ -66,7 +70,11 @@
       { "q": "don mafia game", "page": "en/roles/don/", "tier": "long" },
       { "q": "mafia executioner", "page": "en/roles/executioner/", "tier": "long" },
       { "q": "mafia saboteur", "page": "en/roles/saboteur/", "tier": "long" },
-      { "q": "doctor mafia game", "page": "en/roles/doctor/", "tier": "long" }
+      { "q": "doctor mafia game", "page": "en/roles/doctor/", "tier": "long" },
+      { "q": "mafia roles", "page": "en/roles/", "tier": "mid" },
+      { "q": "jester in mafia game", "page": "en/roles/jester/", "tier": "long" },
+      { "q": "mafia tracker", "page": "en/roles/tracker/", "tier": "long" },
+      { "q": "bodyguard role description mafia", "page": "en/roles/bodyguard/", "tier": "long" }
     ]
   },
   "pl": {
