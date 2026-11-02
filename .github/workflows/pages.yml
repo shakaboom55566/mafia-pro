@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest → 26.04 since 28.10: Playwright 1.56 has no chromium for it, every deploy failed
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
