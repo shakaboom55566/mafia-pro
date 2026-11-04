@@ -1552,7 +1552,7 @@ console.log('ranks (v54): the same table as the app, a rank-up in the result and
   const H = 5401, P1 = 5402; await env.DB.prepare('INSERT OR IGNORE INTO friends (tg_id, friend_id, created_at) VALUES (5401, 5402, 0), (5402, 5401, 0)').run();
   await hook(msg(user(P1, 'uk'), '/start')); await hook(msg(user(H, 'ru'), '/start'));
   const host = await initData(user(H));
-  const play = async (id, pts) => (await post('/api/game/result', { initData: host, game: { id, mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'P', tgId: P1, roleId: 'sheriff', won: pts > 0, points: pts, side: 'city' }] } })).json();
+  const play = async (id, pts) => { const r = await (await post('/api/game/result', { initData: host, game: { id, mode: 'classic', winner: 'city', players: [{ seat: 1, name: 'P', tgId: P1, roleId: 'sheriff', won: pts > 0, points: pts, side: 'city' }] } })).json(); await settle(); return r; }; // v88: the messages go out after the answer
   const rankDMs = () => tg.calls.filter(c => c.method === 'sendMessage' && c.params.chat_id === P1 && /Новий ранг/.test(c.params.text));
   let quiet = true; for (let i = 1; i <= 4; i++) { const r = await play('rk-' + i, 24); if (Object.keys(r.rankUp || {}).length) quiet = false; } ok(quiet, 'games 1–4: still Новичок, no rank-up');
   let r = await play('rk-5', 24); eq(r.rankUp, { [P1]: 1 }, 'the fifth game: Любитель (rating 1120)');
@@ -2123,6 +2123,63 @@ console.log('same seats (v87): a finished table\'s players move to the host\'s n
   await env.DB.prepare("INSERT INTO tournament_tables (tid, round, idx, code, host_id, size, seats, status, created_at) VALUES (9087, 1, 0, ?1, 8700, 1, '[8701]', 'played', ?2)").bind(d4.code, now()).run();
   await post('/api/table/publish', { initData: hi, code: d4.code, pub: { phase: 'end', code: d4.code, n: 1, seats: [], result: { side: 'city', title: 'x', text: '' }, roles: [] }, priv: {} });
   eq((await post('/api/lobby/again', { initData: hi, code: d4.code })).status, 409, 'not for a tournament table'); }
+
+console.log('results reach the players (v88): late reports, a cut-off request finished by the repeat, no double credit; admin rating');
+{ const H = user(8800, 'ru', { first_name: 'Host88' }); await hook(msg(H, '/start')); const hi = await initData(H);
+  const lob = await (await post('/api/lobby', { initData: hi, fresh: true })).json(); const code = lob.code;
+  const P = [8801, 8802, 8803]; for (const id of P) await hook(msg(user(id, 'uk', { first_name: 'Q' + id }), `/start join_${code}`));
+  const rt = async id => (await env.DB.prepare('SELECT points, games, wins FROM ratings WHERE tg_id = ?1').bind(id).first()) || { points: 0, games: 0, wins: 0 };
+  const hosted = async () => (await env.DB.prepare('SELECT hosted FROM ratings WHERE tg_id = 8800').first('hosted')) || 0;
+  const pl = (pts = 20) => P.map((id, i) => ({ seat: i + 1, name: 'Q' + id, tgId: id, roleId: 'citizen', won: pts > 0, points: pts, side: 'city' }));
+  const send = async (id, extra = {}, players = pl()) => { const r = await (await post('/api/game/result', { initData: hi, game: Object.assign({ id, mode: 'extended', winner: 'city', code, players }, extra) })).json(); await settle(); return r; };
+  env.SEC_RESULT_GAP = '120';
+  // three games played without network: the phone sends them together the next morning — all three count
+  const t0 = Date.now() - 6 * 3600 * 1000; const g0 = await rt(8801); const h0 = await hosted();
+  for (let i = 0; i < 3; i++) { const r = await send('late-' + i, { startedAt: t0 + i * 3600e3, endedAt: t0 + i * 3600e3 + 40 * 60e3 }); ok(r.ok && r.recorded && r.counted, 'queued game ' + (i + 1) + ' counts'); }
+  eq((await rt(8801)).games - g0.games, 3, 'three queued games: three games for the player'); eq((await rt(8801)).points - g0.points, 60, '…and their points'); eq(await hosted() - h0, 3, '…and three hosted for the host');
+  // a fresh report right after them is still the two-minute flood; a game that lasted 30 seconds never counts
+  let r = await send('fresh-soon'); ok(r.recorded && !r.counted, 'a fresh report seconds after another one: recorded, not counted');
+  r = await send('short-1', { startedAt: t0 + 5 * 3600e3, endedAt: t0 + 5 * 3600e3 + 30e3 }); ok(r.recorded && !r.counted, 'a 30-second game does not count');
+  r = await send('short-1', { startedAt: t0, endedAt: t0 + 3600e3 }); ok(!r.recorded && !r.counted, 'and repeating it with other times changes nothing');
+  env.SEC_RESULT_GAP = '0';
+  // the request was cut off half-way: one player got the game, the others did not — the repeat finishes the job, once
+  r = await send('cut-1', {}, pl(30)); ok(r.counted, 'counted');
+  const a = await rt(8801), b = await rt(8802);
+  await env.DB.prepare("DELETE FROM game_credits WHERE game_id = 'cut-1' AND kind = 'player' AND tg_id IN (8802, 8803)").run();
+  await env.DB.prepare('UPDATE ratings SET points = points - 30, games = games - 1, wins = wins - 1 WHERE tg_id IN (8802, 8803)').run();
+  r = await send('cut-1', {}, pl(90).map(p => Object.assign(p, { tgId: p.tgId === 8803 ? 8899 : p.tgId }))); // the repeat cannot change the players or the points
+  ok(r.ok && !r.recorded && r.counted, 'the repeat of a counted game is accepted');
+  eq([(await rt(8801)).points - a.points, (await rt(8802)).points - b.points + 30, (await rt(8802)).games - b.games + 1], [0, 30, 1], 'the missing player gets the stored points once, the credited one nothing more');
+  eq((await rt(8803)).games, (await rt(8802)).games, 'the third player is completed from the stored report too'); eq((await rt(8899)).games, 0, 'a player slipped into the repeat gets nothing');
+  const before = await rt(8802); await send('cut-1'); eq((await rt(8802)).points, before.points, 'a third copy changes nothing');
+  ok(await env.DB.prepare("SELECT COUNT(*) AS n FROM game_credits WHERE game_id = 'cut-1' AND kind = 'host'").first('n') === 1, 'the host counted once');
+  // another host cannot complete somebody else's game by its id
+  const X = user(8810); await hook(msg(X, '/start')); const xr = await (await post('/api/game/result', { initData: await initData(X), game: { id: 'cut-1', mode: 'extended', winner: 'city', players: [] } })).json(); ok(xr.ok && !xr.counted, 'a foreign host repeating the id: nothing');
+
+  // admin rating: only admins, the rating moves, the player is told, the log and the leaderboard follow
+  const A = user(777, 'ru'); const ai = await initData(A); const someone = await initData(user(8801, 'uk'));
+  eq((await post('/api/admin/rating/set', { initData: someone, tgId: 8802, delta: 100 })).status, 403, 'a player cannot change ratings');
+  let v = await (await post('/api/admin/rating', { initData: ai, q: '@user8802' })).json(); ok(v.ok && v.user.tgId === 8802 && v.rating.points === 1000 + (await rt(8802)).points, 'admin: the player and his rating by @username');
+  const p0 = (await rt(8802)).points; tg.calls.length = 0;
+  v = await (await post('/api/admin/rating/set', { initData: ai, tgId: 8802, delta: 150, reason: 'победа в турнире клуба <b>' })).json(); await settle();
+  ok(v.ok && v.granted.delta === 150 && v.rating.points === 1000 + p0 + 150 && (await rt(8802)).points === p0 + 150, '+150 → rating up at once');
+  ok(v.log[0].delta === 150 && v.log[0].reason.includes('победа') && !v.log[0].reason.includes('<b>'), 'logged with the reason, markup defused');
+  const dm = lastTo(8802); ok(dm && dm.params.text.includes('+150') && dm.params.text.includes(String(1000 + p0 + 150)) && dm.params.text.includes('Адміністратор'), 'the player is told in his language: ' + (dm && dm.params.text));
+  const lbr = (await (await call('/api/leaderboard?limit=50')).json()).top.find(x => x.tgId === 8802); ok(lbr && lbr.points === 1000 + p0 + 150, 'the leaderboard shows it at once');
+  v = await (await post('/api/admin/rating/set', { initData: ai, tgId: 8802, delta: -40 })).json(); ok(v.ok && (await rt(8802)).points === p0 + 110, '−40 takes away');
+  eq((await post('/api/admin/rating/set', { initData: ai, tgId: 8802, delta: 5000 })).status, 400, 'more than 1000 at once: refused');
+  eq((await post('/api/admin/rating/set', { initData: ai, tgId: 8802, delta: 0 })).status, 400, 'zero: refused');
+  const low = await (await post('/api/admin/rating/set', { initData: ai, tgId: 8803, delta: -1000 })).json(); const low2 = await (await post('/api/admin/rating/set', { initData: ai, tgId: 8803, delta: -1000 })).json();
+  ok(low.ok && !low2.ok && low2.error === 'too_low', 'never below zero');
+  // the bot: /rating
+  tg.calls.length = 0; await hook(msg(A, '/rating @user8801 +25 за судейство')); await settle();
+  ok(lastTo(777) && lastTo(777).params.text.includes('+25'), 'the bot answers the admin'); ok(lastTo(8801) && lastTo(8801).params.text.includes('за судейство'), 'the player is told with the reason');
+  await hook(msg(A, '/rating @user8801')); ok(lastTo(777).params.text.includes('+25 — за судейство'), '/rating @user shows the last changes');
+  await hook(msg(user(8801, 'uk'), '/rating @user8802 +500')); ok((await rt(8802)).points === p0 + 110, 'a player\'s /rating changes nothing');
+  ok(await env.DB.prepare("SELECT COUNT(*) AS n FROM security_events WHERE type = 'admin:rating'").first('n') >= 1, 'changes are in the admin audit (one row a minute per admin)');
+  const ex = await exportUser(env, 8801); ok(ex.ratingByAdmin && ex.ratingByAdmin.length === 1 && ex.ratingByAdmin[0].delta === 25, '/mydata lists the admin changes');
+  await deleteUser(env, 8801); ok(!(await env.DB.prepare('SELECT 1 FROM rating_grants WHERE tg_id = 8801').first()) && !(await env.DB.prepare('SELECT 1 FROM game_credits WHERE tg_id = 8801').first()), '/deletedata removes them');
+}
 
 console.log('robustness');
 { eq((await call('/api/me', { method: 'POST', body: '{bad', headers: { 'Content-Type': 'application/json' } })).status, 400, 'bad json');

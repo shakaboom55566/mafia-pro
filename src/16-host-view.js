@@ -28,7 +28,7 @@ function hostGameTableHTML(g) {
     const step = g.steps[g.stepIdx];
     if (step) { const r = ROLE[step.roleId]; stage = step.title || (r ? r.name : ''); mk(seatOf(step.actorId), { speaker: true }); (step.members || []).forEach(m => mk(m.seat, { speaker: true })); } else stage = g.phase === 'night0' ? u.allMet : u.allActed;
   } else if (g.phase === 'day0') {
-    phaseLbl = u.tbDay0; const p = al[g.speechIdx]; if (p) { mk(p.seat, { speaker: true }); stage = tt(u.introOf, { i: g.speechIdx + 1, n: al.length }); } else stage = u.allIntroduced;
+    phaseLbl = u.tbDay0; const p = introOrder(g)[g.speechIdx]; if (p) { mk(p.seat, { speaker: true }); stage = tt(u.introOf, { i: g.speechIdx + 1, n: al.length }); } else stage = u.allIntroduced;
   } else if (g.phase === 'day') {
     phaseLbl = tt(u.tbDay, { n: g.day }); const b = g.ballot || {}; const st = g.dayStage;
     stage = { morning: u.tbMorning, balagan: u.tbBalagan, speeches: u.tbSpeeches, vote: b.round === 2 ? u.tbRevote : u.tbVoteStage, tie: u.stTie, roulette: u.stRoulette, lift: u.stLift, result: u.tbResult }[st] || '';

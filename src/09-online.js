@@ -102,7 +102,7 @@ function tablePub(g) {
   const asks = g.online ? buildAsks(g) : {};
   pub.waiting = Object.entries(asks).filter(([id, a]) => !a.done && !a.blocked).map(([id]) => Number(g.tg.map[id]) || 0).filter(Boolean).sort((a, b) => a - b);
   if (g.phase === 'night0' || g.phase === 'night') { const step = g.steps[g.stepIdx]; pub.step = step ? { i: g.stepIdx, n: g.steps.length, roleId: step.roleId, type: step.type, fam: step.fam || null, done: step.type === 'act' && !!g.actions.find(a => a.stepId === step.id) } : { i: g.steps.length, n: g.steps.length, roleId: null, type: 'end' }; }
-  else if (g.phase === 'day0') { const al = alive(g); const p = al[g.speechIdx]; pub.day0 = { speaker: p ? p.seat : null, i: g.speechIdx, n: al.length, muted: foulMuted(p) || undefined }; if (p) { pub.chat = 'speaker'; pub.chatSeat = p.seat; } }
+  else if (g.phase === 'day0') { const al = introOrder(g); const p = al[g.speechIdx]; pub.day0 = { speaker: p ? p.seat : null, i: g.speechIdx, n: al.length, muted: foulMuted(p) || undefined }; if (p) { pub.chat = 'speaker'; pub.chatSeat = p.seat; } }
   else if (g.phase === 'day') {
     const b = g.ballot || {}; const st = g.dayStage; const seatOf = id => (P(g, id) || {}).seat;
     // chat: everyone in the morning and the free discussion; during speeches only the speaker while their timer runs; closed from the vote on

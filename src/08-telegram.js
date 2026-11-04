@@ -105,7 +105,8 @@ async function cloudSync() {
     if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}), serials: Object.assign({}, d.skins.serials || {}), sold: Object.assign({}, d.skins.sold || {}) }; // v56; v69: numbered copies
     startHeartbeat();
     if (added) toast(U().tgSynced);
-    if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
+    if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent && !rqLoad().some(x => x.game.id === S.game.id)) sendResult(S.game, S.game.winner); // v88: a game from before the outbox
+    else flushResults();
     save(); render();
   } finally { CLOUD.busy = false; }
 }
@@ -129,7 +130,7 @@ setTimeout(checkAppUpdate, 1500);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkAppUpdate(); });
 function startHeartbeat() {
   if (heartbeatTimer || !TG.app || !apiBase()) return;
-  heartbeatTimer = setInterval(() => { try { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') api('/api/ping', {}); } catch (e) {} }, 60000);
+  heartbeatTimer = setInterval(() => { try { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') { api('/api/ping', {}); if (rqLoad().length) flushResults(); } } catch (e) {} }, 60000); // v88: and the results still waiting
 }
 function agoText(sec) {
   const u = U(); if (sec < 60) return u.frJustNow;
@@ -151,18 +152,66 @@ function tgBuy(kind, id, onDone) {
   });
   return true;
 }
-/* finished game → server ratings for Telegram-linked players (profiles with tgId, or seats dealt through the lobby) */
-function sendResult(g, w) {
-  if (!TG.app || !apiBase() || !w) return;
+/* finished game → server ratings for Telegram-linked players (profiles with tgId, or seats dealt through the lobby)
+   v88 (owner, 04.11: «some games are not credited to the players»): a result used to go out once, and was retried only while that very
+   game stayed in S.game — no network at the club, an expired Telegram session (initData is valid 24 h) or the app closed before the
+   answer, then the next game replaced it and the players never got it. Now the report is built when the game ends (with the Telegram
+   ids of the seats at that moment), kept in an outbox in localStorage and sent again on every start, every minute while the app is
+   open and whenever the network comes back — until the server has it. The server dedupes by game id and finishes half-credited games. */
+const RQ_KEY = 'mp_results_v1'; const RQ = { busy: false, warned: false, told: {} };
+function rqLoad() { try { const a = JSON.parse(localStorage.getItem(RQ_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.game && x.game.id) : []; } catch (e) { return []; } }
+function rqSave(a) { try { localStorage.setItem(RQ_KEY, JSON.stringify(a.slice(-40))); } catch (e) {} }
+const rqOwnerId = () => { try { return Number(S.cloud && S.cloud.user && S.cloud.user.id) || Number(TG.app.initDataUnsafe.user.id) || 0; } catch (e) { return 0; } };
+function resultPayload(g, w) {
+  const tgl = g.tg || g.tgKept || null; // v88: a table closed during the game still tells whose seat was whose
   const players = g.players.map(p => {
     const pr = p.profileId ? profById(p.profileId) : null;
-    const tgId = (pr && pr.tgId) || (g.tg && g.tg.map && Object.keys(g.tg.map).find(k => g.tg.map[k] === p.seat)) || null;
+    const tgId = (pr && pr.tgId) || (tgl && tgl.map && Object.keys(tgl.map).find(k => Number(tgl.map[k]) === p.seat)) || null;
     const { won, solo } = resultFor(g, p, w); const useful = g.useful && g.useful[p.id] ? g.useful[p.id] : 0;
     const role = ROLE[p.roleId]; const ps = role ? playSideOf(g, p) : 'city'; const side = ps === 'mafia' ? 'mafia' : ps === 'city' ? 'city' : 'neutral';
     return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
-  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; if (d.official) g.cloudOfficial = d.official; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
+  return { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: (tgl && tgl.code) || null, players, startedAt: g.createdAt || 0, endedAt: g.endedAt || Date.now() };
 }
+function sendResult(g, w) {
+  if (!TG.app || !apiBase() || !w) return;
+  if (!g.endedAt) g.endedAt = Date.now();
+  const game = resultPayload(g, w);
+  const q = rqLoad().filter(x => x.game.id !== game.id); q.push({ game, at: Date.now(), owner: rqOwnerId(), tries: 0 }); rqSave(q);
+  flushResults();
+}
+function applyResult(g, d) {
+  g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; if (d.official) g.cloudOfficial = d.official;
+  save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g);
+}
+async function flushResults() {
+  if (RQ.busy || !TG.app || !apiBase()) return; if (!rqLoad().length) return;
+  RQ.busy = true; let late = 0;
+  try {
+    const me = rqOwnerId();
+    for (const item of rqLoad()) {
+      if (item.owner && me && item.owner !== me) continue; // another account's game on this phone waits for that account
+      const d = await api('/api/game/result', { game: item.game }, { timeout: 30000 });
+      const drop = () => rqSave(rqLoad().filter(x => x.game.id !== item.game.id));
+      if (d && d.ok) {
+        drop(); const g = S.game && S.game.id === item.game.id ? S.game : null; if (g) applyResult(g, d);
+        if (!g || Date.now() - (item.at || 0) > 90000 || RQ.told[item.game.id]) late++;
+        continue;
+      }
+      const err = (d && d.error) || 'network';
+      if (err === 'bad_game' || (item.tries || 0) >= 60) { drop(); continue; } // never accepted: no endless loop
+      rqSave(rqLoad().map(x => x.game.id === item.game.id ? Object.assign(x, { tries: (x.tries || 0) + 1 }) : x));
+      if (err === 'unauthorized') { if (!RQ.warned) { RQ.warned = true; toast(U().rsSession); } break; } // the session is old: the next start sends it
+      if (!RQ.told[item.game.id] && S.game && S.game.id === item.game.id) { RQ.told[item.game.id] = true; toast(U().rsPending); }
+      break; // no network or the server is busy: everything waits, in order
+    }
+  } finally { RQ.busy = false; }
+  if (late) toast(tt(U().rsSent, { n: late }));
+}
+try {
+  window.addEventListener('online', () => flushResults());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushResults(); });
+} catch (e) {}
 /* ---------- lobby: players join from Telegram and receive their card privately ---------- */
 function cardTextFor(p, lang) {
   const pack = I18N[lang] || I18N.ru; const rt = (pack.roles && pack.roles[p.roleId]) || I18N.ru.roles[p.roleId]; const r = ROLE[p.roleId];
@@ -207,6 +256,9 @@ function keepFocus(fn) {
   if (id) { try { const b = document.getElementById(id); if (b) { b.focus({ preventScroll: true }); if (sel && tag !== 'SELECT' && typeof b.setSelectionRange === 'function') b.setSelectionRange(sel[0], sel[1]); } } catch (e) {} }
 }
 const selectOpen = () => { try { const a = document.activeElement; return !!(a && a.tagName === 'SELECT'); } catch (e) { return false; } };
+/* v88: a table closed under a running game (another table opened, the host's other phone…) — the game goes on without it,
+   but remembers who sat where: otherwise the result went out without the Telegram players and nobody at that table got the game */
+function dropGameTable(g) { if (g.tg && g.tg.code) g.tgKept = { code: g.tg.code, map: Object.assign({}, g.tg.map || {}) }; g.tg = null; }
 async function refreshTable() {
   const l = currentLobby(); if (!l || !l.code) return;
   const d = await api('/api/lobby/status', { code: l.code });
@@ -215,8 +267,8 @@ async function refreshTable() {
       if (l === S.lobby) S.lobby = null; S.setup.hostRole = 'host'; save(); toast(tt(U().hostTook, { name: d.host ? d.host.name : '' })); tgHaptic('success');
       S.cloud = S.cloud || {}; S.cloud.table = { code: d.code, status: d.status, hostId: d.host ? d.host.tgId : 0, host: d.host ? d.host.name : '' }; tableOpen(d.code); return;
     }
-    if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
-  if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; }
+    if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) dropGameTable(S.game); save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
+  if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) dropGameTable(S.game); save(); render(); return; }
   l.hostInvite = d.hostInvite || null; l.hostPlays = !!d.hostPlays; l.flag = d.flag || l.flag || '';
   const voiceBefore = JSON.stringify(l.voice || null); l.voice = d.voice || null; if (typeof voiceSync === 'function') voiceSync(l);
   const beforeIds = l.players.map(p => p.tgId); const beforeJson = JSON.stringify(l.players);
@@ -261,7 +313,7 @@ function setupLobbyHTML(st) {
   return `<div class="panel"><div class="row"><div class="eyebrow grow">${l.flag ? l.flag + ' ' : ''}${tt(u.tgTable, { code: l.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: l.players.length })}</div></div>
     <div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="tg-share">${u.tgShare}</button><button class="btn sm grow" data-a="fr-go">${u.frInviteFriends}</button><button class="btn sm ghost" data-a="tg-lobby-refresh">${u.tgRefresh}</button></div>
     ${rolePanel}
-    ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div><div class="hint" style="margin:6px 0 0">${u.tgSeatsHint}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
+    ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div><div class="hint" style="margin:6px 0 0">${u.tgSeatsHint}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button><div class="warnbox" style="margin-top:8px">${tt(u.tgUnseatedWarn, { n: unseated })}</div>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
     <button class="btn xs ghost" style="margin-top:8px;align-self:flex-start" data-a="tg-close-table">${u.tgCloseTable}</button></div>`;
 }
 /* send cards to every mapped player of the game's table; returns the number sent */
@@ -471,9 +523,10 @@ function friendSheetHTML(id) {
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id); const isMe = S.cloud && S.cloud.user && S.cloud.user.id === id;
   const primary = isMe ? '' : (isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : ''));
-  const secondary = `${!isMe && usr.username ? `<button class="btn ghost sm" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}${isFriend ? `<button class="btn ghost sm" style="color:var(--crimson-2)" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}${typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}">🎁 ${u.askBtn}</button>` : ''}`; // v68: admins give skins
+  const secondary = `${!isMe && isFriend && usr.username ? `<button class="btn ghost sm" data-a="fr-open-tg" data-id="${id}" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}${isFriend ? `<button class="btn ghost sm" style="color:var(--crimson-2)" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}${typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}">🎁 ${u.askBtn}</button>` : ''}${typeof admRatingBtnHTML === 'function' ? admRatingBtnHTML(id) : ''}`; // v68: admins give skins; v88: and change the rating
   const actions = `<div class="btn-row" style="margin-top:14px"><button class="btn" data-a="ps-open" data-id="${id}">${I.person} ${u.psBtn}</button>${primary}</div>${secondary ? `<div class="btn-row" style="margin-top:8px">${secondary}</div>` : ''}`;
-  return head + body + actions;
+  const msgNote = !isMe && !isFriend && usr.username && d ? `<div class="hint" style="text-align:center;margin:8px 0 0">✉️ ${u.frMsgFriends}</div>` : ''; // v88: messages only between friends
+  return head + body + actions + msgNote;
 }
 /* ---------- full player statistics screen (server data), opened with the "Profile" button anywhere a player is tapped ---------- */
 function knownUser(id) { return (FR.list || []).find(f => f.tgId === id) || (FR.results || []).find(f => f.tgId === id) || (CLOUD.top || []).find(f => f.tgId === id) || (PL.list || []).find(f => f.tgId === id) || (CL.cur && CL.cur.members || []).find(f => f.tgId === id) || { tgId: id, name: '…', username: '' }; }
@@ -511,15 +564,15 @@ function playerStatsScreen() {
     body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${fav ? '❤ ' + u.favTitle : u.bestRole}</div>${(sk => card3dFor(bestRole, 'pstats', sk, undefined, serialOfTg(id, sk)))(skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${fav ? (favR ? ' · ' + tt(u.bestRoleText, { wins: favR.wins, games: favR.games }) : '') : best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
-  const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
-  const admSk = typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}" style="align-self:flex-start">🎁 ${u.askBtn}</button>` : ''; // v68
+  const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${isFriend && usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-id="${id}" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>${!isFriend && usr.username && d ? `<div class="hint" style="text-align:center;margin:0">✉️ ${u.frMsgFriends}</div>` : ''}`; // v88: messages only between friends
+  const admSk = (typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}" style="align-self:flex-start">🎁 ${u.askBtn}</button>` : '') + (typeof admRatingBtnHTML === 'function' ? admRatingBtnHTML(id, 'align-self:flex-start') : ''); // v68; v88: the rating
   return `${topbar(u.psTitle, u.psSub)}<div class="stack">${head}${body}${actions}${admSk}</div>`;
 }
 Object.assign(ACT, {
   'fr-open'(el) { S.ui.sheet = { type: 'friend', id: Number(el.dataset.id) }; render(); },
   'ps-open'(el) { S.ui.pstatsId = Number(el.dataset.id); S.ui.sheet = null; if (S.screen !== 'pstats') S.ui.pstatsFrom = S.screen; go('pstats'); },
   'ps-refresh'() { if (S.ui.pstatsId) loadPlayerProfile(Number(S.ui.pstatsId), true); },
-  'fr-open-tg'(el) { const url = 'https://t.me/' + el.dataset.u; try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} },
+  'fr-open-tg'(el) { const fid = Number(el.dataset.id); if (fid && !((FRP[fid] && FRP[fid].isFriend) || (FR.list || []).some(f => f.tgId === fid))) { toast(U().frMsgFriends); return; } /* v88: friends only */ const url = 'https://t.me/' + el.dataset.u; try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} },
   'fr-invite-one'(el) { S.ui.frSel = [Number(el.dataset.id)]; S.ui.sheet = null; go('friends'); ACT['fr-invite'](); },
   'fr-remove-from-sheet'(el) { S.ui.sheet = null; S.ui.frAsk = Number(el.dataset.id); go('friends'); }
 });
@@ -733,7 +786,7 @@ function adminPanelHTML() {
     <button class="btn primary" style="margin-top:8px" data-a="adm-grant">${u.adminGrant}</button>
     <div class="eyebrow" style="margin-top:12px">${u.adminGrants}${ADM.grants ? ` · ${ADM.grants.length}` : ''}</div>
     ${ADM.grants ? (rows ? `<div class="stack-s" style="margin-top:8px">${rows}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}
-    ${typeof admSkinsPanelHTML === 'function' ? admSkinsPanelHTML() : ''}${partners}${clubsAdm}</div>`;
+    ${typeof admSkinsPanelHTML === 'function' ? admSkinsPanelHTML() : ''}${typeof admRatingPanelHTML === 'function' ? admRatingPanelHTML() : ''}${partners}${clubsAdm}</div>`;
 }
 Object.assign(ACT, {
   'adm-q'(el) { ADM.q = el.value || ''; },
@@ -820,5 +873,5 @@ function withClubBrand(html) { const b = clubBrandHTML(); if (!b) return html; c
   const origHide = ACT.hide;
   ACT.hide = function (el) { const r = origHide.call(this, el); if (S.game) { skipDeliveredSeats(S.game); render(); } return r; };
   const origFinish = finishGame;
-  finishGame = function (g, w) { const was = g.recorded; origFinish(g, w); if (!was && g.recorded && w) { try { sendResult(g, w); } catch (e) {} } if (g.tg && g.tg.code) { try { clearTableSeats(); save(); } catch (e) {} } }; // the table's seats are history: the next table starts empty
+  finishGame = function (g, w) { const was = g.recorded; origFinish(g, w); if (!was && g.recorded && w) { try { g.endedAt = g.endedAt || Date.now(); sendResult(g, w); } catch (e) {} } if (g.tg && g.tg.code) { try { clearTableSeats(); save(); } catch (e) {} } }; // the table's seats are history: the next table starts empty
 })();

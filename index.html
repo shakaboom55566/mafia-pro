@@ -54,7 +54,7 @@
 })();
 </script>
 <meta name="mafia-api" content="__MAFIA_API__">
-<meta name="mafia-build" content="1.63.0-ae8eb18">
+<meta name="mafia-build" content="1.63.0-809331a">
 <meta name="description" content="Игра «Мафия» в Telegram: приложение раздаёт карты, ведёт ночь, день и голосование. 55 ролей, классика на 10, онлайн-столы с голосом. Бесплатно.">
 <link rel="canonical" href="https://mafiapro.app/">
 <meta property="og:type" content="website">
@@ -7667,6 +7667,75 @@ Object.assign(I18N.hy.ui, { privacy: 'Գաղտնիություն', privacyD: 'Ի
   Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
 })();
 /* ============================================================
+   v88 texts: who opens the introductions (25-intro.js), «Написать» only for friends (08-telegram.js),
+   results that reach the server (08-telegram.js), an admin changes a player's rating (26-admin-rating.js)
+   ============================================================ */
+(function () {
+  const R = {
+    ru: {
+      ifTitle: 'Знакомство начинает', ifSeat: '№ {seat}', ifRandom: 'Случайный номер', ifPicked: 'Знакомство начнёт № {seat}', ifHead: 'с № {seat}',
+      ifHint: 'Минутки знакомства пойдут по кругу: {order}… Первый день начнёт следующий — № {next}.',
+      frMsgFriends: 'Написать игроку можно, когда вы станете друзьями.',
+      tgUnseatedWarn: 'Без номера за столом: {n}. Им не придёт карта, и партия им не засчитается — выберите им номер в списке выше.',
+      rsPending: 'Итоги партии пока не дошли до сервера — отправлю сам, как только будет связь. Рейтинг игроков не потеряется.',
+      rsSent: 'Итоги прошлых партий засчитаны: {n}', rsSession: 'Сессия Telegram устарела: закройте и снова откройте приложение — итоги партии дойдут сами.',
+      arBtn: 'Рейтинг', arTitle: 'Рейтинг игрока', arNow: 'Сейчас: {rating} · партий: {games}', arAmount: 'Сколько', arReason: 'Причина — увидит игрок (необязательно)',
+      arAdd: 'Начислить', arTake: 'Снять', arHint: 'Рейтинг изменится сразу, игрок получит сообщение от бота.', arDone: '{name}: {delta} → {rating}',
+      arLog: 'Последние изменения', arNoLog: 'Администратор ещё не менял рейтинг этого игрока.', arBad: 'Укажите число от 1 до 1000', arTooLow: 'Рейтинг не может стать меньше нуля',
+      arLoading: 'Загружаю…', arNone: 'Игрок не найден', arPanel: 'Рейтинг игрока', arPanelHint: 'Найдите игрока по @нику или id — и начислите или снимите рейтинг.', arOpen: 'Открыть'
+    },
+    uk: {
+      ifTitle: 'Знайомство починає', ifSeat: '№ {seat}', ifRandom: 'Випадковий номер', ifPicked: 'Знайомство почне № {seat}', ifHead: 'з № {seat}',
+      ifHint: 'Хвилинки знайомства підуть по колу: {order}… Перший день почне наступний — № {next}.',
+      frMsgFriends: 'Написати гравцеві можна, коли ви станете друзями.',
+      tgUnseatedWarn: 'Без номера за столом: {n}. Їм не прийде карта, і партію їм не зарахують — виберіть їм номер у списку вище.',
+      rsPending: 'Підсумки партії поки не дійшли до сервера — надішлю сам, щойно буде зв’язок. Рейтинг гравців не загубиться.',
+      rsSent: 'Підсумки минулих партій зараховано: {n}', rsSession: 'Сесія Telegram застаріла: закрийте й знову відкрийте застосунок — підсумки партії дійдуть самі.',
+      arBtn: 'Рейтинг', arTitle: 'Рейтинг гравця', arNow: 'Зараз: {rating} · партій: {games}', arAmount: 'Скільки', arReason: 'Причина — побачить гравець (необов’язково)',
+      arAdd: 'Нарахувати', arTake: 'Зняти', arHint: 'Рейтинг зміниться одразу, гравець отримає повідомлення від бота.', arDone: '{name}: {delta} → {rating}',
+      arLog: 'Останні зміни', arNoLog: 'Адміністратор ще не змінював рейтинг цього гравця.', arBad: 'Вкажіть число від 1 до 1000', arTooLow: 'Рейтинг не може стати меншим за нуль',
+      arLoading: 'Завантажую…', arNone: 'Гравця не знайдено', arPanel: 'Рейтинг гравця', arPanelHint: 'Знайдіть гравця за @ніком або id — і нарахуйте чи зніміть рейтинг.', arOpen: 'Відкрити'
+    },
+    en: {
+      ifTitle: 'Introductions start with', ifSeat: 'Seat {seat}', ifRandom: 'Random seat', ifPicked: 'Seat {seat} opens the introductions', ifHead: 'from seat {seat}',
+      ifHint: 'The introductions go round the table: {order}… Day 1 starts with the next one, seat {next}.',
+      frMsgFriends: 'You can message this player once you are friends.',
+      tgUnseatedWarn: 'At the table without a seat number: {n}. They will not get a card and the game will not count for them — pick their numbers in the list above.',
+      rsPending: 'The game’s results have not reached the server yet — I will send them as soon as there is a connection. The players’ ratings are safe.',
+      rsSent: 'Results of earlier games credited: {n}', rsSession: 'The Telegram session has expired: close the app and open it again — the results will go through by themselves.',
+      arBtn: 'Rating', arTitle: 'Player rating', arNow: 'Now: {rating} · games: {games}', arAmount: 'How much', arReason: 'Reason — the player will see it (optional)',
+      arAdd: 'Add', arTake: 'Take away', arHint: 'The rating changes at once and the player gets a message from the bot.', arDone: '{name}: {delta} → {rating}',
+      arLog: 'Recent changes', arNoLog: 'No admin has changed this player’s rating yet.', arBad: 'Enter a number from 1 to 1000', arTooLow: 'The rating cannot go below zero',
+      arLoading: 'Loading…', arNone: 'Player not found', arPanel: 'Player rating', arPanelHint: 'Find a player by @username or id — then add or take away rating points.', arOpen: 'Open'
+    },
+    pl: {
+      ifTitle: 'Przedstawianie zaczyna', ifSeat: 'nr {seat}', ifRandom: 'Losowy numer', ifPicked: 'Przedstawianie zacznie nr {seat}', ifHead: 'od nr {seat}',
+      ifHint: 'Minutki przedstawiania pójdą po kolei: {order}… Pierwszy dzień zacznie następny — nr {next}.',
+      frMsgFriends: 'Napisać do gracza możesz, gdy zostaniecie znajomymi.',
+      tgUnseatedWarn: 'Przy stole bez numeru: {n}. Nie dostaną karty, a gra nie zostanie im zaliczona — wybierz im numery na liście powyżej.',
+      rsPending: 'Wyniki gry jeszcze nie dotarły na serwer — wyślę je sam, gdy tylko będzie połączenie. Ranking graczy nie przepadnie.',
+      rsSent: 'Zaliczono wyniki wcześniejszych gier: {n}', rsSession: 'Sesja Telegrama wygasła: zamknij i ponownie otwórz aplikację — wyniki gry dotrą same.',
+      arBtn: 'Ranking', arTitle: 'Ranking gracza', arNow: 'Teraz: {rating} · gier: {games}', arAmount: 'Ile', arReason: 'Powód — gracz go zobaczy (opcjonalnie)',
+      arAdd: 'Dodaj', arTake: 'Odejmij', arHint: 'Ranking zmieni się od razu, gracz dostanie wiadomość od bota.', arDone: '{name}: {delta} → {rating}',
+      arLog: 'Ostatnie zmiany', arNoLog: 'Administrator jeszcze nie zmieniał rankingu tego gracza.', arBad: 'Podaj liczbę od 1 do 1000', arTooLow: 'Ranking nie może spaść poniżej zera',
+      arLoading: 'Ładuję…', arNone: 'Nie znaleziono gracza', arPanel: 'Ranking gracza', arPanelHint: 'Znajdź gracza po @nicku lub id — i dodaj lub odejmij punkty rankingu.', arOpen: 'Otwórz'
+    },
+    hy: {
+      ifTitle: 'Ծանոթությունը սկսում է', ifSeat: '№ {seat}', ifRandom: 'Պատահական համար', ifPicked: 'Ծանոթությունը կսկսի № {seat}-ը', ifHead: '№ {seat}-ից',
+      ifHint: 'Ծանոթության րոպեները կգնան շրջանով՝ {order}… Առաջին օրը կսկսի հաջորդը՝ № {next}-ը։',
+      frMsgFriends: 'Խաղացողին գրել կարող եք, երբ ընկերներ դառնաք։',
+      tgUnseatedWarn: 'Սեղանի շուրջ առանց համարի՝ {n}։ Նրանք քարտ չեն ստանա, և խաղը նրանց չի հաշվվի․ ընտրեք նրանց համարները վերևի ցուցակում։',
+      rsPending: 'Խաղի արդյունքները դեռ չեն հասել սերվերին․ կուղարկեմ ինքս, հենց կապ լինի։ Խաղացողների վարկանիշը չի կորչի։',
+      rsSent: 'Նախորդ խաղերի արդյունքները հաշվվեցին՝ {n}', rsSession: 'Telegram-ի սեսիան հնացել է․ փակեք և նորից բացեք հավելվածը, և արդյունքները կհասնեն ինքնըստինքյան։',
+      arBtn: 'Վարկանիշ', arTitle: 'Խաղացողի վարկանիշը', arNow: 'Հիմա՝ {rating} · խաղեր՝ {games}', arAmount: 'Որքան', arReason: 'Պատճառ — խաղացողը կտեսնի (ըստ ցանկության)',
+      arAdd: 'Ավելացնել', arTake: 'Հանել', arHint: 'Վարկանիշը կփոխվի անմիջապես, խաղացողը հաղորդագրություն կստանա բոտից։', arDone: '{name}՝ {delta} → {rating}',
+      arLog: 'Վերջին փոփոխությունները', arNoLog: 'Ադմինիստրատորը դեռ չի փոխել այս խաղացողի վարկանիշը։', arBad: 'Նշեք թիվ 1-ից 1000', arTooLow: 'Վարկանիշը չի կարող զրոյից ցածր լինել',
+      arLoading: 'Բեռնում եմ…', arNone: 'Խաղացողը չի գտնվել', arPanel: 'Խաղացողի վարկանիշը', arPanelHint: 'Գտեք խաղացողին @անունով կամ id-ով և ավելացրեք կամ հանեք վարկանիշ։', arOpen: 'Բացել'
+    }
+  };
+  Object.keys(R).forEach(code => { const p = I18N[code]; if (p) Object.assign(p.ui, R[code]); });
+})();
+/* ============================================================
    CHARACTER ART: flat vector scenes, one per role (200×200).
    Each scene = backdrop by lore + bust of the character + prop.
    roleArt(id) → full scene; roleArt(id, 'portrait') → head crop.
@@ -8997,7 +9066,17 @@ function checkWin(g) {
 
 /* ---------- Phase transitions ---------- */
 function startNight0(g) { g.phase = 'night0'; g.steps = buildNight0Steps(g); g.stepIdx = 0; addLog(g, L.e.logNight0); }
-function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; g.day0FirstSeat = (alive(g)[0] || {}).seat || 1; addLog(g, L.e.logDay0); } // v64: who opens the introductions
+function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; g.day0FirstSeat = introFirstSeat(g); addLog(g, L.e.logDay0); } // v64: who opens the introductions
+/* v88: the host picks at the setup which number opens the introductions (g.introFrom); taken by nobody alive → the next living seat */
+function introFirstSeat(g) {
+  const al = alive(g); if (!al.length) return 1; const want = Math.max(1, Math.min(g.n || al.length, Number(g.introFrom) || 1));
+  return (al.find(p => p.seat >= want) || al[0]).seat;
+}
+/* the introductions go round the table from that number */
+function introOrder(g) {
+  const al = alive(g); const first = g.day0FirstSeat || 1; const i = al.findIndex(p => p.seat >= first);
+  return i <= 0 ? al : al.slice(i).concat(al.slice(0, i));
+}
 function startNight(g) {
   g.phase = 'night'; g.night += 1; g.actions = []; g.nightResult = null; lastWordsClear(g);
   g.steps = buildNightSteps(g); g.stepIdx = 0; g.pendingResult = null;
@@ -9089,7 +9168,7 @@ const foulMoment = g => ({ phase: g.phase, day: g.day, night: g.night, stage: g.
 const sameMoment = (a, b) => !!(a && b && a.phase === b.phase && a.day === b.day && a.night === b.night && a.stage === b.stage && a.round === b.round);
 /* the list the speech index walks right now: introductions (day 0), the minutes, the defence speeches */
 function speechList(g) {
-  if (g.phase === 'day0') return alive(g);
+  if (g.phase === 'day0') return introOrder(g); // v88: from the number the host picked
   if (g.phase === 'day' && g.dayStage === 'speeches') return speakOrder(g);
   return null;
 }
@@ -9661,6 +9740,7 @@ function setupScreen() {
   <div class="stack">
     ${scenBanner}
     ${openRolesHTML()}
+    ${!classic && typeof introFromHTML === 'function' ? introFromHTML(st) : ''}
     ${classic ? '' : `<div class="stepper"><div><div class="lbl">${u.players}</div><div class="val num">${st.n}</div><div class="hint">${two2 ? u.twoFamilies : u.oneFamily}</div></div>
       <div class="ctl"><button data-a="n" data-d="-1" aria-label="${u.less}">−</button><button data-a="n" data-d="1" aria-label="${u.more}">+</button></div></div>
     <input class="range" type="range" id="nrange" min="${sc ? sc.min : MIN_PLAYERS}" max="${sc ? sc.max : MAX_PLAYERS}" value="${st.n}" data-a="nrange" aria-label="${u.playerCount}">`}
@@ -9832,9 +9912,9 @@ function resultHTML(res) {
 }
 
 function day0Body(g) {
-  const u = U(); const al = alive(g); const p = al[g.speechIdx];
+  const u = U(); const al = introOrder(g); const p = al[g.speechIdx]; // v88: round the table from the number the host picked
   if (!p) return `${phaseHead(g, u.allIntroduced, u.citySleeps)}<button class="btn primary" data-a="night">${u.sleepNight1}</button>`;
-  return `${phaseHead(g, u.phDay0, tt(u.introOf, { i: g.speechIdx + 1, n: al.length }))}
+  return `${phaseHead(g, u.phDay0, tt(u.introOf, { i: g.speechIdx + 1, n: al.length }) + (u.ifHead ? ' · ' + tt(u.ifHead, { seat: al[0].seat }) : ''))}
     <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.secIntro, { s: S.settings.intro })}</div></div></div></div>
     ${foulMuted(p) ? foulMutedSpeechHTML(p, g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro) : timerHTML(S.settings.intro, `d0-${g.speechIdx}`)}
     <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro}</button></div>${undoBtnHTML(g)}`;
@@ -10378,7 +10458,7 @@ const ACT = {
     if (typeof voiceBlocksDeal === 'function' && voiceBlocksDeal()) { toast(U().dcNeedConfirm); return; } // Discord table: everyone on voice first
     const sp = hostOffSeats();
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));
-    S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.game.openRoles = revealDeadIn(null); S.ui.showAll = false; go('deal');
+    S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.game.openRoles = revealDeadIn(null); S.game.introFrom = typeof introFromOf === 'function' ? introFromOf(S.setup) : 1; S.ui.showAll = false; go('deal'); // v88: who opens the introductions
   },
   'seat-assign'(el) { const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; const id = el.dataset.id; const used = sp.indexOf(id); if (used >= 0) { sp[used] = null; render(); return; } let i = 0; while (i < S.setup.n && sp[i]) i++; if (i < S.setup.n) { sp[i] = id; render(); } },
   'open-roles'(el) { S.setup.openRoles = el.dataset.id === 'open'; save(); render(); },
@@ -11124,7 +11204,8 @@ async function cloudSync() {
     if (d.skins && typeof d.skins === 'object') S.skins = { owned: Array.isArray(d.skins.owned) ? d.skins.owned.slice() : [], equipped: Object.assign({}, d.skins.equipped || {}), serials: Object.assign({}, d.skins.serials || {}), sold: Object.assign({}, d.skins.sold || {}) }; // v56; v69: numbered copies
     startHeartbeat();
     if (added) toast(U().tgSynced);
-    if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent) sendResult(S.game, S.game.winner);
+    if (S.game && S.game.winner && S.game.recorded && !S.game.cloudSent && !rqLoad().some(x => x.game.id === S.game.id)) sendResult(S.game, S.game.winner); // v88: a game from before the outbox
+    else flushResults();
     save(); render();
   } finally { CLOUD.busy = false; }
 }
@@ -11148,7 +11229,7 @@ setTimeout(checkAppUpdate, 1500);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkAppUpdate(); });
 function startHeartbeat() {
   if (heartbeatTimer || !TG.app || !apiBase()) return;
-  heartbeatTimer = setInterval(() => { try { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') api('/api/ping', {}); } catch (e) {} }, 60000);
+  heartbeatTimer = setInterval(() => { try { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') { api('/api/ping', {}); if (rqLoad().length) flushResults(); } } catch (e) {} }, 60000); // v88: and the results still waiting
 }
 function agoText(sec) {
   const u = U(); if (sec < 60) return u.frJustNow;
@@ -11170,18 +11251,66 @@ function tgBuy(kind, id, onDone) {
   });
   return true;
 }
-/* finished game → server ratings for Telegram-linked players (profiles with tgId, or seats dealt through the lobby) */
-function sendResult(g, w) {
-  if (!TG.app || !apiBase() || !w) return;
+/* finished game → server ratings for Telegram-linked players (profiles with tgId, or seats dealt through the lobby)
+   v88 (owner, 04.11: «some games are not credited to the players»): a result used to go out once, and was retried only while that very
+   game stayed in S.game — no network at the club, an expired Telegram session (initData is valid 24 h) or the app closed before the
+   answer, then the next game replaced it and the players never got it. Now the report is built when the game ends (with the Telegram
+   ids of the seats at that moment), kept in an outbox in localStorage and sent again on every start, every minute while the app is
+   open and whenever the network comes back — until the server has it. The server dedupes by game id and finishes half-credited games. */
+const RQ_KEY = 'mp_results_v1'; const RQ = { busy: false, warned: false, told: {} };
+function rqLoad() { try { const a = JSON.parse(localStorage.getItem(RQ_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.game && x.game.id) : []; } catch (e) { return []; } }
+function rqSave(a) { try { localStorage.setItem(RQ_KEY, JSON.stringify(a.slice(-40))); } catch (e) {} }
+const rqOwnerId = () => { try { return Number(S.cloud && S.cloud.user && S.cloud.user.id) || Number(TG.app.initDataUnsafe.user.id) || 0; } catch (e) { return 0; } };
+function resultPayload(g, w) {
+  const tgl = g.tg || g.tgKept || null; // v88: a table closed during the game still tells whose seat was whose
   const players = g.players.map(p => {
     const pr = p.profileId ? profById(p.profileId) : null;
-    const tgId = (pr && pr.tgId) || (g.tg && g.tg.map && Object.keys(g.tg.map).find(k => g.tg.map[k] === p.seat)) || null;
+    const tgId = (pr && pr.tgId) || (tgl && tgl.map && Object.keys(tgl.map).find(k => Number(tgl.map[k]) === p.seat)) || null;
     const { won, solo } = resultFor(g, p, w); const useful = g.useful && g.useful[p.id] ? g.useful[p.id] : 0;
     const role = ROLE[p.roleId]; const ps = role ? playSideOf(g, p) : 'city'; const side = ps === 'mafia' ? 'mafia' : ps === 'city' ? 'city' : 'neutral';
     return { seat: p.seat, name: p.name, tgId: tgId ? Number(tgId) : null, roleId: p.roleId, won, points: pointsFor(p.roleId, won, p.alive, solo) + useful, side };
   });
-  api('/api/game/result', { game: { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: g.tg && g.tg.code, players } }).then(d => { if (d.ok) { g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; if (d.official) g.cloudOfficial = d.official; save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g); } });
+  return { id: g.id, mode: isClassic(g) ? 'classic' : 'extended', winner: w.side, code: (tgl && tgl.code) || null, players, startedAt: g.createdAt || 0, endedAt: g.endedAt || Date.now() };
 }
+function sendResult(g, w) {
+  if (!TG.app || !apiBase() || !w) return;
+  if (!g.endedAt) g.endedAt = Date.now();
+  const game = resultPayload(g, w);
+  const q = rqLoad().filter(x => x.game.id !== game.id); q.push({ game, at: Date.now(), owner: rqOwnerId(), tries: 0 }); rqSave(q);
+  flushResults();
+}
+function applyResult(g, d) {
+  g.cloudSent = true; if (d.streaks) g.streaks = d.streaks; if (d.ratings) g.cloudRatings = d.ratings; if (d.rankUp) g.cloudRankUp = d.rankUp; if (d.official) g.cloudOfficial = d.official;
+  save(); if (S.game === g) render(); if (g.tg && g.tg.code && typeof publishTable === 'function') publishTable(true, g.tg, g);
+}
+async function flushResults() {
+  if (RQ.busy || !TG.app || !apiBase()) return; if (!rqLoad().length) return;
+  RQ.busy = true; let late = 0;
+  try {
+    const me = rqOwnerId();
+    for (const item of rqLoad()) {
+      if (item.owner && me && item.owner !== me) continue; // another account's game on this phone waits for that account
+      const d = await api('/api/game/result', { game: item.game }, { timeout: 30000 });
+      const drop = () => rqSave(rqLoad().filter(x => x.game.id !== item.game.id));
+      if (d && d.ok) {
+        drop(); const g = S.game && S.game.id === item.game.id ? S.game : null; if (g) applyResult(g, d);
+        if (!g || Date.now() - (item.at || 0) > 90000 || RQ.told[item.game.id]) late++;
+        continue;
+      }
+      const err = (d && d.error) || 'network';
+      if (err === 'bad_game' || (item.tries || 0) >= 60) { drop(); continue; } // never accepted: no endless loop
+      rqSave(rqLoad().map(x => x.game.id === item.game.id ? Object.assign(x, { tries: (x.tries || 0) + 1 }) : x));
+      if (err === 'unauthorized') { if (!RQ.warned) { RQ.warned = true; toast(U().rsSession); } break; } // the session is old: the next start sends it
+      if (!RQ.told[item.game.id] && S.game && S.game.id === item.game.id) { RQ.told[item.game.id] = true; toast(U().rsPending); }
+      break; // no network or the server is busy: everything waits, in order
+    }
+  } finally { RQ.busy = false; }
+  if (late) toast(tt(U().rsSent, { n: late }));
+}
+try {
+  window.addEventListener('online', () => flushResults());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushResults(); });
+} catch (e) {}
 /* ---------- lobby: players join from Telegram and receive their card privately ---------- */
 function cardTextFor(p, lang) {
   const pack = I18N[lang] || I18N.ru; const rt = (pack.roles && pack.roles[p.roleId]) || I18N.ru.roles[p.roleId]; const r = ROLE[p.roleId];
@@ -11226,6 +11355,9 @@ function keepFocus(fn) {
   if (id) { try { const b = document.getElementById(id); if (b) { b.focus({ preventScroll: true }); if (sel && tag !== 'SELECT' && typeof b.setSelectionRange === 'function') b.setSelectionRange(sel[0], sel[1]); } } catch (e) {} }
 }
 const selectOpen = () => { try { const a = document.activeElement; return !!(a && a.tagName === 'SELECT'); } catch (e) { return false; } };
+/* v88: a table closed under a running game (another table opened, the host's other phone…) — the game goes on without it,
+   but remembers who sat where: otherwise the result went out without the Telegram players and nobody at that table got the game */
+function dropGameTable(g) { if (g.tg && g.tg.code) g.tgKept = { code: g.tg.code, map: Object.assign({}, g.tg.map || {}) }; g.tg = null; }
 async function refreshTable() {
   const l = currentLobby(); if (!l || !l.code) return;
   const d = await api('/api/lobby/status', { code: l.code });
@@ -11234,8 +11366,8 @@ async function refreshTable() {
       if (l === S.lobby) S.lobby = null; S.setup.hostRole = 'host'; save(); toast(tt(U().hostTook, { name: d.host ? d.host.name : '' })); tgHaptic('success');
       S.cloud = S.cloud || {}; S.cloud.table = { code: d.code, status: d.status, hostId: d.host ? d.host.tgId : 0, host: d.host ? d.host.name : '' }; tableOpen(d.code); return;
     }
-    if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
-  if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) S.game.tg = null; save(); render(); return; }
+    if (d.error === 'no_lobby') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) dropGameTable(S.game); save(); render(); return; } return false; } // not our table any more (closed, or another account's) — drop it quietly
+  if (d.status === 'closed') { if (l === S.lobby) S.lobby = null; else if (S.game && S.game.tg === l) dropGameTable(S.game); save(); render(); return; }
   l.hostInvite = d.hostInvite || null; l.hostPlays = !!d.hostPlays; l.flag = d.flag || l.flag || '';
   const voiceBefore = JSON.stringify(l.voice || null); l.voice = d.voice || null; if (typeof voiceSync === 'function') voiceSync(l);
   const beforeIds = l.players.map(p => p.tgId); const beforeJson = JSON.stringify(l.players);
@@ -11280,7 +11412,7 @@ function setupLobbyHTML(st) {
   return `<div class="panel"><div class="row"><div class="eyebrow grow">${l.flag ? l.flag + ' ' : ''}${tt(u.tgTable, { code: l.code })}</div><div class="hint" style="margin:0">${tt(u.tgJoined, { n: l.players.length })}</div></div>
     <div class="row" style="margin-top:8px"><button class="btn sm grow" data-a="tg-share">${u.tgShare}</button><button class="btn sm grow" data-a="fr-go">${u.frInviteFriends}</button><button class="btn sm ghost" data-a="tg-lobby-refresh">${u.tgRefresh}</button></div>
     ${rolePanel}
-    ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div><div class="hint" style="margin:6px 0 0">${u.tgSeatsHint}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
+    ${l.players.length ? `<div class="stack-s" style="margin-top:10px">${rows}</div><div class="hint" style="margin:6px 0 0">${u.tgSeatsHint}</div>${unseated ? `<button class="btn sm" style="margin-top:8px" data-a="tg-seat-all">${u.tgSeatAll}</button><div class="warnbox" style="margin-top:8px">${tt(u.tgUnseatedWarn, { n: unseated })}</div>` : ''}` : `<div class="hint" style="margin-top:10px">${u.tgWaiting}</div>`}
     <button class="btn xs ghost" style="margin-top:8px;align-self:flex-start" data-a="tg-close-table">${u.tgCloseTable}</button></div>`;
 }
 /* send cards to every mapped player of the game's table; returns the number sent */
@@ -11490,9 +11622,10 @@ function friendSheetHTML(id) {
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id); const isMe = S.cloud && S.cloud.user && S.cloud.user.id === id;
   const primary = isMe ? '' : (isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : ''));
-  const secondary = `${!isMe && usr.username ? `<button class="btn ghost sm" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}${isFriend ? `<button class="btn ghost sm" style="color:var(--crimson-2)" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}${typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}">🎁 ${u.askBtn}</button>` : ''}`; // v68: admins give skins
+  const secondary = `${!isMe && isFriend && usr.username ? `<button class="btn ghost sm" data-a="fr-open-tg" data-id="${id}" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}${isFriend ? `<button class="btn ghost sm" style="color:var(--crimson-2)" data-a="fr-remove-from-sheet" data-id="${id}">${u.frRemove}</button>` : ''}${typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}">🎁 ${u.askBtn}</button>` : ''}${typeof admRatingBtnHTML === 'function' ? admRatingBtnHTML(id) : ''}`; // v68: admins give skins; v88: and change the rating
   const actions = `<div class="btn-row" style="margin-top:14px"><button class="btn" data-a="ps-open" data-id="${id}">${I.person} ${u.psBtn}</button>${primary}</div>${secondary ? `<div class="btn-row" style="margin-top:8px">${secondary}</div>` : ''}`;
-  return head + body + actions;
+  const msgNote = !isMe && !isFriend && usr.username && d ? `<div class="hint" style="text-align:center;margin:8px 0 0">✉️ ${u.frMsgFriends}</div>` : ''; // v88: messages only between friends
+  return head + body + actions + msgNote;
 }
 /* ---------- full player statistics screen (server data), opened with the "Profile" button anywhere a player is tapped ---------- */
 function knownUser(id) { return (FR.list || []).find(f => f.tgId === id) || (FR.results || []).find(f => f.tgId === id) || (CLOUD.top || []).find(f => f.tgId === id) || (PL.list || []).find(f => f.tgId === id) || (CL.cur && CL.cur.members || []).find(f => f.tgId === id) || { tgId: id, name: '…', username: '' }; }
@@ -11530,15 +11663,15 @@ function playerStatsScreen() {
     body = `${rankBlockHTML(cloudRankObj(d, id))}<div class="panel"><div class="eyebrow gold" style="text-align:center">${fav ? '❤ ' + u.favTitle : u.bestRole}</div>${(sk => card3dFor(bestRole, 'pstats', sk, undefined, serialOfTg(id, sk)))(skinOfTg(id, bestRole.id))}<div class="spin-hint">${u.spinHint}</div><div class="best-role"><b>${bestRole.name}</b>${fav ? (favR ? ' · ' + tt(u.bestRoleText, { wins: favR.wins, games: favR.games }) : '') : best ? ' · ' + tt(u.bestRoleText, { wins: d.roles[0].wins, games: d.roles[0].games }) : ' · ' + u.noGamesYet}</div></div>${cloudStatsHTML(d, { allRoles: true, sides: true, recent: 12, rank: false })}`;
   }
   const isFriend = d ? d.isFriend : (FR.list || []).some(f => f.tgId === id);
-  const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>`;
-  const admSk = typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}" style="align-self:flex-start">🎁 ${u.askBtn}</button>` : ''; // v68
+  const actions = isMe ? `<button class="btn ghost" data-a="go" data-to="myprofile">${I.person} ${u.myProfile}</button>` : `<div class="btn-row">${isFriend ? `<button class="btn primary" data-a="fr-invite-one" data-id="${id}">${u.frInviteOne}</button>` : (d && !d.isFriend ? (d.requested ? `<span class="hint" style="margin:auto 0">${u.frRequested}</span>` : `<button class="btn primary" data-a="fr-request" data-id="${id}">${u.frAdd}</button>`) : '')}${isFriend && usr.username ? `<button class="btn ghost" data-a="fr-open-tg" data-id="${id}" data-u="${esc(usr.username)}">${u.frOpenTg}</button>` : ''}</div>${!isFriend && usr.username && d ? `<div class="hint" style="text-align:center;margin:0">✉️ ${u.frMsgFriends}</div>` : ''}`; // v88: messages only between friends
+  const admSk = (typeof admSkinsOn === 'function' && admSkinsOn() ? `<button class="btn ghost sm" data-a="adm-skins" data-id="${id}" style="align-self:flex-start">🎁 ${u.askBtn}</button>` : '') + (typeof admRatingBtnHTML === 'function' ? admRatingBtnHTML(id, 'align-self:flex-start') : ''); // v68; v88: the rating
   return `${topbar(u.psTitle, u.psSub)}<div class="stack">${head}${body}${actions}${admSk}</div>`;
 }
 Object.assign(ACT, {
   'fr-open'(el) { S.ui.sheet = { type: 'friend', id: Number(el.dataset.id) }; render(); },
   'ps-open'(el) { S.ui.pstatsId = Number(el.dataset.id); S.ui.sheet = null; if (S.screen !== 'pstats') S.ui.pstatsFrom = S.screen; go('pstats'); },
   'ps-refresh'() { if (S.ui.pstatsId) loadPlayerProfile(Number(S.ui.pstatsId), true); },
-  'fr-open-tg'(el) { const url = 'https://t.me/' + el.dataset.u; try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} },
+  'fr-open-tg'(el) { const fid = Number(el.dataset.id); if (fid && !((FRP[fid] && FRP[fid].isFriend) || (FR.list || []).some(f => f.tgId === fid))) { toast(U().frMsgFriends); return; } /* v88: friends only */ const url = 'https://t.me/' + el.dataset.u; try { if (TG.app && TG.app.openTelegramLink) TG.app.openTelegramLink(url); else window.open(url, '_blank'); } catch (e) {} },
   'fr-invite-one'(el) { S.ui.frSel = [Number(el.dataset.id)]; S.ui.sheet = null; go('friends'); ACT['fr-invite'](); },
   'fr-remove-from-sheet'(el) { S.ui.sheet = null; S.ui.frAsk = Number(el.dataset.id); go('friends'); }
 });
@@ -11752,7 +11885,7 @@ function adminPanelHTML() {
     <button class="btn primary" style="margin-top:8px" data-a="adm-grant">${u.adminGrant}</button>
     <div class="eyebrow" style="margin-top:12px">${u.adminGrants}${ADM.grants ? ` · ${ADM.grants.length}` : ''}</div>
     ${ADM.grants ? (rows ? `<div class="stack-s" style="margin-top:8px">${rows}</div>` : `<div class="hint" style="margin-top:6px">—</div>`) : `<div class="hint" style="margin-top:6px">${u.frLoading}</div>`}
-    ${typeof admSkinsPanelHTML === 'function' ? admSkinsPanelHTML() : ''}${partners}${clubsAdm}</div>`;
+    ${typeof admSkinsPanelHTML === 'function' ? admSkinsPanelHTML() : ''}${typeof admRatingPanelHTML === 'function' ? admRatingPanelHTML() : ''}${partners}${clubsAdm}</div>`;
 }
 Object.assign(ACT, {
   'adm-q'(el) { ADM.q = el.value || ''; },
@@ -11839,7 +11972,7 @@ function withClubBrand(html) { const b = clubBrandHTML(); if (!b) return html; c
   const origHide = ACT.hide;
   ACT.hide = function (el) { const r = origHide.call(this, el); if (S.game) { skipDeliveredSeats(S.game); render(); } return r; };
   const origFinish = finishGame;
-  finishGame = function (g, w) { const was = g.recorded; origFinish(g, w); if (!was && g.recorded && w) { try { sendResult(g, w); } catch (e) {} } if (g.tg && g.tg.code) { try { clearTableSeats(); save(); } catch (e) {} } }; // the table's seats are history: the next table starts empty
+  finishGame = function (g, w) { const was = g.recorded; origFinish(g, w); if (!was && g.recorded && w) { try { g.endedAt = g.endedAt || Date.now(); sendResult(g, w); } catch (e) {} } if (g.tg && g.tg.code) { try { clearTableSeats(); save(); } catch (e) {} } }; // the table's seats are history: the next table starts empty
 })();
 /* ============================================================
    ONLINE GAME + PLAYER'S TABLE SCREEN
@@ -11945,7 +12078,7 @@ function tablePub(g) {
   const asks = g.online ? buildAsks(g) : {};
   pub.waiting = Object.entries(asks).filter(([id, a]) => !a.done && !a.blocked).map(([id]) => Number(g.tg.map[id]) || 0).filter(Boolean).sort((a, b) => a - b);
   if (g.phase === 'night0' || g.phase === 'night') { const step = g.steps[g.stepIdx]; pub.step = step ? { i: g.stepIdx, n: g.steps.length, roleId: step.roleId, type: step.type, fam: step.fam || null, done: step.type === 'act' && !!g.actions.find(a => a.stepId === step.id) } : { i: g.steps.length, n: g.steps.length, roleId: null, type: 'end' }; }
-  else if (g.phase === 'day0') { const al = alive(g); const p = al[g.speechIdx]; pub.day0 = { speaker: p ? p.seat : null, i: g.speechIdx, n: al.length, muted: foulMuted(p) || undefined }; if (p) { pub.chat = 'speaker'; pub.chatSeat = p.seat; } }
+  else if (g.phase === 'day0') { const al = introOrder(g); const p = al[g.speechIdx]; pub.day0 = { speaker: p ? p.seat : null, i: g.speechIdx, n: al.length, muted: foulMuted(p) || undefined }; if (p) { pub.chat = 'speaker'; pub.chatSeat = p.seat; } }
   else if (g.phase === 'day') {
     const b = g.ballot || {}; const st = g.dayStage; const seatOf = id => (P(g, id) || {}).seat;
     // chat: everyone in the morning and the free discussion; during speeches only the speaker while their timer runs; closed from the vote on
@@ -13995,7 +14128,7 @@ function hostGameTableHTML(g) {
     const step = g.steps[g.stepIdx];
     if (step) { const r = ROLE[step.roleId]; stage = step.title || (r ? r.name : ''); mk(seatOf(step.actorId), { speaker: true }); (step.members || []).forEach(m => mk(m.seat, { speaker: true })); } else stage = g.phase === 'night0' ? u.allMet : u.allActed;
   } else if (g.phase === 'day0') {
-    phaseLbl = u.tbDay0; const p = al[g.speechIdx]; if (p) { mk(p.seat, { speaker: true }); stage = tt(u.introOf, { i: g.speechIdx + 1, n: al.length }); } else stage = u.allIntroduced;
+    phaseLbl = u.tbDay0; const p = introOrder(g)[g.speechIdx]; if (p) { mk(p.seat, { speaker: true }); stage = tt(u.introOf, { i: g.speechIdx + 1, n: al.length }); } else stage = u.allIntroduced;
   } else if (g.phase === 'day') {
     phaseLbl = tt(u.tbDay, { n: g.day }); const b = g.ballot || {}; const st = g.dayStage;
     stage = { morning: u.tbMorning, balagan: u.tbBalagan, speeches: u.tbSpeeches, vote: b.round === 2 ? u.tbRevote : u.tbVoteStage, tie: u.stTie, roulette: u.stRoulette, lift: u.stLift, result: u.tbResult }[st] || '';
@@ -15305,6 +15438,105 @@ Object.assign(ACT, {
       toast(U().agMoved); tgHaptic('success'); tableOpen(next);
     }
     return r;
+  };
+})();
+/* ============================================================
+   v88 WHO OPENS THE INTRODUCTIONS — the host picks the number on the setup screen (the owner's request, 04.11.2026)
+   - S.setup.introFrom (1 by default) → the deal copies it into g.introFrom → startDay0 opens the introductions with that seat
+     (introFirstSeat / introOrder in 03-engine.js) and they go round the table from it; the minutes of day 1 start from the next
+     living seat after it, as since v64.
+   - Role game only: the classic has no introductions. The number stays for the next game (and «Ещё партия»).
+   ============================================================ */
+function introFromOf(st) {
+  st = st || S.setup; const n = Math.max(1, Number(st.n) || 1);
+  return Math.max(1, Math.min(n, Math.round(Number(st.introFrom) || 1)));
+}
+/* who sits at that number on the setup screen: a profile on the seat, a Telegram player or a typed name */
+function introFromWho(st, seat) {
+  const sp = st.seatProfiles || []; const pr = sp[seat - 1] && typeof profById === 'function' ? profById(sp[seat - 1]) : null;
+  return pr ? pr.name : String((st.names || [])[seat - 1] || '').trim();
+}
+function introFromHTML(st) {
+  const u = U(); st = st || S.setup; const n = st.n; const v = introFromOf(st); const who = introFromWho(st, v);
+  const order = Array.from({ length: Math.min(n, 4) }, (_, i) => ((v - 1 + i) % n) + 1).join(', ');
+  return `<div class="stepper intro-from"><div style="min-width:0"><div class="lbl">${u.ifTitle}</div><div class="val num">${tt(u.ifSeat, { seat: v })}</div>${who ? `<div class="hint" style="margin:2px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(who)}</div>` : ''}</div>
+    <div class="ctl"><button data-a="intro-from" data-d="-1" aria-label="${u.less}">−</button><button data-a="intro-from" data-d="1" aria-label="${u.more}">+</button></div></div>
+    <div class="row" style="gap:8px;align-items:flex-start"><div class="hint grow" style="margin:0">${tt(u.ifHint, { order, next: (v % n) + 1 })}</div><button class="btn xs ghost" data-a="intro-from-rand" style="flex:0 0 auto">🎲 ${u.ifRandom}</button></div>`;
+}
+Object.assign(ACT, {
+  'intro-from'(el) { const st = S.setup; const n = Math.max(1, st.n || 1); const v = introFromOf(st) + (Number(el.dataset.d) || 0); st.introFrom = ((v - 1 + n) % n) + 1; save(); render(); }, // − on № 1 goes to the last seat and back
+  'intro-from-rand'() {
+    const st = S.setup; const n = Math.max(1, st.n || 1); const cur = introFromOf(st); let v = cur;
+    if (n > 1) while (v === cur) v = 1 + Math.floor(Math.random() * n);
+    st.introFrom = v; save(); render(); toast(tt(U().ifPicked, { seat: v })); if (typeof tgHaptic === 'function') tgHaptic('light');
+  }
+});
+/* ============================================================
+   v88 AN ADMIN CHANGES A PLAYER'S RATING (the owner's request, 04.11.2026)
+   - «⭐ Рейтинг» on a player's sheet and on his statistics screen (admins only), and a search by @username / id in Settings.
+   - The sheet: the rating now, quick amounts 10 / 25 / 50 / 100 or any number up to 1000, an optional reason the player sees,
+     «Начислить» / «Снять». The server (/api/admin/rating/set) moves the rating at once, logs the change (rating_grants) and
+     the bot tells the player. The same from the bot: /rating @user +50 reason.
+   ============================================================ */
+const ADMRT = { id: null, d: null, busy: false, q: '', amt: '25', why: '' };
+const admRatingOn = () => !!(typeof TG !== 'undefined' && TG.app && apiBase() && S.cloud && S.cloud.admin);
+function admRatingLoad(q) {
+  ADMRT.d = null; ADMRT.busy = true;
+  setTimeout(async () => { const d = await api('/api/admin/rating', typeof q === 'number' ? { tgId: q } : { q }); ADMRT.busy = false; ADMRT.d = d && d.ok ? d : { error: (d && d.error) || 'network' }; if (ADMRT.d.user) ADMRT.id = ADMRT.d.user.tgId; render(); }, 0);
+}
+function admRatingSheetHTML() {
+  const u = U(); const d = ADMRT.d;
+  if (!d) return `<h2>⭐ ${u.arTitle}</h2><p class="hint">${u.arLoading}</p>`;
+  if (d.error) return `<h2>⭐ ${u.arTitle}</h2><p class="hint">${d.error === 'not_found' ? u.arNone : u.tgOffline}</p>`;
+  const fmt = ms => { try { return new Date(ms).toLocaleDateString(typeof locale === 'function' ? locale() : undefined, { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+  const chips = [10, 25, 50, 100].map(n => `<button class="chip ${String(n) === String(ADMRT.amt) ? 'active' : ''}" data-a="adm-rt-amt" data-n="${n}">${n}</button>`).join('');
+  const log = (d.log || []).map(x => `<div class="row" style="gap:8px"><span class="num" style="font-weight:800;min-width:52px;color:${x.delta > 0 ? '#9fe0ab' : 'var(--crimson-2)'}">${x.delta > 0 ? '+' : ''}${x.delta}</span><div class="grow hint" style="margin:0">${x.reason ? esc(x.reason) : '—'}</div><span class="hint" style="margin:0">${fmt(x.at)}</span></div>`).join('');
+  return `<h2 style="margin:0">⭐ ${u.arTitle}</h2><div class="hint" style="margin:2px 0 0"><b>${esc(d.user.name)}</b>${d.user.username ? ' · @' + esc(d.user.username) : ''}</div>
+    <div class="status" style="margin-top:10px"><div class="st"><div class="v num" style="color:var(--gold-2)">${d.rating.points}</div><div class="k">${u.rating}</div></div><div class="st"><div class="v num">${d.rating.games}</div><div class="k">${u.games}</div></div></div>
+    <div class="eyebrow" style="margin-top:12px">${u.arAmount}</div>
+    <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">${chips}</div>
+    <input class="input" id="adm-rt-n" data-a="adm-rt-n" type="number" inputmode="numeric" min="1" max="1000" value="${esc(ADMRT.amt)}" style="margin-top:8px" autocomplete="off">
+    <input class="input" id="adm-rt-why" data-a="adm-rt-why" maxlength="120" placeholder="${esc(u.arReason)}" value="${esc(ADMRT.why)}" style="margin-top:8px" autocomplete="off">
+    <div class="btn-row" style="margin-top:10px"><button class="btn primary" data-a="adm-rt-apply" data-sign="1" ${ADMRT.busy ? 'disabled' : ''}>+ ${u.arAdd}</button><button class="btn" data-a="adm-rt-apply" data-sign="-1" style="color:var(--crimson-2)" ${ADMRT.busy ? 'disabled' : ''}>− ${u.arTake}</button></div>
+    <p class="hint" style="margin:8px 0 0">${u.arHint}</p>
+    <div class="eyebrow" style="margin-top:12px">${u.arLog}</div>${log ? `<div class="stack-s" style="margin-top:6px">${log}</div>` : `<p class="hint">${u.arNoLog}</p>`}`;
+}
+function admRatingPanelHTML() { // Settings → the admin panel: open any player's rating by @username or id
+  if (!admRatingOn()) return ''; const u = U();
+  return `<div class="eyebrow" style="margin-top:12px">⭐ ${u.arPanel}</div><div class="hint" style="margin:4px 0 6px">${u.arPanelHint}</div>
+    <div class="row"><input class="input grow" id="adm-rt-q" data-a="adm-rt-q" placeholder="@username" value="${esc(ADMRT.q)}" autocomplete="off" autocapitalize="off"><button class="btn sm" data-a="adm-rt-find" style="flex:0 0 auto">${u.arOpen}</button></div>`;
+}
+const admRatingBtnHTML = (id, style = '') => admRatingOn() ? `<button class="btn ghost sm" data-a="adm-rating" data-id="${Number(id)}"${style ? ` style="${style}"` : ''}>⭐ ${U().arBtn}</button>` : '';
+Object.assign(ACT, {
+  'adm-rating'(el) { if (!admRatingOn()) return; const id = Number(el.dataset.id); if (!id) return; ADMRT.id = id; ADMRT.why = ''; S.ui.sheet = { type: 'admRating' }; admRatingLoad(id); render(); },
+  'adm-rt-q'(el) { ADMRT.q = el.value || ''; },
+  'adm-rt-n'(el) { ADMRT.amt = String(el.value || '').replace(/[^\d]/g, '').slice(0, 4); },
+  'adm-rt-why'(el) { ADMRT.why = String(el.value || '').slice(0, 120); },
+  'adm-rt-amt'(el) { ADMRT.amt = String(Number(el.dataset.n) || 25); render(); },
+  'adm-rt-find'() { if (!admRatingOn()) return; const q = ADMRT.q.trim(); if (!q) return; ADMRT.why = ''; S.ui.sheet = { type: 'admRating' }; admRatingLoad(/^\d+$/.test(q) ? Number(q) : q); render(); },
+  async 'adm-rt-apply'(el) {
+    const u = U(); const d = ADMRT.d; if (!admRatingOn() || !d || !d.user || ADMRT.busy) return;
+    const n = Math.round(Number(ADMRT.amt) || 0); if (!(n >= 1 && n <= 1000)) { toast(u.arBad); return; }
+    const delta = (Number(el.dataset.sign) < 0 ? -1 : 1) * n;
+    ADMRT.busy = true; render(); let r = null;
+    try { r = await api('/api/admin/rating/set', { tgId: d.user.tgId, delta, reason: ADMRT.why.trim() }); } finally { ADMRT.busy = false; }
+    if (!r || !r.ok) { toast(r && r.error === 'too_low' ? u.arTooLow : r && r.error === 'bad_delta' ? u.arBad : u.tgOffline); render(); return; }
+    ADMRT.d = r; ADMRT.why = ''; toast(tt(u.arDone, { name: r.user.name, delta: (delta > 0 ? '+' : '') + delta, rating: r.rating.points })); if (typeof tgHaptic === 'function') tgHaptic('success');
+    const id = r.user.tgId; if (typeof FRP !== 'undefined' && FRP[id]) delete FRP[id]; // his sheet and statistics show the new rating
+    if (S.cloud && S.cloud.user && S.cloud.user.id === id && S.cloud.rating) S.cloud.rating.points = r.rating.points - 1000;
+    if (typeof CLOUD !== 'undefined') CLOUD.topAt = 0; // the leaderboard is fetched again
+    render();
+  }
+});
+(function () {
+  try { // the text fields keep what is typed across renders; Enter in the search opens the player
+    document.addEventListener('input', e => { const el = e.target && e.target.closest && e.target.closest('[data-a="adm-rt-q"],[data-a="adm-rt-n"],[data-a="adm-rt-why"]'); if (el) ACT[el.dataset.a](el); });
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'adm-rt-q') { e.preventDefault(); ACT['adm-rt-find'](); } });
+  } catch (e) {}
+  const orig = sheetHTML;
+  sheetHTML = function (enter) {
+    const sh = S.ui.sheet; if (!sh || sh.type !== 'admRating') return orig.apply(this, arguments);
+    return `<div class="sheet-bg ${enter === false ? '' : 'enter'}" data-a="sheet-close"><div class="sheet" data-stop="1"><div class="grab"></div>${admRatingSheetHTML()}<button class="btn ghost" style="margin-top:14px" data-a="sheet-close">${U().close}</button></div></div>`;
   };
 })();
 /* ============================================================

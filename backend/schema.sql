@@ -692,3 +692,25 @@ CREATE TABLE IF NOT EXISTS cheat_penalties (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS emerald_ledger_kind ON emerald_ledger (tg_id, kind, created_at);
+
+-- v88: which players a reported game has credited — a repeated report completes a half-credited game and never credits twice
+-- (tg_id 0 with kind 'game' = the game counts; 'host' = the host's hosted counter; 'player' = the player's rating)
+CREATE TABLE IF NOT EXISTS game_credits (
+  game_id    TEXT NOT NULL,
+  tg_id      INTEGER NOT NULL,
+  kind       TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (game_id, tg_id, kind)
+);
+CREATE INDEX IF NOT EXISTS game_credits_tg ON game_credits (tg_id);
+
+-- v88: rating points an admin added or took away (a player's rating = 1000 + ratings.points; this is the log)
+CREATE TABLE IF NOT EXISTS rating_grants (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  tg_id      INTEGER NOT NULL,
+  admin_id   INTEGER NOT NULL,
+  delta      INTEGER NOT NULL,
+  reason     TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS rating_grants_tg ON rating_grants (tg_id, created_at);

@@ -143,13 +143,18 @@ async function ratingFor(env, tgId) {
   const r = await env.DB.prepare('SELECT points, games, wins, hosted FROM ratings WHERE tg_id = ?1').bind(tgId).first();
   return r ? { points: r.points, games: r.games, wins: r.wins, hosted: r.hosted } : { points: 0, games: 0, wins: 0, hosted: 0 };
 }
-async function bumpRating(env, tgId, dPoints, dGames, dWins, dHosted) {
-  await env.DB.prepare(`INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+/* v88: a rating change as statements — crediting a game runs them in one transaction with its credit row (all or nothing) */
+function ratingStmts(env, tgId, dPoints, dGames, dWins, dHosted, ts = now()) {
+  const out = [env.DB.prepare(`INSERT INTO ratings (tg_id, points, games, wins, hosted, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
     ON CONFLICT(tg_id) DO UPDATE SET points = points + ?2, games = games + ?3, wins = wins + ?4, hosted = hosted + ?5, updated_at = ?6`)
-    .bind(tgId, dPoints | 0, dGames | 0, dWins | 0, dHosted | 0, now()).run();
+    .bind(tgId, dPoints | 0, dGames | 0, dWins | 0, dHosted | 0, ts)];
+  if (dPoints > 0) out.push(env.DB.prepare(`INSERT INTO season_peak (season, tg_id, peak, peak_at) SELECT ?1, tg_id, points, ?3 FROM ratings WHERE tg_id = ?2
+    ON CONFLICT(season, tg_id) DO UPDATE SET peak = excluded.peak, peak_at = excluded.peak_at WHERE excluded.peak > season_peak.peak`).bind(seasonNow(env).n, tgId, ts)); // v55: the season's best
+  return out;
+}
+async function bumpRating(env, tgId, dPoints, dGames, dWins, dHosted) {
+  await env.DB.batch(ratingStmts(env, tgId, dPoints, dGames, dWins, dHosted));
   if (dPoints || dGames || dWins) await dropLeaderboard(env); // a new result shows on the next request, not after the 10-minute rebuild
-  if (dPoints > 0) await env.DB.prepare(`INSERT INTO season_peak (season, tg_id, peak, peak_at) SELECT ?1, tg_id, points, ?3 FROM ratings WHERE tg_id = ?2
-    ON CONFLICT(season, tg_id) DO UPDATE SET peak = excluded.peak, peak_at = excluded.peak_at WHERE excluded.peak > season_peak.peak`).bind(seasonNow(env).n, tgId, now()).run(); // v55: the season's best
 }
 /* ---------- v55 seasons (calendar in ranks.js): the season now, a player's best of the season ---------- */
 const seasonNow = env => seasonAt(Number(env.SEASON_NOW_MS) || Date.now()); // SEASON_NOW_MS: tests only
@@ -579,10 +584,10 @@ async function onText(env, bot, msg) {
     return bot.send(chat, t(lang, 'welcome'), play);
   }
   if (await onPrivacyText(env, bot, msg, lang)) return; // /privacy /mydata /deletedata /unsubscribe /subscribe /support (privacy.js)
-  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n' + t(lang, 'adminHelpEmeralds') + '\n' + t(lang, 'adminHelpSkins') + '\n' + t(lang, 'adminHelpTrn') + '\n' + t(lang, 'adminHelpOfficial') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
+  if (/^\/(help|rules)/.test(text)) return bot.send(chat, (isAdmin(env, u.id) ? t(lang, 'help') + '\n\n' + t(lang, 'adminHelp') + '\n' + t(lang, 'adminHelpPartner') + '\n' + t(lang, 'adminHelpClub') + '\n' + t(lang, 'adminHelpGrowth') + '\n' + t(lang, 'adminHelpBroadcast') + '\n' + t(lang, 'adminHelpEmeralds') + '\n' + t(lang, 'adminHelpRating') + '\n' + t(lang, 'adminHelpSkins') + '\n' + t(lang, 'adminHelpTrn') + '\n' + t(lang, 'adminHelpOfficial') + '\n🛡 /security — безопасность: инциденты, блокировки, режим\n📱 /social — Instagram, Facebook, TikTok: подключение, пауза, режим TikTok\n📣 /ads — реклама Meta: пауза, уведомления, кто пришёл' : t(lang, 'help')) + '\n\n' + privacyHelp(lang), play);
   if (isAdmin(env, u.id)) {
     if (/^\/security(?:@\w+)?(?:\s|$)/.test(text)) return onSecurityCommand(env, bot, msg);
-    const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no|emeralds|official|official_off|cheat|uncheat)(?:@\w+)?(?:\s|$)/.exec(text);
+    const power = /^\/(players|broadcast|social|ads|grant|revoke|partner|partner_no|club_ok|club_no|emeralds|rating|official|official_off|cheat|uncheat)(?:@\w+)?(?:\s|$)/.exec(text);
     if (power || (msg.reply_to_message && !text.startsWith('/'))) { // admin powers: every use is audited; all off in lockdown
       secAudit(env, u.id, power ? (power[1] === 'players' ? 'players_export' : power[1]) : 'post_reply', { detail: text.split(/\s+/).slice(0, 2).join(' ').slice(0, 60) });
       if (await isLockdown(env)) return bot.send(chat, LOCKED_TEXT);
@@ -595,6 +600,7 @@ async function onText(env, bot, msg) {
     if (/^\/social(?:@\w+)?(?:\s|$)/.test(text)) return onSocialCommand(env, bot, msg); // Instagram, Facebook, TikTok (social.js)
     if (/^\/ads(?:@\w+)?(?:\s|$)/.test(text)) return onAdsCommand(env, bot, msg); // paid ads in Meta: pause, notices, numbers (ads.js)
     if (/^\/emeralds(?:@\w+)?(?:\s|$)/.test(text)) return onEmeraldsCommand(env, bot, msg); // v63: a player's emeralds
+    if (/^\/rating(?:@\w+)?(?:\s|$)/.test(text)) return onRatingCommand(env, bot, msg); // v88: an admin changes a player's rating
     if (/^\/(officials?|official_off|cheat|uncheat)(?:@\w+)?(?:\s|$)/.test(text)) return onOfficialCommand(env, bot, msg); // v77: official hosts, punishment for cheating
     if (/^\/skins?(?:@\w+)?(?:\s|$)/.test(text)) return onSkinCommand(env, bot, msg); // v68: give a player skins
     if (/^\/tournament(?:@\w+)?(?:\s|$)/.test(text)) return bot.send(chat, await tournamentStatusText(env)); // v63: the week's tournament
@@ -997,6 +1003,53 @@ async function apiTournamentAdmin(env, bot, body) {
   if (!r.ok) return json(r, 409);
   return json(Object.assign(r, await tournamentView(env, v.user.id, true)));
 }
+/* ---------- v88: an admin adds or takes away rating points — from a player's profile in the app or with /rating in the bot ----------
+   the rating moves at once (and the leaderboard with it), the player gets a message, every change is logged (rating_grants) */
+const RATING_ADMIN_MAX = 1000;
+async function ratingView(env, target) {
+  const r = await ratingFor(env, target.tg_id);
+  const log = ((await env.DB.prepare('SELECT delta, reason, created_at FROM rating_grants WHERE tg_id = ?1 ORDER BY created_at DESC, id DESC LIMIT 10').bind(target.tg_id).all()).results || []).map(x => ({ delta: x.delta, reason: x.reason || '', at: x.created_at * 1000 }));
+  return { user: { tgId: target.tg_id, name: rowName(target) || String(target.tg_id), username: target.username || '' }, rating: { points: 1000 + r.points, games: r.games, wins: r.wins }, log };
+}
+async function grantRating(env, bot, adminId, target, delta, reason) {
+  delta = Math.round(Number(delta) || 0); if (!delta || Math.abs(delta) > RATING_ADMIN_MAX) return { ok: false, error: 'bad_delta' };
+  const before = await ratingFor(env, target.tg_id); const rating = 1000 + before.points + delta;
+  if (rating < 0) return { ok: false, error: 'too_low', rating: 1000 + before.points };
+  const ts = now(); const why = cleanStr(String(reason || '').replace(/\s+/g, ' ').trim()).slice(0, 120);
+  await env.DB.batch([...ratingStmts(env, target.tg_id, delta, 0, 0, 0, ts), env.DB.prepare('INSERT INTO rating_grants (tg_id, admin_id, delta, reason, created_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(target.tg_id, adminId, delta, why || null, ts)]);
+  await dropLeaderboard(env);
+  secAudit(env, adminId, 'rating', { detail: `${target.tg_id} ${delta > 0 ? '+' : ''}${delta}` });
+  const lang = pickLang(target.lang); const a = rankIdx(1000 + before.points, before.games), b = rankIdx(rating, before.games);
+  bg(env, (async () => { // after the answer: the player's message and, the first time a rank is reached, the rank message
+    try { await bot.send(target.tg_id, t(lang, 'ratingAdmin', { delta: (delta > 0 ? '+' : '') + delta, rating, reason: why ? t(lang, 'ratingAdminWhy', { reason: esc(why) }) : '' }), bot.playButton(t(lang, 'play'), env.APP_URL)); } catch (e) {}
+    if (b > a) { try { await noteRankUp(env, bot, target.tg_id, b, a, rating); } catch (e) {} }
+  })());
+  return { ok: true, delta, rating };
+}
+async function apiAdminRating(env, bot, body, action) {
+  const v = await auth(env, body); if (!v) return json({ ok: false, error: 'unauthorized' }, 401);
+  if (!isAdmin(env, v.user.id)) { secEvent(env, 'admin_denied', 'medium', { tg: v.user.id, path: 'rating' }); return json({ ok: false, error: 'forbidden' }, 403); }
+  const target = await findUser(env, body.q || body.tgId); if (!target) return json({ ok: false, error: 'not_found' }, 404);
+  if (action === 'set') {
+    if (await isLockdown(env)) return json({ ok: false, error: 'lockdown' }, 423);
+    const r = await grantRating(env, bot, v.user.id, target, body.delta, body.reason); if (!r.ok) return json(r, 400);
+    return json(Object.assign({ ok: true, granted: { delta: r.delta, rating: r.rating } }, await ratingView(env, target)));
+  }
+  return json(Object.assign({ ok: true }, await ratingView(env, target)));
+}
+/* /rating in the bot (admins): /rating @user — the rating and the last changes; /rating @user +50 [reason] — add (or −50 take away) */
+async function onRatingCommand(env, bot, msg) {
+  const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id;
+  const m = /^\/rating(?:@\w+)?\s+(\S+)(?:\s+([+\-\u2212]?\d{1,5}))?(?:\s+([\s\S]+))?$/.exec(msg.text.trim());
+  if (!m) return bot.send(chat, t(lang, 'adminHelpRating'));
+  const target = await findUser(env, m[1]); if (!target) return bot.send(chat, t(lang, 'adminNoUser', { q: esc(m[1]) }));
+  const who = `${esc(rowName(target) || String(target.tg_id))}${target.username ? ' @' + esc(target.username) : ''}`;
+  if (m[2] == null) { const vw = await ratingView(env, target); return bot.send(chat, `⭐ ${who}: <b>${vw.rating.points}</b> · ${vw.rating.games} 🎲${vw.log.length ? '\n' + vw.log.map(x => `${x.delta > 0 ? '+' : ''}${x.delta}${x.reason ? ' — ' + esc(x.reason) : ''}`).join('\n') : ''}`); }
+  if (await isLockdown(env)) return bot.send(chat, LOCKED_TEXT);
+  const r = await grantRating(env, bot, u.id, target, Number(m[2].replace('\u2212', '-')), m[3] || '');
+  if (!r.ok) return bot.send(chat, r.error === 'too_low' ? t(lang, 'ratingTooLow', { rating: r.rating }) : t(lang, 'adminHelpRating'));
+  return bot.send(chat, `⭐ ${who}: ${r.delta > 0 ? '+' : ''}${r.delta} → <b>${r.rating}</b>`);
+}
 /* /emeralds in the bot (admins): a balance, or a change with a signed number */
 async function onEmeraldsCommand(env, bot, msg) {
   const u = msg.from || {}; const lang = pickLang(u.language_code); const chat = msg.chat.id;
@@ -1159,35 +1212,60 @@ async function apiResult(env, bot, body) {
     return { seat: Number(p.seat) || null, name: cleanStr(String(p.name == null ? '' : p.name).slice(0, 64)), tgId, roleId: ID_RE.test(String(p.roleId || '')) ? String(p.roleId) : null, won: !!p.won, points: Math.max(-60, Math.min(90, Number(p.points) || 0)), side: ['city', 'mafia', 'neutral'].includes(p.side) ? p.side : '' };
   });
   if (rejected) secEvent(env, 'result_reject', 'medium', { tg: hostId, path: '/api/game/result', detail: { rejected, code } });
-  const gap = env.SEC_RESULT_GAP != null ? Number(env.SEC_RESULT_GAP) || 0 : 120; // seconds between two credited games of one host: no game is that short
-  const recent = await env.DB.prepare('SELECT COUNT(*) AS n, MAX(created_at) AS last FROM games WHERE host_id = ?1 AND created_at > ?2').bind(hostId, now() - 86400).first();
-  const flood = !!recent && (recent.n >= 40 || (gap > 0 && recent.last && now() - recent.last < gap));
+  const gap = env.SEC_RESULT_GAP != null ? Number(env.SEC_RESULT_GAP) || 0 : 120; // seconds: no game is that short
+  // v88: the app keeps an unsent result and sends it later (no network at the club, an expired session, the app closed) —
+  // such a report carries the game's own start and end, so several games sent together are not taken for a flood
+  const ts = now(); const sec = x => { const n = Math.floor(Number(x) / 1000); return n > 0 && n <= ts + 300 && n >= ts - 14 * 86400 ? n : 0; };
+  const endedAt = sec(g.endedAt), startedAt = sec(g.startedAt); const late = endedAt > 0 && ts - endedAt > 600;
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS n, MAX(created_at) AS last FROM games WHERE host_id = ?1 AND created_at > ?2').bind(hostId, ts - 86400).first();
+  const tooMany = !!recent && recent.n >= 40;
+  const tooShort = gap > 0 && startedAt > 0 && endedAt > startedAt && endedAt - startedAt < gap; // the game itself lasted less than the gap
+  const tooSoon = gap > 0 && !late && !!recent && !!recent.last && ts - recent.last < gap; // a fresh report right after the previous one
+  const flood = tooMany || tooShort || tooSoon;
   const ins = await env.DB.prepare('INSERT OR IGNORE INTO games (game_id, host_id, code, mode, players, winner, summary, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
-    .bind(gameId, hostId, code, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), now()).run();
-  if (flood && ins.meta && ins.meta.changes > 0) secEvent(env, 'result_flood', 'medium', { tg: hostId, path: '/api/game/result', detail: { last24h: recent.n } });
+    .bind(gameId, hostId, code, String(g.mode || '').slice(0, 16), players.length, String(g.winner || '').slice(0, 32), JSON.stringify(players).slice(0, 20000), ts).run();
+  const first = !!(ins.meta && ins.meta.changes > 0);
+  if (flood && first) secEvent(env, 'result_flood', 'medium', { tg: hostId, path: '/api/game/result', detail: { last24h: recent ? recent.n : 0, short: tooShort || undefined } });
   const ratings = {}; const rankUp = {}; const beforeR = {}; const sz = seasonNow(env); const live = sz.phase === 'live'; // v55: between seasons games count, the rating does not move
-  await trackGameNames(env, players);
-  if (ins.meta && ins.meta.changes > 0 && !flood) { // first report of this game → credit the players
+  if (first) await trackGameNames(env, players);
+  // v88: crediting is recorded per player (game_credits). The first report marks the game as counted; a repeated report of a
+  // counted game (the answer never reached the phone, the request was cut off half-way) credits whoever is still missing —
+  // from the players stored with the first report, never from the repeat. Nobody is credited twice.
+  let counted = false, credit = [];
+  if (first) { if (!flood) { await env.DB.prepare('INSERT OR IGNORE INTO game_credits (game_id, tg_id, kind, created_at) VALUES (?1, 0, ?2, ?3)').bind(gameId, 'game', ts).run(); counted = true; credit = players; } }
+  else {
+    const row = await env.DB.prepare('SELECT host_id, summary FROM games WHERE game_id = ?1').bind(gameId).first();
+    if (row && row.host_id === hostId && await env.DB.prepare("SELECT 1 FROM game_credits WHERE game_id = ?1 AND tg_id = 0 AND kind = 'game'").bind(gameId).first()) { counted = true; credit = (parseJSON(row.summary, []) || []).filter(p => p && typeof p === 'object'); }
+  }
+  if (counted) {
+    const done = new Set(((await env.DB.prepare('SELECT tg_id, kind FROM game_credits WHERE game_id = ?1').bind(gameId).all()).results || []).map(r => r.kind + ':' + r.tg_id));
+    const once = async (tgId, kind, stmts) => { // the credit row and the rating change commit together: a second attempt fails as a whole
+      if (done.has(kind + ':' + tgId)) return false; done.add(kind + ':' + tgId);
+      try { await env.DB.batch([env.DB.prepare('INSERT INTO game_credits (game_id, tg_id, kind, created_at) VALUES (?1, ?2, ?3, ?4)').bind(gameId, tgId, kind, ts), ...stmts]); return true; } catch (e) { return false; }
+    };
+    let moved = false;
     const hb = await ratingFor(env, hostId);
-    await bumpRating(env, hostId, 0, 0, 0, 1);
-    if (hostLevel(hb.hosted + 1) > hostLevel(hb.hosted)) { try { await noteHostUp(env, bot, hostId, hostLevel(hb.hosted + 1)); } catch (e) { console.error('host up', e); } }
-    for (const p of players) {
+    if (await once(hostId, 'host', ratingStmts(env, hostId, 0, 0, 0, 1, ts))) { const lv = hostLevel(hb.hosted + 1); if (lv > hostLevel(hb.hosted)) bg(env, noteHostUp(env, bot, hostId, lv)); }
+    for (const p of credit) {
       const tgId = Number(p.tgId); if (!tgId) continue;
-      const pts = live ? p.points : 0; const before = await ratingFor(env, tgId); beforeR[tgId] = before;
-      await bumpRating(env, tgId, pts, 1, p.won ? 1 : 0, 0);
-      // v54: a new rank → a mark in the results (rankUp) and, the first time this rank is reached, a message from the bot
+      const pts = live ? Math.max(-60, Math.min(90, Number(p.points) || 0)) : 0; const before = await ratingFor(env, tgId);
+      if (!(await once(tgId, 'player', ratingStmts(env, tgId, pts, 1, p.won ? 1 : 0, 0, ts)))) continue;
+      beforeR[tgId] = before; moved = true;
+      // v54: a new rank → a mark in the results (rankUp) and, the first time this rank is reached, a message from the bot —
+      // v88: the messages go out after the answer, so a slow Telegram cannot hold the result up until the phone gives up
       const a = rankIdx(1000 + before.points, before.games), b = rankIdx(1000 + before.points + pts, before.games + 1);
-      if (b > a) { rankUp[tgId] = b; try { await noteRankUp(env, bot, tgId, b, a, 1000 + before.points + pts); } catch (e) { console.error('rank up', e); } }
-      try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); }
+      if (b > a) { rankUp[tgId] = b; bg(env, noteRankUp(env, bot, tgId, b, a, 1000 + before.points + pts)); }
+      try { await qualifyReferral(env, bot, tgId); } catch (e) { console.error('qualify', e); } // usually one lookup: only a referred player's first game does more
     }
+    if (moved) await dropLeaderboard(env); // a new result shows on the next request, not after the 10-minute rebuild
   }
   let official = null; // v77: a game at an official host's table — emeralds for the seated players (official.js)
-  if (ins.meta && ins.meta.changes > 0 && !flood && code) { try { official = await rewardGame(env, bot, { gameId, hostId, code, players, before: beforeR }); } catch (e) { console.error('official reward', e); } }
+  if (first && counted && code) { try { official = await rewardGame(env, bot, { gameId, hostId, code, players, before: beforeR }); } catch (e) { console.error('official reward', e); } }
   let tournament = null; // v63: a game at a tournament table (the host's own, by its code) counts in the standings — once per table
-  if (ins.meta && ins.meta.changes > 0 && !flood && code) { try { tournament = await creditGame(env, code, hostId, players); } catch (e) { console.error('trn credit', e); } }
+  if (first && counted && code) { try { tournament = await creditGame(env, code, hostId, players); } catch (e) { console.error('trn credit', e); } }
   const streaks = {};
-  for (const p of players) { const tgId = Number(p.tgId); if (!tgId) continue; if (!ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); const side = String(p.side || ''); if (side) streaks[tgId] = { side, n: (await streaksOf(env, tgId))[side] || 0 }; }
-  return json({ ok: true, recorded: !!(ins.meta && ins.meta.changes > 0), ratings, streaks, rankUp, season: seasonInfo(sz), tournament, official });
+  for (const p of (first ? players : credit)) { const tgId = Number(p.tgId); if (!tgId) continue; if (!ratings[tgId]) ratings[tgId] = await ratingFor(env, tgId); const side = String(p.side || ''); if (side) streaks[tgId] = { side, n: (await streaksOf(env, tgId))[side] || 0 }; }
+  return json({ ok: true, recorded: first, counted, ratings, streaks, rankUp, season: seasonInfo(sz), tournament, official });
 }
 /* v54: the bot congratulates on a rank reached for the first time (rank_best keeps the highest one announced: going down and back up
    near a threshold does not repeat the message) and on a new host badge */
@@ -2211,6 +2289,8 @@ export default {
           case '/api/skin/buy': return wrap(apiSkinBuy(env, bot, body)); // v63: an Epic skin for emeralds
           case '/api/admin/skins': return wrap(apiAdminSkins(env, bot, body, 'list')); // v68: an admin gives skins
           case '/api/admin/skin': return wrap(apiAdminSkins(env, bot, body, 'set'));
+          case '/api/admin/rating': return wrap(apiAdminRating(env, bot, body, 'view')); // v88: an admin changes a player's rating
+          case '/api/admin/rating/set': return wrap(apiAdminRating(env, bot, body, 'set'));
           case '/api/emeralds': return wrap(apiEmeralds(env, body));
           case '/api/tournament': return wrap(apiTournament(env, body));
           case '/api/tournament/join': return wrap(apiTournamentJoin(env, bot, body));

@@ -412,3 +412,30 @@ Object.assign(TEXTS.hy, {
   ohForever: 'ընդմիշտ', ohExpiring: '🎩 Պաշտոնական վարողի լիցենզիան ավարտվում է {until}։ Երկարացնել՝ {price} 💎 {days} օրով․ «Պաշտոնական վարողներ» հավելվածում։', ohExpired: 'Պաշտոնական վարողի լիցենզիան ավարտվել է․ ձեր սեղանի խաղերն այլևս զմրուխտներ չեն բերում։ Երկարացնել կարող եք հավելվածում՝ «Պաշտոնական վարողներ»։',
   ohExp_lt1: 'մինչև մեկ տարի', ohExp_1to3: '1–3 տարի', ohExp_gt3: 'ավելի քան 3 տարի'
 });
+
+/* v88: an admin changes a player's rating (/rating in the bot, the player's profile in the app) */
+Object.assign(TEXTS.ru, {
+  ratingAdmin: '⭐ Администратор изменил ваш рейтинг: <b>{delta}</b>{reason}. Теперь рейтинг — <b>{rating}</b>.', ratingAdminWhy: ' — {reason}',
+  ratingTooLow: 'Рейтинг не может стать меньше нуля: сейчас {rating}.',
+  adminHelpRating: '/rating @user +50 [причина] — начислить (или −50 снять) рейтинг, /rating @user — рейтинг и последние изменения'
+});
+Object.assign(TEXTS.uk, {
+  ratingAdmin: '⭐ Адміністратор змінив ваш рейтинг: <b>{delta}</b>{reason}. Тепер рейтинг — <b>{rating}</b>.', ratingAdminWhy: ' — {reason}',
+  ratingTooLow: 'Рейтинг не може стати меншим за нуль: зараз {rating}.',
+  adminHelpRating: '/rating @user +50 [причина] — нарахувати (або −50 зняти) рейтинг, /rating @user — рейтинг і останні зміни'
+});
+Object.assign(TEXTS.en, {
+  ratingAdmin: '⭐ An admin changed your rating: <b>{delta}</b>{reason}. Your rating is now <b>{rating}</b>.', ratingAdminWhy: ' — {reason}',
+  ratingTooLow: 'The rating cannot go below zero: it is {rating} now.',
+  adminHelpRating: '/rating @user +50 [reason] — add (or −50 take away) rating points, /rating @user — the rating and the last changes'
+});
+Object.assign(TEXTS.pl, {
+  ratingAdmin: '⭐ Administrator zmienił Twój ranking: <b>{delta}</b>{reason}. Teraz ranking wynosi <b>{rating}</b>.', ratingAdminWhy: ' — {reason}',
+  ratingTooLow: 'Ranking nie może spaść poniżej zera: teraz {rating}.',
+  adminHelpRating: '/rating @user +50 [powód] — dodać (lub −50 odjąć) punkty rankingu, /rating @user — ranking i ostatnie zmiany'
+});
+Object.assign(TEXTS.hy, {
+  ratingAdmin: '⭐ Ադմինիստրատորը փոխել է ձեր վարկանիշը՝ <b>{delta}</b>{reason}։ Այժմ վարկանիշը՝ <b>{rating}</b>։', ratingAdminWhy: ' — {reason}',
+  ratingTooLow: 'Վարկանիշը չի կարող զրոյից ցածր լինել․ հիմա՝ {rating}։',
+  adminHelpRating: '/rating @user +50 [պատճառ] — ավելացնել (կամ −50 հանել) վարկանիշ, /rating @user — վարկանիշը և վերջին փոփոխությունները'
+});

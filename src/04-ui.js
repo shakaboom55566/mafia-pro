@@ -303,6 +303,7 @@ function setupScreen() {
   <div class="stack">
     ${scenBanner}
     ${openRolesHTML()}
+    ${!classic && typeof introFromHTML === 'function' ? introFromHTML(st) : ''}
     ${classic ? '' : `<div class="stepper"><div><div class="lbl">${u.players}</div><div class="val num">${st.n}</div><div class="hint">${two2 ? u.twoFamilies : u.oneFamily}</div></div>
       <div class="ctl"><button data-a="n" data-d="-1" aria-label="${u.less}">−</button><button data-a="n" data-d="1" aria-label="${u.more}">+</button></div></div>
     <input class="range" type="range" id="nrange" min="${sc ? sc.min : MIN_PLAYERS}" max="${sc ? sc.max : MAX_PLAYERS}" value="${st.n}" data-a="nrange" aria-label="${u.playerCount}">`}
@@ -474,9 +475,9 @@ function resultHTML(res) {
 }
 
 function day0Body(g) {
-  const u = U(); const al = alive(g); const p = al[g.speechIdx];
+  const u = U(); const al = introOrder(g); const p = al[g.speechIdx]; // v88: round the table from the number the host picked
   if (!p) return `${phaseHead(g, u.allIntroduced, u.citySleeps)}<button class="btn primary" data-a="night">${u.sleepNight1}</button>`;
-  return `${phaseHead(g, u.phDay0, tt(u.introOf, { i: g.speechIdx + 1, n: al.length }))}
+  return `${phaseHead(g, u.phDay0, tt(u.introOf, { i: g.speechIdx + 1, n: al.length }) + (u.ifHead ? ' · ' + tt(u.ifHead, { seat: al[0].seat }) : ''))}
     <div class="panel raised"><div class="speaker"><span class="seat">${p.seat}</span><div><div class="n">${esc(p.name)}</div><div class="s">${tt(u.secIntro, { s: S.settings.intro })}</div></div></div></div>
     ${foulMuted(p) ? foulMutedSpeechHTML(p, g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro) : timerHTML(S.settings.intro, `d0-${g.speechIdx}`)}
     <div class="btn-row">${g.speechIdx > 0 ? `<button class="btn ghost" data-a="speech" data-d="-1">${u.back}</button>` : ''}<button class="btn primary" data-a="speech" data-d="1">${g.speechIdx + 1 < al.length ? u.nextPlayer : u.finishIntro}</button></div>${undoBtnHTML(g)}`;
@@ -1020,7 +1021,7 @@ const ACT = {
     if (typeof voiceBlocksDeal === 'function' && voiceBlocksDeal()) { toast(U().dcNeedConfirm); return; } // Discord table: everyone on voice first
     const sp = hostOffSeats();
     const names = Array.from({ length: S.setup.n }, (_, i) => sp[i] && profById(sp[i]) ? profById(sp[i]).name : (S.setup.names[i] || ''));
-    S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.game.openRoles = revealDeadIn(null); S.ui.showAll = false; go('deal');
+    S.game = newGame(S.setup.n, S.setup.comp, names, S.settings, sp.slice(0, S.setup.n), setupMods()); S.game.openRoles = revealDeadIn(null); S.game.introFrom = typeof introFromOf === 'function' ? introFromOf(S.setup) : 1; S.ui.showAll = false; go('deal'); // v88: who opens the introductions
   },
   'seat-assign'(el) { const sp = S.setup.seatProfiles = S.setup.seatProfiles || []; const id = el.dataset.id; const used = sp.indexOf(id); if (used >= 0) { sp[used] = null; render(); return; } let i = 0; while (i < S.setup.n && sp[i]) i++; if (i < S.setup.n) { sp[i] = id; render(); } },
   'open-roles'(el) { S.setup.openRoles = el.dataset.id === 'open'; save(); render(); },

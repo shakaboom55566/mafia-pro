@@ -1,6 +1,6 @@
 // UI smoke test with a minimal DOM shim: drives the screens through the ACT handlers and checks rendered HTML.
 const fs = require('fs'); const vm = require('vm');
-const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02zg-i18n-hookah.js', '02zh-i18n-tables.js', '02zi-i18n-again.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '22-tables.js', '23-cities.js', '24-again.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
+const src = ['02-i18n.js', '02a-i18n-ru-roles.js', '02b-i18n-uk.js', '02c-i18n-en.js', '02d-i18n-pl.js', '02e-i18n-hy.js', '02g-i18n-profiles.js', '02h-i18n-premium.js', '02i-i18n-fixes.js', '02j-i18n-vote.js', '02k-i18n-review.js', '02l-i18n-classic.js', '02m-i18n-diplomacy.js', '02n-i18n-counters.js', '02o-i18n-cloud.js', '02p-i18n-online.js', '02q-i18n-discord.js', '02r-i18n-intro.js', '02s-i18n-mini.js', '02s-i18n-privacy.js', '02t-i18n-v53.js', '02u-i18n-ranks.js', '02v-i18n-skins.js', '02w-i18n-skins-epic.js', '02x-i18n-guide.js', '02y-i18n-fouls.js', '02z-i18n-emeralds.js', '02za-i18n-hostview.js', '02zb-i18n-mythic.js', '02zc-i18n-rooms.js', '02zd-i18n-frames.js', '02ze-i18n-geo.js', '02zf-i18n-official.js', '02zg-i18n-hookah.js', '02zh-i18n-tables.js', '02zi-i18n-again.js', '02zj-i18n-v88.js', '02f-icons.js', '02-data.js', '03-engine.js', '04-ui.js', '05-profiles.js', '07-review.js', '08-telegram.js', '09-online.js', '09b-online-classic.js', '11-ranks.js', '12-skins.js', '13-guide.js', '14-fouls.js', '15-emeralds.js', '16-host-view.js', '17-mythic.js', '18-rooms.js', '19-frames.js', '20-geo.js', '21-official.js', '22-tables.js', '23-cities.js', '24-again.js', '25-intro.js', '26-admin-rating.js', '06-shop.js'].map(f => fs.readFileSync(__dirname + '/../src/' + f, 'utf8')).join('\n');
 const app = { innerHTML: '' };
 const store = {};
 const ctx = {
@@ -1570,6 +1570,99 @@ try { const u = X.U(); const F = m => { fails++; console.log('FAIL v87 ' + m); }
   S.setup.online = offBefore[0]; S.setup.hostRole = offBefore[1]; S.cloud = cloudBefore; S.profiles = S.profiles.filter(p => p !== prof); S.game = null; S.lobby = null; S.screen = 'home'; X.render();
   console.log('v87 same seats ok');
 } catch (e) { fails++; console.log('FAIL v87 crashed', e && e.stack || e); }
+// v88: the host picks who opens the introductions; «Написать» only between friends; results wait in an outbox until the server has them; an admin changes a player's rating
+try { const u = X.U(); const F = m => { fails++; console.log('FAIL v88 ' + m); }; const E = name => vm.runInContext(name, ctx); const S = X.S(); const tick = () => new Promise(r => setTimeout(r, 5));
+  const comp = ['don', 'mafia', 'sheriff', 'doctor', 'drunk', 'bomb', 'bodyguard'];
+  vm.runInContext('globalThis.__toasts = []; globalThis.__toast8 = toast; toast = m => { __toasts.push(String(m)); }', ctx); const toasts = E('__toasts');
+  // 1) who opens the introductions
+  S.game = null; S.lobby = null; A.new(); S.setup.scenario = null; S.setup.online = false; S.setup.n = 7; S.setup.comp = comp.slice(); S.setup.names = ['Аня', 'Борис', 'Вика', 'Глеб', 'Даша', 'Егор', 'Жора']; S.setup.seatProfiles = []; delete S.setup.introFrom;
+  A.go(el('go', { to: 'setup' })); X.render(); check('v88 setup intro chooser'); let h = app.innerHTML;
+  if (!h.includes(u.ifTitle) || !h.includes('data-a="intro-from"') || !h.includes(X.tt(u.ifSeat, { seat: 1 })) || !h.includes('data-a="intro-from-rand"')) F('the setup screen has the chooser, № 1 by default');
+  if (!h.includes(X.tt(u.ifHint, { order: '1, 2, 3, 4', next: 2 }))) F('the hint shows the order and the first speaker of day 1');
+  A['intro-from'](el('intro-from', { d: '1' })); A['intro-from'](el('intro-from', { d: '1' })); check('v88 intro № 3'); h = app.innerHTML;
+  if (S.setup.introFrom !== 3 || !h.includes(X.tt(u.ifSeat, { seat: 3 })) || !h.includes('Вика') || !h.includes(X.tt(u.ifHint, { order: '3, 4, 5, 6', next: 4 }))) F('+ moves to № 3, the name on the seat is shown: ' + S.setup.introFrom);
+  S.setup.introFrom = 1; A['intro-from'](el('intro-from', { d: '-1' })); if (S.setup.introFrom !== 7) F('− on № 1 goes round to the last seat: ' + S.setup.introFrom);
+  A['intro-from'](el('intro-from', { d: '1' })); if (S.setup.introFrom !== 1) F('+ on the last seat goes round to № 1');
+  for (let i = 0; i < 5; i++) { const before = E('introFromOf')(S.setup); A['intro-from-rand'](); const v = S.setup.introFrom; if (!(v >= 1 && v <= 7) || v === before) F('a random number is another seat of the table: ' + v); }
+  if (!toasts.some(t => t === X.tt(u.ifPicked, { seat: S.setup.introFrom }))) F('the random pick is said aloud');
+  S.setup.introFrom = 9; if (E('introFromOf')(S.setup) !== 7) F('a number past the table is the last seat');
+  S.setup.introFrom = 5; A.deal(); let g = S.game; if (g.introFrom !== 5) F('the deal keeps the number: ' + g.introFrom);
+  for (let i = 0; i < g.players.length; i++) { A.flip(); A.hide(); } A.start(); A.day0(); check('v88 day 0 from № 5'); h = app.innerHTML;
+  if (g.phase !== 'day0' || g.day0FirstSeat !== 5) F('day 0 opens with № 5: ' + g.day0FirstSeat);
+  if (E('speechList')(g).map(p => p.seat).join(',') !== '5,6,7,1,2,3,4') F('the introductions go round the table from it: ' + E('speechList')(g).map(p => p.seat).join(','));
+  if (!h.includes('<span class="seat">5</span>') || !h.includes(X.tt(u.ifHead, { seat: 5 }))) F('the host\'s screen shows № 5 speaking first');
+  for (let i = 0; i < 6; i++) A.speech(el('speech', { d: '1' })); X.render(); if (!app.innerHTML.includes('<span class="seat">4</span>')) F('the last to introduce himself is № 4');
+  const pub = E('tablePub')(g); if (!pub.day0 || pub.day0.speaker !== 4 || pub.day0.i !== 6) F('the players\' table shows the same speaker: ' + JSON.stringify(pub.day0));
+  E('startNight')(g); E('startDay')(g); if (E('speakOrder')(g)[0].seat !== 6) F('day 1 starts after the introductions\' opener: ' + E('speakOrder')(g)[0].seat);
+  const g2 = { n: 7, introFrom: 3, players: [1, 2, 3, 4, 5, 6, 7].map(n => ({ seat: n, alive: n !== 3 })) }; if (E('introFirstSeat')(g2) !== 4) F('an empty seat passes the turn to the next one');
+  S.game = null; A['scen-use'](el('scen-use', { id: 'classic' })); X.render(); if (app.innerHTML.includes('data-a="intro-from"')) F('the classic has no introductions — no chooser');
+  S.setup.scenario = null; S.setup.n = 7; S.setup.comp = comp.slice(); S.setup.introFrom = 1;
+  // 2) «Написать в Telegram» only between friends; the admin's «⭐ Рейтинг»
+  vm.runInContext('globalThis.__api8 = api; globalThis.__apiBase8 = apiBase; globalThis.__tg8 = TG.app; TG.app = { initData: "x", initDataUnsafe: { user: { id: 9088 } } }; apiBase = () => "https://x.test"; globalThis.__c8 = []; globalThis.__mode8 = "ok"; globalThis.__rt8 = { points: 1180, games: 12, log: [] }', ctx);
+  vm.runInContext(`api = async (p, b) => { __c8.push([p, b]);
+    if (p === '/api/game/result') return __mode8 === 'ok' ? { ok: true, recorded: true, counted: true, ratings: { 501: { points: 20, games: 1, wins: 1 } }, streaks: {}, rankUp: {} } : { ok: false, error: __mode8 };
+    const view = () => ({ ok: true, user: { tgId: 888, name: 'Нина <b>', username: 'nina' }, rating: { points: __rt8.points, games: __rt8.games, wins: 3 }, log: __rt8.log.slice() });
+    if (p === '/api/admin/rating') return b.q === '@nobody' ? { ok: false, error: 'not_found' } : view();
+    if (p === '/api/admin/rating/set') { if (__rt8.points + b.delta < 0) return { ok: false, error: 'too_low' }; __rt8.points += b.delta; __rt8.log.unshift({ delta: b.delta, reason: b.reason, at: Date.now() }); return Object.assign(view(), { granted: { delta: b.delta, rating: __rt8.points } }); }
+    if (p === '/api/table/publish') return { ok: true, delivered: [] }; if (p === '/api/lobby/deal') return { ok: true, sent: [], failed: [] };
+    return { ok: false, error: 'not_found' }; }`, ctx);
+  const calls = E('__c8'); const cloudBefore = S.cloud;
+  const prof8 = f => `FRP[888] = { ok: true, user: { tgId: 888, name: "Нина", username: "nina", photo: "", online: false, since: 0 }, rating: { points: 1180, games: 12, wins: 3, hosted: 0 }, roles: [], recent: [], streaks: {}, skins: {}, isFriend: ${f}, at: Date.now() }`;
+  S.cloud = { user: { id: 9088, name: 'Me' }, admin: false }; vm.runInContext(prof8(false) + '; FR.list = []', ctx);
+  S.ui.sheet = { type: 'friend', id: 888 }; X.render(); check('v88 sheet not a friend'); h = app.innerHTML;
+  if (h.includes('data-a="fr-open-tg"') || !h.includes(u.frMsgFriends)) F('not friends: no «Message», a note instead');
+  if (h.includes('data-a="adm-rating"')) F('a player sees no rating button');
+  S.ui.sheet = null; S.ui.pstatsId = 888; A.go(el('go', { to: 'pstats' })); X.render(); check('v88 stats not a friend'); h = app.innerHTML;
+  if (h.includes('data-a="fr-open-tg"') || !h.includes(u.frMsgFriends)) F('the statistics screen too');
+  vm.runInContext('globalThis.__opened = []; TG.app.openTelegramLink = url => __opened.push(url)', ctx);
+  A['fr-open-tg'](el('fr-open-tg', { id: '888', u: 'nina' })); if (E('__opened').length || !toasts.includes(u.frMsgFriends)) F('an old button cannot open the chat of a stranger');
+  vm.runInContext(prof8(true), ctx); X.render(); check('v88 stats friend'); h = app.innerHTML;
+  if (!h.includes('data-a="fr-open-tg" data-id="888"') || h.includes(u.frMsgFriends)) F('friends: «Message» is there');
+  S.ui.sheet = { type: 'friend', id: 888 }; X.render(); if (!app.innerHTML.includes('data-a="fr-open-tg" data-id="888"')) F('…on the sheet too');
+  A['fr-open-tg'](el('fr-open-tg', { id: '888', u: 'nina' })); if (E('__opened')[0] !== 'https://t.me/nina') F('a friend\'s chat opens');
+  // the admin: the rating sheet
+  S.cloud.admin = true; X.render(); check('v88 sheet admin'); if (!app.innerHTML.includes('data-a="adm-rating" data-id="888"')) F('the admin sees «⭐ Rating» on the sheet');
+  S.ui.sheet = null; X.render(); if (!app.innerHTML.includes('data-a="adm-rating" data-id="888"')) F('…and on the statistics screen');
+  A['adm-rating'](el('adm-rating', { id: '888' })); check('v88 rating loading'); if (!app.innerHTML.includes(u.arLoading)) F('the sheet says it is loading'); await tick(); check('v88 rating sheet'); h = app.innerHTML;
+  if (!calls.some(c => c[0] === '/api/admin/rating' && c[1].tgId === 888)) F('the sheet asks for the rating by id');
+  if (!h.includes('>1180<') || !h.includes('Нина &lt;b&gt;') || h.includes('Нина <b>') || !h.includes(u.arNoLog) || (h.match(/data-a="adm-rt-amt"/g) || []).length !== 4) F('the rating, the name escaped, no changes yet, four quick amounts');
+  A['adm-rt-amt'](el('adm-rt-amt', { n: '50' })); A['adm-rt-why'](el('adm-rt-why', { value: 'клубный турнир' })); await A['adm-rt-apply'](el('adm-rt-apply', { sign: '1' })); check('v88 rating +50'); h = app.innerHTML;
+  let last = calls[calls.length - 1]; if (last[0] !== '/api/admin/rating/set' || last[1].delta !== 50 || last[1].reason !== 'клубный турнир' || last[1].tgId !== 888) F('+50 with the reason goes to the server: ' + JSON.stringify(last));
+  if (!h.includes('>1230<') || !h.includes('+50') || !h.includes('клубный турнир') || !toasts.some(t => t.includes('+50') && t.includes('1230'))) F('the new rating and the log at once, a toast');
+  { const f = E('FRP')[888]; if (f && f.rating && f.rating.points === 1180) F('his cached profile is dropped (the new rating shows)'); }
+  A['adm-rt-n'](el('adm-rt-n', { value: '30' })); await A['adm-rt-apply'](el('adm-rt-apply', { sign: '-1' })); last = calls[calls.length - 1]; if (last[1].delta !== -30 || last[1].reason !== '') F('− takes away, the reason is not repeated: ' + JSON.stringify(last[1]));
+  const n0 = calls.length; A['adm-rt-n'](el('adm-rt-n', { value: '0' })); await A['adm-rt-apply'](el('adm-rt-apply', { sign: '1' })); if (calls.length !== n0 || !toasts.includes(u.arBad)) F('0 is refused without a request');
+  A['adm-rt-n'](el('adm-rt-n', { value: '1000' })); await A['adm-rt-apply'](el('adm-rt-apply', { sign: '-1' })); await A['adm-rt-apply'](el('adm-rt-apply', { sign: '-1' })); if (!toasts.includes(u.arTooLow)) F('below zero: said so');
+  S.ui.sheet = null; const ph = E('admRatingPanelHTML')(); if (!ph.includes('id="adm-rt-q"') || !ph.includes(u.arPanel)) F('Settings: the admin panel has the search');
+  E('ADMRT').q = '@nobody'; A['adm-rt-find'](); await tick(); check('v88 rating not found'); if (!app.innerHTML.includes(u.arNone)) F('a player not found is said so');
+  S.cloud.admin = false; if (E('admRatingPanelHTML')() !== '' || E('admRatingBtnHTML')(888) !== '') F('nothing for a player'); S.ui.sheet = null;
+  // 3) the result waits until the server has it — even after the next game started
+  vm.runInContext('localStorage.removeItem("mp_results_v1"); __mode8 = "network"', ctx); toasts.length = 0;
+  S.game = null; S.screen = 'home'; S.setup.online = false; S.setup.hostRole = 'host'; S.setup.names = ['Аня', 'Борис', 'Вика', 'Глеб', 'Даша', 'Егор', 'Жора'];
+  S.lobby = { code: 'T88', link: 'x', players: [{ tgId: 501, name: 'Аня' }, { tgId: 502, name: 'Глеб' }, { tgId: 503, name: 'Без места' }], seats: { 501: 0, 502: 3 }, map: {}, sent: [], flag: '' };
+  A.go(el('go', { to: 'setup' })); X.render(); check('v88 unseated warning'); if (!app.innerHTML.includes(X.tt(u.tgUnseatedWarn, { n: 1 }))) F('a Telegram player without a number is warned about');
+  A.deal(); await tick(); g = S.game; const gid = g.id;
+  for (let i = 0; i < g.players.length; i++) { A.flip(); A.hide(); } A.start(); g.players.filter(p => p.roleId === 'don' || p.roleId === 'mafia').forEach(p => { p.alive = false; }); A.finish(); await tick(); await tick();
+  let q = JSON.parse(E('localStorage').getItem('mp_results_v1') || '[]');
+  if (q.length !== 1 || q[0].game.id !== gid || q[0].owner !== 9088) F('the finished game waits in the outbox: ' + JSON.stringify(q.map(x => x.game.id)));
+  else { const rp = q[0].game; if (rp.code !== 'T88' || rp.players.find(p => p.seat === 1).tgId !== 501 || rp.players.find(p => p.seat === 4).tgId !== 502 || !(rp.endedAt >= rp.startedAt && rp.startedAt > 0)) F('with the Telegram seats and the times: ' + JSON.stringify(rp)); }
+  if (!toasts.includes(u.rsPending)) F('the host is told the result will go later');
+  A.new(); S.setup.names = []; S.lobby = null; A.deal(); if (S.game.id === gid) F('a new game started');
+  E('__c8').length = 0; vm.runInContext('__mode8 = "unauthorized"', ctx); await E('flushResults')(); if (!toasts.includes(u.rsSession) || JSON.parse(E('localStorage').getItem('mp_results_v1')).length !== 1) F('an old session: kept, the host told to reopen the app');
+  vm.runInContext('__mode8 = "ok"', ctx); toasts.length = 0; await E('flushResults')();
+  const sent = calls.filter(c => c[0] === '/api/game/result').pop(); if (!sent || sent[1].game.id !== gid || sent[1].game.players.find(p => p.seat === 1).tgId !== 501) F('the old game goes out with its own report');
+  if (JSON.parse(E('localStorage').getItem('mp_results_v1')).length !== 0 || !toasts.includes(X.tt(u.rsSent, { n: 1 }))) F('sent → out of the outbox, the host told');
+  // another account's game waits for that account; a game the server never accepts does not loop
+  E('localStorage').setItem('mp_results_v1', JSON.stringify([{ game: { id: 'other', players: [] }, owner: 4242, at: Date.now() }, { game: { id: 'bad', players: [] }, owner: 9088, at: Date.now() }]));
+  vm.runInContext('__mode8 = "bad_game"', ctx); E('__c8').length = 0; await E('flushResults')(); q = JSON.parse(E('localStorage').getItem('mp_results_v1'));
+  if (calls.some(c => c[1] && c[1].game && c[1].game.id === 'other') || q.length !== 1 || q[0].game.id !== 'other') F('another account\'s game stays, a refused one is dropped: ' + JSON.stringify(q.map(x => x.game.id)));
+  // the table closed under a running game: the result still knows who sat where
+  g = S.game; g.tg = { code: 'C88', map: { 701: 2 }, players: [], sent: [] }; E('dropGameTable')(g); const rp2 = E('resultPayload')(g, { side: 'city' });
+  if (g.tg || rp2.code !== 'C88' || rp2.players.find(p => p.seat === 2).tgId !== 701) F('a closed table keeps the seats for the result: ' + JSON.stringify(rp2.players.find(p => p.seat === 2)));
+  vm.runInContext('localStorage.removeItem("mp_results_v1"); api = __api8; apiBase = __apiBase8; TG.app = __tg8; toast = __toast8', ctx);
+  S.cloud = cloudBefore; S.game = null; S.lobby = null; S.ui.sheet = null; S.ui.pstatsId = null; S.screen = 'home'; X.render();
+  console.log('v88 ok');
+} catch (e) { fails++; console.log('FAIL v88 crashed', e && e.stack || e); }
 console.log('forced ties:', forcedTies, 'roulettes:', roulettes);
   console.log(fails ? `\n${fails} FAILED of ${shots}` : `\nALL OK (${shots} renders)`);
   process.exit(fails ? 1 : 0);

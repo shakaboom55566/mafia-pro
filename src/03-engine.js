@@ -558,7 +558,17 @@ function checkWin(g) {
 
 /* ---------- Phase transitions ---------- */
 function startNight0(g) { g.phase = 'night0'; g.steps = buildNight0Steps(g); g.stepIdx = 0; addLog(g, L.e.logNight0); }
-function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; g.day0FirstSeat = (alive(g)[0] || {}).seat || 1; addLog(g, L.e.logDay0); } // v64: who opens the introductions
+function startDay0(g) { g.phase = 'day0'; g.dayStage = 'intro'; g.speechIdx = 0; g.day0FirstSeat = introFirstSeat(g); addLog(g, L.e.logDay0); } // v64: who opens the introductions
+/* v88: the host picks at the setup which number opens the introductions (g.introFrom); taken by nobody alive → the next living seat */
+function introFirstSeat(g) {
+  const al = alive(g); if (!al.length) return 1; const want = Math.max(1, Math.min(g.n || al.length, Number(g.introFrom) || 1));
+  return (al.find(p => p.seat >= want) || al[0]).seat;
+}
+/* the introductions go round the table from that number */
+function introOrder(g) {
+  const al = alive(g); const first = g.day0FirstSeat || 1; const i = al.findIndex(p => p.seat >= first);
+  return i <= 0 ? al : al.slice(i).concat(al.slice(0, i));
+}
 function startNight(g) {
   g.phase = 'night'; g.night += 1; g.actions = []; g.nightResult = null; lastWordsClear(g);
   g.steps = buildNightSteps(g); g.stepIdx = 0; g.pendingResult = null;
@@ -650,7 +660,7 @@ const foulMoment = g => ({ phase: g.phase, day: g.day, night: g.night, stage: g.
 const sameMoment = (a, b) => !!(a && b && a.phase === b.phase && a.day === b.day && a.night === b.night && a.stage === b.stage && a.round === b.round);
 /* the list the speech index walks right now: introductions (day 0), the minutes, the defence speeches */
 function speechList(g) {
-  if (g.phase === 'day0') return alive(g);
+  if (g.phase === 'day0') return introOrder(g); // v88: from the number the host picked
   if (g.phase === 'day' && g.dayStage === 'speeches') return speakOrder(g);
   return null;
 }
