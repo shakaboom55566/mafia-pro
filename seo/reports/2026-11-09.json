@@ -1,0 +1,2836 @@
+{
+ "date": "2026-11-09",
+ "site": "https://mafiapro.app/",
+ "notes": [],
+ "gsc": {
+  "property": "sc-domain:mafiapro.app",
+  "account": "seo-555@mafia-pro-seo.iam.gserviceaccount.com",
+  "sitemaps": [
+   {
+    "path": "https://mafiapro.app/sitemap.xml",
+    "lastSubmitted": "2026-10-14T06:50:17.059Z",
+    "isPending": false,
+    "isSitemapsIndex": false,
+    "type": "sitemap",
+    "lastDownloaded": "2026-11-08T07:52:43.536Z",
+    "warnings": "0",
+    "errors": "0",
+    "contents": [
+     {
+      "type": "web",
+      "submitted": "316",
+      "indexed": "0"
+     }
+    ]
+   }
+  ],
+  "inspect": [
+   {
+    "url": "https://mafiapro.app/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-05T13:09:45Z",
+    "googleCanonical": "https://mafiapro.app/"
+   },
+   {
+    "url": "https://mafiapro.app/ru/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-06T03:13:26Z",
+    "googleCanonical": "https://mafiapro.app/ru/"
+   },
+   {
+    "url": "https://mafiapro.app/uk/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-04T00:18:01Z",
+    "googleCanonical": "https://mafiapro.app/uk/"
+   },
+   {
+    "url": "https://mafiapro.app/en/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-10-27T13:11:59Z",
+    "googleCanonical": "https://mafiapro.app/en/"
+   },
+   {
+    "url": "https://mafiapro.app/pl/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-10-28T22:04:23Z",
+    "googleCanonical": "https://mafiapro.app/pl/"
+   },
+   {
+    "url": "https://mafiapro.app/hy/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-06T07:26:18Z",
+    "googleCanonical": "https://mafiapro.app/hy/"
+   },
+   {
+    "url": "https://mafiapro.app/ru/roles/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-04T12:12:51Z",
+    "googleCanonical": "https://mafiapro.app/ru/roles/"
+   },
+   {
+    "url": "https://mafiapro.app/uk/roles/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-06T08:36:09Z",
+    "googleCanonical": "https://mafiapro.app/uk/roles/"
+   },
+   {
+    "url": "https://mafiapro.app/en/roles/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-10-29T06:49:22Z",
+    "googleCanonical": "https://mafiapro.app/en/roles/"
+   },
+   {
+    "url": "https://mafiapro.app/pl/roles/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-03T19:01:04Z",
+    "googleCanonical": "https://mafiapro.app/pl/roles/"
+   },
+   {
+    "url": "https://mafiapro.app/hy/roles/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-04T01:22:18Z",
+    "googleCanonical": "https://mafiapro.app/hy/roles/"
+   },
+   {
+    "url": "https://mafiapro.app/ru/rules/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-06T09:58:01Z",
+    "googleCanonical": "https://mafiapro.app/ru/rules/"
+   },
+   {
+    "url": "https://mafiapro.app/uk/rules/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-06T09:42:42Z",
+    "googleCanonical": "https://mafiapro.app/uk/rules/"
+   },
+   {
+    "url": "https://mafiapro.app/ru/roles/don/",
+    "verdict": "PASS",
+    "coverage": "Submitted and indexed",
+    "lastCrawl": "2026-11-04T02:22:34Z",
+    "googleCanonical": "https://mafiapro.app/ru/roles/don/"
+   }
+  ],
+  "daily": [
+   {
+    "date": "2026-10-12",
+    "clicks": 0,
+    "impressions": 0,
+    "ctr": 0,
+    "position": 0
+   },
+   {
+    "date": "2026-10-13",
+    "clicks": 0,
+    "impressions": 0,
+    "ctr": 0,
+    "position": 0
+   },
+   {
+    "date": "2026-10-14",
+    "clicks": 0,
+    "impressions": 10,
+    "ctr": 0,
+    "position": 5
+   },
+   {
+    "date": "2026-10-15",
+    "clicks": 3,
+    "impressions": 79,
+    "ctr": 0.0379746835443038,
+    "position": 9.075949367088608
+   },
+   {
+    "date": "2026-10-16",
+    "clicks": 2,
+    "impressions": 181,
+    "ctr": 0.011049723756906077,
+    "position": 8.69060773480663
+   },
+   {
+    "date": "2026-10-17",
+    "clicks": 7,
+    "impressions": 277,
+    "ctr": 0.02527075812274368,
+    "position": 7.64259927797834
+   },
+   {
+    "date": "2026-10-18",
+    "clicks": 5,
+    "impressions": 239,
+    "ctr": 0.02092050209205021,
+    "position": 10.581589958158995
+   },
+   {
+    "date": "2026-10-19",
+    "clicks": 1,
+    "impressions": 175,
+    "ctr": 0.005714285714285714,
+    "position": 8.702857142857143
+   },
+   {
+    "date": "2026-10-20",
+    "clicks": 6,
+    "impressions": 230,
+    "ctr": 0.02608695652173913,
+    "position": 10.013043478260869
+   },
+   {
+    "date": "2026-10-21",
+    "clicks": 4,
+    "impressions": 183,
+    "ctr": 0.02185792349726776,
+    "position": 7.043715846994536
+   },
+   {
+    "date": "2026-10-22",
+    "clicks": 5,
+    "impressions": 264,
+    "ctr": 0.01893939393939394,
+    "position": 8.253787878787879
+   },
+   {
+    "date": "2026-10-23",
+    "clicks": 4,
+    "impressions": 294,
+    "ctr": 0.013605442176870748,
+    "position": 8.061224489795919
+   },
+   {
+    "date": "2026-10-24",
+    "clicks": 7,
+    "impressions": 334,
+    "ctr": 0.020958083832335328,
+    "position": 7.847305389221557
+   },
+   {
+    "date": "2026-10-25",
+    "clicks": 4,
+    "impressions": 271,
+    "ctr": 0.014760147601476014,
+    "position": 8.029520295202952
+   },
+   {
+    "date": "2026-10-26",
+    "clicks": 8,
+    "impressions": 257,
+    "ctr": 0.0311284046692607,
+    "position": 6.719844357976654
+   },
+   {
+    "date": "2026-10-27",
+    "clicks": 1,
+    "impressions": 240,
+    "ctr": 0.004166666666666667,
+    "position": 7.5375
+   },
+   {
+    "date": "2026-10-28",
+    "clicks": 7,
+    "impressions": 253,
+    "ctr": 0.02766798418972332,
+    "position": 9.134387351778656
+   },
+   {
+    "date": "2026-10-29",
+    "clicks": 7,
+    "impressions": 263,
+    "ctr": 0.026615969581749048,
+    "position": 6.509505703422053
+   },
+   {
+    "date": "2026-10-30",
+    "clicks": 12,
+    "impressions": 316,
+    "ctr": 0.0379746835443038,
+    "position": 6.325949367088608
+   },
+   {
+    "date": "2026-10-31",
+    "clicks": 12,
+    "impressions": 372,
+    "ctr": 0.03225806451612903,
+    "position": 5.811827956989247
+   },
+   {
+    "date": "2026-11-01",
+    "clicks": 5,
+    "impressions": 247,
+    "ctr": 0.020242914979757085,
+    "position": 6.137651821862348
+   },
+   {
+    "date": "2026-11-02",
+    "clicks": 8,
+    "impressions": 211,
+    "ctr": 0.037914691943127965,
+    "position": 6.919431279620853
+   },
+   {
+    "date": "2026-11-03",
+    "clicks": 5,
+    "impressions": 309,
+    "ctr": 0.016181229773462782,
+    "position": 6.983818770226537
+   },
+   {
+    "date": "2026-11-04",
+    "clicks": 12,
+    "impressions": 261,
+    "ctr": 0.04597701149425287,
+    "position": 7.704980842911877
+   },
+   {
+    "date": "2026-11-05",
+    "clicks": 8,
+    "impressions": 273,
+    "ctr": 0.029304029304029304,
+    "position": 7.8388278388278385
+   },
+   {
+    "date": "2026-11-06",
+    "clicks": 8,
+    "impressions": 248,
+    "ctr": 0.03225806451612903,
+    "position": 7.600806451612903
+   },
+   {
+    "date": "2026-11-07",
+    "clicks": 9,
+    "impressions": 326,
+    "ctr": 0.027607361963190184,
+    "position": 7.769938650306749
+   },
+   {
+    "date": "2026-11-08",
+    "clicks": 6,
+    "impressions": 214,
+    "ctr": 0.028037383177570093,
+    "position": 7.425233644859813
+   }
+  ]
+ },
+ "summary": {
+  "ru": {
+   "clicks": 1,
+   "impressions": 291,
+   "position": 12.419243986254296,
+   "top": [
+    {
+     "query": "что делает оборотень в мафии",
+     "page": "ru/roles/werewolf/",
+     "clicks": 0,
+     "impressions": 40,
+     "ctr": 0,
+     "position": 6.275,
+     "prevPosition": null
+    },
+    {
+     "query": "дон мафии",
+     "page": "ru/roles/don/",
+     "clicks": 0,
+     "impressions": 28,
+     "ctr": 0,
+     "position": 12.821428571428571,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает мститель в мафии",
+     "page": "ru/roles/avenger/",
+     "clicks": 0,
+     "impressions": 22,
+     "ctr": 0,
+     "position": 6.681818181818182,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает судья в мафии",
+     "page": "ru/roles/judge/",
+     "clicks": 0,
+     "impressions": 13,
+     "ctr": 0,
+     "position": 8.615384615384615,
+     "prevPosition": null
+    },
+    {
+     "query": "оборотень в мафии",
+     "page": "ru/roles/werewolf/",
+     "clicks": 0,
+     "impressions": 12,
+     "ctr": 0,
+     "position": 4.5,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает вор в мафии",
+     "page": "ru/roles/thief/",
+     "clicks": 0,
+     "impressions": 12,
+     "ctr": 0,
+     "position": 4.166666666666667,
+     "prevPosition": null
+    },
+    {
+     "query": "адвокат в мафии",
+     "page": "ru/roles/lawyer/",
+     "clicks": 0,
+     "impressions": 11,
+     "ctr": 0,
+     "position": 7.454545454545454,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает оборотень в игре мафия",
+     "page": "ru/roles/werewolf/",
+     "clicks": 0,
+     "impressions": 11,
+     "ctr": 0,
+     "position": 12,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает телохранитель в мафии",
+     "page": "ru/roles/bodyguard/",
+     "clicks": 0,
+     "impressions": 9,
+     "ctr": 0,
+     "position": 7.666666666666667,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает шут в мафии",
+     "page": "ru/roles/jester/",
+     "clicks": 0,
+     "impressions": 9,
+     "ctr": 0,
+     "position": 7.333333333333333,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает камикадзе в мафии",
+     "page": "ru/roles/kamikaze/",
+     "clicks": 0,
+     "impressions": 8,
+     "ctr": 0,
+     "position": 6.375,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "ru/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 2.5714285714285716,
+     "prevPosition": null
+    },
+    {
+     "query": "камикадзе в мафии это",
+     "page": "ru/roles/kamikaze/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 6.714285714285714,
+     "prevPosition": null
+    },
+    {
+     "query": "камикадзе мафия роль",
+     "page": "ru/roles/kamikaze/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 17.285714285714285,
+     "prevPosition": null
+    },
+    {
+     "query": "кто такой камикадзе в мафии",
+     "page": "ru/roles/kamikaze/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 4.714285714285714,
+     "prevPosition": null
+    },
+    {
+     "query": "роль адвоката в мафии",
+     "page": "ru/roles/lawyer/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 16,
+     "prevPosition": null
+    },
+    {
+     "query": "роль дона в мафии",
+     "page": "ru/roles/don/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 7.5,
+     "prevPosition": null
+    },
+    {
+     "query": "телохранитель в мафии",
+     "page": "ru/roles/bodyguard/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 10.333333333333334,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает мэр в мафии",
+     "page": "ru/roles/mayor/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 5.166666666666667,
+     "prevPosition": null
+    },
+    {
+     "query": "мститель в мафии",
+     "page": "ru/roles/avenger/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 5,
+     "prevPosition": null
+    },
+    {
+     "query": "судья в мафии",
+     "page": "ru/roles/judge/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 10,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает маньяк в игре мафия",
+     "page": "ru/roles/maniac/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 9,
+     "prevPosition": null
+    },
+    {
+     "query": "журналист в мафии",
+     "page": "ru/roles/journalist/",
+     "clicks": 1,
+     "impressions": 2,
+     "ctr": 0.5,
+     "position": 4.5,
+     "prevPosition": null
+    },
+    {
+     "query": "доктор мафия",
+     "page": "ru/roles/doctor/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 39,
+     "prevPosition": null
+    },
+    {
+     "query": "дон мафия",
+     "page": "ru/roles/don/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 10,
+     "prevPosition": null
+    }
+   ],
+   "countries": [
+    [
+     "rus",
+     157
+    ],
+    [
+     "ukr",
+     78
+    ],
+    [
+     "blr",
+     14
+    ],
+    [
+     "kaz",
+     12
+    ],
+    [
+     "kgz",
+     4
+    ],
+    [
+     "tur",
+     4
+    ],
+    [
+     "bra",
+     3
+    ],
+    [
+     "lva",
+     2
+    ]
+   ],
+   "striking": [
+    {
+     "query": "дон мафии",
+     "page": "ru/roles/don/",
+     "clicks": 0,
+     "impressions": 28,
+     "ctr": 0,
+     "position": 12.821428571428571,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает судья в мафии",
+     "page": "ru/roles/judge/",
+     "clicks": 0,
+     "impressions": 13,
+     "ctr": 0,
+     "position": 8.615384615384615,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает оборотень в игре мафия",
+     "page": "ru/roles/werewolf/",
+     "clicks": 0,
+     "impressions": 11,
+     "ctr": 0,
+     "position": 12,
+     "prevPosition": null
+    },
+    {
+     "query": "камикадзе мафия роль",
+     "page": "ru/roles/kamikaze/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 17.285714285714285,
+     "prevPosition": null
+    },
+    {
+     "query": "роль адвоката в мафии",
+     "page": "ru/roles/lawyer/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 16,
+     "prevPosition": null
+    },
+    {
+     "query": "телохранитель в мафии",
+     "page": "ru/roles/bodyguard/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 10.333333333333334,
+     "prevPosition": null
+    }
+   ],
+   "lowCtr": [
+    {
+     "query": "что делает оборотень в мафии",
+     "page": "ru/roles/werewolf/",
+     "clicks": 0,
+     "impressions": 40,
+     "ctr": 0,
+     "position": 6.275,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает мститель в мафии",
+     "page": "ru/roles/avenger/",
+     "clicks": 0,
+     "impressions": 22,
+     "ctr": 0,
+     "position": 6.681818181818182,
+     "prevPosition": null
+    }
+   ],
+   "targets": [
+    {
+     "q": "mafia pro мафия",
+     "page": "ru/",
+     "tier": "brand",
+     "position": null
+    },
+    {
+     "q": "мафия в телеграм",
+     "page": "ru/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "приложение для ведущего мафии",
+     "page": "ru/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "мафия онлайн с друзьями",
+     "page": "ru/",
+     "tier": "head",
+     "position": null
+    },
+    {
+     "q": "роли в мафии",
+     "page": "ru/roles/",
+     "tier": "mid",
+     "position": 67,
+     "impressions": 1,
+     "clicks": 0,
+     "rankingPage": "ru/roles/mafia/"
+    },
+    {
+     "q": "роли в мафии список с описанием",
+     "page": "ru/roles/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "правила игры в мафию",
+     "page": "ru/rules/",
+     "tier": "head",
+     "position": null
+    },
+    {
+     "q": "спортивная мафия правила",
+     "page": "ru/rules/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "мафия на 8 человек роли",
+     "page": "ru/scenarios/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "мафия на 12 человек роли",
+     "page": "ru/scenarios/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "роль маньяк в мафии",
+     "page": "ru/roles/maniac/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "роль доктор в мафии",
+     "page": "ru/roles/doctor/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "роль оборотень в мафии",
+     "page": "ru/roles/werewolf/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "дон мафии роль",
+     "page": "ru/roles/don/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "роль камикадзе мафия",
+     "page": "ru/roles/kamikaze/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "что делает мститель в мафии",
+     "page": "ru/roles/avenger/",
+     "tier": "long",
+     "position": 6.681818181818182,
+     "impressions": 22,
+     "clicks": 0,
+     "rankingPage": "ru/roles/avenger/"
+    },
+    {
+     "q": "что делает оборотень в мафии",
+     "page": "ru/roles/werewolf/",
+     "tier": "long",
+     "position": 6.275,
+     "impressions": 40,
+     "clicks": 0,
+     "rankingPage": "ru/roles/werewolf/"
+    },
+    {
+     "q": "что делает судья в мафии",
+     "page": "ru/roles/judge/",
+     "tier": "long",
+     "position": 8.615384615384615,
+     "impressions": 13,
+     "clicks": 0,
+     "rankingPage": "ru/roles/judge/"
+    },
+    {
+     "q": "что делает вор в мафии",
+     "page": "ru/roles/thief/",
+     "tier": "long",
+     "position": 4.166666666666667,
+     "impressions": 12,
+     "clicks": 0,
+     "rankingPage": "ru/roles/thief/"
+    },
+    {
+     "q": "кто такой камикадзе в мафии",
+     "page": "ru/roles/kamikaze/",
+     "tier": "long",
+     "position": 4.714285714285714,
+     "impressions": 7,
+     "clicks": 0,
+     "rankingPage": "ru/roles/kamikaze/"
+    },
+    {
+     "q": "что делает шут в мафии",
+     "page": "ru/roles/jester/",
+     "tier": "long",
+     "position": 7.333333333333333,
+     "impressions": 9,
+     "clicks": 0,
+     "rankingPage": "ru/roles/jester/"
+    },
+    {
+     "q": "дон мафии",
+     "page": "ru/roles/don/",
+     "tier": "long",
+     "position": 12.821428571428571,
+     "impressions": 28,
+     "clicks": 0,
+     "rankingPage": "ru/roles/don/"
+    },
+    {
+     "q": "адвокат в мафии",
+     "page": "ru/roles/lawyer/",
+     "tier": "long",
+     "position": 7.454545454545454,
+     "impressions": 11,
+     "clicks": 0,
+     "rankingPage": "ru/roles/lawyer/"
+    },
+    {
+     "q": "что делает телохранитель в мафии",
+     "page": "ru/roles/bodyguard/",
+     "tier": "long",
+     "position": 7.666666666666667,
+     "impressions": 9,
+     "clicks": 0,
+     "rankingPage": "ru/roles/bodyguard/"
+    }
+   ]
+  },
+  "uk": {
+   "clicks": 3,
+   "impressions": 274,
+   "position": 9.273722627737227,
+   "top": [
+    {
+     "query": "ролі в мафії",
+     "page": "uk/roles/",
+     "clicks": 2,
+     "impressions": 58,
+     "ctr": 0.034482758620689655,
+     "position": 5.948275862068965,
+     "prevPosition": null
+    },
+    {
+     "query": "хто такий дон в мафії",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 32,
+     "ctr": 0,
+     "position": 6.3125,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія ролі",
+     "page": "uk/roles/",
+     "clicks": 0,
+     "impressions": 27,
+     "ctr": 0,
+     "position": 7.703703703703703,
+     "prevPosition": null
+    },
+    {
+     "query": "дон мафія",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 20,
+     "ctr": 0,
+     "position": 7.1,
+     "prevPosition": null
+    },
+    {
+     "query": "які є ролі в мафії",
+     "page": "uk/roles/",
+     "clicks": 1,
+     "impressions": 19,
+     "ctr": 0.05263157894736842,
+     "position": 6.421052631578948,
+     "prevPosition": null
+    },
+    {
+     "query": "ролі мафії",
+     "page": "uk/roles/",
+     "clicks": 0,
+     "impressions": 19,
+     "ctr": 0,
+     "position": 5.2105263157894735,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія ролі",
+     "page": "uk/scenarios/",
+     "clicks": 0,
+     "impressions": 12,
+     "ctr": 0,
+     "position": 6.75,
+     "prevPosition": null
+    },
+    {
+     "query": "перевертень в мафії",
+     "page": "uk/roles/werewolf/",
+     "clicks": 0,
+     "impressions": 12,
+     "ctr": 0,
+     "position": 1.5833333333333333,
+     "prevPosition": null
+    },
+    {
+     "query": "перевертень в мафії",
+     "page": "uk/roles/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 6.285714285714286,
+     "prevPosition": null
+    },
+    {
+     "query": "які ролі є в мафії",
+     "page": "uk/roles/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 6.571428571428571,
+     "prevPosition": null
+    },
+    {
+     "query": "всі ролі в мафії",
+     "page": "uk/roles/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 4.6,
+     "prevPosition": null
+    },
+    {
+     "query": "дон в мафії це",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 9,
+     "prevPosition": null
+    },
+    {
+     "query": "що робить маньяк в мафії",
+     "page": "uk/roles/maniac/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 6.6,
+     "prevPosition": null
+    },
+    {
+     "query": "мирний житель",
+     "page": "uk/roles/citizen/",
+     "clicks": 0,
+     "impressions": 4,
+     "ctr": 0,
+     "position": 5.5,
+     "prevPosition": null
+    },
+    {
+     "query": "правила гри в мафію",
+     "page": "uk/rules/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 23.333333333333332,
+     "prevPosition": null
+    },
+    {
+     "query": "правила гри мафія",
+     "page": "uk/rules/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 67.66666666666667,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія бомба",
+     "page": "uk/roles/bomb/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 5,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія гра правила",
+     "page": "uk/rules/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 37.5,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія гра ролі",
+     "page": "uk/roles/mafia/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 8,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія персонажі",
+     "page": "uk/roles/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 7.5,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія правила гри",
+     "page": "uk/rules/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 40,
+     "prevPosition": null
+    },
+    {
+     "query": "правила мафії",
+     "page": "uk/rules/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 48,
+     "prevPosition": null
+    },
+    {
+     "query": "ролі мафії",
+     "page": "uk/scenarios/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 8.5,
+     "prevPosition": null
+    },
+    {
+     "query": "тюремник",
+     "page": "uk/roles/jailer/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 9,
+     "prevPosition": null
+    },
+    {
+     "query": "что делает журналист в мафии",
+     "page": "uk/roles/journalist/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 6,
+     "prevPosition": null
+    }
+   ],
+   "countries": [
+    [
+     "ukr",
+     271
+    ],
+    [
+     "tur",
+     2
+    ],
+    [
+     "can",
+     1
+    ]
+   ],
+   "striking": [
+    {
+     "query": "дон в мафії це",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 9,
+     "prevPosition": null
+    }
+   ],
+   "lowCtr": [
+    {
+     "query": "хто такий дон в мафії",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 32,
+     "ctr": 0,
+     "position": 6.3125,
+     "prevPosition": null
+    },
+    {
+     "query": "мафія ролі",
+     "page": "uk/roles/",
+     "clicks": 0,
+     "impressions": 27,
+     "ctr": 0,
+     "position": 7.703703703703703,
+     "prevPosition": null
+    },
+    {
+     "query": "дон мафія",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 20,
+     "ctr": 0,
+     "position": 7.1,
+     "prevPosition": null
+    }
+   ],
+   "targets": [
+    {
+     "q": "mafia pro мафія",
+     "page": "uk/",
+     "tier": "brand",
+     "position": null
+    },
+    {
+     "q": "мафія в телеграм",
+     "page": "uk/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "мафія онлайн",
+     "page": "uk/",
+     "tier": "head",
+     "position": null
+    },
+    {
+     "q": "застосунок для ведучого мафії",
+     "page": "uk/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "ролі в мафії",
+     "page": "uk/roles/",
+     "tier": "mid",
+     "position": 5.948275862068965,
+     "impressions": 58,
+     "clicks": 2,
+     "rankingPage": "uk/roles/"
+    },
+    {
+     "q": "правила гри в мафію",
+     "page": "uk/rules/",
+     "tier": "mid",
+     "position": 23.333333333333332,
+     "impressions": 3,
+     "clicks": 0,
+     "rankingPage": "uk/rules/"
+    },
+    {
+     "q": "мафія правила класика",
+     "page": "uk/rules/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "мафія на 10 гравців ролі",
+     "page": "uk/scenarios/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "роль лікар у мафії",
+     "page": "uk/roles/doctor/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "роль шериф мафія",
+     "page": "uk/roles/sheriff/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "роль маніяк мафія",
+     "page": "uk/roles/maniac/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "які є ролі в мафії",
+     "page": "uk/roles/",
+     "tier": "long",
+     "position": 6.421052631578948,
+     "impressions": 19,
+     "clicks": 1,
+     "rankingPage": "uk/roles/"
+    },
+    {
+     "q": "хто такий дон в мафії",
+     "page": "uk/roles/don/",
+     "tier": "long",
+     "position": 6.3125,
+     "impressions": 32,
+     "clicks": 0,
+     "rankingPage": "uk/roles/don/"
+    },
+    {
+     "q": "дон мафія",
+     "page": "uk/roles/don/",
+     "tier": "long",
+     "position": 7.1,
+     "impressions": 20,
+     "clicks": 0,
+     "rankingPage": "uk/roles/don/"
+    },
+    {
+     "q": "мафія ролі",
+     "page": "uk/roles/",
+     "tier": "mid",
+     "position": 6.75,
+     "impressions": 12,
+     "clicks": 0,
+     "rankingPage": "uk/scenarios/"
+    },
+    {
+     "q": "перевертень в мафії",
+     "page": "uk/roles/werewolf/",
+     "tier": "long",
+     "position": 1.5833333333333333,
+     "impressions": 12,
+     "clicks": 0,
+     "rankingPage": "uk/roles/werewolf/"
+    }
+   ]
+  },
+  "en": {
+   "clicks": 8,
+   "impressions": 498,
+   "position": 11.514056224899598,
+   "top": [
+    {
+     "query": "proboard mafia",
+     "page": "en/roles/",
+     "clicks": 0,
+     "impressions": 27,
+     "ctr": 0,
+     "position": 5.074074074074074,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "en/",
+     "clicks": 1,
+     "impressions": 20,
+     "ctr": 0.05,
+     "position": 2.4,
+     "prevPosition": null
+    },
+    {
+     "query": "lobbyist game",
+     "page": "en/roles/lobbyist/",
+     "clicks": 0,
+     "impressions": 20,
+     "ctr": 0,
+     "position": 8.85,
+     "prevPosition": null
+    },
+    {
+     "query": "jester in mafia game",
+     "page": "en/roles/jester/",
+     "clicks": 0,
+     "impressions": 19,
+     "ctr": 0,
+     "position": 7.368421052631579,
+     "prevPosition": null
+    },
+    {
+     "query": "puppeteer mafia",
+     "page": "en/roles/puppeteer/",
+     "clicks": 3,
+     "impressions": 17,
+     "ctr": 0.17647058823529413,
+     "position": 2.235294117647059,
+     "prevPosition": null
+    },
+    {
+     "query": "what does saboteur do in mafia roblox",
+     "page": "en/roles/saboteur/",
+     "clicks": 0,
+     "impressions": 17,
+     "ctr": 0,
+     "position": 8.411764705882353,
+     "prevPosition": null
+    },
+    {
+     "query": "saboteur mafia",
+     "page": "en/roles/saboteur/",
+     "clicks": 0,
+     "impressions": 14,
+     "ctr": 0,
+     "position": 6.928571428571429,
+     "prevPosition": null
+    },
+    {
+     "query": "citizen and mafia",
+     "page": "en/roles/citizen/",
+     "clicks": 0,
+     "impressions": 13,
+     "ctr": 0,
+     "position": 7.538461538461538,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia executioner",
+     "page": "en/roles/executioner/",
+     "clicks": 0,
+     "impressions": 13,
+     "ctr": 0,
+     "position": 4.923076923076923,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia tracker",
+     "page": "en/roles/tracker/",
+     "clicks": 0,
+     "impressions": 13,
+     "ctr": 0,
+     "position": 6.615384615384615,
+     "prevPosition": null
+    },
+    {
+     "query": "doctor mafia game",
+     "page": "en/roles/doctor/",
+     "clicks": 0,
+     "impressions": 12,
+     "ctr": 0,
+     "position": 7.166666666666667,
+     "prevPosition": null
+    },
+    {
+     "query": "role of sheriff in mafia game",
+     "page": "en/roles/sheriff/",
+     "clicks": 0,
+     "impressions": 12,
+     "ctr": 0,
+     "position": 7.166666666666667,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "en/roles/mafia/",
+     "clicks": 0,
+     "impressions": 11,
+     "ctr": 0,
+     "position": 6.454545454545454,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia saboteur",
+     "page": "en/roles/saboteur/",
+     "clicks": 0,
+     "impressions": 11,
+     "ctr": 0,
+     "position": 7,
+     "prevPosition": null
+    },
+    {
+     "query": "don mafia game",
+     "page": "en/roles/don/",
+     "clicks": 0,
+     "impressions": 10,
+     "ctr": 0,
+     "position": 4.7,
+     "prevPosition": null
+    },
+    {
+     "query": "puppeteer mafia roblox",
+     "page": "en/roles/puppeteer/",
+     "clicks": 0,
+     "impressions": 9,
+     "ctr": 0,
+     "position": 8.88888888888889,
+     "prevPosition": null
+    },
+    {
+     "query": "sheriff in mafia game",
+     "page": "en/roles/sheriff/",
+     "clicks": 0,
+     "impressions": 9,
+     "ctr": 0,
+     "position": 7.222222222222222,
+     "prevPosition": null
+    },
+    {
+     "query": "sheriff role in mafia",
+     "page": "en/roles/sheriff/",
+     "clicks": 0,
+     "impressions": 8,
+     "ctr": 0,
+     "position": 10.5,
+     "prevPosition": null
+    },
+    {
+     "query": "bodyguard description mafia",
+     "page": "en/roles/bodyguard/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 8.285714285714286,
+     "prevPosition": null
+    },
+    {
+     "query": "doctor in mafia game",
+     "page": "en/roles/doctor/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 7.857142857142857,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia doctor game",
+     "page": "en/roles/mafia_doctor/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 8,
+     "prevPosition": null
+    },
+    {
+     "query": "bodyguard role description mafia",
+     "page": "en/roles/bodyguard/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 7,
+     "prevPosition": null
+    },
+    {
+     "query": "judge role description mafia",
+     "page": "en/roles/judge/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 7.833333333333333,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia roles",
+     "page": "en/roles/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 45.166666666666664,
+     "prevPosition": null
+    },
+    {
+     "query": "doctor role description mafia",
+     "page": "en/roles/doctor/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 8,
+     "prevPosition": null
+    }
+   ],
+   "countries": [
+    [
+     "usa",
+     101
+    ],
+    [
+     "ind",
+     71
+    ],
+    [
+     "phl",
+     47
+    ],
+    [
+     "gbr",
+     36
+    ],
+    [
+     "irn",
+     19
+    ],
+    [
+     "pak",
+     18
+    ],
+    [
+     "can",
+     15
+    ],
+    [
+     "aus",
+     13
+    ]
+   ],
+   "striking": [
+    {
+     "query": "lobbyist game",
+     "page": "en/roles/lobbyist/",
+     "clicks": 0,
+     "impressions": 20,
+     "ctr": 0,
+     "position": 8.85,
+     "prevPosition": null
+    },
+    {
+     "query": "what does saboteur do in mafia roblox",
+     "page": "en/roles/saboteur/",
+     "clicks": 0,
+     "impressions": 17,
+     "ctr": 0,
+     "position": 8.411764705882353,
+     "prevPosition": null
+    },
+    {
+     "query": "puppeteer mafia roblox",
+     "page": "en/roles/puppeteer/",
+     "clicks": 0,
+     "impressions": 9,
+     "ctr": 0,
+     "position": 8.88888888888889,
+     "prevPosition": null
+    },
+    {
+     "query": "sheriff role in mafia",
+     "page": "en/roles/sheriff/",
+     "clicks": 0,
+     "impressions": 8,
+     "ctr": 0,
+     "position": 10.5,
+     "prevPosition": null
+    },
+    {
+     "query": "bodyguard description mafia",
+     "page": "en/roles/bodyguard/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 8.285714285714286,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia doctor game",
+     "page": "en/roles/mafia_doctor/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 8,
+     "prevPosition": null
+    },
+    {
+     "query": "doctor role description mafia",
+     "page": "en/roles/doctor/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 8,
+     "prevPosition": null
+    },
+    {
+     "query": "jester in mafia",
+     "page": "en/roles/jester/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 8.6,
+     "prevPosition": null
+    },
+    {
+     "query": "jester mafia",
+     "page": "en/roles/jester/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 10.2,
+     "prevPosition": null
+    }
+   ],
+   "lowCtr": [
+    {
+     "query": "proboard mafia",
+     "page": "en/roles/",
+     "clicks": 0,
+     "impressions": 27,
+     "ctr": 0,
+     "position": 5.074074074074074,
+     "prevPosition": null
+    }
+   ],
+   "targets": [
+    {
+     "q": "mafia pro telegram",
+     "page": "en/",
+     "tier": "brand",
+     "position": null
+    },
+    {
+     "q": "mafia game telegram",
+     "page": "en/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "mafia game app for moderator",
+     "page": "en/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "mafia party game online with friends",
+     "page": "en/",
+     "tier": "head",
+     "position": null
+    },
+    {
+     "q": "mafia game roles",
+     "page": "en/roles/",
+     "tier": "head",
+     "position": 67,
+     "impressions": 2,
+     "clicks": 0,
+     "rankingPage": "en/roles/"
+    },
+    {
+     "q": "mafia game roles list and descriptions",
+     "page": "en/roles/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "how to play mafia party game",
+     "page": "en/rules/",
+     "tier": "head",
+     "position": null
+    },
+    {
+     "q": "mafia game rules 10 players",
+     "page": "en/rules/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "mafia roles for 8 players",
+     "page": "en/scenarios/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "mafia game werewolf role",
+     "page": "en/roles/werewolf/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "mafia game kamikaze role",
+     "page": "en/roles/kamikaze/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "mafia game maniac role",
+     "page": "en/roles/maniac/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "role of sheriff in mafia game",
+     "page": "en/roles/sheriff/",
+     "tier": "long",
+     "position": 7.166666666666667,
+     "impressions": 12,
+     "clicks": 0,
+     "rankingPage": "en/roles/sheriff/"
+    },
+    {
+     "q": "puppeteer mafia",
+     "page": "en/roles/puppeteer/",
+     "tier": "long",
+     "position": 2.235294117647059,
+     "impressions": 17,
+     "clicks": 3,
+     "rankingPage": "en/roles/puppeteer/"
+    },
+    {
+     "q": "don mafia game",
+     "page": "en/roles/don/",
+     "tier": "long",
+     "position": 4.7,
+     "impressions": 10,
+     "clicks": 0,
+     "rankingPage": "en/roles/don/"
+    },
+    {
+     "q": "mafia executioner",
+     "page": "en/roles/executioner/",
+     "tier": "long",
+     "position": 4.923076923076923,
+     "impressions": 13,
+     "clicks": 0,
+     "rankingPage": "en/roles/executioner/"
+    },
+    {
+     "q": "mafia saboteur",
+     "page": "en/roles/saboteur/",
+     "tier": "long",
+     "position": 7,
+     "impressions": 11,
+     "clicks": 0,
+     "rankingPage": "en/roles/saboteur/"
+    },
+    {
+     "q": "doctor mafia game",
+     "page": "en/roles/doctor/",
+     "tier": "long",
+     "position": 7.166666666666667,
+     "impressions": 12,
+     "clicks": 0,
+     "rankingPage": "en/roles/doctor/"
+    },
+    {
+     "q": "mafia roles",
+     "page": "en/roles/",
+     "tier": "mid",
+     "position": 45.166666666666664,
+     "impressions": 6,
+     "clicks": 0,
+     "rankingPage": "en/roles/"
+    },
+    {
+     "q": "jester in mafia game",
+     "page": "en/roles/jester/",
+     "tier": "long",
+     "position": 7.368421052631579,
+     "impressions": 19,
+     "clicks": 0,
+     "rankingPage": "en/roles/jester/"
+    },
+    {
+     "q": "mafia tracker",
+     "page": "en/roles/tracker/",
+     "tier": "long",
+     "position": 6.615384615384615,
+     "impressions": 13,
+     "clicks": 0,
+     "rankingPage": "en/roles/tracker/"
+    },
+    {
+     "q": "bodyguard role description mafia",
+     "page": "en/roles/bodyguard/",
+     "tier": "long",
+     "position": 7,
+     "impressions": 6,
+     "clicks": 0,
+     "rankingPage": "en/roles/bodyguard/"
+    }
+   ]
+  },
+  "pl": {
+   "clicks": 4,
+   "impressions": 119,
+   "position": 13.084033613445378,
+   "top": [
+    {
+     "query": "mafia role",
+     "page": "pl/scenarios/",
+     "clicks": 0,
+     "impressions": 19,
+     "ctr": 0,
+     "position": 9.368421052631579,
+     "prevPosition": null
+    },
+    {
+     "query": "don w mafii",
+     "page": "pl/roles/don/",
+     "clicks": 0,
+     "impressions": 16,
+     "ctr": 0,
+     "position": 7.6875,
+     "prevPosition": null
+    },
+    {
+     "query": "role w mafii",
+     "page": "pl/roles/",
+     "clicks": 0,
+     "impressions": 10,
+     "ctr": 0,
+     "position": 14.7,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia karta płci",
+     "page": "pl/roles/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 6.857142857142857,
+     "prevPosition": null
+    },
+    {
+     "query": "karta plci mafia",
+     "page": "pl/roles/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 6.166666666666667,
+     "prevPosition": null
+    },
+    {
+     "query": "don mafia",
+     "page": "pl/roles/don/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 5.6,
+     "prevPosition": null
+    },
+    {
+     "query": "kątrola",
+     "page": "pl/roles/executioner/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 10.8,
+     "prevPosition": null
+    },
+    {
+     "query": "karta płci mafia",
+     "page": "pl/roles/",
+     "clicks": 0,
+     "impressions": 4,
+     "ctr": 0,
+     "position": 7.5,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia zasady gry",
+     "page": "pl/rules/",
+     "clicks": 0,
+     "impressions": 4,
+     "ctr": 0,
+     "position": 53.5,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "pl/",
+     "clicks": 2,
+     "impressions": 3,
+     "ctr": 0.6666666666666666,
+     "position": 1,
+     "prevPosition": null
+    },
+    {
+     "query": "gra mafia zasady",
+     "page": "pl/rules/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 64.33333333333334,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "pl/rules/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 2,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "pl/scenarios/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 5,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia zasady",
+     "page": "pl/rules/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 36.333333333333336,
+     "prevPosition": null
+    },
+    {
+     "query": "\"grze wilkołaki\"",
+     "page": "pl/rules/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 3,
+     "prevPosition": null
+    },
+    {
+     "query": "\"grą wilkołaki\"",
+     "page": "pl/rules/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 2.5,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "pl/roles/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 8,
+     "prevPosition": null
+    },
+    {
+     "query": "role w mafii",
+     "page": "pl/scenarios/",
+     "clicks": 0,
+     "impressions": 2,
+     "ctr": 0,
+     "position": 31,
+     "prevPosition": null
+    },
+    {
+     "query": "aplikacja",
+     "page": "pl/",
+     "clicks": 1,
+     "impressions": 1,
+     "ctr": 1,
+     "position": 1,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia bomba",
+     "page": "pl/roles/bomb/",
+     "clicks": 1,
+     "impressions": 1,
+     "ctr": 1,
+     "position": 1,
+     "prevPosition": null
+    },
+    {
+     "query": "\"gry wilkołaki\"",
+     "page": "pl/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 7,
+     "prevPosition": null
+    },
+    {
+     "query": "\"grze wilkołaki\"",
+     "page": "pl/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 4,
+     "prevPosition": null
+    },
+    {
+     "query": "\"grze wilkołaki\"",
+     "page": "pl/roles/sheriff/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 7,
+     "prevPosition": null
+    },
+    {
+     "query": "\"grą wilkołaki\"",
+     "page": "pl/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 2,
+     "prevPosition": null
+    },
+    {
+     "query": "\"grą wilkołaki\"",
+     "page": "pl/roles/werewolf/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 4,
+     "prevPosition": null
+    }
+   ],
+   "countries": [
+    [
+     "pol",
+     105
+    ],
+    [
+     "ind",
+     4
+    ],
+    [
+     "gbr",
+     2
+    ],
+    [
+     "ukr",
+     1
+    ],
+    [
+     "mex",
+     1
+    ],
+    [
+     "zaf",
+     1
+    ],
+    [
+     "are",
+     1
+    ],
+    [
+     "uzb",
+     1
+    ]
+   ],
+   "striking": [
+    {
+     "query": "mafia role",
+     "page": "pl/scenarios/",
+     "clicks": 0,
+     "impressions": 19,
+     "ctr": 0,
+     "position": 9.368421052631579,
+     "prevPosition": null
+    },
+    {
+     "query": "role w mafii",
+     "page": "pl/roles/",
+     "clicks": 0,
+     "impressions": 10,
+     "ctr": 0,
+     "position": 14.7,
+     "prevPosition": null
+    },
+    {
+     "query": "kątrola",
+     "page": "pl/roles/executioner/",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 10.8,
+     "prevPosition": null
+    }
+   ],
+   "lowCtr": [],
+   "targets": [
+    {
+     "q": "mafia pro telegram",
+     "page": "pl/",
+     "tier": "brand",
+     "position": null
+    },
+    {
+     "q": "mafia gra w telegramie",
+     "page": "pl/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "mafia gra towarzyska online",
+     "page": "pl/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "aplikacja do gry w mafię",
+     "page": "pl/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "role w mafii",
+     "page": "pl/roles/",
+     "tier": "mid",
+     "position": 14.7,
+     "impressions": 10,
+     "clicks": 0,
+     "rankingPage": "pl/roles/"
+    },
+    {
+     "q": "mafia gra towarzyska role",
+     "page": "pl/roles/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "zasady gry w mafię",
+     "page": "pl/rules/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "mafia zasady gry towarzyskiej",
+     "page": "pl/rules/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "mafia na 10 osób role",
+     "page": "pl/scenarios/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "rola szeryf mafia",
+     "page": "pl/roles/sheriff/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "rola lekarz mafia",
+     "page": "pl/roles/doctor/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "don mafia",
+     "page": "pl/roles/don/",
+     "tier": "long",
+     "position": 5.6,
+     "impressions": 5,
+     "clicks": 0,
+     "rankingPage": "pl/roles/don/"
+    },
+    {
+     "q": "don w mafii",
+     "page": "pl/roles/don/",
+     "tier": "long",
+     "position": 7.6875,
+     "impressions": 16,
+     "clicks": 0,
+     "rankingPage": "pl/roles/don/"
+    },
+    {
+     "q": "mafia role",
+     "page": "pl/roles/",
+     "tier": "mid",
+     "position": 9.368421052631579,
+     "impressions": 19,
+     "clicks": 0,
+     "rankingPage": "pl/scenarios/"
+    }
+   ]
+  },
+  "hy": {
+   "clicks": 0,
+   "impressions": 17,
+   "position": 7.9411764705882355,
+   "top": [
+    {
+     "query": "մաֆիա խաղ կանոններ",
+     "page": "hy/rules/",
+     "clicks": 0,
+     "impressions": 8,
+     "ctr": 0,
+     "position": 5.5,
+     "prevPosition": null
+    },
+    {
+     "query": "մորփեոս",
+     "page": "hy/roles/morpheus/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 9,
+     "prevPosition": null
+    },
+    {
+     "query": "ալտրուիստ",
+     "page": "hy/roles/altruist/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 10,
+     "prevPosition": null
+    },
+    {
+     "query": "կամիկաձե",
+     "page": "hy/roles/kamikaze/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 7,
+     "prevPosition": null
+    },
+    {
+     "query": "մաֆիա խաղ",
+     "page": "hy/rules/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 20,
+     "prevPosition": null
+    }
+   ],
+   "countries": [
+    [
+     "arm",
+     15
+    ],
+    [
+     "rus",
+     1
+    ],
+    [
+     "usa",
+     1
+    ]
+   ],
+   "striking": [
+    {
+     "query": "մորփեոս",
+     "page": "hy/roles/morpheus/",
+     "clicks": 0,
+     "impressions": 6,
+     "ctr": 0,
+     "position": 9,
+     "prevPosition": null
+    }
+   ],
+   "lowCtr": [],
+   "targets": [
+    {
+     "q": "mafia pro մաֆիա",
+     "page": "hy/",
+     "tier": "brand",
+     "position": null
+    },
+    {
+     "q": "մաֆիա խաղ",
+     "page": "hy/",
+     "tier": "mid",
+     "position": 20,
+     "impressions": 1,
+     "clicks": 0,
+     "rankingPage": "hy/rules/"
+    },
+    {
+     "q": "մաֆիա խաղ առցանց",
+     "page": "hy/",
+     "tier": "mid",
+     "position": null
+    },
+    {
+     "q": "մաֆիա telegram",
+     "page": "hy/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "մաֆիայի դերեր",
+     "page": "hy/roles/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "մաֆիա խաղի կանոններ",
+     "page": "hy/rules/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "մաֆիա 10 հոգու համար",
+     "page": "hy/scenarios/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "շերիֆ մաֆիա դեր",
+     "page": "hy/roles/sheriff/",
+     "tier": "long",
+     "position": null
+    },
+    {
+     "q": "մաֆիա խաղ կանոններ",
+     "page": "hy/rules/",
+     "tier": "long",
+     "position": 5.5,
+     "impressions": 8,
+     "clicks": 0,
+     "rankingPage": "hy/rules/"
+    },
+    {
+     "q": "մորփեոս",
+     "page": "hy/roles/morpheus/",
+     "tier": "long",
+     "position": 9,
+     "impressions": 6,
+     "clicks": 0,
+     "rankingPage": "hy/roles/morpheus/"
+    }
+   ]
+  },
+  "app": {
+   "clicks": 0,
+   "impressions": 19,
+   "position": 41.36842105263158,
+   "top": [
+    {
+     "query": "mafia pt",
+     "page": "",
+     "clicks": 0,
+     "impressions": 13,
+     "ctr": 0,
+     "position": 57.92307692307692,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "",
+     "clicks": 0,
+     "impressions": 5,
+     "ctr": 0,
+     "position": 6.4,
+     "prevPosition": null
+    },
+    {
+     "query": "mafia pro",
+     "page": "http://mafiapro.app/",
+     "clicks": 0,
+     "impressions": 1,
+     "ctr": 0,
+     "position": 1,
+     "prevPosition": null
+    }
+   ],
+   "countries": [
+    [
+     "prt",
+     13
+    ],
+    [
+     "rus",
+     3
+    ],
+    [
+     "phl",
+     1
+    ],
+    [
+     "est",
+     1
+    ],
+    [
+     "lva",
+     1
+    ]
+   ],
+   "striking": [],
+   "lowCtr": [],
+   "targets": []
+  }
+ },
+ "bing": {
+  "GetQueryStats": [],
+  "GetPageStats": [],
+  "GetCrawlStats": [
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792281600000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792368000000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792454400000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792540800000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792627200000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792713600000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792800000000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1792886400000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1793145600000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 0,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1793232000000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 0
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 8,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1793318400000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 8
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 18,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 1,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1793404800000)/",
+    "DnsFailures": 0,
+    "InIndex": 0,
+    "InLinks": 18
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 22,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 2,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 0,
+    "CrawlErrors": 0,
+    "Date": "/Date(1793491200000)/",
+    "DnsFailures": 0,
+    "InIndex": 1,
+    "InLinks": 23
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 22,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 2,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 0,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 1,
+    "CrawlErrors": 0,
+    "Date": "/Date(1793577600000)/",
+    "DnsFailures": 0,
+    "InIndex": 1,
+    "InLinks": 23
+   },
+   {
+    "__type": "CrawlStats:#Microsoft.Bing.Webmaster.Api",
+    "AllOtherCodes": 30,
+    "BlockedByRobotsTxt": 0,
+    "Code2xx": 4,
+    "Code301": 1,
+    "Code302": 0,
+    "Code4xx": 1,
+    "Code5xx": 0,
+    "ConnectionTimeout": 0,
+    "ContainsMalware": 0,
+    "CrawledPages": 4,
+    "CrawlErrors": 2,
+    "Date": "/Date(1793664000000)/",
+    "DnsFailures": 0,
+    "InIndex": 3,
+    "InLinks": 33
+   }
+  ]
+ },
+ "psi": [
+  {
+   "url": "https://mafiapro.app/ru/",
+   "performance": 99,
+   "seo": 100,
+   "accessibility": 100,
+   "lcp": "1.8 s",
+   "cls": "0.041",
+   "tbt": "0 ms",
+   "fails": [],
+   "field": null,
+   "source": "lighthouse"
+  },
+  {
+   "url": "https://mafiapro.app/en/",
+   "performance": 99,
+   "seo": 100,
+   "accessibility": 100,
+   "lcp": "1.6 s",
+   "cls": "0.001",
+   "tbt": "0 ms",
+   "fails": [],
+   "field": null,
+   "source": "lighthouse"
+  },
+  {
+   "url": "https://mafiapro.app/ru/roles/don/",
+   "performance": 94,
+   "seo": 100,
+   "accessibility": 100,
+   "lcp": "3.1 s",
+   "cls": "0.002",
+   "tbt": "0 ms",
+   "fails": [
+    "Largest Contentful Paint"
+   ],
+   "field": null,
+   "source": "lighthouse"
+  }
+ ],
+ "live": [
+  {
+   "url": "https://mafiapro.app/",
+   "status": 200,
+   "title": "Mafia Pro — мафия в Telegram: онлайн и за живым столом",
+   "titleLen": 54,
+   "descLen": 143,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/ru/",
+   "status": 200,
+   "title": "Мафия в Telegram — онлайн и за живым столом | Mafia Pro",
+   "titleLen": 55,
+   "descLen": 159,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/uk/",
+   "status": 200,
+   "title": "Мафія в Telegram — онлайн і за живим столом | Mafia Pro",
+   "titleLen": 55,
+   "descLen": 157,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/en/",
+   "status": 200,
+   "title": "Mafia party game on Telegram — online &amp; in person | Mafia Pro",
+   "titleLen": 65,
+   "descLen": 170,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/pl/",
+   "status": 200,
+   "title": "Mafia w Telegramie — online i przy stole | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 166,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/hy/",
+   "status": 200,
+   "title": "Մաֆիա Telegram-ում — առցանց և սեղանի շուրջ | Mafia Pro",
+   "titleLen": 54,
+   "descLen": 160,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/ru/roles/",
+   "status": 200,
+   "title": "Роли в мафии: все 58 карт с описанием | Mafia Pro",
+   "titleLen": 49,
+   "descLen": 151,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/uk/roles/",
+   "status": 200,
+   "title": "Ролі в мафії: усі 58 карт з описом | Mafia Pro",
+   "titleLen": 46,
+   "descLen": 150,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/en/roles/",
+   "status": 200,
+   "title": "Mafia game roles: all 58 cards explained | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 158,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/pl/roles/",
+   "status": 200,
+   "title": "Role w Mafii: wszystkie 58 kart z opisem | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 151,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/hy/roles/",
+   "status": 200,
+   "title": "Մաֆիայի դերերը. բոլոր 58 քարտերը նկարագրությամբ | Mafia Pro",
+   "titleLen": 59,
+   "descLen": 147,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/ru/rules/",
+   "status": 200,
+   "title": "Правила игры в мафию: классика и ролевая | Mafia Pro",
+   "titleLen": 52,
+   "descLen": 154,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/uk/rules/",
+   "status": 200,
+   "title": "Правила гри в мафію: класика та рольова | Mafia Pro",
+   "titleLen": 51,
+   "descLen": 150,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/ru/roles/don/",
+   "status": 200,
+   "title": "Дон мафии — роль в игре Мафия | Mafia Pro",
+   "titleLen": 41,
+   "descLen": 108,
+   "canonicalOk": true,
+   "noindex": false
+  },
+  {
+   "url": "https://mafiapro.app/sitemap.xml",
+   "name": "sitemap",
+   "status": 200,
+   "urls": 316
+  },
+  {
+   "url": "https://mafiapro.app/841529e6217fa4547df2728c73c18141.txt",
+   "name": "indexnow-key",
+   "status": 200
+  }
+ ],
+ "rows": 536
+}
