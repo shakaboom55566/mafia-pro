@@ -316,18 +316,18 @@
    },
    {
     "date": "2026-11-22",
-    "clicks": 0,
-    "impressions": 56,
-    "ctr": 0,
-    "position": 11.357142857142858
+    "clicks": 3,
+    "impressions": 213,
+    "ctr": 0.014084507042253521,
+    "position": 7.643192488262911
    }
   ]
  },
  "summary": {
   "ru": {
    "clicks": 2,
-   "impressions": 286,
-   "position": 11.237762237762238,
+   "impressions": 292,
+   "position": 11.08904109589041,
    "top": [
     {
      "query": "дон мафии",
@@ -351,9 +351,9 @@
      "query": "что делает мститель в мафии",
      "page": "ru/roles/avenger/",
      "clicks": 0,
-     "impressions": 19,
+     "impressions": 21,
      "ctr": 0,
-     "position": 5,
+     "position": 4.619047619047619,
      "prevPosition": 7.777777777777778
     },
     {
@@ -378,9 +378,9 @@
      "query": "что делает шут в мафии",
      "page": "ru/roles/jester/",
      "clicks": 0,
-     "impressions": 11,
+     "impressions": 12,
      "ctr": 0,
-     "position": 12.545454545454545,
+     "position": 11.916666666666666,
      "prevPosition": 3.8
     },
     {
@@ -396,9 +396,9 @@
      "query": "кто такой дон в мафии",
      "page": "ru/roles/don/",
      "clicks": 0,
-     "impressions": 8,
+     "impressions": 10,
      "ctr": 0,
-     "position": 7.875,
+     "position": 7.5,
      "prevPosition": 35
     },
     {
@@ -558,11 +558,11 @@
    "countries": [
     [
      "ukr",
-     120
+     123
     ],
     [
      "rus",
-     113
+     115
     ],
     [
      "blr",
@@ -570,7 +570,7 @@
     ],
     [
      "kaz",
-     11
+     12
     ],
     [
      "bra",
@@ -603,9 +603,9 @@
      "query": "что делает шут в мафии",
      "page": "ru/roles/jester/",
      "clicks": 0,
-     "impressions": 11,
+     "impressions": 12,
      "ctr": 0,
-     "position": 12.545454545454545,
+     "position": 11.916666666666666,
      "prevPosition": 3.8
     },
     {
@@ -645,6 +645,15 @@
      "ctr": 0,
      "position": 5.961538461538462,
      "prevPosition": 6.733333333333333
+    },
+    {
+     "query": "что делает мститель в мафии",
+     "page": "ru/roles/avenger/",
+     "clicks": 0,
+     "impressions": 21,
+     "ctr": 0,
+     "position": 4.619047619047619,
+     "prevPosition": 7.777777777777778
     }
    ],
    "targets": [
@@ -742,8 +751,8 @@
      "q": "что делает мститель в мафии",
      "page": "ru/roles/avenger/",
      "tier": "long",
-     "position": 5,
-     "impressions": 19,
+     "position": 4.619047619047619,
+     "impressions": 21,
      "clicks": 0,
      "rankingPage": "ru/roles/avenger/"
     },
@@ -787,8 +796,8 @@
      "q": "что делает шут в мафии",
      "page": "ru/roles/jester/",
      "tier": "long",
-     "position": 12.545454545454545,
-     "impressions": 11,
+     "position": 11.916666666666666,
+     "impressions": 12,
      "clicks": 0,
      "rankingPage": "ru/roles/jester/"
     },
@@ -818,39 +827,48 @@
      "impressions": 7,
      "clicks": 0,
      "rankingPage": "ru/roles/bodyguard/"
+    },
+    {
+     "q": "кто такой дон в мафии",
+     "page": "ru/roles/don/",
+     "tier": "long",
+     "position": 7.5,
+     "impressions": 10,
+     "clicks": 0,
+     "rankingPage": "ru/roles/don/"
     }
    ]
   },
   "uk": {
    "clicks": 5,
-   "impressions": 213,
-   "position": 10.309859154929578,
+   "impressions": 223,
+   "position": 10.071748878923767,
    "top": [
     {
      "query": "хто такий дон в мафії",
      "page": "uk/roles/don/",
      "clicks": 0,
-     "impressions": 38,
+     "impressions": 40,
      "ctr": 0,
-     "position": 5.684210526315789,
+     "position": 5.65,
      "prevPosition": 7.222222222222222
     },
     {
      "query": "ролі в мафії",
      "page": "uk/roles/",
      "clicks": 1,
-     "impressions": 30,
-     "ctr": 0.03333333333333333,
-     "position": 5.966666666666667,
+     "impressions": 31,
+     "ctr": 0.03225806451612903,
+     "position": 6.032258064516129,
      "prevPosition": 6.166666666666667
     },
     {
      "query": "дон мафія",
      "page": "uk/roles/don/",
      "clicks": 0,
-     "impressions": 19,
+     "impressions": 22,
      "ctr": 0,
-     "position": 5.684210526315789,
+     "position": 5.7272727272727275,
      "prevPosition": 7.230769230769231
     },
     {
@@ -899,6 +917,15 @@
      "prevPosition": 5.9
     },
     {
+     "query": "дон в мафії це",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 7,
+     "ctr": 0,
+     "position": 5,
+     "prevPosition": 10.333333333333334
+    },
+    {
      "query": "всі ролі в мафії",
      "page": "uk/roles/",
      "clicks": 3,
@@ -926,21 +953,12 @@
      "prevPosition": null
     },
     {
-     "query": "дон в мафії це",
-     "page": "uk/roles/don/",
-     "clicks": 0,
-     "impressions": 4,
-     "ctr": 0,
-     "position": 5.75,
-     "prevPosition": 10.333333333333334
-    },
-    {
      "query": "карти для мафії",
      "page": "uk/roles/",
      "clicks": 0,
-     "impressions": 3,
+     "impressions": 4,
      "ctr": 0,
-     "position": 8,
+     "position": 6.5,
      "prevPosition": null
     },
     {
@@ -1055,7 +1073,7 @@
    "countries": [
     [
      "ukr",
-     207
+     216
     ],
     [
      "tur",
@@ -1063,6 +1081,10 @@
     ],
     [
      "che",
+     1
+    ],
+    [
+     "fra",
      1
     ],
     [
@@ -1103,10 +1125,19 @@
      "query": "хто такий дон в мафії",
      "page": "uk/roles/don/",
      "clicks": 0,
-     "impressions": 38,
+     "impressions": 40,
      "ctr": 0,
-     "position": 5.684210526315789,
+     "position": 5.65,
      "prevPosition": 7.222222222222222
+    },
+    {
+     "query": "дон мафія",
+     "page": "uk/roles/don/",
+     "clicks": 0,
+     "impressions": 22,
+     "ctr": 0,
+     "position": 5.7272727272727275,
+     "prevPosition": 7.230769230769231
     }
    ],
    "targets": [
@@ -1138,8 +1169,8 @@
      "q": "ролі в мафії",
      "page": "uk/roles/",
      "tier": "mid",
-     "position": 5.966666666666667,
-     "impressions": 30,
+     "position": 6.032258064516129,
+     "impressions": 31,
      "clicks": 1,
      "rankingPage": "uk/roles/"
     },
@@ -1195,8 +1226,8 @@
      "q": "хто такий дон в мафії",
      "page": "uk/roles/don/",
      "tier": "long",
-     "position": 5.684210526315789,
-     "impressions": 38,
+     "position": 5.65,
+     "impressions": 40,
      "clicks": 0,
      "rankingPage": "uk/roles/don/"
     },
@@ -1204,8 +1235,8 @@
      "q": "дон мафія",
      "page": "uk/roles/don/",
      "tier": "long",
-     "position": 5.684210526315789,
-     "impressions": 19,
+     "position": 5.7272727272727275,
+     "impressions": 22,
      "clicks": 0,
      "rankingPage": "uk/roles/don/"
     },
@@ -1231,8 +1262,8 @@
   },
   "en": {
    "clicks": 9,
-   "impressions": 590,
-   "position": 12.288135593220339,
+   "impressions": 603,
+   "position": 12.197346600331676,
    "top": [
     {
      "query": "lobbyist game",
@@ -1298,6 +1329,24 @@
      "prevPosition": 9
     },
     {
+     "query": "citizen and mafia",
+     "page": "en/roles/citizen/",
+     "clicks": 0,
+     "impressions": 16,
+     "ctr": 0,
+     "position": 7.4375,
+     "prevPosition": 7.333333333333333
+    },
+    {
+     "query": "jester mafia",
+     "page": "en/roles/jester/",
+     "clicks": 0,
+     "impressions": 16,
+     "ctr": 0,
+     "position": 9.1875,
+     "prevPosition": 10
+    },
+    {
      "query": "puppeteer mafia roblox",
      "page": "en/roles/puppeteer/",
      "clicks": 0,
@@ -1316,15 +1365,6 @@
      "prevPosition": 7.8
     },
     {
-     "query": "jester mafia",
-     "page": "en/roles/jester/",
-     "clicks": 0,
-     "impressions": 14,
-     "ctr": 0,
-     "position": 8.928571428571429,
-     "prevPosition": 10
-    },
-    {
      "query": "judge description mafia",
      "page": "en/roles/judge/",
      "clicks": 0,
@@ -1334,15 +1374,6 @@
      "prevPosition": null
     },
     {
-     "query": "citizen and mafia",
-     "page": "en/roles/citizen/",
-     "clicks": 0,
-     "impressions": 13,
-     "ctr": 0,
-     "position": 7.615384615384615,
-     "prevPosition": 7.333333333333333
-    },
-    {
      "query": "doctor mafia game",
      "page": "en/roles/doctor/",
      "clicks": 0,
@@ -1350,6 +1381,15 @@
      "ctr": 0,
      "position": 6.5,
      "prevPosition": 8.2
+    },
+    {
+     "query": "jester role description mafia",
+     "page": "en/roles/jester/",
+     "clicks": 0,
+     "impressions": 11,
+     "ctr": 0,
+     "position": 8.909090909090908,
+     "prevPosition": 10.333333333333334
     },
     {
      "query": "saboteur mafia",
@@ -1433,15 +1473,6 @@
      "prevPosition": 8
     },
     {
-     "query": "jester role description mafia",
-     "page": "en/roles/jester/",
-     "clicks": 0,
-     "impressions": 7,
-     "ctr": 0,
-     "position": 9.857142857142858,
-     "prevPosition": 10.333333333333334
-    },
-    {
      "query": "judge mafia role description",
      "page": "en/roles/judge/",
      "clicks": 0,
@@ -1463,7 +1494,7 @@
    "countries": [
     [
      "usa",
-     141
+     147
     ],
     [
      "ind",
@@ -1471,7 +1502,7 @@
     ],
     [
      "phl",
-     52
+     53
     ],
     [
      "gbr",
@@ -1487,7 +1518,7 @@
     ],
     [
      "irn",
-     17
+     20
     ],
     [
      "pak",
@@ -1523,6 +1554,15 @@
      "prevPosition": 9
     },
     {
+     "query": "jester mafia",
+     "page": "en/roles/jester/",
+     "clicks": 0,
+     "impressions": 16,
+     "ctr": 0,
+     "position": 9.1875,
+     "prevPosition": 10
+    },
+    {
      "query": "puppeteer mafia roblox",
      "page": "en/roles/puppeteer/",
      "clicks": 0,
@@ -1541,15 +1581,6 @@
      "prevPosition": 7.8
     },
     {
-     "query": "jester mafia",
-     "page": "en/roles/jester/",
-     "clicks": 0,
-     "impressions": 14,
-     "ctr": 0,
-     "position": 8.928571428571429,
-     "prevPosition": 10
-    },
-    {
      "query": "judge description mafia",
      "page": "en/roles/judge/",
      "clicks": 0,
@@ -1557,6 +1588,15 @@
      "ctr": 0,
      "position": 9.642857142857142,
      "prevPosition": null
+    },
+    {
+     "query": "jester role description mafia",
+     "page": "en/roles/jester/",
+     "clicks": 0,
+     "impressions": 11,
+     "ctr": 0,
+     "position": 8.909090909090908,
+     "prevPosition": 10.333333333333334
     },
     {
      "query": "bodyguard description mafia",
@@ -1602,15 +1642,6 @@
      "ctr": 0,
      "position": 10.857142857142858,
      "prevPosition": 8
-    },
-    {
-     "query": "jester role description mafia",
-     "page": "en/roles/jester/",
-     "clicks": 0,
-     "impressions": 7,
-     "ctr": 0,
-     "position": 9.857142857142858,
-     "prevPosition": 10.333333333333334
     },
     {
      "query": "judge mafia role description",
@@ -1748,8 +1779,8 @@
      "q": "citizen and mafia",
      "page": "en/roles/citizen/",
      "tier": "long",
-     "position": 7.615384615384615,
-     "impressions": 13,
+     "position": 7.4375,
+     "impressions": 16,
      "clicks": 0,
      "rankingPage": "en/roles/citizen/"
     },
@@ -1820,17 +1851,35 @@
      "q": "bodyguard role description mafia",
      "page": "en/roles/bodyguard/",
      "tier": "long",
-     "position": 6.5,
-     "impressions": 2,
+     "position": 8,
+     "impressions": 3,
      "clicks": 0,
      "rankingPage": "en/roles/bodyguard/"
+    },
+    {
+     "q": "judge role description mafia",
+     "page": "en/roles/judge/",
+     "tier": "long",
+     "position": 9,
+     "impressions": 19,
+     "clicks": 0,
+     "rankingPage": "en/roles/judge/"
+    },
+    {
+     "q": "puppeteer mafia roblox",
+     "page": "en/roles/puppeteer/",
+     "tier": "long",
+     "position": 9.333333333333334,
+     "impressions": 15,
+     "clicks": 0,
+     "rankingPage": "en/roles/puppeteer/"
     }
    ]
   },
   "pl": {
    "clicks": 55,
-   "impressions": 4031,
-   "position": 6.528156784916894,
+   "impressions": 4033,
+   "position": 6.528142821720803,
    "top": [
     {
      "query": "mafia all stars glosowanie",
@@ -2061,7 +2110,7 @@
    "countries": [
     [
      "pol",
-     4012
+     4014
     ],
     [
      "esp",
@@ -2296,8 +2345,8 @@
      "q": "don mafia",
      "page": "pl/roles/don/",
      "tier": "long",
-     "position": 4.666666666666667,
-     "impressions": 3,
+     "position": 6,
+     "impressions": 4,
      "clicks": 0,
      "rankingPage": "pl/roles/don/"
     },
@@ -2323,9 +2372,18 @@
   },
   "hy": {
    "clicks": 0,
-   "impressions": 4,
-   "position": 7.75,
+   "impressions": 6,
+   "position": 8.5,
    "top": [
+    {
+     "query": "մաֆիա խաղ կանոններ",
+     "page": "hy/rules/",
+     "clicks": 0,
+     "impressions": 3,
+     "ctr": 0,
+     "position": 9.666666666666666,
+     "prevPosition": 5
+    },
     {
      "query": "մաֆիա",
      "page": "hy/",
@@ -2343,18 +2401,13 @@
      "ctr": 0,
      "position": 10,
      "prevPosition": 7
-    },
-    {
-     "query": "մաֆիա խաղ կանոններ",
-     "page": "hy/rules/",
-     "clicks": 0,
-     "impressions": 1,
-     "ctr": 0,
-     "position": 9,
-     "prevPosition": 5
     }
    ],
    "countries": [
+    [
+     "arm",
+     3
+    ],
     [
      "geo",
      1
@@ -2365,10 +2418,6 @@
     ],
     [
      "ita",
-     1
-    ],
-    [
-     "arm",
      1
     ]
    ],
@@ -2427,8 +2476,8 @@
      "q": "մաֆիա խաղ կանոններ",
      "page": "hy/rules/",
      "tier": "long",
-     "position": 9,
-     "impressions": 1,
+     "position": 9.666666666666666,
+     "impressions": 3,
      "clicks": 0,
      "rankingPage": "hy/rules/"
     },
@@ -3111,8 +3160,8 @@
    "performance": 99,
    "seo": 100,
    "accessibility": 100,
-   "lcp": "1.8 s",
-   "cls": "0.041",
+   "lcp": "1.7 s",
+   "cls": "0.021",
    "tbt": "0 ms",
    "fails": [],
    "field": null,
@@ -3120,10 +3169,10 @@
   },
   {
    "url": "https://mafiapro.app/en/",
-   "performance": 99,
+   "performance": 100,
    "seo": 100,
    "accessibility": 100,
-   "lcp": "1.6 s",
+   "lcp": "0.9 s",
    "cls": "0.001",
    "tbt": "0 ms",
    "fails": [],
@@ -3132,11 +3181,11 @@
   },
   {
    "url": "https://mafiapro.app/ru/roles/don/",
-   "performance": 94,
+   "performance": 93,
    "seo": 100,
    "accessibility": 100,
-   "lcp": "3.1 s",
-   "cls": "0.02",
+   "lcp": "3.2 s",
+   "cls": "0.019",
    "tbt": "0 ms",
    "fails": [
     "Largest Contentful Paint"
@@ -3284,5 +3333,5 @@
    "status": 200
   }
  ],
- "rows": 629
+ "rows": 635
 }
