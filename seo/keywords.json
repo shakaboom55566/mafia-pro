@@ -26,7 +26,8 @@
       { "q": "что делает шут в мафии", "page": "ru/roles/jester/", "tier": "long" },
       { "q": "дон мафии", "page": "ru/roles/don/", "tier": "long" },
       { "q": "адвокат в мафии", "page": "ru/roles/lawyer/", "tier": "long" },
-      { "q": "что делает телохранитель в мафии", "page": "ru/roles/bodyguard/", "tier": "long" }
+      { "q": "что делает телохранитель в мафии", "page": "ru/roles/bodyguard/", "tier": "long" },
+      { "q": "кто такой дон в мафии", "page": "ru/roles/don/", "tier": "long" }
     ]
   },
   "uk": {
@@ -77,7 +78,9 @@
       { "q": "mafia roles", "page": "en/roles/", "tier": "mid" },
       { "q": "jester in mafia game", "page": "en/roles/jester/", "tier": "long" },
       { "q": "mafia tracker", "page": "en/roles/tracker/", "tier": "long" },
-      { "q": "bodyguard role description mafia", "page": "en/roles/bodyguard/", "tier": "long" }
+      { "q": "bodyguard role description mafia", "page": "en/roles/bodyguard/", "tier": "long" },
+      { "q": "judge role description mafia", "page": "en/roles/judge/", "tier": "long" },
+      { "q": "puppeteer mafia roblox", "page": "en/roles/puppeteer/", "tier": "long" }
     ]
   },
   "pl": {

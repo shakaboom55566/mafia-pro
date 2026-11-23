@@ -22,5 +22,45 @@
       ["Кто показывает цель, если Дон выбыл?", "Следующий по старшинству: Оружейник → Палач → Шпион → … → Мафия. Поиск Шерифа никому не передаётся."],
       ["Каким цветом Дон для проверки Шерифа?", "Чёрным: Дон играет за команду мафии."]
     ]
+  },
+  "ru/roles/jester/": {
+    "title": "Что делает шут в мафии: правила роли | Mafia Pro",
+    "desc": "Шут в мафии побеждает, если город выгонит его голосованием, а выстрел ночью победы не даёт. Как играть за Шута и каким цветом он для проверок — с советом.",
+    "intro": "Шут в мафии — нейтральная роль: он играет сам за себя и побеждает, если город выгонит его дневным голосованием. Ниже — что делает Шут, что будет, если его застрелят ночью, и как за него играть.",
+    "faq": [
+      ["Что делает Шут в мафии?", "Ночью не просыпается. Его цель — чтобы город выгнал его голосованием: тогда Шут выиграл, а игра для остальных продолжается."],
+      ["Побеждает ли Шут, если его застрелили ночью?", "Нет. Победу даёт только изгнание голосованием, выстрел ночью — нет."],
+      ["Каким цветом Шут для проверок?", "Красным. Город и семья не знают, кто Шут."]
+    ]
+  },
+  "en/roles/jester/": {
+    "title": "Jester in Mafia game: role rules and how to win | Mafia Pro",
+    "desc": "The Jester in the Mafia game wins if the town votes him out; a night shot gives no win. How the role works, its color for checks, and how to play it.",
+    "intro": "The Jester is a neutral Mafia role that plays for himself: he wins if the town votes him out by day. Below — what the Jester does, what happens if he is shot at night, and how to play him.",
+    "faq": [
+      ["What does the Jester do in the Mafia game?", "He does not wake at night. His goal is to get voted out: then the Jester wins, and the game goes on for everyone else."],
+      ["Does the Jester win if he is shot at night?", "No. Only being voted out counts; a night shot gives the Jester no win."],
+      ["What color is the Jester for checks?", "Red. Neither the town nor the family knows who the Jester is."]
+    ]
+  },
+  "en/roles/judge/": {
+    "title": "Judge role in Mafia: description and rules | Mafia Pro",
+    "desc": "The Judge in the Mafia game can cancel one vote per game: nobody leaves and the town goes to sleep. Role description, when to use the veto, and a tip.",
+    "intro": "The Judge is a town role in the Mafia game with a one-time day ability: he can cancel the result of a vote. Below — how the veto works, what it costs the Judge, and when to use it.",
+    "faq": [
+      ["What does the Judge do in the Mafia game?", "Once per game, after the votes are counted, he declares: “The town expels nobody.” The vote is cancelled, nobody leaves, and the town goes to sleep."],
+      ["Does the Judge wake up at night?", "No. The Judge acts only by day, after a vote count."],
+      ["Does the veto reveal the Judge?", "Yes. Cancelling the vote reveals the Judge, so save it for the day the town is about to expel a revealed Sheriff."]
+    ]
+  },
+  "en/roles/lobbyist/": {
+    "title": "Lobbyist role in the Mafia game: how to win | Mafia Pro",
+    "desc": "The Lobbyist wins if three players he voted for are voted out, whoever wins the game. How the hits are counted, his color for checks, and how to play him.",
+    "intro": "The Lobbyist is a neutral role in the Mafia game with his own goal: three of his votes must hit. He wins at the end of the game no matter which side wins. Below — how the hits count and how to play him.",
+    "faq": [
+      ["How does the Lobbyist win?", "When three players he voted for have been voted out. Only votes where the Lobbyist voted for the eliminated player count."],
+      ["Does the Lobbyist need the town or the mafia to win?", "No. With three hits the Lobbyist wins at the end of the game, whoever wins."],
+      ["What color is the Lobbyist for checks?", "Red."]
+    ]
   }
 }
